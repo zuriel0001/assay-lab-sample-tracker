@@ -19,7 +19,8 @@ You need a GitHub account (you have one) and an Azure account. Everything below 
 3. **Create the database.** In the Azure portal (https://portal.azure.com): *Create a resource* → search
    **Azure Cosmos DB** → *Azure Cosmos DB for NoSQL* → *Create*.
    - Resource group: *Create new*, `sample-tracker`. Account name: for example `metlab-tracker-db`.
-   - Location: the region nearest the mine (for example *South Africa North* or *West Europe*).
+   - Location: **West Europe**, the same region as the web app's API in step 4, so the two talk quickly. (Static Web Apps
+     runs its API in only a few regions; West Europe is the nearest of them to Ghana.)
    - Capacity mode: **Provisioned throughput**. **Apply Free Tier Discount: Apply.**
      **Limit total account throughput: ticked** (keeps it inside the free 1000 RU/s).
    - On the **Backup Policy** tab choose **Continuous (7 days)**. Keeping it is free; it lets you put the database back
@@ -27,7 +28,8 @@ You need a GitHub account (you have one) and an Azure account. Everything below 
    - *Review + create* → *Create*. When it is ready, open it → *Settings* → *Keys* → copy the
      **PRIMARY CONNECTION STRING**.
 4. **Create the web app.** *Create a resource* → search **Static Web App** → *Create*.
-   - Resource group `sample-tracker`, name `metlab-sample-tracker`, Plan type **Free**.
+   - Resource group `sample-tracker`, name `metlab-sample-tracker`, Plan type **Free**. Region for the API (and staging):
+     **West Europe**.
    - Source **GitHub**: sign in, pick the repository from step 1, branch `main`.
    - Build presets **Custom**. App location `/app`. Api location `/api`. Output location: leave empty.
    - *Review + create* → *Create*. Azure adds a deployment file to the repository and publishes the site; the
