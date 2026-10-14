@@ -10,8 +10,8 @@ decides who may read and change what.
 
 You need a GitHub account (you have one) and an Azure account. Everything below stays on free plans.
 
-1. **Create an empty GitHub repository.** Go to https://github.com/new, name it `met-lab-sample-tracker`, choose
-   Private, leave every box unticked and press *Create repository*. Tell Claude the name; Claude puts the code in it.
+1. **GitHub repository** (done): https://github.com/zuriel0001/met-lab-sample-tracker holds this folder. Claude pushes
+   updates there; each push redeploys the site automatically once step 4 is done.
 2. **Create a free Azure account** at https://azure.microsoft.com/free. Microsoft asks for a card to check your
    identity; the plans below don't charge it.
 3. **Create the database.** In the Azure portal (https://portal.azure.com): *Create a resource* → search
@@ -79,6 +79,8 @@ the tracker already shapes them. Sources: [SQL free offer](https://learn.microso
   ledger CSV during the test and keep the paper log going.
 - **The certificate still says it is a design prototype**, not an official laboratory certificate.
 - The example reference material values and permit limits are still example values (Settings).
+- The API trusts the sign-in details Static Web Apps adds to each request (`x-ms-client-principal`). Claude checks,
+  once the site is live, that a request can't fake them.
 - Teams: the site can be pinned in a Teams channel as a link or website tab; a proper Teams app is a later step.
 
 ## Who can do what (enforced by the server)
@@ -105,14 +107,37 @@ Staff see each other's names and roles but not their sign-in emails. The ledger 
 | `api/lib/store-cosmos.js` | Cosmos DB store: one container `docs` in database `tracker` (created on first use with 1000 RU/s shared), partitioned by collection; ETag checks on every read-modify-write; leases as records; deletes kept as markers so open pages hear about them. |
 | `api/lib/store-memory.js` | The same store in memory, for local runs and tests. |
 | `dev/server.js` | Local stand-in for Static Web Apps: `node dev/server.js` → http://localhost:4280, in-memory data, a local sign-in page (type an email, or an example username such as `tech1`). |
-| `test/api-tests.js` | 54 checks of the read/write rules and the Functions entry points. |
-| `test/store-tests.js` | 21 checks on each store; Cosmos runs against `@vercel/cosmosdb-server` (a local Cosmos imitation) or a real account. |
-| `test/run-suites.js` | Runs the prototype's own five browser suites, unchanged, against this build (real page, real API over HTTP). |
+| `test/api-tests.js` | 55 checks of the read/write rules and the Functions entry points. |
+| `test/store-tests.js` | 22 checks on each store; Cosmos runs against `@vercel/cosmosdb-server` (a local Cosmos imitation) or a real account. |
+| `test/run-suites.js` | Runs the prototype's own five browser suites, unchanged, against this build (real page, real API over HTTP), then `azure-extra.js`. |
+| `test/azure-extra.js` | 22 browser checks of what is new: Microsoft sign-in, first admin, accounts by email, upgrade on staff sign-in, what the public sees. |
 
 Patches `build.py` makes to the page: start after `/api/me` answers; tracking links use this site's address; the
 sign-in tab is *Sign in with Microsoft*; accounts have a *Microsoft sign-in email* instead of a password; the first
 admin is added to the account list on their first visit to Settings; upgrades and ledger repairs run when a staff
 member signs in; permission errors from the server are shown as such; the header says *Test system*.
+
+### Test results (2026-10-14)
+
+| Suite | Result |
+|---|---|
+| `api-tests.js` | 55 / 55 |
+| `store-tests.js` | 44 / 44 (22 in memory, 22 on the local Cosmos DB imitation) |
+| `azure-extra.js` | 22 / 22 |
+| Prototype `run.js` | 96 / 101 |
+| Prototype `results-tests.js` | 87 / 88 |
+| Prototype `v12-tests.js` | 67 / 69 |
+| Prototype `review-tests-v11.js` | 41 / 41 |
+| Prototype `review-v11-scenarios.js` | 5 / 5 |
+
+No console errors in any suite. The 8 prototype checks that don't pass all expect a page **nobody is signed in to** to
+upgrade older records (7) or finish a lab batch a crashed device left half-made (1). On Azure the public can't
+change records, so these run when lab staff sign in, and every five minutes on staff pages (`azure-extra.js` checks
+the upgrade on sign-in). Real data on Azure starts at v12, so the upgrade itself only matters for the tests.
+
+Found and fixed while testing: the public form couldn't release its short claim on a new ID (staff waited up to
+4 s to receive a just-submitted sample); lists didn't refresh when a page's sign-in changed; a guest page could
+briefly try to show withheld results when an admin opened results to everyone.
 
 ### Running the checks
 
