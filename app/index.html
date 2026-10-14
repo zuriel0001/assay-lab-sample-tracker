@@ -1806,9 +1806,15 @@ function renderLogin(){
   v.innerHTML = `<div class="panel stack" id="loginForm" style="max-width:520px">
       <h2>Staff sign in</h2>
       ${m.signedIn && !session ? `<div class="notice warn">Signed in as <b>${esc(m.email)}</b>: no access yet. <a href="/.auth/logout?post_logout_redirect_uri=%2F">Use a different account</a></div><div id="accReq"></div>`
-        : `<div class="row"><a class="btn primary big" id="msSignIn" href="/.auth/login/aad?post_login_redirect_uri=${back}">Sign in with Microsoft</a></div>`}
+        : `<div class="row"><a class="btn primary big" id="msSignIn" href="/.auth/login/aad?post_login_redirect_uri=${back}">Sign in with email</a>
+          <a class="btn big" id="msSignUp" style="color:inherit" href="https://signup.live.com/" target="_blank" rel="noopener">Sign up</a></div>`}
     </div>`;
   if (m.signedIn && !session) renderAccessRequest();
+  // Sign up makes a Microsoft account with the person's own email, in a new tab; back here, Sign in is ready to press.
+  $("#msSignUp")?.addEventListener("click", () => {
+    const f = () => { if (document.visibilityState === "visible"){ document.removeEventListener("visibilitychange", f); $("#msSignIn")?.focus(); } };
+    document.addEventListener("visibilitychange", f);
+  });
 }
 /* ---------- access requests (access/<key of the email>): a Microsoft account without access asks the lab manager ---------- */
 const accessKey = em => [...String(em || "").toLowerCase()].map(c => /[a-z0-9._-]/.test(c) ? c : "~" + c.codePointAt(0).toString(16) + "~").join("").slice(0, 190);

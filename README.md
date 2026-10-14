@@ -43,11 +43,15 @@ You need a GitHub account (you have one) and an Azure account. Everything below 
 
    Press *Apply*.
 6. **Open the site** (the URL on the Static Web App's *Overview*, like `https://xxxx.azurestaticapps.net`).
-   *Staff sign in* → **Sign in with Microsoft**. You arrive as admin. On **Settings → Staff accounts**, type each
+   *Staff sign in* → **Sign in with email**. You arrive as admin. On **Settings → Staff accounts**, type each
    person's Microsoft sign-in email on their row (your own row is added for you), delete example rows you don't
    need, and press **Save settings**. From then on, the people on that list sign in with their role.
 
-   Anyone else who signs in with Microsoft can press **Request access**. Their request appears at the top of
+   Someone without a Microsoft account presses **Sign up**: it opens Microsoft's free *Create account* page in a new
+   tab, where they use their own email (Gmail, Yahoo or any other) and a password of their choice. Back on the site
+   they press **Sign in with email**. Microsoft keeps the passwords and handles password resets.
+
+   Anyone else who signs in can press **Request access**. Their request appears at the top of
    **Settings** (the tab shows how many are waiting); pick a role and press **Approve**, or **Decline**.
 
    **If Microsoft says "Need admin approval"** (a company account whose IT does not let staff approve apps themselves),
@@ -56,7 +60,7 @@ You need a GitHub account (you have one) and an Azure account. Everything below 
      Microsoft account at https://signup.live.com. Put that address in `ADMIN_EMAILS` (step 5, *Apply*), open the site in
      a private window, and on Microsoft's sign-in page choose *Use another account*.
    - Or ask the company's IT administrator to approve the site once for everyone: they open the site, choose
-     *Staff sign in* → *Sign in with Microsoft*, sign in with their admin account, tick
+     *Staff sign in* → *Sign in with email*, sign in with their admin account, tick
      **Consent on behalf of your organization** and press **Accept**. After that every company account can sign in
      (it still sees only the public pages until its email is on a staff account).
 
@@ -147,10 +151,10 @@ can't make a signed-in person's browser change records.
 | `test/api-tests.js` | 121 checks of the read/write rules, the record-keeping rules, stock records, access requests, the backup export and the Functions entry points. |
 | `test/store-tests.js` | 27 checks on each store; Cosmos runs against `@vercel/cosmosdb-server` (a local Cosmos imitation) or a real account. |
 | `test/run-suites.js` | Runs the prototype's own six browser suites against this build (real page, real API over HTTP), unchanged, then `azure-extra.js`. |
-| `test/azure-extra.js` | 36 browser checks of what is new: Microsoft sign-in, first admin, accounts by email, requesting and approving access, upgrade on staff sign-in, what the public sees, the backup download, the server refusing a tampered page's changes. |
+| `test/azure-extra.js` | 37 browser checks of what is new: Microsoft sign-in, first admin, accounts by email, requesting and approving access, upgrade on staff sign-in, what the public sees, the backup download, the server refusing a tampered page's changes. |
 
 Patches `build.py` makes to the page: start after `/api/me` answers; tracking links use this site's address; the
-sign-in tab is *Sign in with Microsoft*; accounts have a *Microsoft sign-in email* instead of a password; the first
+sign-in tab has *Sign in with email* (Microsoft sign-in) and *Sign up* (Microsoft's create-account page); accounts have a *Microsoft sign-in email* instead of a password; the first
 admin is added to the account list on their first visit to Settings; upgrades and ledger repairs run when a staff
 member signs in; permission errors from the server are shown as such; the header says *Test system*; the prototype's
 explanatory paragraphs are taken out (labels, warnings, status lines and each route's own description stay).
@@ -161,7 +165,7 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 |---|---|
 | `api-tests.js` | 121 / 121 |
 | `store-tests.js` | 54 / 54 (27 in memory, 27 on the local Cosmos DB imitation) |
-| `azure-extra.js` | 36 / 36 |
+| `azure-extra.js` | 37 / 37 |
 | Prototype `run.js` | 101 / 107 |
 | Prototype `results-tests.js` | 87 / 88 |
 | Prototype `v12-tests.js` | 67 / 70 |

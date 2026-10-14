@@ -21,7 +21,8 @@ const log = t => console.log("• " + t);
   check(await P.$eval("#who", e => e.textContent) === "Not signed in" && await P.$eval("#signBtn", e => e.hidden), "header: not signed in, no sign-out button");
   await P.click('[data-tab="login"]');
   const href = await P.$eval("#msSignIn", a => a.getAttribute("href"));
-  check(/^\/\.auth\/login\/aad\?post_login_redirect_uri=/.test(href), "sign-in goes to the Microsoft sign-in");
+  check(/^\/\.auth\/login\/aad\?post_login_redirect_uri=/.test(href) && await P.textContent("#msSignIn") === "Sign in with email", "Sign in with email goes to the Microsoft sign-in");
+  check(await P.$eval("#msSignUp", a => a.href === "https://signup.live.com/" && a.target === "_blank" && a.textContent === "Sign up"), "Sign up opens Microsoft's create-account page in a new tab");
   check(!(await P.$("#lgPass")) && !/admin123/.test(await P.content()), "no password box and no demo passwords on the page");
 
   log("Staff sign-in and upgrade");
