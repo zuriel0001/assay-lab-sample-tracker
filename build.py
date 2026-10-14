@@ -1,17 +1,17 @@
-"""Builds app/index.html, the Azure version of the MET Lab Sample Tracker, from the published prototype page.
+"""Builds app/index.html, the Azure version of the Assay Lab Sample Tracker, from the published prototype page.
 
-It reads ../sample-tracking/met-lab-sample-tracker.html (owned by the build thread; never edited here) and applies a short list
+It reads ../sample-tracking/assay-lab-sample-tracker.html (owned by the build thread; never edited here) and applies a short list
 of patches: the page talks to /api through app/azure-shim.js, staff sign in with Microsoft, and accounts are matched by their
 Microsoft sign-in email instead of demo passwords. Each patch must match exactly once, so a change in the prototype that
 breaks one stops the build instead of producing a half-patched page.
 
-    python3 build.py            # uses ../sample-tracking/met-lab-sample-tracker.html
+    python3 build.py            # uses ../sample-tracking/assay-lab-sample-tracker.html
     python3 build.py SOURCE.html
 """
 import os, re, sys, json, hashlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "..", "sample-tracking", "met-lab-sample-tracker.html")
+SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "..", "sample-tracking", "assay-lab-sample-tracker.html")
 page = open(SRC, encoding="utf-8").read()
 src_hash = hashlib.sha256(page.encode()).hexdigest()[:12]
 
@@ -300,7 +300,7 @@ drop('''<p class="small muted" style="margin:0">Writes an outbound ledger moveme
 put('''. Put the retained material away and record returns or disposal under <b>Retained material</b>; each material has its own retention date.</p>''', '''.</p>''')
 drop('''<p class="small muted" style="margin:0">Each material is kept for its own period from the release of results, then returned or disposed. Every return, disposal or send-out is written to the ledger.</p>''')
 put('''Describe it in the note; it is printed on the record.</div>''', '''Describe it in the note.</div>''')
-put('''. The lab sends them to the submitting section; ask the MET Lab for the certificate. A copy you hold is genuine if its number and check code match these.</p>''', '''.</p>''')
+put('''. The lab sends them to the submitting section; ask the Assay Lab for the certificate. A copy you hold is genuine if its number and check code match these.</p>''', '''.</p>''')
 put('''.join(", ")}. They stay on record.</div>''', '''.join(", ")}.</div>''')
 put(''' : "Type each result."} Use <b>&lt;DL</b> when a result is below the detection limit. The dot is the decimal mark; a number such as 1,500 is refused because it could mean 1500 or 1.5.</p>''',
     ''' : ""} Use <b>&lt;DL</b> below the detection limit; the dot is the decimal mark.</p>''')
@@ -325,11 +325,11 @@ put('''+${items.length - 40} more: use the filters or look a sample up by ID</di
 
 # Submit a sample / Register at lab
 put('''<p class="muted small" style="margin:4px 0 0">For samples brought straight to the lab without an online submission. The sample is recorded as received by you and written to the inbound ledger. Each sample gets an ID made of the section code, the date and a running number, like <span class="mono">${esc(exampleId("EXP"))}</span>, and follows the workflow route for its type and test.</p>''', '')
-put('''<p class="muted small" style="margin:4px 0 0">No sign-in needed. Fill this in when you send samples to the MET Lab. You get the sample ID straight away: write it on the bag, or print the label, and use it to track progress. Each ID is the section code, the submission date and a running number, like <span class="mono">${esc(exampleId("EXP"))}</span>. The sample type and test decide its workflow and expected finish; a lab technician confirms receipt when it arrives.</p>''', '')
+put('''<p class="muted small" style="margin:4px 0 0">No sign-in needed. Fill this in when you send samples to the Assay Lab. You get the sample ID straight away: write it on the bag, or print the label, and use it to track progress. Each ID is the section code, the submission date and a running number, like <span class="mono">${esc(exampleId("EXP"))}</span>. The sample type and test decide its workflow and expected finish; a lab technician confirms receipt when it arrives.</p>''', '')
 put('''<span class="small muted" style="font-weight:400">All ${TESTS.length} tests are in this list: the ones recommended for the sample type first, then every other test by category. <button type="button" class="btn ghost small" data-goto="routes">See all tests</button></span>''', '')
 put('''\n    : `<div class="route-box"><div class="small muted">Choose the sample type, purpose and test to see the workflow this sample will follow and when results can be expected.</div></div>`;''', '''\n    : "";''')
 put('''after the lab receives the sample (an estimate from the step times). ${(r.retention''', '''after receipt. ${(r.retention''')
-put(''' Write ${n === 1 ? "this ID" : "these IDs"} on the sample bag${n === 1 ? "" : "s"}, or print the label${n === 1 ? "" : "s"}${lab ? "" : ", then bring or send the sample to the MET Lab. Its status shows “Awaiting receipt” until a lab technician confirms it has arrived"}:''',
+put(''' Write ${n === 1 ? "this ID" : "these IDs"} on the sample bag${n === 1 ? "" : "s"}, or print the label${n === 1 ? "" : "s"}${lab ? "" : ", then bring or send the sample to the Assay Lab. Its status shows “Awaiting receipt” until a lab technician confirms it has arrived"}:''',
     ''' Write ${n === 1 ? "this ID" : "these IDs"} on the bag${n === 1 ? "" : "s"} or print the label${n === 1 ? "" : "s"}:''')
 put('''after the lab receives ${n === 1 ? "it" : "them"} (an estimate).</div>''', '''after receipt.</div>''')
 
@@ -433,6 +433,6 @@ SHELL_HEAD = (
     'html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}'
     'img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>\n'
 )
-page = SHELL_HEAD.replace('<meta charset="utf-8">', f'<meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from met-lab-sample-tracker.html (sha256 {src_hash}) -->', 1) + page + "</body></html>\n"
+page = SHELL_HEAD.replace('<meta charset="utf-8">', f'<meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from {os.path.basename(SRC)} (sha256 {src_hash}) -->', 1) + page + "</body></html>\n"
 open(out, "w", encoding="utf-8").write(page)
 print(f"{out}: {len(page)} bytes from {os.path.basename(SRC)} ({src_hash})")

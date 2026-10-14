@@ -1,6 +1,6 @@
-# MET Lab Sample Tracker on Azure (free test deployment)
+# Assay Lab Sample Tracker on Azure (free test deployment)
 
-This folder is the v13 MET Lab Sample Tracker made to run outside Claude, on Microsoft Azure free tiers.
+This folder is the v14 Assay Lab Sample Tracker made to run outside Claude, on Microsoft Azure free tiers.
 It keeps the prototype's workflow exactly: routes, lab batches and QC, action limits, the second-person release,
 amendments, certificates, the in/out ledger, public submission and lookup without sign-in, and the roles.
 What changes is where data lives (Azure Cosmos DB), how staff sign in (their Microsoft account) and a server that
@@ -157,7 +157,7 @@ can't make a signed-in person's browser change records.
 
 | Path | What it is |
 |---|---|
-| `app/index.html` | The page. Built by `build.py` from `../sample-tracking/met-lab-sample-tracker.html` (v13), which it never edits. Every patch must match exactly once, so a changed prototype fails the build loudly. |
+| `app/index.html` | The page. Built by `build.py` from `../sample-tracking/assay-lab-sample-tracker.html` (v14), which it never edits. Every patch must match exactly once, so a changed prototype fails the build loudly. |
 | `app/azure-shim.js` | Gives the page the shared-database interface it was written for, over `/api/db`: documents, where-filters, live snapshots (by polling for changes), short leases; plus the signed-in person (`/api/me`) and downloads. |
 | `app/staticwebapp.config.json` | Node 22 API, Microsoft sign-in only (GitHub sign-in turned off), `/login` and `/logout`. |
 | `api/db`, `api/me`, `api/auth` | Azure Functions (HTTP) behind `/api`. |

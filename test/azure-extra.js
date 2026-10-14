@@ -157,7 +157,7 @@ const log = t => console.log("• " + t);
 
   log("Backup, and the server's record-keeping rules");
   await B.click("#cfgBackup");
-  await B.waitForFunction(() => window.__downloaded && /^met-lab-backup-/.test(window.__downloaded.filename), null, { timeout: 8000 }).catch(() => {});
+  await B.waitForFunction(() => window.__downloaded && /^assay-lab-backup-/.test(window.__downloaded.filename), null, { timeout: 8000 }).catch(() => {});
   const bk = await B.evaluate(() => { try { return JSON.parse(window.__downloaded.data); } catch { return null; } });
   check(!!(bk && bk.collections.samples[sid] && bk.collections.settings.stages && bk.records > 3), "the lab manager downloads a backup of every record");
   const post = (pg, ops) => pg.evaluate(async ops => (await (await fetch("/api/db", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ops }) })).json()).results, ops);

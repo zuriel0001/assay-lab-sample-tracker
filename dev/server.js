@@ -71,7 +71,7 @@ function start({ port = 4280, store = null, adminEmails = (process.env.ADMIN_EMA
   });
   return new Promise(resolve => server.listen(port, () => {
     const p = server.address().port;
-    if (!quiet) console.log(`MET Lab Sample Tracker (local) on http://localhost:${p}  database: ${store.kind}`);
+    if (!quiet) console.log(`Assay Lab Sample Tracker (local) on http://localhost:${p}  database: ${store.kind}`);
     resolve({ port: p, store, server, close: () => new Promise(r => server.close(r)) });
   }));
 }

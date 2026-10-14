@@ -1,4 +1,4 @@
-/* Connects the MET Lab Sample Tracker page to its Azure API.
+/* Connects the Assay Lab Sample Tracker page to its Azure API.
    The page was written for a small shared-database interface (collections, documents, where-filters, live snapshots, short leases).
    This file provides that interface over /api/db, and live updates by asking the server for changes every few seconds.
    It also provides the signed-in person (/api/me, from the Microsoft sign-in) and file downloads. */
@@ -235,8 +235,8 @@ window.__backup = async () => {
     }
   }
   const at = new Date();
-  await downloads.save({ filename: `met-lab-backup-${at.toISOString().slice(0, 10)}.json`, mimeType: "application/json",
-    data: JSON.stringify({ app: "MET Lab Sample Tracker", site: location.host, exportedAt: at.toISOString(), records: n, collections: out }) });
+  await downloads.save({ filename: `assay-lab-backup-${at.toISOString().slice(0, 10)}.json`, mimeType: "application/json",
+    data: JSON.stringify({ app: "Assay Lab Sample Tracker", site: location.host, exportedAt: at.toISOString(), records: n, collections: out }) });
   return n;
 };
 

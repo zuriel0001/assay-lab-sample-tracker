@@ -1,5 +1,5 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from met-lab-sample-tracker.html (sha256 08fa6790dc36) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>MET Lab Sample Tracker</title>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 27cc00979013) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap">
@@ -279,8 +279,8 @@ table.bpos.multi td.pos-cell .mono{white-space:nowrap}
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <small>Mine site → Metallurgical laboratory</small>
-      <h1>MET Lab Sample Tracker</h1>
+      <small>Mine site → Assay laboratory</small>
+      <h1>Assay Lab Sample Tracker</h1>
     </div>
     <div class="row" style="gap:8px"><span class="pill" title="Test deployment on Azure: not yet the validated production system">Test system</span><span class="pill warn" id="sync">Connecting…</span><span class="who" id="who"></span><button class="btn" id="pwBtn" type="button" hidden>Password</button><button class="btn" id="signBtn" type="button" hidden>Sign out</button></div>
   </header>
@@ -3979,7 +3979,7 @@ function certHtml(s, c){
     ...(c.alerts || []).map(a => `${esc(a.line)}. ${esc(a.act)}.${a.ack ? ` Recorded by ${esc(a.ack.tech)}: ${esc(a.ack.note)}` : ""}`),
     c.amendBy ? `Amendment proposed by ${esc(c.amendBy.tech)} and approved by ${esc(c.tech)}.` : "", c.self ? `Released by a person who also entered results: ${esc(c.self)}` : ""].filter(Boolean);
   return `<div class="cert">
-    <div class="cert-head"><div><div class="cert-org">Metallurgical Laboratory · Mine site</div><h2>Certificate of analysis</h2></div>
+    <div class="cert-head"><div><div class="cert-org">Assay Laboratory · Mine site</div><h2>Certificate of analysis</h2></div>
       <div class="cert-no"><div class="mono">${esc(c.no)}</div><div>Version ${c.v} · ${esc(fmtFull(c.at))}</div>${c.code ? `<div>Check code <span class="mono">${esc(c.code)}</span></div>` : ""}</div></div>
     ${c.amends ? `<div class="cert-amend">Amended certificate. Replaces ${esc(c.amends)}. Reason: ${esc(c.why || "")}</div>` : ""}
     <table class="cert-facts">
@@ -3993,7 +3993,7 @@ function certHtml(s, c){
       ${c.an.map(a => `<tr><td>${esc(a.n)}</td><td class="mono"><b>${esc(resText(c.rows[a.k], a))}</b></td><td>${esc(a.u || "")}</td><td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>${c.cov ? `<td>${covText(c.cov[a.k])}</td>` : ""}</tr>`).join("")}</tbody></table>
     ${exc.length ? `<div class="cert-note">${exc.join("<br>")}</div>` : ""}
     <div class="cert-sign"><div>Released by <b>${esc(c.tech)}</b>, ${esc(ROLE_SIGN[c.role] || "lab supervisor (QA/QC)")}</div><div>${esc(fmtFull(c.at))}${TZ() ? ` (${esc(TZ())})` : ""}</div></div>
-    <div class="cert-foot">Results relate only to the sample as received. Values below the detection limit are shown as &lt;DL${calc ? "; calculated results and balance checks count them as 0" : ""}. A result marked "Not in a lab batch" is a field, physical or worksheet measurement that is not run with reference materials. ${c.code ? `Check this copy by looking up the sample ID in the MET Lab tracker: the certificate number and check code must match. ` : ""}Design prototype: not an official laboratory certificate.</div>
+    <div class="cert-foot">Results relate only to the sample as received. Values below the detection limit are shown as &lt;DL${calc ? "; calculated results and balance checks count them as 0" : ""}. A result marked "Not in a lab batch" is a field, physical or worksheet measurement that is not run with reference materials. ${c.code ? `Check this copy by looking up the sample ID in the Assay Lab tracker: the certificate number and check code must match. ` : ""}Design prototype: not an official laboratory certificate.</div>
   </div>`;
 }
 function showCert(v){
