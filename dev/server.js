@@ -3,7 +3,7 @@
 //   node dev/server.js            -> http://localhost:4280 with an in-memory database (lost when stopped)
 //   COSMOS_CONNECTION_STRING=... node dev/server.js   -> uses a real Cosmos DB account instead
 const http = require("http"), fs = require("fs"), path = require("path");
-const { createCore, requestProblem } = require("../api/lib/core");
+const { createCore, requestProblem, setCookieHeader } = require("../api/lib/core");
 const { createMemoryStore } = require("../api/lib/store-memory");
 
 const APP = path.join(__dirname, "..", "app");
@@ -24,10 +24,14 @@ function start({ port = 4280, store = null, adminEmails = (process.env.ADMIN_EMA
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, "http://localhost");
     const send = (status, body, headers = {}) => { res.writeHead(status, { "Cache-Control": "no-store", ...headers }); res.end(body); };
-    const json = (status, obj) => send(status, JSON.stringify(obj), { "Content-Type": "application/json" });
+    const json = (status, obj, cookie) => send(status, JSON.stringify(obj), { "Content-Type": "application/json", ...(cookie ? { "Set-Cookie": setCookieHeader(cookie) } : {}) });
     const who = cookies(req).devauth || "";
-    const principal = who ? principalFor(who) : null;
+    // The imitation Microsoft sign-in arrives as Static Web Apps' header would; otherwise the site's own email sign-in (cookie).
+    const headers = { ...req.headers, "x-client-ip": req.socket.remoteAddress || "" };
+    if (who) headers["x-ms-client-principal"] = Buffer.from(JSON.stringify(principalFor(who))).toString("base64");
+    else delete headers["x-ms-client-principal"];
     try {
+      const principal = await core.principal(headers);
       if (url.pathname === "/.auth/login/aad"){
         const back = url.searchParams.get("post_login_redirect_uri") || "/";
         return send(200, `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Sign in (local)</title>
@@ -45,8 +49,13 @@ function start({ port = 4280, store = null, adminEmails = (process.env.ADMIN_EMA
         const back = url.searchParams.get("post_logout_redirect_uri") || "/";
         return send(302, "", { "Set-Cookie": "devauth=; Path=/; Max-Age=0", Location: back.startsWith("/") ? back : "/" });
       }
-      if (url.pathname === "/.auth/me") return json(200, { clientPrincipal: principal });
-      if (url.pathname === "/api/me"){ const r = await core.handleMe(principal); return json(r.status, r.body); }
+      if (url.pathname === "/.auth/me") return json(200, { clientPrincipal: who ? principalFor(who) : null });
+      if (url.pathname === "/api/me"){ const r = await core.handleMe(principal); return json(r.status, r.body, r.cookie); }
+      if (url.pathname === "/api/auth" && req.method === "POST"){
+        const bad = requestProblem(req.headers); if (bad) return json(403, { error: { code: "permission_denied", message: bad } });
+        let body; try { body = JSON.parse(await readBody(req)); } catch { return json(400, { error: { code: "bad_request" } }); }
+        const r = await core.handleAuth(headers, body); return json(r.status, r.body, r.cookie);
+      }
       if (url.pathname === "/api/db" && req.method === "POST"){
         const bad = requestProblem(req.headers); if (bad) return json(403, { error: { code: "permission_denied", message: bad } });
         let body; try { body = JSON.parse(await readBody(req)); } catch { return json(400, { error: { code: "bad_request" } }); }

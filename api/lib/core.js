@@ -1,6 +1,7 @@
 // The API behind the page: who is signed in, and what each person may read and write.
 // The page keeps the prototype's workflow rules; this server decides who sees what and who may change what.
 const { validWhere, clone, same } = require("./docutil");
+const { createAuth, requestKey, clientIp } = require("./auth");
 
 const COLLS = ["samples", "ledger", "batches", "stock", "tagidx", "meta", "settings", "access"];
 const WRITERS = ["tech", "super", "admin"], STAFF = [...WRITERS, "viewer"], APPROVERS = ["super", "admin"];
@@ -19,8 +20,6 @@ function principalOf(headers){
   try { const p = JSON.parse(Buffer.from(h, "base64").toString("utf8")); return p && p.userId && p.userDetails ? p : null; } catch { return null; }
 }
 const fail = (code, msg) => ({ code, message: msg || code });
-/* Access requests are stored under a key made from the email, the same way the page makes it. */
-const accessKey = em => [...String(em || "").toLowerCase()].map(c => /[a-z0-9._-]/.test(c) ? c : "~" + c.codePointAt(0).toString(16) + "~").join("").slice(0, 190);
 /* The API answers this site's own page: a JSON POST from the same origin. That keeps another website from making a signed-in
    person's browser send changes (a form post can't carry JSON, and browsers mark where a request came from). */
 function requestProblem(headers){
@@ -117,24 +116,36 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
     cache = { at: Date.now(), d };
     return d;
   }
+  const auth = createAuth({ store });
+  /* Who sends a request: a Microsoft account (Static Web Apps adds its header), or else this site's own email sign-in. */
+  async function principal(headers){
+    const p = principalOf(headers);
+    return p ? { ...p, via: "microsoft" } : await auth.principal(headers);
+  }
   async function account(principal){
     if (!principal) return { signedIn: false, role: null };
     // A personal Microsoft account can arrive as "live.com#name@outlook.com"; the account list holds the plain address.
     const email = String(principal.userDetails || "").trim().toLowerCase().replace(/^live\.com#/, "");
+    const via = principal.via === "email" ? "email" : "microsoft";
+    if (via === "email" && principal.mustChange) return { signedIn: true, email, via, role: null, mustChange: true };
     const s = await settings();
     const saved = s && Array.isArray(s.users) && s.users.length ? s.users : null;
     const users = saved || devUsers || [];
-    let a = users.find(x => x && x.em && String(x.em).trim().toLowerCase() === email);
-    if (!a && devUsers) a = users.find(x => x && x.u === email) || devUsers.find(x => x.u === email);   // local testing only: sign in by username
-    if (a && a.role) return { signedIn: true, email, u: a.u, name: a.name || a.u, role: a.role, sec: a.role === "section" ? a.sec || "" : "" };
-    if (admins.includes(email)) return { signedIn: true, email, u: email, name: email, role: "admin", sec: "", bootstrap: true };
-    return { signedIn: true, email, role: null };
+    // An account is for one way of signing in: an email login (whose address nobody has checked) never takes the role of a
+    // Microsoft account with the same address, nor the other way round.
+    let a = users.find(x => x && x.em && String(x.em).trim().toLowerCase() === email && (x.via === "email" ? "email" : "microsoft") === via);
+    if (!a && devUsers && via === "microsoft") a = users.find(x => x && x.u === email) || devUsers.find(x => x.u === email);   // local testing only: sign in by username
+    if (a && a.role) return { signedIn: true, email, via, u: a.u, name: a.name || a.u, role: a.role, sec: a.role === "section" ? a.sec || "" : "" };
+    // ADMIN_EMAILS: the first admin. With an email login only until an admin is on the account list.
+    if (admins.includes(email) && (via === "microsoft" || !users.some(x => x && x.role === "admin" && x.em)))
+      return { signedIn: true, email, via, u: email, name: email, role: "admin", sec: "", bootstrap: true };
+    return { signedIn: true, email, via, role: null };
   }
   const isStaff = a => STAFF.includes(a.role), isWriter = a => WRITERS.includes(a.role);
 
   async function visible(a, path, d){
     const { coll, id } = parsePath(path) || {};
-    if (coll === "access") return a.role === "admin" || (a.signedIn && id === accessKey(a.email)) ? d : undefined;   // the lab manager, and the person asking
+    if (coll === "access") return a.role === "admin" || (a.signedIn && id === requestKey(a.email, a.via)) ? d : undefined;   // the lab manager, and the person asking
     if (!isStaff(a) && !["settings", "samples", "tagidx", "meta"].includes(coll)) return undefined;   // ledger, lab batches, stock records: staff only
     if (d == null) return d;
     if (coll === "settings"){
@@ -244,9 +255,10 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
         if (t === "delete") await store.remove(op.path); else if (t === "set") await store.set(op.path, op.data); else await store.update(op.path, op.data);
         return { ok: true };
       }
-      if (!a.signedIn || a.role || t !== "set" || pp.id !== accessKey(a.email)) throw fail("permission_denied", "Only the lab manager answers access requests.");
+      if (!a.signedIn || a.role || a.mustChange || t !== "set" || pp.id !== requestKey(a.email, a.via)) throw fail("permission_denied", "Only the lab manager answers access requests.");
       const d = op.data;
-      if (Object.keys(d).some(k => !["em", "name", "note", "at", "status"].includes(k)) || d.em !== a.email || d.status !== "pending" ||
+      if (Object.keys(d).some(k => !["em", "name", "note", "at", "status", "via"].includes(k)) || d.em !== a.email || d.status !== "pending" ||
+          (a.via === "email" ? d.via !== "email" : d.via != null) ||
           typeof d.name !== "string" || !d.name.trim() || d.name.length > 80 || (d.note != null && (typeof d.note !== "string" || d.note.length > 200)) ||
           !(Math.abs((+d.at || 0) - Date.now()) < 15 * 60000)) throw fail("bad_request", "Not a valid access request.");
       await store.set(op.path, d, { check: cur => cur && cur.status === "pending" ? "This request is already with the lab manager." : "" });
@@ -315,7 +327,14 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
     }
     return { status: 200, body: { now: Date.now(), results } };
   }
-  async function handleMe(principal){ return { status: 200, body: await account(principal) }; }
-  return { handleDb, handleMe, account, _run: run };
+  async function handleMe(principal){ return { status: 200, body: await account(principal), cookie: await auth.renewal(principal) }; }
+  /* POST /api/auth: sign up, sign in and out, and passwords for email logins (auth.js). */
+  async function handleAuth(headers, body){
+    return auth.handle(await principal(headers), body || {}, { accountOf: account, ip: clientIp(headers) });
+  }
+  return { handleDb, handleMe, handleAuth, principal, account, _run: run, _auth: auth };
 }
-module.exports = { createCore, principalOf, redactSample, requestProblem };
+/* The session cookie as Azure Functions sets it, and as a Set-Cookie header (local server). */
+const sessionCookies = c => [{ name: c.name, value: c.value, path: "/", secure: true, httpOnly: true, sameSite: "Strict", maxAge: c.maxAge, ...(c.maxAge ? {} : { expires: new Date(0) }) }];
+const setCookieHeader = c => `${c.name}=${c.value}; Path=/; Max-Age=${c.maxAge}; HttpOnly; Secure; SameSite=Strict`;
+module.exports = { createCore, principalOf, redactSample, requestProblem, sessionCookies, setCookieHeader };

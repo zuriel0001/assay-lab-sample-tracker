@@ -37,7 +37,8 @@ page = page[: -len("})();\n</script>\n")] + "};\n</script>\n"
 put('<span class="pill" title="Design prototype">Prototype</span>', '<span class="pill" title="Test deployment on Azure: not yet the validated production system">Test system</span>')
 put('$("#who").textContent = session ? `${session.name} · ${ROLES[session.role]}` : "Not signed in";',
     '$("#who").textContent = session ? `${session.name} · ${ROLES[session.role]}` : window.__me?.signedIn ? `${window.__me.email} · no access yet` : "Not signed in";')
-put('$("#signBtn").hidden = !session;', '$("#signBtn").hidden = !session && !window.__me?.signedIn;')
+put('$("#signBtn").hidden = !session;', '$("#signBtn").hidden = !session && !window.__me?.signedIn;\n  $("#pwBtn").hidden = !(session && window.__me?.via === "email");')
+put('<button class="btn" id="signBtn" type="button" hidden>Sign out</button>', '<button class="btn" id="pwBtn" type="button" hidden>Password</button><button class="btn" id="signBtn" type="button" hidden>Sign out</button>')
 
 # 3. Accounts: no passwords. Each account has a Microsoft sign-in email (em); the server matches the signed-in person to it.
 put_re(r'  /\* Demo accounts for the prototype\. Admin changes them on the Settings tab\. NOT real security: anyone with the page can read them\. \*/\n',
@@ -64,36 +65,114 @@ window.__resession = () => {
   if (!session) toast(window.__me?.signedIn ? "Your account no longer has access. Ask the lab manager." : "You have been signed out. Sign in again to continue.");
   setTab(tab);
 };
-$("#signBtn").addEventListener("click", () => { location.href = "/.auth/logout?post_logout_redirect_uri=" + encodeURIComponent("/"); });
+$("#signBtn").addEventListener("click", () => signOut());
+$("#pwBtn").addEventListener("click", () => pwDialog());
 ''')
 put_re(r'/\* ---------- sign in ---------- \*/\nfunction renderLogin\(\)\{\n.*?\n\}\nfunction signIn\(u, pw\)\{\n.*?\n\}\n',
-'''/* ---------- sign in: Microsoft account (Azure Static Web Apps authentication) ---------- */
+'''/* ---------- sign in: a Microsoft account (Azure Static Web Apps authentication) or this site's own email login (/api/auth) ---------- */
+let loginMode = "in", loginEmail = false;
+async function authCall(body){
+  let r, j = {};
+  try { r = await fetch("/api/auth", { method: "POST", credentials: "same-origin", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); j = await r.json(); }
+  catch { throw new Error("Could not reach the server. Try again."); }
+  if (!r.ok || j.error) throw new Error(j.error?.message || "Could not reach the server. Try again.");
+  return j;
+}
+async function signOut(){
+  if (window.__me?.via === "email"){ try { await authCall({ op: "signout" }); } catch {} location.href = "/"; }
+  else location.href = "/.auth/logout?post_logout_redirect_uri=" + encodeURIComponent("/");
+}
+/* After an email sign-in, sign-up or password change: the page takes the new sign-in from /api/me. */
+async function afterAuth(){ await window.__refreshMe(); if (!session && tab === "login") renderLogin(); }
+const pwFields = cur => `${cur ? `<label class="f"><span>${cur}</span><input type="password" id="pwCur" autocomplete="current-password"></label>` : ""}
+  <label class="f"><span>New password <span class="req">*</span></span><input type="password" id="pwNew" minlength="10" maxlength="200" autocomplete="new-password"></label>
+  <label class="f"><span>Confirm new password <span class="req">*</span></span><input type="password" id="pwNew2" maxlength="200" autocomplete="new-password"></label>`;
+function bindPwForm(root, done){
+  $("#pwSave", root).onclick = async () => {
+    const cur = $("#pwCur", root).value, next = $("#pwNew", root).value;
+    if (next.length < 10){ toast("Use at least 10 characters for the password."); return; }
+    if (next !== $("#pwNew2", root).value){ toast("The new passwords don't match."); return; }
+    $("#pwSave", root).disabled = true;
+    try { await authCall({ op: "password", current: cur, next }); toast("Password changed."); if (done) done(); await afterAuth(); }
+    catch (e){ toast(e.message); $("#pwSave", root).disabled = false; }
+  };
+}
+function pwDialog(){
+  let d = $("#pwDlg");
+  if (!d){ d = document.createElement("dialog"); d.id = "pwDlg"; d.className = "panel"; d.style.cssText = "max-width:440px;width:calc(100% - 32px);color:var(--ink)"; document.body.appendChild(d); }
+  d.innerHTML = `<div class="stack"><h2>Change password</h2>${pwFields("Current password")}
+    <div class="row"><button class="btn primary" type="button" id="pwSave">Save password</button><button class="btn ghost" type="button" id="pwClose">Cancel</button></div></div>`;
+  $("#pwClose", d).onclick = () => d.close();
+  bindPwForm(d, () => d.close());
+  d.showModal();
+}
 function renderLogin(){
   const v = $("#view-login"), m = window.__me || {};
-  const back = encodeURIComponent(location.pathname + location.hash);
+  const back = encodeURIComponent(location.pathname + location.hash), ms = `/.auth/login/aad?post_login_redirect_uri=${back}`;
+  if (m.signedIn && m.mustChange){   // signed in with a temporary password from the lab manager
+    v.innerHTML = `<div class="panel stack" style="max-width:520px"><h2>Choose a new password</h2>
+      <div class="notice warn">Signed in as <b>${esc(m.email)}</b> with a temporary password.</div>${pwFields("Temporary password")}
+      <div class="row"><button class="btn primary" type="button" id="pwSave">Save password</button><button class="btn ghost" type="button" id="pwOut">Sign out</button></div></div>`;
+    bindPwForm(v); $("#pwOut").onclick = () => signOut();
+    return;
+  }
+  if (m.signedIn && !session){
+    v.innerHTML = `<div class="panel stack" id="loginForm" style="max-width:520px"><h2>Staff sign in</h2>
+      <div class="notice warn">Signed in as <b>${esc(m.email)}</b>: no access yet. <a href="#" id="otherAcct">Use a different account</a></div><div id="accReq"></div></div>`;
+    $("#otherAcct").onclick = e => { e.preventDefault(); signOut(); };
+    renderAccessRequest();
+    return;
+  }
+  const up = loginMode === "up", word = up ? "Sign up" : "Sign in";
   v.innerHTML = `<div class="panel stack" id="loginForm" style="max-width:520px">
-      <h2>Staff sign in</h2>
-      ${m.signedIn && !session ? `<div class="notice warn">Signed in as <b>${esc(m.email)}</b>: no access yet. <a href="/.auth/logout?post_logout_redirect_uri=%2F">Use a different account</a></div><div id="accReq"></div>`
-        : `<div class="row"><a class="btn primary big" id="msSignIn" href="/.auth/login/aad?post_login_redirect_uri=${back}">Sign in with email</a>
-          <a class="btn big" id="msSignUp" style="color:inherit" href="https://signup.live.com/" target="_blank" rel="noopener">Sign up</a></div>`}
+      <nav class="tabs" role="tablist" style="margin-top:0"><button role="tab" type="button" data-lm="in" aria-selected="${!up}">Sign in</button><button role="tab" type="button" data-lm="up" aria-selected="${up}">Sign up</button></nav>
+      <div class="row"><a class="btn ${loginEmail ? "" : "primary"} big" id="${up ? "msSignUp" : "msSignIn"}" ${loginEmail ? 'style="color:inherit"' : ""} href="${ms}">${word} with Microsoft</a>
+        <button class="btn ${loginEmail ? "primary" : ""} big" type="button" id="${up ? "emSignUp" : "emSignIn"}">${word} with email</button></div>
+      ${!loginEmail ? "" : up ? `<form class="stack" id="emForm" autocomplete="on" novalidate>
+          <label class="f"><span>Full name <span class="req">*</span></span><input id="suName" maxlength="80" autocomplete="name" required></label>
+          <label class="f"><span>Email <span class="req">*</span></span><input id="suEmail" type="email" maxlength="190" autocomplete="email" required></label>
+          <label class="f"><span>Password <span class="req">*</span></span><input id="suPw" type="password" minlength="10" maxlength="200" autocomplete="new-password" required></label>
+          <label class="f"><span>Confirm password <span class="req">*</span></span><input id="suPw2" type="password" maxlength="200" autocomplete="new-password" required></label>
+          <label class="f"><span>Section or job</span><input id="suNote" maxlength="200"></label>
+          <div class="row"><button class="btn primary" id="emGo">Sign up</button></div></form>`
+        : `<form class="stack" id="emForm" autocomplete="on" novalidate>
+          <label class="f"><span>Email</span><input id="siEmail" type="email" maxlength="190" autocomplete="username" required></label>
+          <label class="f"><span>Password</span><input id="siPw" type="password" maxlength="200" autocomplete="current-password" required></label>
+          <div class="row"><button class="btn primary" id="emGo">Sign in</button></div></form>`}
     </div>`;
-  if (m.signedIn && !session) renderAccessRequest();
-  // Sign up makes a Microsoft account with the person's own email, in a new tab; back here, Sign in is ready to press.
-  $("#msSignUp")?.addEventListener("click", () => {
-    const f = () => { if (document.visibilityState === "visible"){ document.removeEventListener("visibilitychange", f); $("#msSignIn")?.focus(); } };
-    document.addEventListener("visibilitychange", f);
-  });
+  v.querySelectorAll("[data-lm]").forEach(b => b.onclick = () => { loginMode = b.dataset.lm; renderLogin(); });
+  $(up ? "#emSignUp" : "#emSignIn").onclick = () => { loginEmail = true; renderLogin(); $(up ? "#suName" : "#siEmail")?.focus(); };
+  const f = $("#emForm"); if (!f) return;
+  f.onsubmit = async e => {
+    e.preventDefault();
+    let body;
+    if (up){
+      body = { op: "signup", name: $("#suName").value.trim(), email: $("#suEmail").value.trim(), password: $("#suPw").value, note: $("#suNote").value.trim() };
+      if (!body.name){ toast("Type your full name."); return; }
+      if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(body.email)){ toast("Type your full email address."); return; }
+      if (body.password.length < 10){ toast("Use at least 10 characters for the password."); return; }
+      if (body.password !== $("#suPw2").value){ toast("The passwords don't match."); return; }
+    } else {
+      body = { op: "signin", email: $("#siEmail").value.trim(), password: $("#siPw").value };
+      if (!body.email || !body.password){ toast("Type your email and password."); return; }
+    }
+    $("#emGo").disabled = true;
+    try { await authCall(body); loginEmail = false; await afterAuth(); }
+    catch (err){ toast(err.message); const b = $("#emGo"); if (b) b.disabled = false; }
+  };
 }
 /* ---------- access requests (access/<key of the email>): a Microsoft account without access asks the lab manager ---------- */
 const accessKey = em => [...String(em || "").toLowerCase()].map(c => /[a-z0-9._-]/.test(c) ? c : "~" + c.codePointAt(0).toString(16) + "~").join("").slice(0, 190);
+const reqKey = (em, via) => (via === "email" ? "email!" : "") + accessKey(em);
+const sameReq = (a, b) => a.em === b.em && (a.via === "email") === (b.via === "email");
 let myReq, myReqSub = null, myReqFor = "";
 function renderAccessRequest(){
   const m = window.__me || {}, box = $("#accReq");
   if (!box || !db || !m.signedIn || session) return;
-  if (myReqFor !== m.email){
+  if (myReqFor !== reqKey(m.email, m.via)){
     if (myReqSub) myReqSub();
-    myReqFor = m.email; myReq = undefined;
-    myReqSub = db.doc("access/" + accessKey(m.email)).onSnapshot(snap => { myReq = snap.exists ? snap.data() : null; renderAccessRequest(); }, () => { myReq = null; renderAccessRequest(); });
+    myReqFor = reqKey(m.email, m.via); myReq = undefined;
+    myReqSub = db.doc("access/" + myReqFor).onSnapshot(snap => { myReq = snap.exists ? snap.data() : null; renderAccessRequest(); }, () => { myReq = null; renderAccessRequest(); });
   }
   if (myReq === undefined) return;
   if (myReq && myReq.status === "pending"){ box.innerHTML = `<div class="notice">Access requested ${esc(fmt(myReq.at))}</div>`; return; }
@@ -107,7 +186,7 @@ function renderAccessRequest(){
     if (!name){ toast("Type your full name."); return; }
     $("#arSend").disabled = true;
     try {
-      await db.doc("access/" + accessKey(m.email)).set({ em: m.email, name, note: $("#arNote").value.trim(), at: Date.now(), status: "pending" });
+      await db.doc("access/" + reqKey(m.email, m.via)).set({ em: m.email, name, note: $("#arNote").value.trim(), at: Date.now(), status: "pending", ...(m.via === "email" ? { via: "email" } : {}) });
       box.innerHTML = ""; myReq = { status: "pending", at: Date.now() }; renderAccessRequest();
     }
     catch (e){ $("#arSend").disabled = false; writeFailed(e); }
@@ -130,16 +209,16 @@ function accRows(){
   accShown = accReqs.slice();   // the rows as drawn, so a button always answers the request on its own row
   if (!accReqs.length) return "";
   return `<h2>Access requests</h2>
-    <div class="tbl-wrap"><table><thead><tr><th>Full name</th><th>Microsoft sign-in email</th><th>Section or job</th><th>Requested</th><th>Role</th><th></th></tr></thead><tbody>${accReqs.map((r, i) => `<tr>
-      <td>${esc(r.name)}</td><td class="mono">${esc(r.em)}</td><td>${esc(r.note || "")}</td><td style="white-space:nowrap">${esc(fmt(r.at))}</td>
+    <div class="tbl-wrap"><table><thead><tr><th>Full name</th><th>Sign-in email</th><th>Sign in with</th><th>Section or job</th><th>Requested</th><th>Role</th><th></th></tr></thead><tbody>${accReqs.map((r, i) => `<tr>
+      <td>${esc(r.name)}</td><td class="mono">${esc(r.em)}</td><td>${r.via === "email" ? "Email" : "Microsoft"}</td><td>${esc(r.note || "")}</td><td style="white-space:nowrap">${esc(fmt(r.at))}</td>
       <td><select class="inp" style="width:auto" data-acc-role="${i}" aria-label="Role">${Object.entries(ROLES).map(([k, l]) => `<option value="${k}" ${k === "viewer" ? "selected" : ""}>${l}</option>`).join("")}</select></td>
       <td style="white-space:nowrap"><button class="btn primary" data-acc-ok="${i}">Approve</button> <button class="btn ghost danger" data-acc-no="${i}">Decline</button></td></tr>`).join("")}</tbody></table></div>`;
 }
 /* After Settings are saved: requests whose email is now on the staff list are marked approved, with the role given. */
 function markAccessGiven(users){
   for (const r of accReqs){
-    const x = users.find(y => (y.em || "").toLowerCase() === r.em.toLowerCase());
-    if (x) db.doc("access/" + accessKey(r.em)).update({ status: "approved", role: x.role, by: session.u, byName: session.name, dt: Date.now() }).catch(() => {});
+    const x = users.find(y => (y.em || "").toLowerCase() === r.em.toLowerCase() && (y.via === "email") === (r.via === "email"));
+    if (x) db.doc("access/" + reqKey(r.em, r.via)).update({ status: "approved", role: x.role, by: session.u, byName: session.name, dt: Date.now() }).catch(() => {});
   }
 }
 ''')
@@ -152,25 +231,31 @@ put('''e?.code === "invalid_argument" ? toast("This copy of the prototype is vie
 
 # 6. Settings > Staff accounts: a Microsoft sign-in email column instead of passwords.
 put('''    <td><input class="inp mono" style="width:130px" data-ui="${i}" data-uf="pw" value="${esc(x.pw)}" aria-label="Password"></td>''',
-    '''    <td><input class="inp mono" style="min-width:220px" type="email" data-ui="${i}" data-uf="em" value="${esc(x.em || "")}" placeholder="name@company.com" aria-label="Microsoft sign-in email"></td>''')
+    '''    <td><input class="inp mono" style="min-width:220px" type="email" data-ui="${i}" data-uf="em" value="${esc(x.em || "")}" placeholder="name@company.com" aria-label="Sign-in email"></td>
+    <td style="white-space:nowrap"><select class="inp" style="width:auto" data-ui="${i}" data-uf="via" aria-label="Sign in with"><option value="" ${x.via === "email" ? "" : "selected"}>Microsoft</option><option value="email" ${x.via === "email" ? "selected" : ""}>Email</option></select>${x.via === "email" && x.em ? ` <button class="btn ghost" type="button" data-pwreset="${i}">Reset password</button>` : ""}</td>''')
 put('''\n    <div class="mock"><b>Design prototype.</b><span>Passwords here are visible to anyone who opens the page. The real system should store hashed passwords on a server or use the company's existing staff sign-in.</span></div>''',
     '')
 put('<th>Username</th><th>Full name</th><th>Role</th><th>Section</th><th>Password</th><th></th>',
-    '<th>Username</th><th>Full name</th><th>Role</th><th>Section</th><th>Microsoft sign-in email</th><th></th>')
+    '<th>Username</th><th>Full name</th><th>Role</th><th>Section</th><th>Sign-in email</th><th>Sign in with</th><th></th>')
 put('''    if (f === "pw" && !val){ toast("A password cannot be empty."); renderStages(); return; }''',
     '''    if (f === "em"){
       val = val.toLowerCase();
-      if (val && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(val)){ toast("Type the full email address the person signs in to Microsoft with."); renderStages(); return; }
-      if (val && draft.users.some((y, j) => (y.em || "").toLowerCase() === val && j !== i)){ toast(`${val} is already on another account.`); renderStages(); return; }
-    }''')
+      if (val && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(val)){ toast("Type the full email address the person signs in with."); renderStages(); return; }
+    }
+    if (f === "em" || f === "via"){
+      const em = f === "em" ? val : (x.em || "").toLowerCase(), email = (f === "via" ? val : x.via) === "email";
+      if (em && draft.users.some((y, j) => (y.em || "").toLowerCase() === em && (y.via === "email") === email && j !== i)){ toast(`${em} is already on another account.`); renderStages(); return; }
+    }
+    if (f === "via" && val !== "email"){ delete x.via; dirty(); return; }''')
 put('''draft.users.push({ u, name: "New lab technician", role: "tech", pw: "tech123" }); dirty();''',
     '''draft.users.push({ u, name: "New lab technician", role: "tech", em: "" }); dirty();''')
 # The first admin signs in through ADMIN_EMAILS and is not on the list yet: put them on it so saving keeps their access.
 put('''  draft.users = draft.users || [];\n''',
     '''  draft.users = draft.users || [];
-  if (session?.role === "admin" && window.__me?.bootstrap && !draft.users.some(x => (x.em || "").toLowerCase() === window.__me.email)){
+  const viaMe = window.__me?.via === "email";
+  if (session?.role === "admin" && window.__me?.bootstrap && !draft.users.some(x => (x.em || "").toLowerCase() === window.__me.email && (x.via === "email") === viaMe)){
     let u = window.__me.email.split("@")[0].toLowerCase().replace(/[^a-z0-9._-]/g, "") || "admin"; while (draft.users.some(x => x.u === u)) u += "1";
-    draft.users.unshift({ u, name: "Lab Manager", role: "admin", em: window.__me.email }); draftDirty = true;
+    draft.users.unshift({ u, name: "Lab Manager", role: "admin", em: window.__me.email, ...(viaMe ? { via: "email" } : {}) }); draftDirty = true;
   }
 ''')
 
@@ -299,21 +384,33 @@ put('''  v.innerHTML = `<div class="stack">
     <h2>Staff accounts</h2>''')
 put('''  $("#userAdd").onclick = () => {''', '''  v.querySelectorAll("[data-acc-ok]").forEach(b => b.onclick = () => {
     const i = b.dataset.accOk, r = accShown[+i], role = v.querySelector(`[data-acc-role="${i}"]`).value;
-    if (!r || !accReqs.some(x => x.em === r.em)){ renderStages(); return; }
-    const em = r.em.toLowerCase();
-    if (!draft.users.some(x => (x.em || "").toLowerCase() === em)){
+    if (!r || !accReqs.some(x => sameReq(x, r))){ renderStages(); return; }
+    const em = r.em.toLowerCase(), email = r.via === "email";
+    if (!draft.users.some(x => (x.em || "").toLowerCase() === em && (x.via === "email") === email)){
       const base = em.split("@")[0].replace(/[^a-z0-9._-]/g, "") || "user"; let u = base, n = 1;
       while (draft.users.some(x => x.u === u)) u = base + n++;
-      draft.users.push({ u, name: r.name, role, ...(role === "section" ? { sec: draft.sections[0]?.code || "" } : {}), em });
+      draft.users.push({ u, name: r.name, role, ...(role === "section" ? { sec: draft.sections[0]?.code || "" } : {}), em, ...(email ? { via: "email" } : {}) });
     }
     draftDirty = true;
     $("#cfgSave").click();
   });
   v.querySelectorAll("[data-acc-no]").forEach(b => b.onclick = async () => {
     const r = accShown[+b.dataset.accNo];
-    if (!r || !accReqs.some(x => x.em === r.em)){ renderStages(); return; }
-    try { await db.doc("access/" + accessKey(r.em)).update({ status: "declined", by: session.u, byName: session.name, dt: Date.now() }); }
+    if (!r || !accReqs.some(x => sameReq(x, r))){ renderStages(); return; }
+    try { await db.doc("access/" + reqKey(r.em, r.via)).update({ status: "declined", by: session.u, byName: session.name, dt: Date.now() }); }
     catch (e){ writeFailed(e); }
+  });
+  v.querySelectorAll("[data-pwreset]").forEach(b => b.onclick = async () => {
+    const x = draft.users[+b.dataset.pwreset]; if (!x || !x.em) return;
+    try {
+      const r = await authCall({ op: "reset", email: x.em });
+      let d = $("#tmpDlg");
+      if (!d){ d = document.createElement("dialog"); d.id = "tmpDlg"; d.className = "panel"; d.style.cssText = "max-width:440px;width:calc(100% - 32px);color:var(--ink)"; document.body.appendChild(d); }
+      d.innerHTML = `<div class="stack"><h2>Temporary password</h2><div>${esc(x.em)}</div><div class="mono" style="font-size:22px;letter-spacing:1px">${esc(r.temp)}</div>
+        <div class="row"><button class="btn primary" type="button" id="tmpClose">Done</button></div></div>`;
+      $("#tmpClose", d).onclick = () => d.close();
+      d.showModal();
+    } catch (e){ toast(e.message); }
   });
   $("#userAdd").onclick = () => {''')
 put('''      draftDirty = false; draft = null; renderStages();''', '''      draftDirty = false; draft = null; renderStages(); markAccessGiven(mine.users);''')
