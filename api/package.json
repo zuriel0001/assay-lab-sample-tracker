@@ -1,0 +1,10 @@
+{
+  "name": "met-lab-sample-tracker-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API for the MET Lab Sample Tracker on Azure Static Web Apps (managed Functions, Cosmos DB)",
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "@azure/cosmos": "^4.2.0"
+  }
+}

@@ -1,0 +1,124 @@
+# MET Lab Sample Tracker on Azure (free test deployment)
+
+This folder is the v12 MET Lab Sample Tracker made to run outside Claude, on Microsoft Azure free tiers.
+It keeps the prototype's workflow exactly: routes, lab batches and QC, action limits, the second-person release,
+amendments, certificates, the in/out ledger, public submission and lookup without sign-in, and the roles.
+What changes is where data lives (Azure Cosmos DB), how staff sign in (their Microsoft account) and a server that
+decides who may read and change what.
+
+## Deploying it (what Zuriel does)
+
+You need a GitHub account (you have one) and an Azure account. Everything below stays on free plans.
+
+1. **Create an empty GitHub repository.** Go to https://github.com/new, name it `met-lab-sample-tracker`, choose
+   Private, leave every box unticked and press *Create repository*. Tell Claude the name; Claude puts the code in it.
+2. **Create a free Azure account** at https://azure.microsoft.com/free. Microsoft asks for a card to check your
+   identity; the plans below don't charge it.
+3. **Create the database.** In the Azure portal (https://portal.azure.com): *Create a resource* → search
+   **Azure Cosmos DB** → *Azure Cosmos DB for NoSQL* → *Create*.
+   - Resource group: *Create new*, `sample-tracker`. Account name: for example `metlab-tracker-db`.
+   - Location: the region nearest the mine (for example *South Africa North* or *West Europe*).
+   - Capacity mode: **Provisioned throughput**. **Apply Free Tier Discount: Apply.**
+     **Limit total account throughput: ticked** (keeps it inside the free 1000 RU/s).
+   - *Review + create* → *Create*. When it is ready, open it → *Settings* → *Keys* → copy the
+     **PRIMARY CONNECTION STRING**.
+4. **Create the web app.** *Create a resource* → search **Static Web App** → *Create*.
+   - Resource group `sample-tracker`, name `metlab-sample-tracker`, Plan type **Free**.
+   - Source **GitHub**: sign in, pick the repository from step 1, branch `main`.
+   - Build presets **Custom**. App location `/app`. Api location `/api`. Output location: leave empty.
+   - *Review + create* → *Create*. Azure adds a deployment file to the repository and publishes the site; the
+     first run takes a few minutes (watch it under the repository's *Actions* tab).
+5. **Connect the two.** Open the Static Web App → *Settings* → *Environment variables* → add:
+   - `COSMOS_CONNECTION_STRING` = the connection string from step 3
+   - `ADMIN_EMAILS` = the email you sign in to Microsoft with (more than one: separate with commas)
+
+   Press *Apply*.
+6. **Open the site** (the URL on the Static Web App's *Overview*, like `https://xxxx.azurestaticapps.net`).
+   *Staff sign in* → **Sign in with Microsoft**. You arrive as admin. On **Settings → Staff accounts**, type each
+   person's Microsoft sign-in email on their row (your own row is added for you), delete example rows you don't
+   need, and press **Save settings**. From then on, the people on that list sign in with their role.
+
+Anyone can still submit a sample and look one up without signing in, from the same URL.
+
+## Trying it out
+
+- Submit a sample without signing in (use a private browser window); write down the ID; look it up by ID and tag.
+- Sign in as a technician: confirm receipt, move it through the steps, put it in a lab batch, enter results.
+- Release needs a supervisor or the admin who did **not** enter the results, so testing it needs two Microsoft
+  accounts. A free personal account (outlook.com) works for a second test person.
+- Sign in as a section account and check that only that section's released results appear on *Results*.
+- Export the ledger CSV and open it in Excel.
+
+## What it costs
+
+Nothing while it stays within: Static Web Apps **Free** plan (100 GB traffic a month), and one Cosmos DB account
+with the free tier applied (1000 RU/s and 25 GB, for the life of the account) with *Limit total account throughput*
+ticked. Optional safety net: Azure portal → *Cost Management* → *Budgets* → a budget of 1 (any currency) with an
+email alert.
+
+## Why Cosmos DB and not Azure SQL
+
+The Azure SQL Database free offer gives 100,000 vCore-seconds a month. A tracker that lab pages keep open all day
+keeps the database awake, which uses that up in roughly 55 hours, and then the database pauses until the next month.
+The Cosmos DB free tier has no time allowance (it is a fixed 1000 RU/s that never runs out) and stores records the way
+the tracker already shapes them. Sources: [SQL free offer](https://learn.microsoft.com/azure/azure-sql/database/free-offer),
+[Cosmos DB free tier](https://learn.microsoft.com/azure/cosmos-db/free-tier),
+[Static Web Apps plans](https://learn.microsoft.com/azure/static-web-apps/plans) and
+[quotas](https://learn.microsoft.com/azure/static-web-apps/quotas).
+
+## Limits of this test deployment
+
+- **Workflow rules run in the browser, as in the prototype.** The server enforces who can read and change what
+  (below), but rules such as "the person who entered results can't release them" are checked by the page. Someone
+  with a lab staff account and developer tools could get around them. Moving those checks onto the server is the
+  main step before this becomes the production system.
+- **Any Microsoft account can sign in**, but it sees only the public pages until an admin puts its email on a staff
+  account. Limiting sign-in to the company's own Microsoft 365 tenant needs the Standard plan (about US$9 a month).
+- **Live updates** arrive every 2.5 seconds (15 seconds when the tab is in the background).
+- **Backups:** Cosmos DB keeps its automatic periodic backups (restored through Azure support). Keep exporting the
+  ledger CSV during the test and keep the paper log going.
+- **The certificate still says it is a design prototype**, not an official laboratory certificate.
+- The example reference material values and permit limits are still example values (Settings).
+- Teams: the site can be pinned in a Teams channel as a link or website tab; a proper Teams app is a later step.
+
+## Who can do what (enforced by the server)
+
+| Person | Reads | Changes |
+|---|---|---|
+| Not signed in, or signed in without an account | A sample by ID, tag or site reference, without results (unless Settings says anyone may see results); certificate number and check code | Submit new samples only (checked: new ID, not received, no results, current time) |
+| Section account | As above, plus its own section's samples with results | As above |
+| Viewer | Everything | Submit new samples only |
+| Lab technician, lab supervisor | Everything | Samples, batches, ledger, tag index |
+| Admin | Everything, including sign-in emails | All of that, plus Settings |
+
+Staff see each other's names and roles but not their sign-in emails. The ledger and lab batches are staff only.
+
+## How it is built
+
+| Path | What it is |
+|---|---|
+| `app/index.html` | The page. Built by `build.py` from `../sample-tracking/met-lab-sample-tracker.html` (v12), which it never edits. Every patch must match exactly once, so a changed prototype fails the build loudly. |
+| `app/azure-shim.js` | Gives the page the shared-database interface it was written for, over `/api/db`: documents, where-filters, live snapshots (by polling for changes), short leases; plus the signed-in person (`/api/me`) and downloads. |
+| `app/staticwebapp.config.json` | Node 22 API, Microsoft sign-in only (GitHub sign-in turned off), `/login` and `/logout`. |
+| `api/db`, `api/me` | Azure Functions (HTTP) behind `/api`. |
+| `api/lib/core.js` | Accounts (Microsoft email → role from Settings; `ADMIN_EMAILS` are admins) and the read/write rules above. |
+| `api/lib/store-cosmos.js` | Cosmos DB store: one container `docs` in database `tracker` (created on first use with 1000 RU/s shared), partitioned by collection; ETag checks on every read-modify-write; leases as records; deletes kept as markers so open pages hear about them. |
+| `api/lib/store-memory.js` | The same store in memory, for local runs and tests. |
+| `dev/server.js` | Local stand-in for Static Web Apps: `node dev/server.js` → http://localhost:4280, in-memory data, a local sign-in page (type an email, or an example username such as `tech1`). |
+| `test/api-tests.js` | 54 checks of the read/write rules and the Functions entry points. |
+| `test/store-tests.js` | 21 checks on each store; Cosmos runs against `@vercel/cosmosdb-server` (a local Cosmos imitation) or a real account. |
+| `test/run-suites.js` | Runs the prototype's own five browser suites, unchanged, against this build (real page, real API over HTTP). |
+
+Patches `build.py` makes to the page: start after `/api/me` answers; tracking links use this site's address; the
+sign-in tab is *Sign in with Microsoft*; accounts have a *Microsoft sign-in email* instead of a password; the first
+admin is added to the account list on their first visit to Settings; upgrades and ledger repairs run when a staff
+member signs in; permission errors from the server are shown as such; the header says *Test system*.
+
+### Running the checks
+
+```sh
+python3 build.py
+node test/api-tests.js
+NODE_PATH=<folder with @azure/cosmos and @vercel/cosmosdb-server> node test/store-tests.js
+NODE_PATH=$(npm root -g) node test/run-suites.js            # needs Playwright + Chromium
+```
