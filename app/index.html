@@ -2458,7 +2458,7 @@ async function doUndo(k){
 function setMoveBusy(b){ document.querySelectorAll("#actBox button, #matBox button, #resPanel button").forEach(x => x.disabled = b || x.hasAttribute("data-hold")); }
 function writeFailed(e){
   if (e && (e.code === "permission_denied" || e.code === "invalid_argument")) toast(e.message && e.message !== e.code ? e.message : "Your account can't make this change. Ask the lab manager if you need access.");
-  else if (e && e.code === "quota_exceeded") toast("The register is full. Archive or delete old samples before adding more.");
+  else if (e && e.code === "quota_exceeded") toast("This record is too large to save. Tell the lab manager.");
   else toast("Could not save. Check your connection and try again.");
 }
 document.addEventListener("click", e => { const g = e.target.closest("[data-goto]"); if (g) setTab(g.dataset.goto); });
@@ -3070,9 +3070,15 @@ function renderStages(){
       <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Days kept after results</th><th>Then</th><th></th></tr></thead><tbody>${keepRows}</tbody></table></div>
       <div class="row"><button class="btn" id="rkAdd">Add material</button></div>
     </div>
-    <div class="row" style="border-top:1px solid var(--line);padding-top:14px"><span style="flex:1"></span><button class="btn ghost" id="cfgReset">Restore default sections and routes</button><button class="btn ghost" id="cfgCancel">Discard changes</button><button class="btn primary big" id="cfgSave">Save settings</button></div>
+    <div class="row" style="border-top:1px solid var(--line);padding-top:14px"><button class="btn ghost" id="cfgBackup">Download backup</button><span style="flex:1"></span><button class="btn ghost" id="cfgReset">Restore default sections and routes</button><button class="btn ghost" id="cfgCancel">Discard changes</button><button class="btn primary big" id="cfgSave">Save settings</button></div>
   </div>`;
   const dirty = () => { draftDirty = true; renderStages(); };
+  $("#cfgBackup").addEventListener("click", async e => {
+    const b = e.currentTarget; b.disabled = true; b.textContent = "Preparing backup…";
+    try { toast(`Backup downloaded: ${await window.__backup()} records`); }
+    catch (err){ toast(err && err.code === "permission_denied" ? err.message || "Only the lab manager downloads backups." : "The backup could not be made. Try again."); }
+    finally { b.disabled = false; b.textContent = "Download backup"; }
+  });
   $("#cfgResPub").addEventListener("change", e => { draft.resultsPublic = e.target.value === "1"; dirty(); });
   $("#rtQcp").addEventListener("change", e => { R.qcp = e.target.value; regenQc(R); dirty(); });
   v.querySelectorAll("[data-cf]").forEach(el => el.addEventListener("change", () => {

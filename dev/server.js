@@ -3,7 +3,7 @@
 //   node dev/server.js            -> http://localhost:4280 with an in-memory database (lost when stopped)
 //   COSMOS_CONNECTION_STRING=... node dev/server.js   -> uses a real Cosmos DB account instead
 const http = require("http"), fs = require("fs"), path = require("path");
-const { createCore } = require("../api/lib/core");
+const { createCore, requestProblem } = require("../api/lib/core");
 const { createMemoryStore } = require("../api/lib/store-memory");
 
 const APP = path.join(__dirname, "..", "app");
@@ -48,6 +48,7 @@ function start({ port = 4280, store = null, adminEmails = (process.env.ADMIN_EMA
       if (url.pathname === "/.auth/me") return json(200, { clientPrincipal: principal });
       if (url.pathname === "/api/me"){ const r = await core.handleMe(principal); return json(r.status, r.body); }
       if (url.pathname === "/api/db" && req.method === "POST"){
+        const bad = requestProblem(req.headers); if (bad) return json(403, { error: { code: "permission_denied", message: bad } });
         let body; try { body = JSON.parse(await readBody(req)); } catch { return json(400, { error: { code: "bad_request" } }); }
         const r = await core.handleDb(principal, body); return json(r.status, r.body);
       }

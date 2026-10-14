@@ -41,7 +41,7 @@ const log = t => console.log("• " + t);
   await open(P, sid);
   const pubText = await P.textContent("#view-track");
   check(pubText.includes(sid + "-R1") && pubText.includes("K7Q2") && !/2\.5/.test(await P.$eval("#resPanel", e => e.textContent).catch(() => "")), "public sees the certificate number and check code, not the values");
-  const api = await P.evaluate(async id => (await (await fetch("/api/db", { method: "POST", body: JSON.stringify({ ops: [{ op: "get", path: "samples/" + id }, { op: "query", coll: "samples", where: [["open", "==", true]] }, { op: "update", path: "samples/" + id, data: { stageKey: "released" } }] }) })).json()).results, sid);
+  const api = await P.evaluate(async id => (await (await fetch("/api/db", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ops: [{ op: "get", path: "samples/" + id }, { op: "query", coll: "samples", where: [["open", "==", true]] }, { op: "update", path: "samples/" + id, data: { stageKey: "released" } }] }) })).json()).results, sid);
   check(!api[0].data.results && api[1].docs.length === 0 && !api[2].ok, "the API itself hides results, lists nothing and refuses changes from the public");
 
   log("Accounts by Microsoft email");
@@ -63,7 +63,7 @@ const log = t => console.log("• " + t);
   check(/stranger@example\.com · no access yet/.test(tw) && !(await T.$eval("#signBtn", e => e.hidden)), "an unknown Microsoft account is signed in without access and can sign out");
   await T.click('[data-tab="login"]').catch(() => {});
   check(/no access yet. Ask the lab manager/.test(await T.textContent("#view-login")), "it is told to ask the lab manager");
-  const techSees = await T.evaluate(async () => (await (await fetch("/api/db", { method: "POST", body: JSON.stringify({ ops: [{ op: "get", path: "settings/stages" }] }) })).json()).results[0].data.users.length);
+  const techSees = await T.evaluate(async () => (await (await fetch("/api/db", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ops: [{ op: "get", path: "settings/stages" }] }) })).json()).results[0].data.users.length);
   check(techSees === 0, "an account without access sees no staff list");
 
   log("First admin (ADMIN_EMAILS)");
@@ -74,6 +74,21 @@ const log = t => console.log("• " + t);
   check(await B.$eval('[data-ui="0"][data-uf="em"]', e => e.value) === "boss@site.test" && await B.$eval('[data-ui="0"][data-uf="role"]', e => e.value) === "admin", "Settings puts the first admin on the account list");
   await B.click("#cfgSave"); await B.waitForTimeout(600);
   check((store["settings/stages"].users || []).some(x => x.em === "boss@site.test" && x.role === "admin"), "saving keeps the first admin as an account");
+
+  log("Backup, and the server's record-keeping rules");
+  await B.click("#cfgBackup");
+  await B.waitForFunction(() => window.__downloaded && /^met-lab-backup-/.test(window.__downloaded.filename), null, { timeout: 8000 }).catch(() => {});
+  const bk = await B.evaluate(() => { try { return JSON.parse(window.__downloaded.data); } catch { return null; } });
+  check(!!(bk && bk.collections.samples[sid] && bk.collections.settings.stages && bk.records > 3), "the lab manager downloads a backup of every record");
+  const post = (pg, ops) => pg.evaluate(async ops => (await (await fetch("/api/db", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ops }) })).json()).results, ops);
+  await signIn(T, "tech1");
+  const forged = await post(T, [{ op: "update", path: "samples/" + sid, data: { history: [] } }, { op: "delete", path: "samples/" + sid }, { op: "export", coll: "samples" }]);
+  check(!forged[0].ok && !forged[1].ok && !forged[2].ok, "a technician's page can't erase a sample's history, delete a sample or download a backup");
+  const before = errors.length;
+  const plain = await T.evaluate(async () => (await fetch("/api/db", { method: "POST", body: JSON.stringify({ ops: [{ op: "get", path: "meta/schema" }] }) })).status);
+  await T.waitForTimeout(200);
+  for (let i = errors.length - 1; i >= before; i--) if (/status of 403/.test(errors[i])) errors.splice(i, 1);   // the browser logs the refusal this check expects
+  check(plain === 403, "the API only takes JSON from this site's own page");
 
   log("Page errors");
   check(!errors.length, "no console errors" + (errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""));

@@ -1,8 +1,10 @@
 // POST /api/db  { ops: [ { op: "get" | "query" | "set" | "update" | "delete" | "acquire" | "changes", ... } ] }
 const { getCore } = require("../lib/instance");
-const { principalOf } = require("../lib/core");
+const { principalOf, requestProblem } = require("../lib/core");
 module.exports = async function (context, req){
   const json = (status, body) => { context.res = { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }, body }; };
+  const bad = requestProblem(req.headers);
+  if (bad) return json(403, { error: { code: "permission_denied", message: bad } });
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
     const r = await getCore((...a) => context.log.error(...a)).handleDb(principalOf(req.headers), body);

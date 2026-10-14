@@ -98,15 +98,18 @@ async function rereadAll(){
   ]);
 }
 let since = null, polling = false, pollT = null;
+const recent = new Map();   // path -> change stamp already received inside the overlap window, so the server sends each change once
 async function poll(){
   if (polling) return;
   polling = true; clearTimeout(pollT);
   try {
     const watch = [...new Set([...docSubs].map(s => s.path))];
-    const from = since != null ? since : serverNow ? serverNow - OVERLAP_MS : Date.now() - 60000;
-    const r = await call({ op: "changes", since: Math.max(0, from), watch });
+    const from = Math.max(0, since != null ? since : serverNow ? serverNow - OVERLAP_MS : Date.now() - 60000);
+    const seen = [...recent].filter(([, u]) => u > from).slice(-400);
+    const r = await call({ op: "changes", since: from, watch, seen });
     since = Math.max(0, serverNow - OVERLAP_MS);
-    for (const c of r.changes.sort((a, b) => a.u - b.u)) await apply(c.path, c.data);
+    for (const c of r.changes.sort((a, b) => a.u - b.u)){ recent.set(c.path, c.u); await apply(c.path, c.data); }
+    for (const [p, u] of recent) if (u <= since) recent.delete(p);
     if (fromCache){ fromCache = false; for (const s of querySubs) if (s.ready) fire(s, querySnap(s)); }
   } catch {
     if (!fromCache){ fromCache = true; for (const s of querySubs) if (s.ready) fire(s, querySnap(s)); }
@@ -118,8 +121,16 @@ async function poll(){
 const pollSoon = () => { clearTimeout(pollT); pollT = setTimeout(poll, 150); };
 window.__pollNow = pollSoon;
 document.addEventListener("visibilitychange", () => { if (!document.hidden) pollSoon(); });
-/* Every few minutes the open queries are read again in full, in case a change was missed while offline. */
-setInterval(() => querySubs.forEach(s => s.ready && requery(s)), 5 * 60000);
+/* Now and then the open lists are read again in full, as a safety net. Changes are not missed while offline (polling resumes
+   from the last change it saw), so this is rare: a full read of the board is the largest download the page makes.
+   It happens every 4 hours on a page left open, or when a page comes back after an hour or more in the background. */
+let lastFull = Date.now(), hiddenAt = 0;
+const readListsAgain = () => { lastFull = Date.now(); querySubs.forEach(s => s.ready && requery(s)); };
+setInterval(() => { if (!document.hidden && Date.now() - lastFull > 4 * 3600000) readListsAgain(); }, 5 * 60000);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden){ hiddenAt = Date.now(); return; }
+  if (hiddenAt && Date.now() - hiddenAt > 3600000) readListsAgain();
+});
 
 /* ---------- documents and collections ---------- */
 function docRef(path){
@@ -211,6 +222,23 @@ const downloads = {
 };
 
 window.claude = { use: async n => n === "db" ? db : n === "user" ? user : n === "downloads" ? downloads : null };
+
+/* The lab manager's backup: every record of every collection, as one JSON file. Returns how many records it holds. */
+window.__backup = async () => {
+  const out = {}; let n = 0;
+  for (const coll of ["settings", "samples", "batches", "ledger", "tagidx", "meta"]){
+    out[coll] = {};
+    for (let after = ""; after != null; ){
+      const r = await call({ op: "export", coll, after, limit: 200 });
+      r.docs.forEach(x => { out[coll][x.path.slice(coll.length + 1)] = x.data; n++; });
+      after = r.next;
+    }
+  }
+  const at = new Date();
+  await downloads.save({ filename: `met-lab-backup-${at.toISOString().slice(0, 10)}.json`, mimeType: "application/json",
+    data: JSON.stringify({ app: "MET Lab Sample Tracker", site: location.host, exportedAt: at.toISOString(), records: n, collections: out }) });
+  return n;
+};
 
 /* The page starts once the signed-in person is known, so it opens on the right tab. */
 const meReady = fetchMe().then(m => { window.__me = m; });

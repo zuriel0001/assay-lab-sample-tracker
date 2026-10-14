@@ -12,8 +12,10 @@ for (const k of ["set", "update", "remove"]){ const f = mem[k]; mem[k] = async (
 function clone(o){ return o == null ? o : JSON.parse(JSON.stringify(o)); }
 /* A test changed `store` directly: mark the record changed so open pages pick it up on their next poll. */
 async function broadcast(p, d){ if (d === null) delete store[p]; else if (d !== undefined) store[p] = d; mem.touch(p); await Promise.all(pages.map(pg => pg.evaluate(() => window.__pollNow && window.__pollNow()).catch(() => {}))); await new Promise(r => setTimeout(r, 300)); }
+if (process.env.DUMP_STORE) process.on("exit", () => require("fs").writeFileSync(process.env.DUMP_STORE, JSON.stringify(store)));   // for measuring record sizes
 let srv = null;
-const server = async () => srv || (srv = await start({ port: 0, store: mem, adminEmails: ["boss@site.test"], quiet: true }));
+// unref: the suites end by closing the browser, and the local server must not keep the test process alive after that.
+const server = async () => srv || (srv = await start({ port: 0, store: mem, adminEmails: ["boss@site.test"], quiet: true }), srv.server.unref(), srv);
 const FILE = "(served by dev/server.js)";
 let BASE = "";
 

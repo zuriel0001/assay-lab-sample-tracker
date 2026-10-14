@@ -20,6 +20,8 @@ You need a GitHub account (you have one) and an Azure account. Everything below 
    - Location: the region nearest the mine (for example *South Africa North* or *West Europe*).
    - Capacity mode: **Provisioned throughput**. **Apply Free Tier Discount: Apply.**
      **Limit total account throughput: ticked** (keeps it inside the free 1000 RU/s).
+   - On the **Backup Policy** tab choose **Continuous (7 days)**. Keeping it is free; it lets you put the database back
+     as it was at any moment of the last 7 days, yourself, from the portal (a restore is charged per GB, cents for this data).
    - *Review + create* → *Create*. When it is ready, open it → *Settings* → *Keys* → copy the
      **PRIMARY CONNECTION STRING**.
 4. **Create the web app.** *Create a resource* → search **Static Web App** → *Create*.
@@ -68,15 +70,24 @@ the tracker already shapes them. Sources: [SQL free offer](https://learn.microso
 
 ## Limits of this test deployment
 
-- **Workflow rules run in the browser, as in the prototype.** The server enforces who can read and change what
-  (below), but rules such as "the person who entered results can't release them" are checked by the page. Someone
-  with a lab staff account and developer tools could get around them. Moving those checks onto the server is the
-  main step before this becomes the production system.
+- **What the server enforces, and what only the page checks.** Besides who may read and change what (below), the
+  server keeps the record honest whatever a page sends: a sample's history, its certificates and the ledger's movements
+  are only ever added to, never edited or removed; samples and ledger days are never deleted; every new history line,
+  result, certificate, limit action and QC acceptance must name the person actually signed in; only a lab supervisor or
+  the lab manager releases results or accepts QC, and not the person who entered the results (the lab manager may,
+  giving the reason that is printed). The step order, the QC gates before release and the limit holds are checked by
+  the page only: someone with a lab staff account and developer tools could skip a step, but not hide that they did.
+  Moving those checks onto the server too is a step before this becomes the production system.
 - **Any Microsoft account can sign in**, but it sees only the public pages until an admin puts its email on a staff
   account. Limiting sign-in to the company's own Microsoft 365 tenant needs the Standard plan (about US$9 a month).
-- **Live updates** arrive every 2.5 seconds (15 seconds when the tab is in the background).
-- **Backups:** Cosmos DB keeps its automatic periodic backups (restored through Azure support). Keep exporting the
-  ledger CSV during the test and keep the paper log going.
+- **Live updates** arrive every 2.5 seconds (15 seconds when the tab is in the background); each change is sent to a
+  page once.
+- **Backups:** the continuous 7-day backup from step 3, plus **Settings → Download backup** (lab manager only): one
+  JSON file with every record, to keep somewhere safe (weekly, say). Keep the paper log going during the test.
+- **Size:** the workflow board loads every open sample, and a sample stays open while any of its material is kept
+  (up to a year for pulps). A released sample is about 8 KB, so 2,000 open samples is a 16 MB download each time the
+  board opens. Beyond a few thousand open samples the board should load only the samples still in the lab; that is a
+  change to the main design.
 - **The certificate still says it is a design prototype**, not an official laboratory certificate.
 - The example reference material values and permit limits are still example values (Settings).
 - The API trusts the sign-in details Static Web Apps adds to each request (`x-ms-client-principal`). Claude checks,
@@ -91,9 +102,11 @@ the tracker already shapes them. Sources: [SQL free offer](https://learn.microso
 | Section account | As above, plus its own section's samples with results | As above |
 | Viewer | Everything | Submit new samples only |
 | Lab technician, lab supervisor | Everything | Samples, batches, ledger, tag index |
-| Admin | Everything, including sign-in emails | All of that, plus Settings |
+| Admin | Everything, including sign-in emails | All of that, plus Settings and the backup download |
 
 Staff see each other's names and roles but not their sign-in emails. The ledger and lab batches are staff only.
+Nobody deletes a sample or a ledger day. The API only answers JSON requests from the site's own page, so another website
+can't make a signed-in person's browser change records.
 
 ## How it is built
 
@@ -103,14 +116,14 @@ Staff see each other's names and roles but not their sign-in emails. The ledger 
 | `app/azure-shim.js` | Gives the page the shared-database interface it was written for, over `/api/db`: documents, where-filters, live snapshots (by polling for changes), short leases; plus the signed-in person (`/api/me`) and downloads. |
 | `app/staticwebapp.config.json` | Node 22 API, Microsoft sign-in only (GitHub sign-in turned off), `/login` and `/logout`. |
 | `api/db`, `api/me` | Azure Functions (HTTP) behind `/api`. |
-| `api/lib/core.js` | Accounts (Microsoft email → role from Settings; `ADMIN_EMAILS` are admins) and the read/write rules above. |
-| `api/lib/store-cosmos.js` | Cosmos DB store: one container `docs` in database `tracker` (created on first use with 1000 RU/s shared), partitioned by collection; ETag checks on every read-modify-write; leases as records; deletes kept as markers so open pages hear about them. |
+| `api/lib/core.js` | Accounts (Microsoft email → role from Settings; `ADMIN_EMAILS` are admins), the read/write rules above and the record-keeping rules (checked inside each write, on the record as it is at that moment). |
+| `api/lib/store-cosmos.js` | Cosmos DB store: one container `docs` in database `tracker` (created on first use with 1000 RU/s on the container), partitioned by collection; ETag checks on every read-modify-write; leases as records; deletes kept as markers so open pages hear about them. |
 | `api/lib/store-memory.js` | The same store in memory, for local runs and tests. |
 | `dev/server.js` | Local stand-in for Static Web Apps: `node dev/server.js` → http://localhost:4280, in-memory data, a local sign-in page (type an email, or an example username such as `tech1`). |
-| `test/api-tests.js` | 55 checks of the read/write rules and the Functions entry points. |
-| `test/store-tests.js` | 22 checks on each store; Cosmos runs against `@vercel/cosmosdb-server` (a local Cosmos imitation) or a real account. |
+| `test/api-tests.js` | 90 checks of the read/write rules, the record-keeping rules, the backup export and the Functions entry points. |
+| `test/store-tests.js` | 25 checks on each store; Cosmos runs against `@vercel/cosmosdb-server` (a local Cosmos imitation) or a real account. |
 | `test/run-suites.js` | Runs the prototype's own five browser suites against this build (real page, real API over HTTP), then `azure-extra.js`. Two board checks that read a removed sentence ("Showing all N open samples") check the lane counts instead. |
-| `test/azure-extra.js` | 22 browser checks of what is new: Microsoft sign-in, first admin, accounts by email, upgrade on staff sign-in, what the public sees. |
+| `test/azure-extra.js` | 25 browser checks of what is new: Microsoft sign-in, first admin, accounts by email, upgrade on staff sign-in, what the public sees, the backup download, the server refusing a tampered page's changes. |
 
 Patches `build.py` makes to the page: start after `/api/me` answers; tracking links use this site's address; the
 sign-in tab is *Sign in with Microsoft*; accounts have a *Microsoft sign-in email* instead of a password; the first
@@ -122,9 +135,9 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 
 | Suite | Result |
 |---|---|
-| `api-tests.js` | 55 / 55 |
-| `store-tests.js` | 44 / 44 (22 in memory, 22 on the local Cosmos DB imitation) |
-| `azure-extra.js` | 22 / 22 |
+| `api-tests.js` | 90 / 90 |
+| `store-tests.js` | 50 / 50 (25 in memory, 25 on the local Cosmos DB imitation) |
+| `azure-extra.js` | 25 / 25 |
 | Prototype `run.js` | 96 / 101 |
 | Prototype `results-tests.js` | 87 / 88 |
 | Prototype `v12-tests.js` | 67 / 69 |
@@ -135,6 +148,9 @@ No console errors in any suite. The 8 prototype checks that don't pass all expec
 upgrade older records (7) or finish a lab batch a crashed device left half-made (1). On Azure the public can't
 change records, so these run when lab staff sign in, and every five minutes on staff pages (`azure-extra.js` checks
 the upgrade on sign-in). Real data on Azure starts at v12, so the upgrade itself only matters for the tests.
+
+The prototype suites give the same results with the server's record-keeping rules switched on, so every flow the page
+has (receipt, steps, batches, results, release, amendments, re-assays, ledger) already writes within them.
 
 Found and fixed while testing: the public form couldn't release its short claim on a new ID (staff waited up to
 4 s to receive a just-submitted sample); lists didn't refresh when a page's sign-in changed; a guest page could

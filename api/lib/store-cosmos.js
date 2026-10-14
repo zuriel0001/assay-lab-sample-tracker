@@ -2,7 +2,7 @@
 // Record: { id, pk: collection path, p: full path, d: the document, u: change stamp (ms), del: true once deleted }.
 // Leases live in the same container under pk "_lease". Every read-modify-write uses the record's ETag.
 const { CosmosClient } = require("@azure/cosmos");
-const { merge, matches, clone, sortAndLimit, FIELD } = require("./docutil");
+const { merge, matches, clone, sortAndLimit, FIELD, refuse } = require("./docutil");
 
 const DB = process.env.COSMOS_DATABASE || "tracker", CONTAINER = process.env.COSMOS_CONTAINER || "docs";
 const enc = s => encodeURIComponent(s);     // Cosmos ids can't hold / \ ? #
@@ -14,10 +14,11 @@ const status = e => e && (e.code || e.statusCode);
 function createCosmosStore(connectionString){
   const client = new CosmosClient(connectionString);
   let ready = null;
-  /* Creates the database (1000 RU/s shared: the whole Cosmos DB free tier) and the container on first use. */
+  /* Creates the database and its one container (1000 RU/s: the whole Cosmos DB free tier) on first use. The throughput sits on
+     the container, not shared across the database, so a point-in-time restore brings the container back like any other. */
   const box = () => ready || (ready = (async () => {
-    const { database } = await client.databases.createIfNotExists({ id: DB, throughput: +(process.env.COSMOS_THROUGHPUT || 1000) });
-    const { container } = await database.containers.createIfNotExists({ id: CONTAINER, partitionKey: { paths: ["/pk"] } });
+    const { database } = await client.databases.createIfNotExists({ id: DB });
+    const { container } = await database.containers.createIfNotExists({ id: CONTAINER, partitionKey: { paths: ["/pk"] }, throughput: +(process.env.COSMOS_THROUGHPUT || 1000) });
     return container;
   })().catch(e => { ready = null; throw e; }));
 
@@ -59,21 +60,30 @@ function createCosmosStore(connectionString){
       const rows = resources.filter(r => r.d && matches(r.d, where)).map(r => ({ path: r.p, data: r.d })).sort((a, b) => a.path < b.path ? -1 : 1);
       return sortAndLimit(rows, opts);
     },
-    async set(p, data, { create } = {}){
+    /* check(current, next): see store-memory.js. It runs inside the ETag-guarded read-modify-write, so it judges what is replaced. */
+    async set(p, data, { create, check } = {}){
       await retry(async () => {
-        const prev = await readRec(p);
-        if (create && prev && !prev.rec.del) throw { code: "exists" };
+        const prev = await readRec(p), live = prev && !prev.rec.del;
+        if (create && live) throw { code: "exists" };
+        refuse(check, live ? clone(prev.rec.d) : null, clone(data));
         await write(p, prev, { d: clone(data) });
       });
     },
-    async update(p, patch){
+    async update(p, patch, { check } = {}){
       return retry(async () => {
         const prev = await readRec(p);
         if (!prev || prev.rec.del) throw { code: "not_found" };
         const d = merge(prev.rec.d, clone(patch));
+        refuse(check, clone(prev.rec.d), clone(d));
         await write(p, prev, { d });
         return d;
       });
+    },
+    async page(coll, after, n){
+      const c = await box();
+      const { resources } = await c.items.query({ query: `SELECT TOP ${Math.max(1, Math.min(1000, n | 0))} c.p, c.d FROM c WHERE c.pk = @pk AND NOT IS_DEFINED(c.del) AND c.p > @a ORDER BY c.p`,
+        parameters: [{ name: "@pk", value: coll }, { name: "@a", value: after || "" }] }, { partitionKey: coll }).fetchAll();
+      return resources.map(r => ({ path: r.p, data: r.d }));
     },
     async remove(p){
       await retry(async () => { const prev = await readRec(p); if (!prev || prev.rec.del) return; await write(p, prev, { d: null, del: true }); });

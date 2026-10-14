@@ -211,6 +211,21 @@ put('''<span class="small muted">Each gets its own certificate.${mineHeld ? ` ${
 put('''Certificates of analysis for samples your section submitted, newest first. ${fresh ?''', '''${fresh ?''')
 put(''' : "Nothing new since you last looked."} In the production system this notice also goes to the section by email.</p>''', ''' : "Nothing new since you last looked."}</p>''')
 
+# On Azure "quota_exceeded" means one record grew past what Cosmos DB holds (samples are never deleted).
+put('toast("The register is full. Archive or delete old samples before adding more.");', 'toast("This record is too large to save. Tell the lab manager.");')
+
+# 11. Settings: the lab manager can download a backup of every record (one JSON file), next to Save settings.
+put('<span style="flex:1"></span><button class="btn ghost" id="cfgReset">',
+    '<button class="btn ghost" id="cfgBackup">Download backup</button><span style="flex:1"></span><button class="btn ghost" id="cfgReset">')
+put('''  const dirty = () => { draftDirty = true; renderStages(); };''',
+    '''  const dirty = () => { draftDirty = true; renderStages(); };
+  $("#cfgBackup").addEventListener("click", async e => {
+    const b = e.currentTarget; b.disabled = true; b.textContent = "Preparing backup…";
+    try { toast(`Backup downloaded: ${await window.__backup()} records`); }
+    catch (err){ toast(err && err.code === "permission_denied" ? err.message || "Only the lab manager downloads backups." : "The backup could not be made. Try again."); }
+    finally { b.disabled = false; b.textContent = "Download backup"; }
+  });''')
+
 out = os.path.join(HERE, "app", "index.html")
 # 9. The document shell. On Claude the platform wraps the page in this shell (doctype, UTF-8, phone viewport, safe-area
 #    padding, base styles); outside Claude the page must carry it itself, or phones show the desktop layout zoomed out and

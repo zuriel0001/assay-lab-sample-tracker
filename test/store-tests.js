@@ -52,6 +52,16 @@ async function suite(name, s){
   await s.set("ledger/D", { day: "D", m: {} });
   await Promise.all(Array.from({ length: 8 }, (_, i) => s.update("ledger/D", { m: { ["k" + i]: { i } } })));
   check(Object.keys((await s.get("ledger/D")).m).length === 8, "concurrent updates to one record all land");
+  // A write check sees the record as it is and the result of the write, and can refuse it.
+  let seen = null, err = null;
+  await s.update("ledger/D", { m: { k9: { i: 9 } } }, { check: (cur, next) => { seen = [Object.keys(cur.m).length, Object.keys(next.m).length]; return ""; } });
+  try { await s.update("ledger/D", { m: { k0: null } }, { check: (cur, next) => next.m.k0 == null ? "no removing" : "" }); } catch (e){ err = e; }
+  check(seen && seen[0] === 9 - 1 && seen[1] === 9 && err && err.code === "permission_denied" && err.message === "no removing" && (await s.get("ledger/D")).m.k0.i === 0, "a write check sees before and after, and its refusal leaves the record as it was");
+  err = null; try { await s.set("ledger/D", { day: "D", m: {} }, { check: cur => cur && Object.keys(cur.m).length ? "keep" : "" }); } catch (e){ err = e; }
+  check(err && err.code === "permission_denied" && Object.keys((await s.get("ledger/D")).m).length === 9, "a write check also guards a full rewrite");
+  // Pages of a collection in path order (the backup download).
+  const p1 = await s.page("samples", "", 2), p2 = await s.page("samples", p1[p1.length - 1].path, 2);
+  check(p1.map(x => x.path).join() === "samples/A-1,samples/A-2" && p2.map(x => x.path).join() === "samples/A-3" && p1.every(x => x.data && typeof x.data === "object"), "a collection reads page by page, in order");
 }
 
 (async () => {

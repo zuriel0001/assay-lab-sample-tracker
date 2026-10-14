@@ -52,7 +52,8 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
 
   // Settings: admin only, emails hidden from non-admins.
   const users = [{ u: "mgr", name: "Manager", role: "admin", em: "boss@site.com" }, { u: "t1", name: "Tech One", role: "tech", em: "T1@Site.com" },
-    { u: "v", name: "Viewer", role: "viewer", em: "v@site.com" }, { u: "exp", name: "EXP results", role: "section", sec: "EXP", em: "exp@site.com" }];
+    { u: "v", name: "Viewer", role: "viewer", em: "v@site.com" }, { u: "exp", name: "EXP results", role: "section", sec: "EXP", em: "exp@site.com" },
+    { u: "s1", name: "Super One", role: "super", em: "s1@site.com" }];
   check(!(await one("t1@site.com", { op: "set", path: "settings/stages", data: { users } })).ok, "a non-admin can't save settings");
   check((await one("boss@site.com", { op: "set", path: "settings/stages", data: { schema: 12, users, resultsPublic: false } })).ok, "the bootstrap admin saves settings");
   await new Promise(r => setTimeout(r, 3100));   // settings cache
@@ -60,7 +61,7 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   check(t1.role === "tech" && t1.u === "t1" && t1.name === "Tech One", "accounts are matched by Microsoft email, case-insensitively");
   check((await core.account(P("t1"))).role === null, "on Azure, a username is not a sign-in (dev only)");
   const asTech = (await one("t1@site.com", { op: "get", path: "settings/stages" })).data;
-  check(asTech.users.length === 4 && asTech.users.every(x => !x.em), "staff see names and roles but not sign-in emails");
+  check(asTech.users.length === 5 && asTech.users.every(x => !x.em), "staff see names and roles but not sign-in emails");
   check((await one(null, { op: "get", path: "settings/stages" })).data.users.length === 0, "the public sees no accounts");
   check((await one("boss@site.com", { op: "get", path: "settings/stages" })).data.users[1].em === "T1@Site.com", "admin sees the emails to edit them");
   { const m2 = createMemoryStore(); await m2.set("settings/stages", { users }); const c2 = createCore({ store: m2, adminEmails: [] });
@@ -68,7 +69,7 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
     check(!r.ok, "without ADMIN_EMAILS, settings can't be saved with no admin left"); }
 
   // Staff and section accounts.
-  check((await one("t1@site.com", { op: "update", path: "samples/" + id, data: { stageKey: "received", recvAt: now } })).ok, "a technician updates a sample");
+  check((await one("t1@site.com", { op: "update", path: "samples/" + id, data: { stageKey: "received", recvAt: now, history: [...sub(id).history, { key: "received", at: now, by: "t1", tech: "Tech One" }] } })).ok, "a technician updates a sample");
   check((await one("t1@site.com", { op: "set", path: "ledger/2026-10-14_EXP", data: { m: {} } })).ok, "a technician writes the ledger");
   check(!(await one("v@site.com", { op: "update", path: "samples/" + id, data: { flag: "x" } })).ok, "a viewer can't change a sample");
   check((await one("v@site.com", { op: "get", path: "ledger/2026-10-14_EXP" })).ok, "a viewer reads the ledger");
@@ -89,6 +90,54 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   check(chStaff.some(c => c.path === "samples/" + pid), "staff receive changes to any sample");
   check(!chPub.length, "the public receives no changes it didn't ask for");
   check(chPubW.length === 1 && !chPubW[0].data.results, "the public receives changes to a sample it is looking at, without results");
+  const u1 = chStaff.find(c => c.path === "samples/" + pid).u;
+  check(!(await one("t1@site.com", { op: "changes", since: t0, seen: [["samples/" + pid, u1]] })).changes.some(c => c.path === "samples/" + pid), "a change the page already has is not sent again");
+
+  // Record-keeping rules the server keeps whatever a page sends.
+  const T1 = { by: "t1", tech: "Tech One" }, S1 = { by: "s1", tech: "Super One" }, MG = { by: "mgr", tech: "Manager" };
+  const rid = `EXP-${day}-0009`, rp = "samples/" + rid, h1 = { key: "received", at: now, ...T1 }, h2 = { key: "prep", at: now + 1, ...T1 };
+  check((await one("t1@site.com", { op: "set", path: rp, data: { id: rid, section: "EXP", history: [h1] } })).ok, "a technician registers a sample under their own name");
+  check(!(await one("t1@site.com", { op: "set", path: `samples/EXP-${day}-0010`, data: { id: `EXP-${day}-0010`, history: [{ ...h1, ...S1 }] } })).ok, "a technician can't register a sample in someone else's name");
+  check((await one("t1@site.com", { op: "update", path: rp, data: { history: [h1, h2] } })).ok, "a history line is added under the signed-in name");
+  check(!(await one("t1@site.com", { op: "update", path: rp, data: { history: [h1, h2, { key: "x", at: now + 2, ...S1 }] } })).ok, "a history line naming someone else is refused");
+  check(!(await one("boss@site.com", { op: "update", path: rp, data: { history: [{ ...h1, note: "edited" }, h2] } })).ok, "an earlier history line can't be edited, even by the admin");
+  check(!(await one("boss@site.com", { op: "update", path: rp, data: { history: [h1] } })).ok, "history lines can't be removed");
+  check(!(await one("boss@site.com", { op: "delete", path: rp })).ok, "samples are never deleted, even by the admin");
+  check(!(await one("t1@site.com", { op: "update", path: rp, data: { stageKey: "qc" } })).ok, "a sample can't change step without a history line");
+  check((await one("t1@site.com", { op: "update", path: rp, data: { results: { by: "t1", rows: { Au: { v: 1.2, raw: "1.2", by: "t1" } } } } })).ok, "a technician enters results under their own name");
+  check(!(await one("s1@site.com", { op: "update", path: rp, data: { results: { rows: { Au: { v: 9, raw: "9", by: "t1" } } } } })).ok, "results can't be typed in someone else's name");
+  const cert = (who, role, x = {}) => ({ no: rid + "-R1", v: 1, at: now, ...who, role, ...x });
+  check(!(await one("t1@site.com", { op: "update", path: rp, data: { certs: [cert(T1, "tech")] } })).ok, "a technician can't release results");
+  check(!(await one("s1@site.com", { op: "update", path: rp, data: { certs: [cert(T1, "super")] } })).ok, "a certificate must name the person releasing it");
+  check((await one("s1@site.com", { op: "update", path: rp, data: { certs: [cert(S1, "super")] } })).ok, "a supervisor releases results someone else entered");
+  check(!(await one("s1@site.com", { op: "update", path: rp, data: { certs: [cert(S1, "super", { at: 1 })] } })).ok, "an issued certificate can't be changed");
+  const r2 = `EXP-${day}-0011`, p2 = "samples/" + r2;
+  await mem.set(p2, { id: r2, section: "EXP", history: [], results: { by: "s1", rows: { Au: { v: 2, raw: "2", by: "s1" } } } });
+  check(!(await one("s1@site.com", { op: "update", path: p2, data: { certs: [{ ...cert(S1, "super"), no: r2 + "-R1" }] } })).ok, "four eyes: a supervisor can't release results they entered");
+  await mem.update(p2, { results: { by: "mgr", rows: { Au: { v: 3, raw: "3", by: "mgr" } } } });
+  check(!(await one("boss@site.com", { op: "update", path: p2, data: { certs: [{ ...cert(MG, "admin"), no: r2 + "-R1" }] } })).ok, "the lab manager can't release their own results without a reason");
+  check((await one("boss@site.com", { op: "update", path: p2, data: { certs: [{ ...cert(MG, "admin", { self: "Only analyst on site" }), no: r2 + "-R1" }] } })).ok, "the lab manager may, giving the recorded reason");
+  await mem.update(p2, { amend: { of: 1, rows: { Au: { v: 4, raw: "4", by: "s1" } }, why: "typo", ...S1, at: now } });
+  check(!(await one("s1@site.com", { op: "update", path: p2, data: { results: { rows: { Au: { v: 4, raw: "4", by: "s1" } } }, amend: null, certs: [{ ...cert(MG, "admin", { self: "x" }), no: r2 + "-R1" }, { ...cert(S1, "super", { amendBy: { by: "s1" } }), no: r2 + "-R2", v: 2 }] } })).ok, "an amendment is approved by someone other than its proposer");
+
+  const bp = "batches/FA-1";
+  check((await one("t1@site.com", { op: "set", path: bp, data: { id: "FA-1", qc: { status: "warn", ...T1 } } })).ok, "batch results are saved under the technician's name");
+  check(!(await one("t1@site.com", { op: "update", path: bp, data: { qc: { accepted: { ...T1, why: "x" } } } })).ok, "a technician can't accept batch QC");
+  check(!(await one("s1@site.com", { op: "update", path: bp, data: { qc: { status: "pass" } } })).ok, "batch results can't be changed in someone else's name");
+  check((await one("s1@site.com", { op: "update", path: bp, data: { qc: { accepted: { ...S1, why: "ok" } } } })).ok, "a supervisor accepts another person's batch QC warnings");
+
+  const lp = "ledger/2026-10-14_EXP", mv = { dir: "in", sid: rid, ...T1 };
+  check((await one("t1@site.com", { op: "update", path: lp, data: { m: { a: mv } } })).ok, "a ledger movement is recorded");
+  check((await one("s1@site.com", { op: "update", path: lp, data: { m: { a: mv } } })).ok, "writing the same movement again (a retry) is fine");
+  check(!(await one("boss@site.com", { op: "update", path: lp, data: { m: { a: { ...mv, dir: "out" } } } })).ok, "a recorded ledger movement can't be changed");
+  check(!(await one("boss@site.com", { op: "update", path: lp, data: { m: { a: null } } })).ok, "a recorded ledger movement can't be removed");
+  check(!(await one("boss@site.com", { op: "set", path: lp, data: { day: "2026-10-14", m: {} } })).ok, "a ledger day can't be wiped by writing it again");
+  check(!(await one("boss@site.com", { op: "delete", path: lp })).ok, "ledger days are never deleted");
+  const ex1 = await one("boss@site.com", { op: "export", coll: "samples", limit: 2 }), ex2 = await one("boss@site.com", { op: "export", coll: "samples", after: ex1.next, limit: 500 });
+  check(ex1.docs.length === 2 && ex1.next === ex1.docs[1].path && ex2.next === null && ex2.docs.length >= 2 && ex2.docs[0].path > ex1.next, "the lab manager exports every record, page by page (backup)");
+  check(!(await one("s1@site.com", { op: "export", coll: "samples" })).ok && !(await one(null, { op: "export", coll: "settings" })).ok, "nobody else can export");
+  check(!(await one(null, { op: "set", path: "samples/EXP-20200101-0001", data: sub("EXP-20200101-0001") })).ok, "public can't submit under another day's ID");
+  check(!(await one(null, { op: "set", path: `samples/EXP-${day}-0012`, data: sub(`EXP-${day}-0012`, { notes: "x".repeat(30000) }) })).ok, "public submissions have a size limit");
 
   // resultsPublic: everyone sees results.
   await mem.update("settings/stages", { resultsPublic: true }); await new Promise(r => setTimeout(r, 3100));
@@ -112,10 +161,15 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   const hdr = who => ({ "x-ms-client-principal": Buffer.from(JSON.stringify(P(who))).toString("base64") });
   let c = ctx(); await me(c, { headers: hdr("boss@site.com") });
   check(c.res.status === 200 && c.res.body.role === "admin", "Functions entry /api/me reads the Static Web Apps principal header");
-  c = ctx(); await fn(c, { headers: {}, body: { ops: [{ op: "get", path: "settings/stages" }] } });
+  const JS = { "content-type": "application/json" };
+  c = ctx(); await fn(c, { headers: JS, body: { ops: [{ op: "get", path: "settings/stages" }] } });
   check(c.res.status === 200 && c.res.body.results[0].ok, "Functions entry /api/db answers");
-  c = ctx(); await fn(c, { headers: {}, body: "{\"ops\":[{\"op\":\"get\",\"path\":\"meta/schema\"}]}" });
+  c = ctx(); await fn(c, { headers: JS, body: "{\"ops\":[{\"op\":\"get\",\"path\":\"meta/schema\"}]}" });
   check(c.res.status === 200 && c.res.body.results[0].ok, "Functions entry accepts a string body");
+  c = ctx(); await fn(c, { headers: { "content-type": "text/plain" }, body: "{\"ops\":[{\"op\":\"get\",\"path\":\"meta/schema\"}]}" });
+  check(c.res.status === 403, "a plain-text post (what another website's form can send) is refused");
+  c = ctx(); await fn(c, { headers: { ...JS, "sec-fetch-site": "cross-site" }, body: { ops: [{ op: "get", path: "meta/schema" }] } });
+  check(c.res.status === 403, "a request another website's page makes is refused");
 
   console.log(`\n${pass} PASS, ${fail} FAIL`);
   process.exit(fail ? 1 : 0);

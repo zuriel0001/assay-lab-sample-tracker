@@ -1,9 +1,9 @@
 // The API behind the page: who is signed in, and what each person may read and write.
 // The page keeps the prototype's workflow rules; this server decides who sees what and who may change what.
-const { validWhere, clone } = require("./docutil");
+const { validWhere, clone, same } = require("./docutil");
 
 const COLLS = ["samples", "ledger", "batches", "tagidx", "meta", "settings"];
-const WRITERS = ["tech", "super", "admin"], STAFF = [...WRITERS, "viewer"];
+const WRITERS = ["tech", "super", "admin"], STAFF = [...WRITERS, "viewer"], APPROVERS = ["super", "admin"];
 const SEG = /^[^\u0000-\u001f/\\?#]{1,200}$/;
 const MAX_DOC = 1500000;   // Cosmos DB items are limited to 2 MB
 
@@ -19,6 +19,15 @@ function principalOf(headers){
   try { const p = JSON.parse(Buffer.from(h, "base64").toString("utf8")); return p && p.userId && p.userDetails ? p : null; } catch { return null; }
 }
 const fail = (code, msg) => ({ code, message: msg || code });
+/* The API answers this site's own page: a JSON POST from the same origin. That keeps another website from making a signed-in
+   person's browser send changes (a form post can't carry JSON, and browsers mark where a request came from). */
+function requestProblem(headers){
+  const h = k => (headers && (headers[k] || headers[k.toUpperCase()])) || "";
+  if (!/^application\/json\b/i.test(String(h("content-type")))) return "The API takes JSON.";
+  const site = String(h("sec-fetch-site"));
+  if (site && site !== "same-origin") return "Requests must come from this site.";
+  return "";
+}
 /* Results and certificate contents are hidden from people who may not see them; the certificate number and check code stay visible. */
 function redactSample(d){
   if (!d) return d;
@@ -27,6 +36,75 @@ function redactSample(d){
   if (Array.isArray(o.certs)) o.certs = o.certs.map(c => ({ no: c.no, v: c.v, at: c.at, code: c.code, ...(c.amends ? { amends: c.amends } : {}) }));
   return o;
 }
+
+/* ---------- Record-keeping rules kept by the server, whatever a page sends ----------
+   The page applies the full workflow (step order, QC gates, limits). These rules make sure that even a page someone has
+   tampered with can't rewrite the record: history, certificates and ledger movements are only ever added to, every new
+   entry names the person actually signed in, and results are released by someone other than the person who entered them. */
+const filled = x => typeof x === "string" && x.trim() !== "";
+const signedBy = a => e => !!e && e.by === a.u && e.tech === a.name;
+const extends_ = (old, now) => Array.isArray(now) && now.length >= old.length && old.every((e, i) => same(e, now[i]));
+/* The people who entered the results now on a sample (as the page counts them). */
+const entrantsOf = s => {
+  const rows = (s && s.results && s.results.rows) || {};
+  return [...new Set(Object.values(rows).filter(r => r && !r.calc).map(r => r.by || s.results.by).filter(Boolean))];
+};
+function sampleRule(a, cur, next){
+  const who = signedBy(a);
+  const h0 = (cur && cur.history) || [], h1 = next.history;
+  if (!extends_(h0, h1)) return "A sample's history can only be added to, never changed.";
+  const publicForm = !cur && next.createdBy === "public" && h1.length === 1 && h1[0] && h1[0].by === "public";
+  if (!publicForm && h1.slice(h0.length).some(e => !who(e))) return "Each new line in a sample's history must name the person signed in.";
+  if (cur && next.stageKey !== cur.stageKey && h1.length === h0.length) return "A sample changes step only with a new line in its history.";
+
+  const c0 = (cur && cur.certs) || [], c1 = next.certs || [];
+  if (!extends_(c0, c1)) return "An issued certificate can't be changed or removed.";
+  const issued = c1.slice(c0.length);
+  for (const c of issued){
+    if (!APPROVERS.includes(a.role)) return "Only a lab supervisor or the lab manager can release results.";
+    if (!who(c) || c.role !== a.role) return "A certificate must name the person signed in.";
+    if (c.amendBy && !(cur && cur.amend && cur.amend.by === c.amendBy.by)) return "An amended certificate needs the amendment that was proposed.";
+    const own = c.amendBy ? cur.amend.by === a.u : entrantsOf(cur).includes(a.u);
+    if (own && !(a.role === "admin" && filled(c.self))) return "Results are released by someone other than the person who entered them.";
+  }
+
+  const r0 = (cur && cur.results && cur.results.rows) || {}, r1 = (next.results && next.results.rows) || {};
+  const proposed = issued.some(c => c.amendBy) ? cur.amend.rows || {} : null;
+  for (const k of Object.keys(r1)){
+    const r = r1[k];
+    if (r == null || r.calc || same(r, r0[k]) || (proposed && same(r, proposed[k]))) continue;
+    if (r.by !== a.u) return "A result must be entered under the name of the person signed in.";
+  }
+  if (next.resAcc && !same(next.resAcc, cur && cur.resAcc)){
+    if (!APPROVERS.includes(a.role) || !who(next.resAcc)) return "Only a lab supervisor or the lab manager accepts results outside a check, under their own name.";
+    if (entrantsOf(cur).includes(a.u) && a.role !== "admin") return "Results outside a check are accepted by someone other than the person who entered them.";
+  }
+  if (next.amend && !same(next.amend, cur && cur.amend) && !who(next.amend)) return "An amendment must be proposed under the name of the person signed in.";
+  const k0 = (cur && cur.acks) || [];
+  if ((next.acks || []).some(x => !k0.some(y => same(x, y)) && !who(x))) return "A limit action must be recorded under the name of the person signed in.";
+  return "";
+}
+function batchRule(a, cur, next){
+  const who = signedBy(a), q0 = cur && cur.qc, q1 = next.qc;
+  const bare = q => q ? { ...q, accepted: null } : null;
+  if (q1 && !same(bare(q1), bare(q0)) && !who(q1)) return "Batch results must be saved under the name of the person signed in.";
+  const x = q1 && q1.accepted;
+  if (x && !same(x, q0 && q0.accepted)){
+    if (!APPROVERS.includes(a.role) || !who(x)) return "Only a lab supervisor or the lab manager accepts batch QC, under their own name.";
+    if (x.exception && a.role !== "admin") return "Only the lab manager accepts failed QC as an exception.";
+    if (q1.by === a.u && a.role !== "admin") return "Batch QC is accepted by someone other than the person who saved its results.";
+  }
+  return "";
+}
+/* One ledger document per site day and section; its movements are written once. A mistake is reversed by a new movement. */
+function ledgerRule(a, cur, next){
+  if (!cur) return "";
+  for (const k of ["day", "month", "sec"]) if (cur[k] != null && !same(cur[k], next[k])) return "A ledger day can't be moved.";
+  const m0 = cur.m || {}, m1 = next.m || {};
+  for (const id of Object.keys(m0)) if (m0[id] != null && !same(m0[id], m1[id])) return "A ledger movement can't be changed or removed once recorded. Reverse it with a new entry.";
+  return "";
+}
+const RULES = { samples: sampleRule, batches: batchRule, ledger: ledgerRule };
 
 function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }){
   const admins = adminEmails.map(x => String(x).trim().toLowerCase()).filter(Boolean);
@@ -86,6 +164,9 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
     for (const k of ["results", "certs", "labs", "lbs", "labBatch", "materials", "ledgerPending", "amend", "acks", "relAt", "closedAt"]) if (d[k] != null && !(Array.isArray(d[k]) && !d[k].length)) return k;
     if (!Array.isArray(d.history) || d.history.length !== 1 || d.history[0].by !== "public") return "history";
     if (!(Math.abs((+d.createdAt || 0) - now) < 15 * 60000)) return "time";
+    const ds = id.split("-")[1], day = Date.UTC(+ds.slice(0, 4), +ds.slice(4, 6) - 1, +ds.slice(6, 8)) + 12 * 3600000;
+    if (!(Math.abs(day - now) < 36 * 3600000)) return "date";   // the ID carries today's date (in the site's time zone)
+    if (JSON.stringify(d).length > 20000) return "size";
     return "";
   }
 
@@ -94,8 +175,10 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
     if (t === "changes"){
       const since = Math.max(0, +op.since || 0);
       const watch = new Set(Array.isArray(op.watch) ? op.watch.slice(0, 500) : []);
+      const seen = new Map((Array.isArray(op.seen) ? op.seen.slice(0, 500) : []).filter(x => Array.isArray(x) && typeof x[0] === "string").map(x => [x[0], +x[1]]));
       const rows = await store.changes(since), out = [];
       for (const r of rows){
+        if (seen.get(r.path) === r.u) continue;   // the page already has this change
         const pp = parsePath(r.path); if (!pp) continue;
         const may = isStaff(a) || watch.has(r.path) || r.path === "settings/stages" ||
           (a.role === "section" && pp.coll === "samples" && r.data && r.data.section === a.sec);
@@ -117,6 +200,13 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
       const docs = [];
       for (const r of rows){ const d = await visible(a, r.path, r.data); if (d !== undefined) docs.push({ path: r.path, data: d }); }
       return { docs };
+    }
+    if (t === "export"){   // the lab manager's backup download: every record, a page at a time
+      if (a.role !== "admin") throw fail("permission_denied", "Only the lab manager downloads backups.");
+      if (!COLLS.includes(op.coll)) throw fail("bad_request");
+      const n = Math.max(1, Math.min(500, op.limit | 0 || 200));
+      const docs = await store.page(op.coll, typeof op.after === "string" ? op.after : "", n);
+      return { docs, next: docs.length === n ? docs[docs.length - 1].path : null };
     }
     const pp = parsePath(op.path);
     if (!pp) throw fail("bad_request", "bad path");
@@ -154,9 +244,14 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
       return { ok: true };
     }
     if (isWriter(a)){
-      if (t === "set") await store.set(op.path, op.data);
-      else if (t === "update") await store.update(op.path, op.data);
-      else await store.remove(op.path);
+      if (t === "delete"){
+        if (pp.coll === "samples" || pp.coll === "ledger") throw fail("permission_denied", "Samples and ledger entries are never deleted.");
+        await store.remove(op.path);
+        return { ok: true };
+      }
+      const rule = RULES[pp.coll], check = rule ? (cur, next) => rule(a, cur, next) : null;
+      if (t === "set") await store.set(op.path, op.data, { check });
+      else await store.update(op.path, op.data, { check });
       return { ok: true };
     }
     // Everyone else: public submissions only.
@@ -203,4 +298,4 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
   async function handleMe(principal){ return { status: 200, body: await account(principal) }; }
   return { handleDb, handleMe, account, _run: run };
 }
-module.exports = { createCore, principalOf, redactSample };
+module.exports = { createCore, principalOf, redactSample, requestProblem };

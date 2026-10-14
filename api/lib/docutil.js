@@ -31,4 +31,18 @@ function sortAndLimit(rows, { orderBy, limit } = {}){
   if (limit) rows = rows.slice(0, limit);
   return rows;
 }
-module.exports = { clone, merge, matches, validWhere, sortAndLimit, FIELD };
+/* Deep equality of stored values; a key holding null counts as absent, as the page reads it. */
+function same(x, y){
+  if (x === y) return true;
+  if (x == null || y == null) return x == null && y == null;
+  if (typeof x !== "object" || typeof y !== "object" || Array.isArray(x) !== Array.isArray(y)) return false;
+  if (Array.isArray(x)) return x.length === y.length && x.every((v, i) => same(v, y[i]));
+  const kx = Object.keys(x).filter(k => x[k] != null), ky = Object.keys(y).filter(k => y[k] != null);
+  return kx.length === ky.length && kx.every(k => same(x[k], y[k]));
+}
+/* Runs a store write's check(current, next) and refuses the write when it gives a reason. */
+function refuse(check, cur, next){
+  const why = check ? check(cur, next) : "";
+  if (why) throw { code: "permission_denied", message: why };
+}
+module.exports = { clone, merge, matches, validWhere, sortAndLimit, FIELD, same, refuse };
