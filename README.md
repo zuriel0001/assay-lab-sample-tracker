@@ -10,7 +10,7 @@ decides who may read and change what.
 
 You need a GitHub account (you have one) and an Azure account. Everything below stays on free plans.
 
-1. **GitHub repository** (done): https://github.com/zuriel0001/met-lab-sample-tracker holds this folder. Claude pushes
+1. **GitHub repository** (done): https://github.com/zuriel0001/assay-lab-sample-tracker holds this folder. Claude pushes
    updates there; each push redeploys the site automatically once step 4 is done.
 2. **Create a free Azure account** at https://azure.microsoft.com/free. Microsoft asks for a card to check your
    identity; the plans below don't charge it. The free account is a 30-day trial: before it ends, Microsoft emails you
@@ -18,7 +18,7 @@ You need a GitHub account (you have one) and an Azure account. Everything below 
    off. After the move you pay only for use above the free amounts, which this setup stays inside (see *What it costs*).
 3. **Create the database.** In the Azure portal (https://portal.azure.com): *Create a resource* → search
    **Azure Cosmos DB** → *Azure Cosmos DB for NoSQL* → *Create*.
-   - Resource group: *Create new*, `sample-tracker`. Account name: for example `metlab-tracker-db`.
+   - Resource group: *Create new*, `sample-tracker`. Account name: for example `assaylab-tracker-db`.
    - Location: **West Europe**, the same region as the web app's API in step 4, so the two talk quickly. (Static Web Apps
      runs its API in only a few regions; West Europe is the nearest of them to Ghana.)
    - Capacity mode: **Provisioned throughput**. **Apply Free Tier Discount: Apply.**
@@ -28,7 +28,7 @@ You need a GitHub account (you have one) and an Azure account. Everything below 
    - *Review + create* → *Create*. When it is ready, open it → *Settings* → *Keys* → copy the
      **PRIMARY CONNECTION STRING**.
 4. **Create the web app.** *Create a resource* → search **Static Web App** → *Create*.
-   - Resource group `sample-tracker`, name `metlab-sample-tracker`, Plan type **Free**. Region for the API (and staging):
+   - Resource group `sample-tracker`, name `assay-lab-sample-tracker`, Plan type **Free**. Region for the API (and staging):
      **West Europe**.
    - Source **GitHub**: sign in, pick the repository from step 1, branch `main`.
    - Build presets **Custom**. App location `/app`. Api location `/api`. Output location: leave empty.
