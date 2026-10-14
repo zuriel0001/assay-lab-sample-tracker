@@ -19,8 +19,11 @@ You need a GitHub account (you have one) and an Azure account. Everything below 
 3. **Create the database.** In the Azure portal (https://portal.azure.com): *Create a resource* → search
    **Azure Cosmos DB** → *Azure Cosmos DB for NoSQL* → *Create*.
    - Resource group: *Create new*, `sample-tracker`. Account name: for example `assaylab-tracker-db`.
-   - Location: **West Europe**, the same region as the web app's API in step 4, so the two talk quickly. (Static Web Apps
-     runs its API in only a few regions; West Europe is the nearest of them to Ghana.)
+   - Location: **West Europe**, the region of the web app's API in step 4, so the two talk quickly. (Static Web Apps
+     runs its API in only a few regions; West Europe is the nearest of them to Ghana.) New subscriptions often find West
+     Europe greyed out for Cosmos DB; then pick **UK South** (or France Central, Germany West Central), a few
+     milliseconds from West Europe. If the list shows only "EUAP" regions, register the `Microsoft.DocumentDB` resource
+     provider first (*Subscriptions* → your subscription → *Resource providers*) and open the form again.
    - Capacity mode: **Provisioned throughput**. **Apply Free Tier Discount: Apply.**
      **Limit total account throughput: ticked** (keeps it inside the free 1000 RU/s).
    - On the **Backup Policy** tab choose **Continuous (7 days)**. Keeping it is free; it lets you put the database back
