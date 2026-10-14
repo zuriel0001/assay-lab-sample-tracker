@@ -28,8 +28,9 @@ const log = t => console.log("• " + t);
   const T = await newUser(browser, { uid: "t", name: "Tech" });
   await signIn(T, "tech1");
   check(await T.$eval("#who", e => e.textContent) === "Lab Technician A · Lab technician", "signed in as the technician account");
-  check(!!(await waitFor(() => store["meta/schema"]?.v === 12, 6000)), "the upgrade runs when lab staff sign in");
-  check(doc("EXP-20261001-0009").v === 12 && (doc("EXP-20261001-0009").tags || []).includes("OLD-9"), "the earlier record is upgraded");
+  check(!!(await waitFor(() => store["meta/schema"]?.v === 13, 6000)), "the upgrade runs when lab staff sign in");
+  check(doc("EXP-20261001-0009").v === 13 && (doc("EXP-20261001-0009").tags || []).includes("OLD-9"), "the earlier record is upgraded");
+  check(!!(await waitFor(() => doc("EXP-20261001-0009").lab === true && store["stock/EXP-20261001-0009"]?.st === "lab" && !doc("EXP-20261001-0009").sx, 6000)), "it is marked in the lab, with its stock record written");
 
   log("Public submission and lookup");
   await fillForm(P, "submit", { section: "EXP", submitter: "Ama", tags: "AZ-1" }); const [sid] = await ids(P);

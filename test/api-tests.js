@@ -13,7 +13,7 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   const db = async (who, ...ops) => (await core.handleDb(P(who), { ops })).body.results;
   const one = async (who, op) => (await db(who, op))[0];
   const now = Date.now(), day = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  const sub = (id, extra = {}) => ({ id, v: 12, section: id.split("-")[0], stageKey: "submitted", open: true, onHand: false, createdBy: "public", createdAt: now, recvAt: null, receivedAt: null, recv: null,
+  const sub = (id, extra = {}) => ({ id, v: 13, section: id.split("-")[0], stageKey: "submitted", open: true, onHand: false, lab: true, createdBy: "public", createdAt: now, recvAt: null, receivedAt: null, recv: null,
     tags: ["T-1"], history: [{ key: "submitted", at: now, by: "public", name: "J" }], ...extra });
 
   // Bootstrap: before Settings are saved, only ADMIN_EMAILS can sign in, as admin.
@@ -138,6 +138,22 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   check(!(await one("s1@site.com", { op: "export", coll: "samples" })).ok && !(await one(null, { op: "export", coll: "settings" })).ok, "nobody else can export");
   check(!(await one(null, { op: "set", path: "samples/EXP-20200101-0001", data: sub("EXP-20200101-0001") })).ok, "public can't submit under another day's ID");
   check(!(await one(null, { op: "set", path: `samples/EXP-${day}-0012`, data: sub(`EXP-${day}-0012`, { notes: "x".repeat(30000) }) })).ok, "public submissions have a size limit");
+  check(!(await one(null, { op: "set", path: `samples/EXP-${day}-0013`, data: sub(`EXP-${day}-0013`, { lab: false }) })).ok, "a public submission can't keep itself off the workflow board");
+
+  // Stock records (v13): one per received sample, for the Storage tab and the ledger's month check. Staff only.
+  const sp = "stock/" + rid, stk = { id: rid, sec: "EXP", type: "Pulp", route: "EXP-FA", tag: "T-9", recvAt: now, gone: 9e15, st: "store", due: now + 86400e3, two: false, m: [{ k: "m1", item: "Pulp", loc: "Rack 4", dueAt: now + 86400e3, then: "Disposed" }] };
+  check((await one("t1@site.com", { op: "set", path: sp, data: stk })).ok, "a technician writes a stock record");
+  check(!(await one(null, { op: "set", path: "stock/" + id, data: { ...stk, id } })).ok && !(await one("v@site.com", { op: "set", path: sp, data: stk })).ok, "the public and viewers can't write stock records");
+  check(!(await one(null, { op: "get", path: sp })).ok && !(await one("exp@site.com", { op: "get", path: sp })).ok, "stock records (sample, tag, shelf) are hidden from the public and section accounts");
+  check(!(await one(null, { op: "query", coll: "stock", where: [["st", "==", "store"]] })).docs.length && !(await one("exp@site.com", { op: "query", coll: "stock", where: [["sec", "==", "EXP"]] })).docs.length, "nor can they list them");
+  check((await one("v@site.com", { op: "query", coll: "stock", where: [["st", "==", "store"], ["due", "<", now + 2 * 86400e3]] })).docs.length === 1, "staff list stored material due soon");
+  check((await one("v@site.com", { op: "query", coll: "stock", where: [["recvAt", "<", now + 1], ["gone", ">=", now - 1]] })).docs.length === 1, "the month check finds samples on hand in a month");
+  check(!(await one("boss@site.com", { op: "delete", path: sp })).ok, "stock records are never deleted");
+  check((await one("boss@site.com", { op: "export", coll: "stock" })).docs.length === 1, "stock records are in the backup");
+  check(!(await one("t1@site.com", { op: "query", coll: "nope", where: [] })).ok, "an unknown collection is refused");
+  await mem.update(rp, { relAt: now - 5 }); await mem.update(p2, { relAt: now });
+  const rel = (await one("exp@site.com", { op: "query", coll: "samples", where: [["section", "==", "EXP"], ["relAt", ">", 0]], orderBy: ["relAt", "desc"], limit: 1 })).docs;
+  check(rel.length === 1 && rel[0].path === p2, "a section account lists its newest released samples, newest first");
 
   // resultsPublic: everyone sees results.
   await mem.update("settings/stages", { resultsPublic: true }); await new Promise(r => setTimeout(r, 3100));

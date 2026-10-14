@@ -53,8 +53,10 @@ function createCosmosStore(connectionString){
     async query(coll, where, opts = {}){
       const c = await box();
       where.forEach(([f]) => { if (!FIELD.test(f)) throw { code: "bad_request" }; });
-      const top = !opts.orderBy && opts.limit ? `TOP ${Math.max(1, Math.min(5000, opts.limit | 0))} ` : "";
-      const q = `SELECT ${top}c.p, c.d FROM c WHERE c.pk = @pk AND NOT IS_DEFINED(c.del)` + where.map(([f, op], i) => " AND " + cond(f, op, i)).join("");
+      // Sorting and the limit run in the database, so a list of the newest 200 reads 200 records, not the whole collection.
+      const ob = opts.orderBy && FIELD.test(opts.orderBy[0]) ? ` ORDER BY c.d["${opts.orderBy[0]}"] ${opts.orderBy[1] === "desc" ? "DESC" : "ASC"}` : "";
+      const top = opts.limit ? `TOP ${Math.max(1, Math.min(5000, opts.limit | 0))} ` : "";
+      const q = `SELECT ${top}c.p, c.d FROM c WHERE c.pk = @pk AND NOT IS_DEFINED(c.del)` + where.map(([f, op], i) => " AND " + cond(f, op, i)).join("") + ob;
       const parameters = [{ name: "@pk", value: coll }, ...where.map(([, , v], i) => ({ name: "@v" + i, value: v }))];
       const { resources } = await c.items.query({ query: q, parameters }, { partitionKey: coll }).fetchAll();
       const rows = resources.filter(r => r.d && matches(r.d, where)).map(r => ({ path: r.p, data: r.d })).sort((a, b) => a.path < b.path ? -1 : 1);

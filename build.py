@@ -156,7 +156,6 @@ put('''For a transcription or calculation error only. A result that needs re-tes
 put('''
       Check the ID on the bag or submission form. IDs look like <span class="mono">${esc(exampleId())}</span>: section code, submission date, running number. Tag numbers and site references are searched too.''', '''
       Check the ID on the bag.''')
-put('''<strong>No open samples</strong>Submitted samples appear here until all their material has left the lab, grouped by where they are, with late ones flagged.''', '''<strong>No open samples</strong>''')
 put('''<strong>View-only access</strong>Only lab staff register samples at the lab. Anyone can use Submit a sample.</div>''', '''<strong>View-only access</strong></div>''')
 put('''</strong>Entries appear when samples are received at the lab or leave it.</div>''', '''</strong></div>''')
 put('''<strong>No released results yet</strong>Certificates for ${esc(session.sec)} samples appear here as soon as the lab releases them.</div>''', '''<strong>No released results yet</strong></div>''')
@@ -167,7 +166,6 @@ put('@media (max-width:760px){.login-grid{grid-template-columns:minmax(0,1fr)}}'
 
 # Workflow board
 put('''<div class="small">Open each sample, act as the limit says and record what was done and who was told. In the production system these also go out by email or SMS.</div>''', '')
-put('''\n    <p class="small muted">Lanes group samples by where they are in their own route; each card shows the current step. Showing all ${samples.size} open samples: awaiting receipt, in the lab, or with material still in storage. Closed samples open by ID or tag. Times are ${esc(TZ() || "this device's")} time.</p>''', '')
 put('''+${items.length - 40} more: use the filters or look a sample up by ID</div>''', '''+${items.length - 40} more</div>''')
 
 # Submit a sample / Register at lab

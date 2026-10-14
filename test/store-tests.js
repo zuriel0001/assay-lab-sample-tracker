@@ -33,6 +33,8 @@ async function suite(name, s){
   check(await q([["missing", "==", null]]) === "", "a missing field matches nothing");
   check(await q([], { orderBy: ["n", "desc"], limit: 2 }) === "A-1,A-3", "order and limit");
   check((await q([["open", "==", true]], { limit: 1 })).split(",").length === 1, "limit without order");
+  check(await q([["open", "==", true], ["n", ">", 0]], { orderBy: ["n", "desc"], limit: 1 }) === "A-1", "filters, order and limit together (newest first)");
+  check(await q([["tags", "array-contains", "T2"]], { orderBy: ["n", "asc"], limit: 5 }) === "A-1", "array-contains with order");
   await new Promise(r => setTimeout(r, 30));     // change stamps can run a few ms ahead of the clock when writes share a millisecond
   const t0 = Date.now();
   await new Promise(r => setTimeout(r, 5));

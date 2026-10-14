@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from met-lab-sample-tracker.html (sha256 053f3b059003) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from met-lab-sample-tracker.html (sha256 08fa6790dc36) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>MET Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -296,6 +296,7 @@ table.bpos.multi td.pos-cell .mono{white-space:nowrap}
     <button role="tab" data-tab="submit" aria-selected="false">Submit a sample</button>
     <button role="tab" data-tab="register" aria-selected="false">Register at lab</button>
     <button role="tab" data-tab="batches" aria-selected="false">Lab batches</button>
+    <button role="tab" data-tab="storage" aria-selected="false">Storage</button>
     <button role="tab" data-tab="results" aria-selected="false">Results</button>
     <button role="tab" data-tab="ledger" aria-selected="false">In / out ledger</button>
     <button role="tab" data-tab="routes" aria-selected="false">Workflow routes</button>
@@ -309,6 +310,7 @@ table.bpos.multi td.pos-cell .mono{white-space:nowrap}
   <section class="view" id="view-submit" hidden></section>
   <section class="view" id="view-register" hidden></section>
   <section class="view" id="view-batches" hidden></section>
+  <section class="view" id="view-storage" hidden></section>
   <section class="view" id="view-results" hidden></section>
   <section class="view" id="view-ledger" hidden></section>
   <section class="view" id="view-routes" hidden></section>
@@ -1479,10 +1481,10 @@ let cfg = clone(DEFAULT_CONFIG);
 let db = null, user = null, canWrite = null;
 const ROLES = { admin: "Admin (lab manager)", super: "Lab supervisor (QA/QC)", tech: "Lab technician", viewer: "Viewer", section: "Section (sees its results)" };
 const ROLE_TABS = {
-  admin:  ["track", "board", "submit", "register", "batches", "ledger", "routes", "stages"],
-  super:  ["track", "board", "submit", "register", "batches", "ledger", "routes"],
-  tech:   ["track", "board", "submit", "register", "batches", "ledger", "routes"],
-  viewer: ["track", "board", "submit", "batches", "ledger", "routes"],
+  admin:  ["track", "board", "submit", "register", "batches", "storage", "ledger", "routes", "stages"],
+  super:  ["track", "board", "submit", "register", "batches", "storage", "ledger", "routes"],
+  tech:   ["track", "board", "submit", "register", "batches", "storage", "ledger", "routes"],
+  viewer: ["track", "board", "submit", "batches", "storage", "ledger", "routes"],
   section: ["track", "results", "submit", "routes"]
 };
 let session = null;   // { u, name, role, sec } of the signed-in demo account; null = public lookup only
@@ -1668,6 +1670,20 @@ const twoPerson = s => !!(s && (s.two || ["bullion", "conc"].includes(s.typeKey)
 const massUnit = s => typeOf(s?.typeKey)?.unit || "kg";
 const keptMaterials = s => (s.materials || []).filter(m => m.status === "kept");
 const overdueMaterials = (s, now = Date.now()) => keptMaterials(s).filter(m => m.dueAt && now > m.dueAt);
+/* Still in the lab: awaiting receipt or anywhere before storage. These are the samples the board loads; samples whose material is only
+   being kept are listed from their stock records instead, so the board stays small however long material is retained. */
+const labOf = s => !!s && s.open !== false && !stage(s, s.stageKey)?.final && stage(s, s.stageKey)?.phase !== "store";
+/* A stock record per received sample (stock/<ID>, a few hundred bytes): where it is (lab, store or out), when it came in and left, and the
+   material kept. The Storage tab, the ledger's month check and Settings read these instead of whole samples. Derived from the sample only. */
+const OPEN_T = 9e15;   // `gone` while the sample is on hand: a number later than any date, so range filters work on every store
+function stockOf(s){
+  if (!s || !s.id || !s.recvAt) return null;
+  const on = s.onHand !== false && s.open !== false && !stage(s, s.stageKey)?.final, kept = on ? keptMaterials(s) : [];
+  return { id: s.id, sec: s.section || "", type: s.type || "", route: s.route || "", tag: (s.tags || []).join(", "), recvAt: s.recvAt,
+    gone: on ? OPEN_T : s.closedAt || s.stageAt || s.recvAt, st: !on ? "out" : stage(s, s.stageKey)?.phase === "store" ? "store" : "lab",
+    due: kept.length ? Math.min(...kept.map(m => m.dueAt || OPEN_T)) : OPEN_T, two: twoPerson(s),
+    m: kept.map(m => ({ k: m.k, item: m.item, loc: m.loc || "", dueAt: m.dueAt || 0, then: m.then || "" })) };
+}
 /* Retained materials are created when results are released; each keeps its own clock from that moment. */
 function materialsAt(s, relAt){
   const ret = s.retention && s.retention.length ? s.retention : [{ item: "Sample remainder", days: 30, then: "Disposed" }];
@@ -1741,7 +1757,7 @@ function updateChrome(){
   document.querySelectorAll("#tabs button").forEach(b => { b.hidden = !tabs.includes(b.dataset.tab); b.style.order = !session && b.dataset.tab === "submit" ? -1 : ""; });
   $("#who").textContent = session ? `${session.name} · ${ROLES[session.role]}` : window.__me?.signedIn ? `${window.__me.email} · no access yet` : "Not signed in";
   $("#signBtn").hidden = !session && !window.__me?.signedIn;
-  watchSectionResults(); resultsBadge();
+  watchSectionResults(); resultsBadge(); watchStoreDue();
   tabCue();
 }
 /* Prototype only: the browser keeps the username and a fingerprint of the account, so a password or role change signs the person out. Real sign-in belongs on a server. */
@@ -1778,7 +1794,7 @@ function setTab(t){
 }
 $("#tabs").addEventListener("click", e => { const b = e.target.closest("button[data-tab]"); if (b) setTab(b.dataset.tab); });
 function renderTab(){
-  ({ login: renderLogin, track: renderTrack, board: renderBoard, submit: renderSubmit, register: renderRegister, batches: renderBatches, results: renderResultsTab, ledger: renderLedger, routes: renderRoutes, stages: renderStages })[tab]();
+  ({ login: renderLogin, track: renderTrack, board: renderBoard, submit: renderSubmit, register: renderRegister, batches: renderBatches, storage: renderStorage, results: renderResultsTab, ledger: renderLedger, routes: renderRoutes, stages: renderStages })[tab]();
   updateCount();
 }
 const updateCount = () => { $("#cntActive").textContent = samples.size; };
@@ -2254,7 +2270,9 @@ async function act(fn, opts = {}){
     const { upd, moves = [], msg } = res;
     upd.updatedAt = Date.now();
     if (moves.length){ upd.ledgerPending = [...(s.ledgerPending || []), ...moves]; upd.lp = true; }
+    const sync = derive(s, upd);
     await docRef.update(upd);
+    if (sync) await writeStock(docRef, { ...s, ...upd }).catch(() => {});   // still under the lease, so stock records are written in order
     docRef.acquire({ holder: tabId, ttlMs: 1000 }).catch(() => {});   // let go early: the next person need not wait out the lease
     if (moves.length) flushLedger(s.id);
     clearForm(opts.clear);
@@ -2419,12 +2437,14 @@ async function doMaterial(k){
     const mats = clone(s.materials || []), m = mats.find(x => x.k === k);
     if (!m || m.status !== "kept"){ toast("This material was already recorded by someone else."); return null; }
     const at = nowAfter(s), upd = { materials: mats }, moves = [], h = s.history || [];
+    // The sample goes into storage (and off the board) once every material still kept has a place on the shelf.
+    const shelved = () => { if (s.stageKey === "released" && mats.every(x => x.status !== "kept" || x.loc)){ upd.stageKey = "storage"; upd.stageAt = at; } };
     if (what === "store"){
-      m.loc = ref;
-      if (s.stageKey === "released"){ upd.stageKey = "storage"; upd.stageAt = at; }
+      m.loc = ref; shelved();
       upd.location = mats.filter(x => x.status === "kept" && x.loc).map(x => `${x.item}: ${x.loc}`).join("; ");
-      upd.history = [...h, { key: "storage", sn: "Retained in storage", at, by: session.u, tech: session.name, ref: "", loc: ref, mat: k, ...(wit ? { wit } : {}), note: `${m.item} put away` }];
-      return { upd, msg: `${m.item} stored at ${ref}` };
+      const key = upd.stageKey || s.stageKey;
+      upd.history = [...h, { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, ref: "", loc: ref, mat: k, ...(wit ? { wit } : {}), note: `${m.item} put away` }];
+      return { upd, msg: `${m.item} stored at ${ref}${upd.stageKey ? "" : `; ${mats.filter(x => x.status === "kept" && !x.loc).map(x => x.item).join(", ")} still to put away`}` };
     }
     m.outs = (m.outs || 0) + 1;
     Object.assign(m, { status: what, outAt: at, outBy: session.u, outTech: session.name, outRef: ref, outMid: `${s.id}~out~${k}~${m.outs}` });
@@ -2432,7 +2452,7 @@ async function doMaterial(k){
     if (!mats.some(x => x.status === "kept")){
       const ds = new Set(mats.map(x => x.status)), fin = ds.size === 1 ? [...ds][0] : "closed";
       Object.assign(upd, { stageKey: fin, stageAt: at, open: false, onHand: false, closedAt: at });
-    }
+    } else shelved();
     upd.location = mats.filter(x => x.status === "kept" && x.loc).map(x => `${x.item}: ${x.loc}`).join("; ");
     const key = upd.stageKey || s.stageKey;
     upd.history = [...h, { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, ref, mat: k, ...(wit ? { wit } : {}), note: `${m.item}: ${DISPO[what].toLowerCase()}` }];
@@ -2449,7 +2469,7 @@ async function doUndo(k){
     const at = nowAfter(s), was = m.status, moves = m.outMid ? [revMove(s, at, m.outMid, m.item, why)] : [];
     Object.assign(m, { status: "kept", outAt: null, outBy: "", outTech: "", outRef: "", outMid: "" });
     const upd = { materials: mats, location: mats.filter(x => x.status === "kept" && x.loc).map(x => `${x.item}: ${x.loc}`).join("; ") };
-    if (stage(s, s.stageKey)?.final) Object.assign(upd, { stageKey: "storage", stageAt: at, open: true, onHand: true, closedAt: null });
+    if (stage(s, s.stageKey)?.final) Object.assign(upd, { stageKey: mats.every(x => x.status !== "kept" || x.loc) ? "storage" : "released", stageAt: at, open: true, onHand: true, closedAt: null });
     const key = upd.stageKey || s.stageKey;
     upd.history = [...(s.history || []), { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, corr: true, mat: k, why, note: `Correction: ${m.item} ${DISPO[was].toLowerCase()} reversed. ${why}` }];
     return { upd, moves, msg: `${m.item}: movement reversed` };
@@ -2513,7 +2533,7 @@ async function flushLedger(sid){
   } finally { flushing.delete(sid); }
 }
 
-/* ---------- board: every open sample, queried by state rather than a recent-items window ---------- */
+/* ---------- board: every sample still in the lab, queried by state (lab == true) rather than a recent-items window ---------- */
 let boardSec = "", boardRoute = "";
 function renderBoard(){
   const v = $("#view-board");
@@ -2528,7 +2548,10 @@ function renderBoard(){
   const alerts = isStaff() ? list.filter(s => (s.results || s.amend) && openAlerts(s).length) : [], trends = isStaff() ? crmTrendFlags() : [];
   const relN = [...releasedToday.values()].filter(pass).length;
   const notStored = list.filter(s => s.stageKey === "released" && stageDue(s) && Date.now() > stageDue(s)).length;
-  const dueS = list.filter(s => overdueMaterials(s).length), dueM = dueS.reduce((n, s) => n + overdueMaterials(s).length, 0);
+  const dueNow = Date.now(), dueL = [...list.filter(s => overdueMaterials(s).length).map(s => ({ sec: s.section, route: s.route || "", n: overdueMaterials(s).length })),
+    ...[...storeDue.values()].filter(x => !samples.has(x.id)).map(x => ({ sec: x.sec, route: x.route, n: x.m.filter(m => m.dueAt && dueNow > m.dueAt).length }))]
+    .filter(x => x.n && (!boardSec || x.sec === boardSec) && (!boardRoute || x.route === boardRoute));
+  const dueS = dueL, dueM = dueL.reduce((n, x) => n + x.n, 0);
   const filters = `<div class="row">
     <select class="inp" id="bdSec" style="width:auto;max-width:100%"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${boardSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
     <select class="inp" id="bdRoute" style="width:auto;max-width:100%"><option value="">All tests and routes</option>${routeOptions(boardRoute)}</select></div>`;
@@ -2537,13 +2560,13 @@ function renderBoard(){
     if (a) a.onchange = e => { boardSec = e.target.value; renderBoard(); };
     if (b) b.onchange = e => { boardRoute = e.target.value; renderBoard(); };
   };
-  if (!list.length && (boardSec || boardRoute)){ v.innerHTML = `<div class="stack">${filters}<div class="panel empty"><strong>No open samples match these filters</strong>Choose another section or route, or show all.</div></div>`; bind(); return; }
+  if (!list.length && (boardSec || boardRoute)){ v.innerHTML = `<div class="stack">${filters}<div class="panel empty"><strong>No samples in the lab match these filters</strong></div></div>`; bind(); return; }
   if (!list.length){
-    v.innerHTML = `<div class="panel empty"><strong>No open samples</strong>
-      <div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-goto="submit">Submit a sample</button></div></div>`;
+    v.innerHTML = `<div class="panel empty"><strong>No samples in the lab</strong>
+      <div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-goto="submit">Submit a sample</button>${allowedTabs().includes("storage") ? `<button class="btn" data-goto="storage">Storage</button>` : ""}</div></div>`;
     return;
   }
-  const laneDefs = PHASES.slice();
+  const laneDefs = PHASES.filter(x => x.key !== "store");
   if (list.some(s => !stage(s, s.stageKey))) laneDefs.push({ key: "__unknown", name: "Stage removed (move these)" });
   const showStep = { intake: 1, prep: 1, test: 1, qc: 1 };
   const lanes = laneDefs.map(x => {
@@ -2558,7 +2581,7 @@ function renderBoard(){
           ${alerts.includes(s) ? `<div class="cmeta"><b style="color:var(--bad)">Result past a limit</b></div>` : ""}
           <div class="cmeta">${esc(s.type)}${s.priority === "Urgent" ? " · <b>Urgent</b>" : ""}${s.flag && awaiting(s) ? ` · <b style="color:var(--warn)">Flagged</b>` : ""}</div>
           ${hazTags(s).length || twoPerson(s) ? `<div class="cmeta">${hazPills(s)}${twoPerson(s) ? `<span class="haz two" title="Two-person custody">2P</span>` : ""}</div>` : ""}
-          <div class="cmeta">${od.length ? `<b style="color:var(--bad)">${esc(od.map(m => m.item).join(", "))} past retention</b>` : x.key === "report" && stt.late ? `<b style="color:var(--warn)">Not yet put in storage</b>` : x.key === "store" ? `${keptMaterials(s).length} material(s) kept` : stt.late ? `<b style="color:var(--bad)">${dur(Date.now() - due)} late</b>` : due ? `due ${fmt(due)}` : ""}</div></button>`; }).join("")}
+          <div class="cmeta">${od.length ? `<b style="color:var(--bad)">${esc(od.map(m => m.item).join(", "))} past retention</b>` : x.key === "report" && stt.late ? `<b style="color:var(--warn)">Not yet put in storage</b>` : stt.late ? `<b style="color:var(--bad)">${dur(Date.now() - due)} late</b>` : due ? `due ${fmt(due)}` : ""}</div></button>`; }).join("")}
       ${items.length > 40 ? `<div class="small muted" style="margin-top:6px">+${items.length - 40} more</div>` : ""}
       ${!items.length ? `<div class="small muted">None</div>` : ""}</div>`;
   }).join("");
@@ -2575,7 +2598,7 @@ function renderBoard(){
       <div class="stat"><div class="n" style="color:${trends.length ? "var(--warn)" : "inherit"}">${trends.length}</div><div class="l">Reference material trends</div></div>` : ""}
       <div class="stat"><div class="n">${relN}</div><div class="l">Results released today</div></div>
       <div class="stat"><div class="n" style="color:${notStored ? "var(--warn)" : "inherit"}">${notStored}</div><div class="l">Released, not yet put in storage</div></div>
-      <div class="stat"><div class="n" style="color:${dueM ? "var(--warn)" : "inherit"}">${dueM}</div><div class="l">Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}</div></div>
+      <div class="stat"><div class="n" style="color:${dueM ? "var(--warn)" : "inherit"}">${dueM}</div><div class="l">Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}${dueM && allowedTabs().includes("storage") ? ` <button type="button" class="linkish" data-goto="storage">Storage</button>` : ""}</div></div>
     </div>
     ${alerts.length ? `<div class="notice bad" id="bdAlerts"><b>Past a limit:</b> ${alerts.slice(0, 12).map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button> <span class="small">${esc(openAlerts(s).map(h => alertLine(s, h)).join("; "))}</span>`).join("<br>")}${alerts.length > 12 ? `<br>+${alerts.length - 12} more` : ""}</div>` : ""}
     ${trends.length ? `<div class="notice warn" id="bdTrends"><b>Reference material trends:</b> ${esc(trends.map(t => `${t.crm}${t.k ? " " + t.k : ""}: ${t.msg}`).join("; "))}. See the control chart on the <button type="button" class="linkish" data-goto="batches">Lab batches</button> tab.</div>` : ""}
@@ -2749,13 +2772,13 @@ async function register(){
     const t = typeOf(tyK), holdH = t?.hold && collected && lab ? Math.max(0, (recvAt - collected) / HOUR) : null;
     const recv = lab ? { bags: containers, mass: massKg, unit: "kg", seal: seal ? "ok" : "none", cond: "Good", temp: "", holdH, warn: holdH != null && holdH > t.hold ? [`holding time for ${t.holdWhat} exceeded: received ${hoursLabel(holdH)} after collection, limit ${hoursLabel(t.hold)}`] : [], ...(wit ? { wit } : {}) } : null;
     const base = {
-      v: 12, type: t?.name || tyK, typeKey: tyK, purpose: purposeOf(puK)?.name || puK, purposeKey: puK, ...rf, details, reassays: 0,
+      v: 13, type: t?.name || tyK, typeKey: tyK, purpose: purposeOf(puK)?.name || puK, purposeKey: puK, ...rf, details, reassays: 0,
       submitter, section: code, receivedBy: lab ? session.name : "", receivedAt: recvAt, recvAt, recv,
       source: val("#rSource"), collectedAt: collected, containers, massKg, seal, priority: $("#rPriority").value,
       hazards: HAZARDS.filter(h => $("#rHz_" + h.k)?.checked).map(h => h.k),
       analyses: ADDONS.filter((_, i) => $("#rAn" + i)?.checked), notes: val("#rNotes"),
       createdAt: now, createdBy: lab ? session.u : "public", createdByName: lab ? session.name : submitter, updatedAt: now, stageKey: start, stageAt: lab ? recvAt : now, location: "", flag: "",
-      open: true, onHand: lab, batchKey: n > 1 ? `${code}-${now.toString(36)}-${tabId.slice(0, 4)}` : "", batchSize: n
+      open: true, onHand: lab, lab: true, ...(lab ? { sx: 1 } : {}), batchKey: n > 1 ? `${code}-${now.toString(36)}-${tabId.slice(0, 4)}` : "", batchSize: n
     };
     const stamp = dayStamp(lab ? recvAt : now);
     const ids = await claimIds(code, stamp, n, (id, i) => {
@@ -2767,7 +2790,7 @@ async function register(){
       return body;
     }, d => msg.textContent = `Saved ${d} of ${n}…`);
     ids.forEach((id, i) => tagSets[i].forEach(tg => db.doc("tagidx/" + tagKey(tg)).set({ sid: id, tag: tg, at: now }).catch(() => {})));
-    if (lab) ids.forEach(id => flushLedger(id));
+    if (lab) ids.forEach(id => { flushLedger(id); syncStock(id); });
     msg.textContent = "";
     $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? (lab ? "Sample registered." : "Sample submitted.") : `${n} samples ${lab ? "registered" : "submitted"}.`}</b> Write ${n === 1 ? "this ID" : "these IDs"} on the bag${n === 1 ? "" : "s"} or print the label${n === 1 ? "" : "s"}:
       <div class="label-strip" style="margin-top:8px">${ids.map((id, i) => `<code>${esc(id)}${tagSets[i].length ? ` · ${esc(tagSets[i].join(", "))}` : ""}</code>`).join("")}</div>
@@ -2786,12 +2809,14 @@ async function register(){
 
 /* ---------- ledger (19.2): one subscription per month, built from movement records ---------- */
 let ledgerFilter = { dir: "all", month: "", q: "", sec: "" };
-let ledgerSub = null, ledgerSubMonth = "", ledgerDocs = [], ledgerReady = false, recon = null;
+let ledgerSub = null, reconSub = null, ledgerSubMonth = "", ledgerDocs = [], ledgerReady = false, recon = null, reconStock = null;
+const monthEnd = m => { const [y, mo] = m.split("-").map(Number); return monthStart(`${mo === 12 ? y + 1 : y}-${String(mo === 12 ? 1 : mo + 1).padStart(2, "0")}`); };
 function ledgerWatch(){
   if (!ledgerFilter.month) ledgerFilter.month = monthKey(Date.now());
   if (!db || ledgerSubMonth === ledgerFilter.month) return;
   if (ledgerSub) ledgerSub();
-  ledgerSubMonth = ledgerFilter.month; ledgerDocs = []; ledgerReady = false; recon = null;
+  if (reconSub) reconSub();
+  ledgerSubMonth = ledgerFilter.month; ledgerDocs = []; ledgerReady = false; recon = null; reconStock = null;
   const m = ledgerSubMonth;
   ledgerSub = db.collection("ledger").where("month", "==", m).onSnapshot(snap => {
     if (m !== ledgerSubMonth) return;
@@ -2799,6 +2824,14 @@ function ledgerWatch(){
     computeRecon(m);
     if (tab === "ledger") renderLedger();
   }, () => { ledgerReady = true; if (tab === "ledger") renderLedger(); });
+  // Stock records of samples on hand at some time in the month: those on hand at its start plus those received in it.
+  reconSub = db.collection("stock").where("recvAt", "<", monthEnd(m)).where("gone", ">=", monthStart(m)).onSnapshot(snap => {
+    if (m !== ledgerSubMonth) return;
+    reconStock = snap.docs.map(d => d.data()).filter(x => x && x.id);
+    const was = JSON.stringify(recon);
+    computeRecon(m);
+    if (tab === "ledger" && JSON.stringify(recon) !== was) renderLedger();   // stock records change often; the view only when the counts do
+  }, () => {});
 }
 function ledgerRows(){
   const rows = [];
@@ -2808,19 +2841,15 @@ function ledgerRows(){
   rows.forEach(r => { r.reversed = reversed.has(r.mid); r.base = r.dir === "rev" ? (byMid[r.rev]?.dir || "out") : r.dir; });
   return rows.sort((a, b) => b.at - a.at || (a.mid < b.mid ? 1 : -1));
 }
-/* Month reconciliation: on hand at the start + received − fully out = on hand at the end. */
-async function computeRecon(m){
-  const start = monthStart(m), [y, mo] = m.split("-").map(Number), end = monthStart(`${mo === 12 ? y + 1 : y}-${String(mo === 12 ? 1 : mo + 1).padStart(2, "0")}`);
-  try {
-    const closed = (await db.collection("samples").where("closedAt", ">=", start).get()).docs.map(d => d.data()).filter(s => s.recvAt);
-    if (m !== ledgerSubMonth) return;
-    const open = [...samples.values()].filter(s => s.onHand && s.recvAt);
-    const opening = open.filter(s => s.recvAt < start).length + closed.filter(s => s.recvAt < start).length;
-    const ins = new Set(ledgerRows().filter(r => r.dir === "in" && !r.reversed).map(r => r.sid)).size;
-    const outs = closed.filter(s => s.closedAt < end).length;
-    recon = { m, opening, ins, outs, closing: opening + ins - outs, now: m === monthKey(Date.now()) ? open.length : null };
-  } catch { recon = null; }
-  if (tab === "ledger") renderLedger();
+/* Month reconciliation: on hand at the start + received − fully out = on hand at the end, from the samples' stock records; the receipts
+   are counted from the ledger itself, so a missing movement shows as a difference. */
+function computeRecon(m){
+  if (!reconStock || !ledgerReady){ recon = null; return; }
+  const start = monthStart(m), end = monthEnd(m);
+  const opening = reconStock.filter(x => x.recvAt < start).length;
+  const ins = new Set(ledgerRows().filter(r => r.dir === "in" && !r.reversed).map(r => r.sid)).size;
+  const outs = reconStock.filter(x => x.gone < end).length;
+  recon = { m, opening, ins, outs, closing: opening + ins - outs, now: m === monthKey(Date.now()) ? reconStock.filter(x => x.gone === OPEN_T).length : null };
 }
 function renderLedger(){
   const v = $("#view-ledger");
@@ -2987,7 +3016,8 @@ function renderStages(){
     <td>${x.role === "section" ? `<select class="inp" style="width:auto" data-ui="${i}" data-uf="sec" aria-label="Section">${draft.sections.map(c => `<option value="${esc(c.code)}" ${x.sec === c.code ? "selected" : ""}>${esc(c.code)}</option>`).join("")}${draft.sections.some(c => c.code === x.sec) ? "" : `<option selected value="${esc(x.sec || "")}">${esc(x.sec || "—")}</option>`}</select>` : `<span class="muted">—</span>`}</td>
     <td><input class="inp mono" style="min-width:220px" type="email" data-ui="${i}" data-uf="em" value="${esc(x.em || "")}" placeholder="name@company.com" aria-label="Microsoft sign-in email"></td>
     <td><button class="btn ghost danger" data-urm="${i}" aria-label="Remove account" ${x.u === session?.u ? "disabled title='You cannot remove your own account'" : ""}>✕</button></td></tr>`).join("");
-  const secCount = code => [...samples.values()].filter(x => x.section === code).length;
+  watchStore();
+  const secCount = code => openOn(x => x.section === code);
   const secRows = draft.sections.map((x, i) => `<tr>
     <td><input class="inp mono" style="width:90px;text-transform:uppercase" maxlength="5" data-si="${i}" data-sf="code" value="${esc(x.code)}"></td>
     <td><input class="inp" data-si="${i}" data-sf="name" value="${esc(x.name)}"></td>
@@ -2996,7 +3026,7 @@ function renderStages(){
   if (routeIdx >= draft.routes.length) routeIdx = 0;
   const R = draft.routes[routeIdx];
   R.stages = R.stages || []; R.tests = R.tests || []; R.types = R.types || []; R.purposes = R.purposes || []; R.triggers = R.triggers || []; R.retention = R.retention || [];
-  const inUse = [...samples.values()].filter(s => s.route === R.code).length;
+  const inUse = openOn(s => s.route === R.code);
   const checks = (group, items, have) => items.map(([k, l]) => `<label><input type="checkbox" data-rl="${group}" value="${esc(k)}" ${have.includes(k) ? "checked" : ""}> ${esc(l)}</label>`).join("");
   const stRows = R.stages.map((x, i) => `<tr>
     <td class="mono">${i + 3}</td>
@@ -3171,13 +3201,14 @@ function renderStages(){
   };
   $("#rtDel").onclick = () => {
     if (draft.routes.length <= 1){ toast("Keep at least one route."); return; }
+    if (!storeReady){ toast("Still loading the samples in storage. Try again in a moment."); return; }
     if (inUse){ toast(`${inUse} open sample(s) use ${R.code}. Remove it once they are finished.`); return; }
     if (DEFAULT_ROUTES.some(d => d.code === R.code)) draft.removed = [...new Set([...(draft.removed || []), R.code])];
     draft.routes.splice(routeIdx, 1); routeIdx = 0; dirty();
     toast("Route removed. Samples already on it keep their steps.");
   };
   $("#cfgReset").onclick = () => {
-    const locked = new Set([...samples.values()].map(s => s.route));
+    const locked = new Set([...[...samples.values()].map(s => s.route), ...[...stored.values()].map(x => x.route)]);
     draft.sections = clone(DEFAULT_CONFIG.sections);
     draft.routes = [...clone(DEFAULT_ROUTES), ...draft.routes.filter(r => locked.has(r.code) && !DEFAULT_ROUTES.some(d => d.code === r.code))];
     draft.removed = []; routeIdx = 0; dirty(); toast("Default sections and routes restored (routes still used by open samples are kept). Save to apply.");
@@ -3814,6 +3845,7 @@ document.addEventListener("click", e => { const b = e.target.closest("[data-batc
 function selectBatch(id){
   if (batchUnsub){ batchUnsub(); batchUnsub = null; }
   batchSel = id || ""; batchLive = openBatches.get(id) || monthBatches.find(b => b.id === id) || null;
+  watchBatchSamples(batchSel);
   if (!db || !id) return;
   batchUnsub = db.doc("batches/" + id).onSnapshot(snap => { if (batchSel !== id) return; batchLive = snap.exists ? snap.data() : null; if (tab === "batches") renderBatches(); }, () => {});
 }
@@ -3940,13 +3972,15 @@ function trendRules(pts){
   if (n >= 9){ const last = pts.slice(-9), side = q => Math.sign(q.v - q.exp); if (side(last[0]) && last.every(q => side(q) === side(last[0]))) out.push({ rule: "9side", msg: `the last 9 results are all ${side(last[0]) > 0 ? "above" : "below"} the certified value (bias)` }); }
   return out;
 }
+/* The batches that used a reference material, newest first: enough for the trend rules and the control chart's last 60 points. */
+const crmHistory = async id => (await db.collection("batches").where("crms", "array-contains", id).orderBy("at", "desc").limit(60).get()).docs.map(d => d.data()).filter(b => b && b.id);
 async function batchTrends(b, qc, p){
   const out = [];
   if (p.crm?.mode !== "sd") return out;
   const ids = [...new Set(qc.checks.filter(c => c.t === "crm" && c.exp != null).map(c => c.crm))];
   for (const id of ids){
     let hist = [];
-    try { hist = (await db.collection("batches").where("crms", "array-contains", id).get()).docs.map(d => d.data()); } catch {}
+    try { hist = await crmHistory(id); } catch {}
     for (const k of [...new Set(qc.checks.filter(c => c.crm === id && c.exp != null).map(c => c.k))]){
       const pts = [...crmSeries(hist, id, k, b.id), ...crmSeries([{ ...b, qc: { ...qc, at: Date.now() + 1 } }], id, k, "")];
       trendRules(pts).forEach(t => out.push({ crm: id, k, ...t }));
@@ -3963,7 +3997,9 @@ async function sampleWrite(id, fn){
     const upd = res.upd || res, moves = res.moves || [];
     upd.updatedAt = Date.now();
     if (moves.length){ upd.ledgerPending = [...(s.ledgerPending || []), ...moves]; upd.lp = true; }
+    const sync = derive(s, upd);
     await ref.update(upd);
+    if (sync) await writeStock(ref, { ...s, ...upd }).catch(() => {});
     ref.acquire({ holder: tabId, ttlMs: 1000 }).catch(() => {});
     if (moves.length) flushLedger(id);
     return true;
@@ -3991,7 +4027,7 @@ async function doBatchCreate(){
   const sids = [...document.querySelectorAll("#nbList input[type=checkbox]:checked")].map(x => x.value);
   if (!sids.length){ toast("Tick the samples for this batch."); return; }
   if (sids.length > p.size){ toast(`${cap(aAn(lcName(p.name)))} takes up to ${p.size} samples.`); return; }
-  const first = samples.get(sids[0]); if (!first) return;
+  const first = bs(sids[0]); if (!first) return;
   const ans = batchAns(key, first), sig = sigOf(ans), at = Date.now();
   setBatchBusy(true, "Creating the batch…");
   try {
@@ -4019,7 +4055,7 @@ async function doBatchCreate(){
 /* Every sample in the group at one step moves to its own next step. Entering QA/QC needs every batch's results; the release is done separately. */
 async function doBatchMove(fromKey){
   const b = batchLive; if (!b || !canEdit() || batchBusy) return;
-  const anyTwo = b.sids.some(id => twoPerson(samples.get(id)));
+  const anyTwo = b.sids.some(id => twoPerson(bs(id)));
   const wit = anyTwo ? val("#bWit") : ""; if (anyTwo && !wit){ toast("Two-person custody: choose the witness first."); $("#bWit")?.focus(); return; }
   setBatchBusy(true, "Moving samples…");
   let blocked = [];
@@ -4034,7 +4070,7 @@ async function doBatchMove(fromKey){
   toast(`${ok} sample(s) moved on${blocked.length ? `; ${blocked.length} need results first` : ""}.`);
   renderBatches();
 }
-const goneFrom = (b, x) => x.t === "s" && (!inBatch(samples.get(x.sid), b.id) || released(samples.get(x.sid)));
+const goneFrom = (b, x) => x.t === "s" && (!inBatch(bs(x.sid), b.id) || released(bs(x.sid)));
 const posInput = (x, i, ch) => i === 0 ? "bp_" + x.p : `bp_${x.p}_${ch.k}`;
 function readBatchInputs(b){
   const ans = bAns(b), vals = {}, crms = {}, left = new Set(b.pos.filter(x => goneFrom(b, x)).map(x => x.sid));
@@ -4055,7 +4091,7 @@ function readBatchInputs(b){
 async function doBatchSave(){
   const b = batchLive; if (!b || !canEdit() || batchBusy || b.qc) return;
   const got = readBatchInputs(b); if (!got) return;
-  const notYet = b.sids.filter(id => { const s = samples.get(id); if (!s || !inBatch(s, b.id) || released(s)) return false; const ph = stage(s, s.stageKey)?.phase; return !(curIdx(s) < targetIdx(s) && (ph === "test" || ph === "qc")); });
+  const notYet = b.sids.filter(id => { const s = bs(id); if (!s || !inBatch(s, b.id) || released(s)) return false; const ph = stage(s, s.stageKey)?.phase; return !(curIdx(s) < targetIdx(s) && (ph === "test" || ph === "qc")); });
   if (notYet.length){ toast(`${notYet.length} sample(s) have not reached analysis yet (${notYet.slice(0, 3).join(", ")}${notYet.length > 3 ? "…" : ""}). Move them on first.`); return; }
   const p = QC_PROFILES[b.qcp], ans = bAns(b), pos = b.pos.map(x => { const { r, ...y } = x; return { ...y, ...(x.t === "crm" ? { crm: got.crms[x.p] } : {}), rs: got.vals[x.p] || null, ...(goneFrom(b, x) ? { gone: true } : {}) }; });
   const qc = { ...evalBatch({ ...b, pos }, p), at: Date.now(), by: session.u, tech: session.name };
@@ -4092,7 +4128,7 @@ async function setSamplesQc(b, q, note, qcNote = ""){
   }));
 }
 /* Samples of a batch that already have their results released. */
-const releasedFrom = b => (b.sids || []).map(id => samples.get(id)).filter(s => s && inBatch(s, b.id) && released(s));
+const releasedFrom = b => (b.sids || []).map(id => bs(id)).filter(s => s && inBatch(s, b.id) && released(s));
 async function doBatchDecide(kind){
   const b = batchLive; if (!b || !b.qc || batchBusy) return;
   const why = val("#bWhy");
@@ -4118,7 +4154,7 @@ async function doBatchDecide(kind){
       await setSamplesQc(fresh, "pending", `Lab batch ${b.id} results opened again for correction: ${why}`);
       toast("Results can be corrected and saved again.");
     } else if (kind === "rerun"){
-      const p = QC_PROFILES[fresh.qcp], live = fresh.sids.filter(id => { const s = samples.get(id); return s && inBatch(s, fresh.id) && !released(s); });
+      const p = QC_PROFILES[fresh.qcp], live = fresh.sids.filter(id => { const s = bs(id); return s && inBatch(s, fresh.id) && !released(s); });
       if (!live.length){ toast("No samples of this batch are waiting for results."); return; }
       const ans = bAns(fresh), pos = layoutBatch(p, live, ans), now = Date.now();
       const id = await claimBatchId(p.prefix, { qcp: fresh.qcp, ans, at: now, day: dayKey(now), month: monthKey(now), by: session.u, tech: session.name, open: true, status: "prep",
@@ -4141,7 +4177,7 @@ async function doBatchDecide(kind){
 }
 async function doBatchRelease(){
   const b = batchLive; if (!b || !canApprove() || batchBusy) return;
-  const anyTwo = b.sids.some(id => twoPerson(samples.get(id)));
+  const anyTwo = b.sids.some(id => twoPerson(bs(id)));
   const wit = anyTwo ? val("#bWit") : ""; if (anyTwo && !wit){ toast("Two-person custody: choose the witness first."); $("#bWit")?.focus(); return; }
   const selfWhy = val("#bSelfWhy");
   if ($("#bSelfWhy") && !selfWhy){ toast("Some of these results were entered by you: give the reason for releasing them yourself."); $("#bSelfWhy").focus(); return; }
@@ -4249,7 +4285,7 @@ function buildBatches(v){
 }
 function batchDetail(b){
   const p = QC_PROFILES[b.qcp] || { name: b.qcp, ins: {} }, ans = bAns(b), one = ans.length <= 1, an = ans[0] || {}, edit = canEdit() && b.open && !b.qc && b.status !== "creating";
-  const ss = (b.sids || []).map(id => samples.get(id)).filter(Boolean), [cls, txt] = batchStatus(b);
+  const ss = (b.sids || []).map(id => bs(id)).filter(Boolean), [cls, txt] = batchStatus(b);
   const groups = {}; ss.filter(s => inBatch(s, b.id)).forEach(s => { (groups[s.stageKey] = groups[s.stageKey] || []).push(s); });
   const chk = {}; (b.qc?.checks || []).forEach(c => { (chk[c.p] = chk[c.p] || []).push(c); });
   const vcls = { pass: "ok", warn: "warn", fail: "bad", info: "" }, worst = cs => cs.find(c => c.verdict === "fail") || cs.find(c => c.verdict === "warn") || cs.find(c => c.verdict === "pass") || cs[0];
@@ -4360,7 +4396,7 @@ async function drawChart(key){
   if (!c || !db){ box.innerHTML = ""; return; }
   let pts = [];
   try {
-    const hist = (await db.collection("batches").where("crms", "array-contains", id).get()).docs.map(d => d.data());
+    const hist = await crmHistory(id);
     const keys = new Set(hist.flatMap(b => bAns(b).filter(ch => crmMatch(c, ch)).map(ch => ch.k)));
     for (const k of keys) pts.push(...crmSeries(hist.filter(b => bAns(b).some(ch => ch.k === k && crmMatch(c, ch))), id, k, ""));
   } catch { box.innerHTML = `<p class="small muted">Could not load the results.</p>`; return; }
@@ -4393,7 +4429,7 @@ function watchSectionResults(){
   if (secResSub){ secResSub(); secResSub = null; }
   secResKey = key; secRes = [];
   if (!key) return;
-  secResSub = db.collection("samples").where("section", "==", key).onSnapshot(snap => {
+  secResSub = db.collection("samples").where("section", "==", key).where("relAt", ">", 0).orderBy("relAt", "desc").limit(200).onSnapshot(snap => {
     secRes = snap.docs.map(d => d.data()).filter(x => x && x.id && (x.certs || []).length);
     resultsBadge(); if (tab === "results") renderResultsTab();
   }, () => {});
@@ -4412,6 +4448,140 @@ function renderResultsTab(){
       : `<div class="panel empty"><strong>No released results yet</strong></div>`}</div>`;
   $("#secSeen", v)?.addEventListener("click", () => { lsSet(seenKey(), String(Date.now())); resultsBadge(); renderResultsTab(); });
 }
+/* ---------- stock records: the board holds only samples in the lab; stored material is listed from small stock records ---------- */
+/* Every sample write keeps two derived fields in step: `lab` (the board loads lab == true) and `sx`, set while the sample's stock record
+   still has to be written. Returns true when it does; the writer then calls writeStock under the same lease. */
+function derive(s, upd){
+  const next = { ...s, ...upd }, lab = labOf(next);
+  if (lab !== s.lab) upd.lab = lab;
+  const need = !!s.sx || JSON.stringify(stockOf(s)) !== JSON.stringify(stockOf(next));
+  if (need) upd.sx = 1;
+  return need;
+}
+async function writeStock(ref, s){
+  const st = stockOf(s);
+  if (st) await db.doc("stock/" + s.id).set(st);
+  await ref.update({ sx: null });
+}
+/* Finishes a stock record left unwritten (a new registration, or a device that lost its connection mid-save). */
+async function syncStock(id){
+  try {
+    const ref = db.doc("samples/" + id), s = await leased(ref, true);
+    if (s && s.sx) await writeStock(ref, s);
+    ref.acquire({ holder: tabId, ttlMs: 1000 }).catch(() => {});
+  } catch {}
+}
+async function fixStock(){
+  const snap = await db.collection("samples").where("sx", "==", 1).limit(100).get();
+  for (const d of snap.docs) await syncStock(d.id);
+}
+
+/* Stored samples with material due by the end of today, for the board's retention count. */
+const storeDue = new Map();
+let storeDueSub = null, storeDueDay = "";
+function watchStoreDue(){
+  const day = db && isStaff() ? dayKey(Date.now()) : "";
+  if (day === storeDueDay) return;
+  if (storeDueSub){ storeDueSub(); storeDueSub = null; }
+  storeDueDay = day; storeDue.clear();
+  if (!day) return;
+  const end = Date.now() + 86400e3;
+  storeDueSub = db.collection("stock").where("st", "==", "store").where("due", "<", end).onSnapshot(snap => {
+    storeDue.clear(); snap.docs.forEach(d => { const x = d.data(); if (x && x.id) storeDue.set(x.id, x); });
+    if (tab === "board") rerenderSoon();
+  }, () => {});
+}
+/* Every stored sample's stock record, loaded when the Storage or Settings tab is first opened. */
+const stored = new Map();
+let storeSub = null, storeReady = false;
+function watchStore(){
+  if (storeSub || !db || !isStaff()) return;
+  storeSub = db.collection("stock").where("st", "==", "store").onSnapshot(snap => {
+    stored.clear(); snap.docs.forEach(d => { const x = d.data(); if (x && x.id) stored.set(x.id, x); });
+    storeReady = true;
+    if (tab === "storage") renderStorage();
+    else if (tab === "stages" && !$("#view-stages").contains(document.activeElement)) renderStages();
+  }, () => { storeReady = true; });
+}
+/* Samples still open (in the lab or in storage) on a route or from a section, for Settings. */
+const openOn = f => [...samples.values()].filter(f).length + [...stored.values()].filter(x => !samples.has(x.id) && f({ route: x.route, section: x.sec })).length;
+
+let storeQ = "", storeSec = "", storeShow = "all", storeMore = 0;
+function storageRows(){
+  const rows = [];
+  for (const x of stored.values()) for (const m of x.m || []) rows.push({ ...m, id: x.id, sec: x.sec, type: x.type, route: x.route, tag: x.tag });
+  return rows;
+}
+function renderStorage(){
+  const v = $("#view-storage"); if (!v) return;
+  if (!isStaff()){ v.innerHTML = ""; return; }
+  watchStore();
+  const now = Date.now(), soon = now + 30 * 86400e3, all = storageRows();
+  const isPast = r => r.dueAt && now > r.dueAt, isSoon = r => r.dueAt && !isPast(r) && r.dueAt <= soon;
+  let list = all.filter(r => (!storeSec || r.sec === storeSec) && (storeShow === "all" || storeShow === "past" && isPast(r) || storeShow === "soon" && (isPast(r) || isSoon(r)) || storeShow === "noloc" && !r.loc));
+  if (storeQ){ const q = storeQ.toLowerCase(); list = list.filter(r => [r.id, r.tag, r.loc, r.item, r.type].join(" ").toLowerCase().includes(q)); }
+  list.sort((a, b) => (a.dueAt || OPEN_T) - (b.dueAt || OPEN_T) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const shown = list.slice(0, 200 + storeMore), past = all.filter(isPast).length, due = all.filter(isSoon).length, noLoc = all.filter(r => !r.loc).length;
+  const row = r => `<tr><td style="white-space:nowrap"><button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>${r.tag ? `<div class="small mono muted">${esc(r.tag)}</div>` : ""}</td>
+    <td>${esc(r.item)}</td><td>${r.loc ? esc(r.loc) : `<span class="pill warn">No location</span>`}</td>
+    <td style="white-space:nowrap">${fmtDate(r.dueAt)}${isPast(r) ? ` <span class="pill bad">Past retention</span>` : r.dueAt && r.dueAt - now < 7 * 86400e3 ? ` <span class="pill warn">Due</span>` : ""}</td>
+    <td>${esc(r.then)}</td><td class="mono">${esc(r.sec)}</td><td>${esc(r.type)}${r.route ? `<div class="small mono" style="color:var(--accent)">${esc(r.route)}</div>` : ""}</td></tr>`;
+  keepUiSimple(v, () => {
+    v.innerHTML = `<div class="stack">
+      <div class="stats">
+        <div class="stat"><div class="n">${stored.size}</div><div class="l">Samples in storage</div></div>
+        <div class="stat"><div class="n">${all.length}</div><div class="l">Materials kept</div></div>
+        <div class="stat"><div class="n" style="color:${past ? "var(--bad)" : "inherit"}">${past}</div><div class="l">Past retention</div></div>
+        <div class="stat"><div class="n" style="color:${due ? "var(--warn)" : "inherit"}">${due}</div><div class="l">Due within 30 days</div></div>
+        ${noLoc ? `<div class="stat"><div class="n" style="color:var(--warn)">${noLoc}</div><div class="l">No location</div></div>` : ""}
+      </div>
+      <div class="row">
+        <input class="inp" id="stQ" placeholder="Search ID, tag, location or material" style="flex:1 1 220px;width:auto" value="${esc(storeQ)}">
+        <select class="inp" id="stSec" style="width:auto;max-width:100%" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${storeSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
+        <select class="inp" id="stShow" style="width:auto" aria-label="Show"><option value="all">All material</option><option value="past">Past retention</option><option value="soon">Due within 30 days</option><option value="noloc">No location</option></select>
+        <button class="btn" id="stCsv">Export CSV</button>
+      </div>
+      ${!storeReady ? `<div class="panel empty"><strong>Loading storage…</strong></div>`
+        : shown.length ? `<div class="panel"><div class="tbl-wrap"><table><thead><tr><th>Sample</th><th>Material</th><th>Location</th><th>Keep until</th><th>Then</th><th>Section</th><th>Type</th></tr></thead><tbody>${shown.map(row).join("")}</tbody></table></div>
+          ${list.length > shown.length ? `<div class="row" style="margin-top:10px"><span class="small muted">${shown.length} of ${list.length}</span><button type="button" class="btn ghost small" id="stMore">Show more</button></div>` : ""}</div>`
+        : `<div class="panel empty"><strong>${all.length ? "No stored material matches these filters" : "Nothing in storage"}</strong></div>`}
+    </div>`;
+  });
+  $("#stShow").value = storeShow;
+  $("#stQ").oninput = e => { storeQ = e.target.value; storeMore = 0; clearTimeout(renderStorage.t); renderStorage.t = setTimeout(renderStorage, 250); };
+  $("#stSec").onchange = e => { storeSec = e.target.value; storeMore = 0; renderStorage(); };
+  $("#stShow").onchange = e => { storeShow = e.target.value; storeMore = 0; renderStorage(); };
+  $("#stMore", v)?.addEventListener("click", () => { storeMore += 200; renderStorage(); });
+  $("#stCsv").onclick = () => exportStorageCsv(list);
+}
+async function exportStorageCsv(rows){
+  const dl = window.claude?.use ? await claude.use("downloads") : null;
+  if (!dl){ toast("Downloads are not available in this view."); return; }
+  const q = x => `"${String(x ?? "").replace(/"/g, '""')}"`, now = Date.now();
+  const head = ["Sample ID", "Tag number", "Section", "Type", "Route", "Material", "Location", "Keep until", "Then", "Past retention"];
+  const lines = rows.map(r => [r.id, r.tag, r.sec, r.type, r.route, r.item, r.loc, fmtDate(r.dueAt), r.then, r.dueAt && now > r.dueAt ? "yes" : ""].map(q).join(","));
+  try { await dl.save({ filename: `storage-${dayKey(now)}.csv`, data: [head.map(q).join(","), ...lines].join("\n") }); }
+  catch { toast("Download was not saved."); }
+}
+
+/* The selected lab batch's samples, wherever they are now: a released sample may already be in storage, off the board. */
+const batchSamps = new Map();
+let batchSampSub = null, batchSampFor = "";
+function watchBatchSamples(id){
+  if (id === batchSampFor) return;
+  if (batchSampSub){ batchSampSub(); batchSampSub = null; }
+  batchSampFor = id || ""; batchSamps.clear();
+  if (!db || !id) return;
+  batchSampSub = db.collection("samples").where("lbs", "array-contains", id).onSnapshot(snap => {
+    if (batchSampFor !== id) return;
+    batchSamps.clear(); snap.docs.forEach(d => { const x = d.data(); if (x && x.id) batchSamps.set(x.id, x); });
+    if (tab === "batches" && batchSel === id) rerenderSoon();
+  }, () => {});
+}
+const bs = id => samples.get(id) || batchSamps.get(id);
+
+/* Version 13: the in-lab flag and a stock record for every received sample. */
+function upgrade13(s){ return { v: 13, lab: labOf(s), ...(stockOf(s) ? { sx: 1 } : {}) }; }
 
 /* ---------- upgrade of records written by earlier versions (runs once, under a lease) ---------- */
 function upgradeSample(s){
@@ -4457,7 +4627,7 @@ function upgrade12(s){
   const labs = s.labBatch ? { [groupsOf(t)[0]?.p || p]: { b: s.labBatch, q: s.labQc || "", n: s.labQcNote || "" } } : {};
   return { v: 12, qcg, dil: s.dil || [], ...labsUpd(t, labs) };
 }
-const SCHEMA = 12;
+const SCHEMA = 13;
 /* Reference materials saved before version 12 keep their values. Materials and result rows added to the library since are appended, and a
    saved row also takes any batch types the library now lists for it. */
 function mergeCrms(saved){
@@ -4474,29 +4644,42 @@ async function migrate(){
   const ref = db.doc("meta/schema");
   const cur = await ref.get(); if (cur.exists && +cur.data().v >= SCHEMA) return;
   const lease = await ref.acquire({ holder: tabId, ttlMs: 120000 }); if (!lease.acquired) return;
-  const again = await ref.get(); if (again.exists && +again.data().v >= SCHEMA) return;
-  const snap = await db.collection("samples").limit(1000).get();
-  for (const d of snap.docs){
-    const s = d.data(); if (!s || !s.id || +s.v >= SCHEMA) continue;
+  const release = () => ref.acquire({ holder: tabId, ttlMs: 1000 }).catch(() => {});
+  const again = await ref.get(); if (again.exists && +again.data().v >= SCHEMA) return release();
+  const done = new Set();
+  const up = async s => {
+    if (!s || !s.id || done.has(s.id) || +s.v >= SCHEMA) return;
+    done.add(s.id);
     const upd = +s.v >= 10 ? {} : upgradeSample(s);
     if (!(+s.v >= 11)) Object.assign(upd, upgrade11({ ...s, ...upd }));
-    Object.assign(upd, upgrade12({ ...s, ...upd }));
-    await db.doc("samples/" + s.id).update(upd);
+    if (!(+s.v >= 12)) Object.assign(upd, upgrade12({ ...s, ...upd }));
+    Object.assign(upd, upgrade13({ ...s, ...upd }));
+    const sref = db.doc("samples/" + s.id);
+    try { await sref.update(upd); if (upd.sx) await writeStock(sref, { ...s, ...upd }); } catch {}
     (upd.tags || []).forEach(t => { if (upd.open !== false) db.doc("tagidx/" + tagKey(t)).set({ sid: s.id, tag: t, at: Date.now() }).catch(() => {}); });
+  };
+  // Records from before version 10 may carry no version; later ones are found by version, a page at a time, however many there are.
+  await pool((await db.collection("samples").limit(1000).get()).docs.map(d => d.data()), 6, up);
+  for (let pass = 0; pass < 500; pass++){
+    const more = (await db.collection("samples").where("v", "<", SCHEMA).limit(200).get()).docs.map(d => d.data()).filter(s => s && s.id && !done.has(s.id));
+    if (!more.length) break;
+    await pool(more, 6, up);
   }
   await ref.set({ v: SCHEMA, at: Date.now() });
+  release();
 }
 /* Ledger movements that were saved on the sample but not yet in the ledger (a dropped connection) are written again; each has a fixed id, so nothing doubles. */
 async function maintenance(){
   if (!db || canWrite === false) return;
   try { await migrate(); } catch {}
   try { await repairBatches(); } catch {}
+  try { await fixStock(); } catch {}
   try { (await db.collection("samples").where("lp", "==", true).get()).docs.forEach(d => flushLedger(d.id)); } catch {}
 }
 
 /* ---------- boot ---------- */
 const typingIn = sel => { const a = document.activeElement; return !!(a && a.closest?.(sel) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); };
-function rerenderSoon(){ clearTimeout(rerenderSoon.t); rerenderSoon.t = setTimeout(() => { if (tab === "board") renderBoard(); else if (tab === "ledger") renderLedger(); else if (tab === "batches" && !typingIn("#view-batches")) renderBatches(); else if (tab === "results") renderResultsTab(); updateCount(); }, 80); }
+function rerenderSoon(){ clearTimeout(rerenderSoon.t); rerenderSoon.t = setTimeout(() => { if (tab === "board") renderBoard(); else if (tab === "ledger") renderLedger(); else if (tab === "batches" && !typingIn("#view-batches")) renderBatches(); else if (tab === "results") renderResultsTab(); else if (tab === "storage") renderStorage(); updateCount(); }, 80); }
 let monthBatchSub = null, monthBatchKey = "";
 function watchBatches(){
   if (!db) return;
@@ -4553,7 +4736,7 @@ setTab(tab);
     if (tab === "login") renderLogin();
     rerenderSoon();
   }, () => {});
-  db.collection("samples").where("open", "==", true).onSnapshot(snap => {
+  db.collection("samples").where("lab", "==", true).onSnapshot(snap => {
     samples.clear(); snap.docs.forEach(d => { const x = d.data(); if (x && x.id) samples.set(d.id, x); });
     setSync(snap.metadata.hasPendingWrites ? "saving" : snap.metadata.fromCache ? "stale" : "live");
     rerenderSoon();
@@ -4565,7 +4748,7 @@ setTab(tab);
     rerenderSoon();
   }, () => {});
   watchBatches();
-  watchSectionResults(); resultsBadge();
+  watchSectionResults(); resultsBadge(); watchStoreDue();
   if (current) openSample(current.id); else renderTab();
   if (!session && (tab === "login" || tab === "submit")) renderTab();
   setTimeout(maintenance, 1500);
@@ -4573,6 +4756,7 @@ setTab(tab);
   setInterval(() => {
     if (dayKey(Date.now()) !== relDayWatched) watchReleasedToday();
     if (monthKey(Date.now()) !== monthBatchKey) watchBatches();
+    watchStoreDue();
     if (tab === "board") renderBoard();
     else if (tab === "track" && !typingIn("#view-track")) renderTrack();
   }, 60000);

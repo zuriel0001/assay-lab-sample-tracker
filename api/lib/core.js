@@ -2,7 +2,7 @@
 // The page keeps the prototype's workflow rules; this server decides who sees what and who may change what.
 const { validWhere, clone, same } = require("./docutil");
 
-const COLLS = ["samples", "ledger", "batches", "tagidx", "meta", "settings"];
+const COLLS = ["samples", "ledger", "batches", "stock", "tagidx", "meta", "settings"];
 const WRITERS = ["tech", "super", "admin"], STAFF = [...WRITERS, "viewer"], APPROVERS = ["super", "admin"];
 const SEG = /^[^\u0000-\u001f/\\?#]{1,200}$/;
 const MAX_DOC = 1500000;   // Cosmos DB items are limited to 2 MB
@@ -131,7 +131,7 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
 
   async function visible(a, path, d){
     const { coll } = parsePath(path) || {};
-    if (!isStaff(a) && !["settings", "samples", "tagidx", "meta"].includes(coll)) return undefined;   // ledger and lab batches: staff only
+    if (!isStaff(a) && !["settings", "samples", "tagidx", "meta"].includes(coll)) return undefined;   // ledger, lab batches, stock records: staff only
     if (d == null) return d;
     if (coll === "settings"){
       if (a.role === "admin") return d;
@@ -159,7 +159,7 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
     const now = Date.now();
     if (!d || typeof d !== "object") return "empty";
     if (d.id !== id || !/^[A-Z0-9]{1,8}-\d{8}-\d{4}$/.test(id)) return "id";
-    if (d.createdBy !== "public" || d.stageKey !== "submitted" || d.open !== true || d.onHand) return "state";
+    if (d.createdBy !== "public" || d.stageKey !== "submitted" || d.open !== true || d.onHand || d.lab !== true || d.sx != null) return "state";
     if (d.recvAt || d.receivedAt || d.recv || d.inMid) return "received";
     for (const k of ["results", "certs", "labs", "lbs", "labBatch", "materials", "ledgerPending", "amend", "acks", "relAt", "closedAt"]) if (d[k] != null && !(Array.isArray(d[k]) && !d[k].length)) return k;
     if (!Array.isArray(d.history) || d.history.length !== 1 || d.history[0].by !== "public") return "history";
@@ -245,7 +245,7 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
     }
     if (isWriter(a)){
       if (t === "delete"){
-        if (pp.coll === "samples" || pp.coll === "ledger") throw fail("permission_denied", "Samples and ledger entries are never deleted.");
+        if (["samples", "ledger", "stock"].includes(pp.coll)) throw fail("permission_denied", "Samples, their stock records and ledger entries are never deleted.");
         await store.remove(op.path);
         return { ok: true };
       }
