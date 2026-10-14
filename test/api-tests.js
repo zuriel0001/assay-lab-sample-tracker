@@ -60,6 +60,7 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   const t1 = await core.account(P("t1@site.com"));
   check(t1.role === "tech" && t1.u === "t1" && t1.name === "Tech One", "accounts are matched by Microsoft email, case-insensitively");
   check((await core.account(P("t1"))).role === null, "on Azure, a username is not a sign-in (dev only)");
+  check((await core.account(P("live.com#T1@site.com"))).u === "t1", "a personal Microsoft account's address is matched without its live.com# prefix");
   const asTech = (await one("t1@site.com", { op: "get", path: "settings/stages" })).data;
   check(asTech.users.length === 5 && asTech.users.every(x => !x.em), "staff see names and roles but not sign-in emails");
   check((await one(null, { op: "get", path: "settings/stages" })).data.users.length === 0, "the public sees no accounts");

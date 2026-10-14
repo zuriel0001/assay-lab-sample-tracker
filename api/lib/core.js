@@ -117,7 +117,8 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
   }
   async function account(principal){
     if (!principal) return { signedIn: false, role: null };
-    const email = String(principal.userDetails || "").trim().toLowerCase();
+    // A personal Microsoft account can arrive as "live.com#name@outlook.com"; the account list holds the plain address.
+    const email = String(principal.userDetails || "").trim().toLowerCase().replace(/^live\.com#/, "");
     const s = await settings();
     const saved = s && Array.isArray(s.users) && s.users.length ? s.users : null;
     const users = saved || devUsers || [];

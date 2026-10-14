@@ -47,6 +47,16 @@ You need a GitHub account (you have one) and an Azure account. Everything below 
    person's Microsoft sign-in email on their row (your own row is added for you), delete example rows you don't
    need, and press **Save settings**. From then on, the people on that list sign in with their role.
 
+   **If Microsoft says "Need admin approval"** (a company account whose IT does not let staff approve apps themselves),
+   there are two ways on:
+   - Use a personal Microsoft account: an outlook.com, hotmail.com or live.com address, or any other email turned into a
+     Microsoft account at https://signup.live.com. Put that address in `ADMIN_EMAILS` (step 5, *Apply*), open the site in
+     a private window, and on Microsoft's sign-in page choose *Use another account*.
+   - Or ask the company's IT administrator to approve the site once for everyone: they open the site, choose
+     *Staff sign in* → *Sign in with Microsoft*, sign in with their admin account, tick
+     **Consent on behalf of your organization** and press **Accept**. After that every company account can sign in
+     (it still sees only the public pages until its email is on a staff account).
+
 Anyone can still submit a sample and look one up without signing in, from the same URL.
 
 ## Trying it out
@@ -128,7 +138,7 @@ can't make a signed-in person's browser change records.
 | `api/lib/store-cosmos.js` | Cosmos DB store: one container `docs` in database `tracker` (created on first use with 1000 RU/s on the container), partitioned by collection; filters, sorting and limits run in the database; ETag checks on every read-modify-write; leases as records; deletes kept as markers so open pages hear about them. |
 | `api/lib/store-memory.js` | The same store in memory, for local runs and tests. |
 | `dev/server.js` | Local stand-in for Static Web Apps: `node dev/server.js` → http://localhost:4280, in-memory data, a local sign-in page (type an email, or an example username such as `tech1`). |
-| `test/api-tests.js` | 101 checks of the read/write rules, the record-keeping rules, stock records, the backup export and the Functions entry points. |
+| `test/api-tests.js` | 102 checks of the read/write rules, the record-keeping rules, stock records, the backup export and the Functions entry points. |
 | `test/store-tests.js` | 27 checks on each store; Cosmos runs against `@vercel/cosmosdb-server` (a local Cosmos imitation) or a real account. |
 | `test/run-suites.js` | Runs the prototype's own six browser suites against this build (real page, real API over HTTP), unchanged, then `azure-extra.js`. |
 | `test/azure-extra.js` | 26 browser checks of what is new: Microsoft sign-in, first admin, accounts by email, upgrade on staff sign-in, what the public sees, the backup download, the server refusing a tampered page's changes. |
@@ -143,7 +153,7 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 
 | Suite | Result |
 |---|---|
-| `api-tests.js` | 101 / 101 |
+| `api-tests.js` | 102 / 102 |
 | `store-tests.js` | 54 / 54 (27 in memory, 27 on the local Cosmos DB imitation) |
 | `azure-extra.js` | 26 / 26 |
 | Prototype `run.js` | 101 / 107 |
