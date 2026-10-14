@@ -47,6 +47,9 @@ You need a GitHub account (you have one) and an Azure account. Everything below 
    person's Microsoft sign-in email on their row (your own row is added for you), delete example rows you don't
    need, and press **Save settings**. From then on, the people on that list sign in with their role.
 
+   Anyone else who signs in with Microsoft can press **Request access**. Their request appears at the top of
+   **Settings** (the tab shows how many are waiting); pick a role and press **Approve**, or **Decline**.
+
    **If Microsoft says "Need admin approval"** (a company account whose IT does not let staff approve apps themselves),
    there are two ways on:
    - Use a personal Microsoft account: an outlook.com, hotmail.com or live.com address, or any other email turned into a
@@ -116,13 +119,16 @@ the tracker already shapes them. Sources: [SQL free offer](https://learn.microso
 
 | Person | Reads | Changes |
 |---|---|---|
-| Not signed in, or signed in without an account | A sample by ID, tag or site reference, without results (unless Settings says anyone may see results); certificate number and check code | Submit new samples only (checked: new ID, not received, no results, current time) |
-| Section account | As above, plus its own section's samples with results | As above |
+| Not signed in | A sample by ID, tag or site reference, without results (unless Settings says anyone may see results); certificate number and check code | Submit new samples only (checked: new ID, not received, no results, current time) |
+| Signed in without an account | As above, plus their own access request | As above, plus one access request at a time, for their own email only (name, section or job; no role) |
+| Section account | A sample as the public sees it, plus its own section's samples with results | Submit new samples only |
 | Viewer | Everything | Submit new samples only |
 | Lab technician, lab supervisor | Everything | Samples, batches, ledger, stock records, tag index |
-| Admin | Everything, including sign-in emails | All of that, plus Settings and the backup download |
+| Admin | Everything, including sign-in emails and access requests | All of that, plus Settings, answering access requests and the backup download |
 
-Staff see each other's names and roles but not their sign-in emails. The ledger, lab batches and stock records (which
+Staff see each other's names and roles but not their sign-in emails. A request gives no access by itself: a role
+comes only from the staff list in Settings, which only the admin saves; who approved or declined it, and when, stays
+on the request. The ledger, lab batches and stock records (which
 name shelves and tags) are staff only. Nobody deletes a sample, its stock record or a ledger day. The API only answers JSON requests from the site's own page, so another website
 can't make a signed-in person's browser change records.
 
@@ -138,10 +144,10 @@ can't make a signed-in person's browser change records.
 | `api/lib/store-cosmos.js` | Cosmos DB store: one container `docs` in database `tracker` (created on first use with 1000 RU/s on the container), partitioned by collection; filters, sorting and limits run in the database; ETag checks on every read-modify-write; leases as records; deletes kept as markers so open pages hear about them. |
 | `api/lib/store-memory.js` | The same store in memory, for local runs and tests. |
 | `dev/server.js` | Local stand-in for Static Web Apps: `node dev/server.js` → http://localhost:4280, in-memory data, a local sign-in page (type an email, or an example username such as `tech1`). |
-| `test/api-tests.js` | 102 checks of the read/write rules, the record-keeping rules, stock records, the backup export and the Functions entry points. |
+| `test/api-tests.js` | 121 checks of the read/write rules, the record-keeping rules, stock records, access requests, the backup export and the Functions entry points. |
 | `test/store-tests.js` | 27 checks on each store; Cosmos runs against `@vercel/cosmosdb-server` (a local Cosmos imitation) or a real account. |
 | `test/run-suites.js` | Runs the prototype's own six browser suites against this build (real page, real API over HTTP), unchanged, then `azure-extra.js`. |
-| `test/azure-extra.js` | 26 browser checks of what is new: Microsoft sign-in, first admin, accounts by email, upgrade on staff sign-in, what the public sees, the backup download, the server refusing a tampered page's changes. |
+| `test/azure-extra.js` | 36 browser checks of what is new: Microsoft sign-in, first admin, accounts by email, requesting and approving access, upgrade on staff sign-in, what the public sees, the backup download, the server refusing a tampered page's changes. |
 
 Patches `build.py` makes to the page: start after `/api/me` answers; tracking links use this site's address; the
 sign-in tab is *Sign in with Microsoft*; accounts have a *Microsoft sign-in email* instead of a password; the first
@@ -153,9 +159,9 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 
 | Suite | Result |
 |---|---|
-| `api-tests.js` | 102 / 102 |
+| `api-tests.js` | 121 / 121 |
 | `store-tests.js` | 54 / 54 (27 in memory, 27 on the local Cosmos DB imitation) |
-| `azure-extra.js` | 26 / 26 |
+| `azure-extra.js` | 36 / 36 |
 | Prototype `run.js` | 101 / 107 |
 | Prototype `results-tests.js` | 87 / 88 |
 | Prototype `v12-tests.js` | 67 / 70 |

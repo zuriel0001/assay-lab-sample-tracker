@@ -73,9 +73,68 @@ function renderLogin(){
   const back = encodeURIComponent(location.pathname + location.hash);
   v.innerHTML = `<div class="panel stack" id="loginForm" style="max-width:520px">
       <h2>Staff sign in</h2>
-      ${m.signedIn && !session ? `<div class="notice warn">Signed in as <b>${esc(m.email)}</b>: no access yet. Ask the lab manager to add this email on the Settings tab. <a href="/.auth/logout?post_logout_redirect_uri=%2F">Use a different account</a></div>` : ""}
-      <div class="row"><a class="btn primary big" id="msSignIn" href="/.auth/login/aad?post_login_redirect_uri=${back}">Sign in with Microsoft</a></div>
+      ${m.signedIn && !session ? `<div class="notice warn">Signed in as <b>${esc(m.email)}</b>: no access yet. <a href="/.auth/logout?post_logout_redirect_uri=%2F">Use a different account</a></div><div id="accReq"></div>`
+        : `<div class="row"><a class="btn primary big" id="msSignIn" href="/.auth/login/aad?post_login_redirect_uri=${back}">Sign in with Microsoft</a></div>`}
     </div>`;
+  if (m.signedIn && !session) renderAccessRequest();
+}
+/* ---------- access requests (access/<key of the email>): a Microsoft account without access asks the lab manager ---------- */
+const accessKey = em => [...String(em || "").toLowerCase()].map(c => /[a-z0-9._-]/.test(c) ? c : "~" + c.codePointAt(0).toString(16) + "~").join("").slice(0, 190);
+let myReq, myReqSub = null, myReqFor = "";
+function renderAccessRequest(){
+  const m = window.__me || {}, box = $("#accReq");
+  if (!box || !db || !m.signedIn || session) return;
+  if (myReqFor !== m.email){
+    if (myReqSub) myReqSub();
+    myReqFor = m.email; myReq = undefined;
+    myReqSub = db.doc("access/" + accessKey(m.email)).onSnapshot(snap => { myReq = snap.exists ? snap.data() : null; renderAccessRequest(); }, () => { myReq = null; renderAccessRequest(); });
+  }
+  if (myReq === undefined) return;
+  if (myReq && myReq.status === "pending"){ box.innerHTML = `<div class="notice">Access requested ${esc(fmt(myReq.at))}</div>`; return; }
+  if ($("#arSend", box)) return;   // keep what is being typed
+  box.innerHTML = `<div class="stack">${myReq && myReq.status === "declined" ? `<div class="notice bad">Request declined ${esc(fmt(myReq.dt))}</div>` : ""}
+      <label class="f"><span>Full name <span class="req">*</span></span><input id="arName" maxlength="80" autocomplete="name"></label>
+      <label class="f"><span>Section or job</span><input id="arNote" maxlength="200"></label>
+      <div class="row"><button class="btn primary" id="arSend">Request access</button></div></div>`;
+  $("#arSend").onclick = async () => {
+    const name = $("#arName").value.trim();
+    if (!name){ toast("Type your full name."); return; }
+    $("#arSend").disabled = true;
+    try {
+      await db.doc("access/" + accessKey(m.email)).set({ em: m.email, name, note: $("#arNote").value.trim(), at: Date.now(), status: "pending" });
+      box.innerHTML = ""; myReq = { status: "pending", at: Date.now() }; renderAccessRequest();
+    }
+    catch (e){ $("#arSend").disabled = false; writeFailed(e); }
+  };
+}
+/* The lab manager's list of pending requests (Settings), with a count on the Settings tab. */
+let accReqs = [], accShown = [], accSub = null;
+function watchAccess(){
+  if (!(db && session?.role === "admin")){ if (accSub){ accSub(); accSub = null; } accReqs = []; accBadge(); return; }
+  if (accSub) return;
+  accSub = db.collection("access").where("status", "==", "pending").onSnapshot(snap => {
+    accReqs = snap.docs.map(d => d.data()).filter(r => r && r.em).sort((a, b) => (a.at || 0) - (b.at || 0));
+    accBadge();
+    const ae = document.activeElement;   // don't re-render under someone typing
+    if (tab === "stages" && !($("#view-stages").contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName))) renderStages();
+  }, () => {});
+}
+function accBadge(){ const t = $('#tabs [data-tab="stages"]'); if (t) t.textContent = accReqs.length ? `Settings (${accReqs.length})` : "Settings"; }
+function accRows(){
+  accShown = accReqs.slice();   // the rows as drawn, so a button always answers the request on its own row
+  if (!accReqs.length) return "";
+  return `<h2>Access requests</h2>
+    <div class="tbl-wrap"><table><thead><tr><th>Full name</th><th>Microsoft sign-in email</th><th>Section or job</th><th>Requested</th><th>Role</th><th></th></tr></thead><tbody>${accReqs.map((r, i) => `<tr>
+      <td>${esc(r.name)}</td><td class="mono">${esc(r.em)}</td><td>${esc(r.note || "")}</td><td style="white-space:nowrap">${esc(fmt(r.at))}</td>
+      <td><select class="inp" style="width:auto" data-acc-role="${i}" aria-label="Role">${Object.entries(ROLES).map(([k, l]) => `<option value="${k}" ${k === "viewer" ? "selected" : ""}>${l}</option>`).join("")}</select></td>
+      <td style="white-space:nowrap"><button class="btn primary" data-acc-ok="${i}">Approve</button> <button class="btn ghost danger" data-acc-no="${i}">Decline</button></td></tr>`).join("")}</tbody></table></div>`;
+}
+/* After Settings are saved: requests whose email is now on the staff list are marked approved, with the role given. */
+function markAccessGiven(users){
+  for (const r of accReqs){
+    const x = users.find(y => (y.em || "").toLowerCase() === r.em.toLowerCase());
+    if (x) db.doc("access/" + accessKey(r.em)).update({ status: "approved", role: x.role, by: session.u, byName: session.name, dt: Date.now() }).catch(() => {});
+  }
 }
 ''')
 
@@ -223,6 +282,35 @@ put('''  const dirty = () => { draftDirty = true; renderStages(); };''',
     catch (err){ toast(err && err.code === "permission_denied" ? err.message || "Only the lab manager downloads backups." : "The backup could not be made. Try again."); }
     finally { b.disabled = false; b.textContent = "Download backup"; }
   });''')
+
+# 12. Access requests: the lab manager sees pending requests on Settings (count on the tab) and approves each with a role
+#     (the account is added to the staff list and Settings are saved) or declines it. The server keeps the rules.
+put('''  watchSectionResults(); resultsBadge(); watchStoreDue();''', '''  watchSectionResults(); resultsBadge(); watchStoreDue(); watchAccess();''', count=2)
+put('''  v.innerHTML = `<div class="stack">
+
+    <h2>Staff accounts</h2>''', '''  v.innerHTML = `<div class="stack">
+    ${accRows()}
+    <h2>Staff accounts</h2>''')
+put('''  $("#userAdd").onclick = () => {''', '''  v.querySelectorAll("[data-acc-ok]").forEach(b => b.onclick = () => {
+    const i = b.dataset.accOk, r = accShown[+i], role = v.querySelector(`[data-acc-role="${i}"]`).value;
+    if (!r || !accReqs.some(x => x.em === r.em)){ renderStages(); return; }
+    const em = r.em.toLowerCase();
+    if (!draft.users.some(x => (x.em || "").toLowerCase() === em)){
+      const base = em.split("@")[0].replace(/[^a-z0-9._-]/g, "") || "user"; let u = base, n = 1;
+      while (draft.users.some(x => x.u === u)) u = base + n++;
+      draft.users.push({ u, name: r.name, role, ...(role === "section" ? { sec: draft.sections[0]?.code || "" } : {}), em });
+    }
+    draftDirty = true;
+    $("#cfgSave").click();
+  });
+  v.querySelectorAll("[data-acc-no]").forEach(b => b.onclick = async () => {
+    const r = accShown[+b.dataset.accNo];
+    if (!r || !accReqs.some(x => x.em === r.em)){ renderStages(); return; }
+    try { await db.doc("access/" + accessKey(r.em)).update({ status: "declined", by: session.u, byName: session.name, dt: Date.now() }); }
+    catch (e){ writeFailed(e); }
+  });
+  $("#userAdd").onclick = () => {''')
+put('''      draftDirty = false; draft = null; renderStages();''', '''      draftDirty = false; draft = null; renderStages(); markAccessGiven(mine.users);''')
 
 out = os.path.join(HERE, "app", "index.html")
 # 9. The document shell. On Claude the platform wraps the page in this shell (doctype, UTF-8, phone viewport, safe-area

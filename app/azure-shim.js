@@ -226,7 +226,7 @@ window.claude = { use: async n => n === "db" ? db : n === "user" ? user : n === 
 /* The lab manager's backup: every record of every collection, as one JSON file. Returns how many records it holds. */
 window.__backup = async () => {
   const out = {}; let n = 0;
-  for (const coll of ["settings", "samples", "batches", "ledger", "stock", "tagidx", "meta"]){
+  for (const coll of ["settings", "samples", "batches", "ledger", "stock", "tagidx", "meta", "access"]){
     out[coll] = {};
     for (let after = ""; after != null; ){
       const r = await call({ op: "export", coll, after, limit: 200 });

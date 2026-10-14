@@ -2,7 +2,7 @@
 // The page keeps the prototype's workflow rules; this server decides who sees what and who may change what.
 const { validWhere, clone, same } = require("./docutil");
 
-const COLLS = ["samples", "ledger", "batches", "stock", "tagidx", "meta", "settings"];
+const COLLS = ["samples", "ledger", "batches", "stock", "tagidx", "meta", "settings", "access"];
 const WRITERS = ["tech", "super", "admin"], STAFF = [...WRITERS, "viewer"], APPROVERS = ["super", "admin"];
 const SEG = /^[^\u0000-\u001f/\\?#]{1,200}$/;
 const MAX_DOC = 1500000;   // Cosmos DB items are limited to 2 MB
@@ -19,6 +19,8 @@ function principalOf(headers){
   try { const p = JSON.parse(Buffer.from(h, "base64").toString("utf8")); return p && p.userId && p.userDetails ? p : null; } catch { return null; }
 }
 const fail = (code, msg) => ({ code, message: msg || code });
+/* Access requests are stored under a key made from the email, the same way the page makes it. */
+const accessKey = em => [...String(em || "").toLowerCase()].map(c => /[a-z0-9._-]/.test(c) ? c : "~" + c.codePointAt(0).toString(16) + "~").join("").slice(0, 190);
 /* The API answers this site's own page: a JSON POST from the same origin. That keeps another website from making a signed-in
    person's browser send changes (a form post can't carry JSON, and browsers mark where a request came from). */
 function requestProblem(headers){
@@ -131,7 +133,8 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
   const isStaff = a => STAFF.includes(a.role), isWriter = a => WRITERS.includes(a.role);
 
   async function visible(a, path, d){
-    const { coll } = parsePath(path) || {};
+    const { coll, id } = parsePath(path) || {};
+    if (coll === "access") return a.role === "admin" || (a.signedIn && id === accessKey(a.email)) ? d : undefined;   // the lab manager, and the person asking
     if (!isStaff(a) && !["settings", "samples", "tagidx", "meta"].includes(coll)) return undefined;   // ledger, lab batches, stock records: staff only
     if (d == null) return d;
     if (coll === "settings"){
@@ -149,6 +152,7 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
   }
   /* People who are not lab staff may look a sample up by its tag or site reference, and a section account may list its own section. */
   function queryAllowed(a, coll, where){
+    if (coll === "access") return a.role === "admin";
     if (isStaff(a)) return true;
     if (coll !== "samples") return false;
     if (where.some(([f, op]) => (f === "tags" && op === "array-contains") || (f === "siteRefU" && op === "=="))) return true;
@@ -232,6 +236,21 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
     if (t !== "delete"){
       if (!op.data || typeof op.data !== "object" || Array.isArray(op.data)) throw fail("bad_request");
       if (JSON.stringify(op.data).length > MAX_DOC) throw fail("quota_exceeded");
+    }
+    if (pp.coll === "access"){
+      // The lab manager answers requests. Anyone else signed in without a role may only ask, for their own email; a request
+      // gives nothing by itself: roles come only from the staff list in Settings.
+      if (a.role === "admin"){
+        if (t === "delete") await store.remove(op.path); else if (t === "set") await store.set(op.path, op.data); else await store.update(op.path, op.data);
+        return { ok: true };
+      }
+      if (!a.signedIn || a.role || t !== "set" || pp.id !== accessKey(a.email)) throw fail("permission_denied", "Only the lab manager answers access requests.");
+      const d = op.data;
+      if (Object.keys(d).some(k => !["em", "name", "note", "at", "status"].includes(k)) || d.em !== a.email || d.status !== "pending" ||
+          typeof d.name !== "string" || !d.name.trim() || d.name.length > 80 || (d.note != null && (typeof d.note !== "string" || d.note.length > 200)) ||
+          !(Math.abs((+d.at || 0) - Date.now()) < 15 * 60000)) throw fail("bad_request", "Not a valid access request.");
+      await store.set(op.path, d, { check: cur => cur && cur.status === "pending" ? "This request is already with the lab manager." : "" });
+      return { ok: true };
     }
     if (pp.coll === "settings"){
       if (a.role !== "admin") throw fail("permission_denied", "Only the lab manager (admin) can change settings.");

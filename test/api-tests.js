@@ -165,6 +165,31 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   check(!(await one("boss@site.com", { op: "acquire", path: "samples/" + id, holder: "b", ttl: 3000 })).acquired, "another holder waits for the lease");
   check((await one("t1@site.com", { op: "acquire", path: "samples/" + id, holder: "a", ttl: 3000 })).acquired, "the holder renews its lease");
 
+  // Access requests: a signed-in Microsoft account without a role may ask for itself; only the lab manager answers, and only Settings give a role.
+  const ak = "access/new~40~site.com", req = (x = {}) => ({ em: "new@site.com", name: "New Person", note: "MET lab", at: Date.now(), status: "pending", ...x });
+  check(!(await one(null, { op: "set", path: ak, data: req() })).ok, "the public can't ask for access");
+  check(!(await one("new@site.com", { op: "set", path: "access/other~40~site.com", data: req({ em: "other@site.com" }) })).ok && !(await one("new@site.com", { op: "set", path: ak, data: req({ em: "other@site.com" }) })).ok, "a request is only ever for one's own email");
+  check(!(await one("new@site.com", { op: "set", path: ak, data: req({ status: "approved" }) })).ok && !(await one("new@site.com", { op: "set", path: ak, data: req({ role: "admin" }) })).ok, "a request can't approve itself or carry a role");
+  check(!(await one("new@site.com", { op: "set", path: ak, data: req({ name: " " }) })).ok && !(await one("new@site.com", { op: "set", path: ak, data: req({ at: now - 3600e3 }) })).ok, "a request needs a name and the current time");
+  check(!(await one("t1@site.com", { op: "set", path: "access/t1~40~site.com", data: req({ em: "t1@site.com" }) })).ok, "staff don't send requests");
+  check((await one("new@site.com", { op: "set", path: ak, data: req() })).ok, "a signed-in account without access asks for access");
+  check(!(await one("new@site.com", { op: "set", path: ak, data: req({ name: "Again" }) })).ok && !(await one("new@site.com", { op: "update", path: ak, data: { status: "approved" } })).ok && !(await one("new@site.com", { op: "delete", path: ak })).ok, "the person asking can't send it again, change it or remove it");
+  check((await core.account(P("new@site.com"))).role === null, "asking gives no access by itself");
+  check((await one("new@site.com", { op: "get", path: ak })).data.status === "pending", "the person asking sees their own request");
+  check(!(await one("t1@site.com", { op: "get", path: ak })).ok && !(await one("other@site.com", { op: "get", path: ak })).ok && !(await one(null, { op: "get", path: ak })).ok, "nobody else but the lab manager reads it");
+  check(!(await one("t1@site.com", { op: "query", coll: "access", where: [["status", "==", "pending"]] })).docs.length && !(await one("new@site.com", { op: "query", coll: "access", where: [] })).docs.length, "nor lists requests");
+  const ch0 = now - 1;
+  check(!(await one("t1@site.com", { op: "changes", since: ch0 })).changes.some(c => c.path === ak) && (await one("new@site.com", { op: "changes", since: ch0, watch: [ak] })).changes.some(c => c.path === ak), "live changes to a request go only to the person asking (and the lab manager)");
+  check(!(await one("s1@site.com", { op: "update", path: ak, data: { status: "declined" } })).ok, "a supervisor can't answer a request");
+  const pend = (await one("boss@site.com", { op: "query", coll: "access", where: [["status", "==", "pending"]] })).docs;
+  check(pend.length === 1 && pend[0].data.em === "new@site.com", "the lab manager lists pending requests");
+  check((await one("boss@site.com", { op: "update", path: ak, data: { status: "declined", by: "mgr", byName: "Manager", dt: Date.now() } })).ok && mem.docs[ak].by === "mgr", "the lab manager declines a request, and who declined it is recorded");
+  check((await one("new@site.com", { op: "set", path: ak, data: req({ note: "second try" }) })).ok, "after a decline the person may ask again");
+  check((await one("boss@site.com", { op: "update", path: "settings/stages", data: { users: [...users, { u: "new", name: "New Person", role: "tech", em: "new@site.com" }] } })).ok &&
+    (await one("boss@site.com", { op: "update", path: ak, data: { status: "approved", role: "tech", by: "mgr", byName: "Manager", dt: Date.now() } })).ok, "the lab manager approves it by adding the account in Settings");
+  check((await core.account(P("new@site.com"))).role === "tech", "the account then signs in with the role given");
+  check((await one("boss@site.com", { op: "export", coll: "access" })).docs.length === 1, "access requests are in the backup");
+
   // Bad requests.
   check(!(await one("t1@site.com", { op: "get", path: "../x" })).ok, "bad paths are refused");
   check(!(await one("t1@site.com", { op: "query", coll: "samples", where: [["a b", "==", 1]] })).ok, "bad field names are refused");
