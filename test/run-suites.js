@@ -1,5 +1,6 @@
 // Runs the prototype's own end-to-end test suites against the Azure build (app/index.html + API core + local sign-in).
-// The suites are copied unchanged from ../sample-tracking/test into a scratch folder next to an Azure harness;
+// The suites are copied from ../sample-tracking/test into a scratch folder next to an Azure harness (unchanged, except
+// the ADJUST list below);
 // azure-extra.js (this folder) checks what is new in the Azure build.
 //   node test/run-suites.js run.js results-tests.js     (default: all five)
 const fs = require("fs"), path = require("path"), os = require("os"), { spawnSync } = require("child_process");
@@ -12,9 +13,25 @@ if (a < 0 || b < 0) throw new Error("harness layout changed");
 tail = tail.slice(0, a) + tail.slice(b);
 fs.writeFileSync(path.join(work, "harness.js"), fs.readFileSync(path.join(__dirname, "harness-head.js"), "utf8") + "\n" + tail);
 const suites = process.argv.slice(2).length ? process.argv.slice(2) : ["run.js", "results-tests.js", "v12-tests.js", "review-tests-v11.js", "review-v11-scenarios.js", "azure-extra.js"];
+/* Checks that read a sentence this build takes out of the page (build.py section 10) check the same fact another way. */
+const ADJUST = {
+  "run.js": [[
+    'check(/Showing all \\d+ open samples/.test(await A.textContent("#view-board")), "board says it shows all open samples");',
+    'check((await A.$$eval(".lane h4 span", e => e.reduce((n, x) => n + +x.textContent, 0))) === +(await A.textContent("#cntActive")), "board says it shows all open samples");'
+  ]],
+  "review-tests-v11.js": [[
+    'boardTxt.includes(`Showing all ${openN} open samples`)',
+    '(await B.$$eval(".lane h4 span", e => e.reduce((n, x) => n + +x.textContent, 0))) === openN'
+  ]]
+};
 let bad = 0;
 for (const s of suites){
-  fs.copyFileSync(fs.existsSync(path.join(PROTO, s)) ? path.join(PROTO, s) : path.join(__dirname, s), path.join(work, s));   // the prototype's suites, or this folder's own
+  let code = fs.readFileSync(fs.existsSync(path.join(PROTO, s)) ? path.join(PROTO, s) : path.join(__dirname, s), "utf8");   // the prototype's suites, or this folder's own
+  for (const [from, to] of ADJUST[s] || []){
+    if (code.split(from).length !== 2) throw new Error(`${s}: check to adjust not found exactly once: ${from.slice(0, 60)}`);
+    code = code.replace(from, () => to);
+  }
+  fs.writeFileSync(path.join(work, s), code);
   console.log(`\n===== ${s} =====`);
   const r = spawnSync(process.execPath, [path.join(work, s)], { cwd: work, stdio: "inherit", timeout: 900000, env: { ...process.env, AZ_ROOT: AZ, NODE_PATH: [process.env.NODE_PATH, spawnSync("npm", ["root", "-g"]).stdout.toString().trim()].filter(Boolean).join(path.delimiter) } });
   if (r.status !== 0) bad++;

@@ -62,7 +62,7 @@ const log = t => console.log("• " + t);
   const tw = await T.$eval("#who", e => e.textContent);
   check(/stranger@example\.com · no access yet/.test(tw) && !(await T.$eval("#signBtn", e => e.hidden)), "an unknown Microsoft account is signed in without access and can sign out");
   await T.click('[data-tab="login"]').catch(() => {});
-  check(/has not been given access/.test(await T.textContent("#view-login")), "it is told to ask the lab manager");
+  check(/no access yet. Ask the lab manager/.test(await T.textContent("#view-login")), "it is told to ask the lab manager");
   const techSees = await T.evaluate(async () => (await (await fetch("/api/db", { method: "POST", body: JSON.stringify({ ops: [{ op: "get", path: "settings/stages" }] }) })).json()).results[0].data.users.length);
   check(techSees === 0, "an account without access sees no staff list");
 

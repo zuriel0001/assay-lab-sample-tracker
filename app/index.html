@@ -1,3 +1,4 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from met-lab-sample-tracker.html (sha256 053f3b059003) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>MET Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -158,6 +159,8 @@ td .linkish{background:none;border:0;padding:0;font-family:var(--f-mono);font-we
 /* Sign-in screen */
 .login-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:16px;align-items:start}
 @media (max-width:760px){.login-grid{grid-template-columns:minmax(0,1fr)}}
+#rRoute:empty{display:none}
+a.btn{text-decoration:none}
 .mock{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px dashed var(--warn);border-radius:var(--r);background:var(--warn-soft);font-size:13px}
 .mock b{white-space:nowrap}
 .demo-list{display:grid;gap:8px}
@@ -1709,7 +1712,7 @@ function routePreview(r){
     <div class="row" style="gap:8px"><span class="code">${esc(r.code)}</span><b>${esc(r.name)}</b>${r.two ? `<span class="pill warn">Two-person custody</span>` : ""}</div>
     ${r.desc ? `<div class="small muted">${esc(r.desc)}</div>` : ""}
     <ol class="steps">${[HEAD[1], ...r.stages].map(x => `<li class="ph-${esc(x.phase)}">${esc(x.name)}<span>${hoursLabel(x.hours)}</span></li>`).join("")}<li class="ph-report">Results released</li></ol>
-    <div class="small">Results about <b>${hoursLabel(routeTat(r))}</b> after the lab receives the sample (an estimate from the step times). ${(r.retention || []).length ? `Retention: ${esc(r.retention.map(retentionLine).join("; "))}.` : ""}</div></div>`;
+    <div class="small">Results about <b>${hoursLabel(routeTat(r))}</b> after receipt. ${(r.retention || []).length ? `Retention: ${esc(r.retention.map(retentionLine).join("; "))}.` : ""}</div></div>`;
 }
 const hazTags = s => (s.hazards || []).map(k => HAZARDS.find(h => h.k === k)).filter(Boolean);
 const hazPills = s => hazTags(s).map(h => `<span class="haz" title="${esc(h.l)}">${esc(h.tag)}</span>`).join("");
@@ -1784,16 +1787,11 @@ const updateCount = () => { $("#cntActive").textContent = samples.size; };
 function renderLogin(){
   const v = $("#view-login"), m = window.__me || {};
   const back = encodeURIComponent(location.pathname + location.hash);
-  v.innerHTML = `<div class="login-grid">
-    <div class="panel stack" id="loginForm">
-      <div><h2>Staff sign in</h2><p class="small muted" style="margin:4px 0 0">Lab technicians sign in to confirm receipt of samples, record each stage, run lab batches and enter results. Lab supervisors also review batch QC, release results with a certificate and approve corrections. Admins manage workflow routes, sections and accounts. A section account (for example Exploration) sees the certificates for its own section's samples.</p></div>
-      ${m.signedIn && !session ? `<div class="notice warn">You are signed in to Microsoft as <b>${esc(m.email)}</b>, but this account has not been given access yet. Ask the lab manager to add it on the Settings tab, then reload this page. <a href="/.auth/logout?post_logout_redirect_uri=%2F">Use a different account</a></div>` : ""}
+  v.innerHTML = `<div class="panel stack" id="loginForm" style="max-width:520px">
+      <h2>Staff sign in</h2>
+      ${m.signedIn && !session ? `<div class="notice warn">Signed in as <b>${esc(m.email)}</b>: no access yet. Ask the lab manager to add this email on the Settings tab. <a href="/.auth/logout?post_logout_redirect_uri=%2F">Use a different account</a></div>` : ""}
       <div class="row"><a class="btn primary big" id="msSignIn" href="/.auth/login/aad?post_login_redirect_uri=${back}">Sign in with Microsoft</a></div>
-      <p class="small muted" style="margin:0">No account is needed to submit a sample or follow one: use <button type="button" class="btn ghost small" data-goto="submit">Submit a sample</button> or type an ID or tag number in the box above.</p>
-    </div>
-    <div class="panel stack">
-      <div class="mock"><b>Test system.</b><span>Staff sign in with their Microsoft account (work or personal). The lab manager gives each account its role on the Settings tab, using the email the person signs in with.</span></div>
-    </div></div>`;
+    </div>`;
 }
 
 /* ---------- lookup: by ID, tag number, site reference or a scanned tracking link ---------- */
@@ -1900,8 +1898,6 @@ function renderTrack(){
     v.dataset.ctx = "";
     v.innerHTML = `<div class="panel empty">
       <strong>Enter a sample ID to see where it is</strong>
-      Every sample gets an ID like <span class="mono">${esc(exampleId())}</span> when it is submitted: the section that sent it, the submission date, then a running number. You can also type the sample's tag number or scan its label.
-      Type it above to see the sample type, who submitted it, the test and its workflow route, the current stage and when results are expected.
       <div class="row" style="justify-content:center;margin-top:16px">
         ${!session ? `<button class="btn" data-goto="login">Staff sign in</button>` : allowedTabs().includes("board") ? `<button class="btn" data-goto="board">Open workflow board</button>` : allowedTabs().includes("results") ? `<button class="btn" data-goto="results">See your section's results</button>` : ""}
         <button class="btn primary" data-goto="submit">Submit a sample</button>
@@ -1910,7 +1906,7 @@ function renderTrack(){
   }
   if (current.matches){
     v.dataset.ctx = "";
-    v.innerHTML = `<div class="panel stack"><h2>${current.matches.length} samples match “${esc(current.id)}”</h2><p class="small muted" style="margin:0">The tag number or site reference is on more than one sample. Pick the one you want.</p>
+    v.innerHTML = `<div class="panel stack"><h2>${current.matches.length} samples match “${esc(current.id)}”</h2>
       <div class="row">${current.matches.map(id => `<button class="btn" data-open="${esc(id)}"><span class="mono">${esc(id)}</span></button>`).join("")}</div></div>`;
     return;
   }
@@ -1918,7 +1914,7 @@ function renderTrack(){
   if (!current.body){
     v.dataset.ctx = "";
     v.innerHTML = `<div class="panel empty"><strong>No sample found for ${esc(current.id)}</strong>
-      Check the ID on the bag or submission form. IDs look like <span class="mono">${esc(exampleId())}</span>: section code, submission date, running number. Tag numbers and site references are searched too.
+      Check the ID on the bag.
       ${db ? "" : "<br>The shared register is not connected in this view, so lookups cannot run."}</div>`;
     return;
   }
@@ -1934,7 +1930,7 @@ function buildTrack(v, s){
   const tIdx = targetIdx(s), released = lastEntry(s, plan[tIdx].key), curI = stageIdx(s, s.stageKey), final = !!stage(s, s.stageKey)?.final;
   let etaHtml;
   if (st.closed) etaHtml = `<div class="lbl">Closed</div><div class="val">${esc(stage(s, s.stageKey)?.name || "")}</div><div class="small muted">${fmt(s.closedAt || s.stageAt)}</div>`;
-  else if (proj.eta) etaHtml = `<div class="lbl">Results expected (estimate)</div><div class="val">${fmt(proj.eta)}</div><div class="small muted">in ${dur(proj.eta - now)}${st.late ? " · current step is running late" : ""}. Based on the route's step times; queues can add to it.</div>`;
+  else if (proj.eta) etaHtml = `<div class="lbl">Results expected (estimate)</div><div class="val">${fmt(proj.eta)}</div><div class="small muted">in ${dur(proj.eta - now)}${st.late ? " · current step is running late" : ""}</div>`;
   else etaHtml = `<div class="lbl">Results released</div><div class="val">${fmt(s.relAt || (released ? released.at : s.stageAt))}</div><div class="small muted">Turnaround ${dur((s.relAt || (released ? released.at : s.stageAt)) - (s.recvAt || lastEntry(s, "received")?.at || s.createdAt))}</div>`;
 
   // Stage rail: this sample's own route, plus the closing state if it reached one.
@@ -2008,9 +2004,9 @@ function buildTrack(v, s){
 
   const ci = curIdx(s);
   let actions;
-  if (!canEdit()) actions = `<p class="small muted" style="margin:0">${session ? "You can view this sample. Only lab staff can update it." : "Only lab staff update samples. <button class='btn ghost small' data-goto='login'>Staff sign in</button>"}</p>`;
+  if (!canEdit()) actions = `<p class="small muted" style="margin:0">${session ? "View only." : "<button class='btn ghost small' data-goto='login'>Staff sign in</button>"}</p>`;
   else if (awaiting(s)) actions = receiptForm(s);
-  else if (st.closed) actions = `<p class="small muted" style="margin:0">This sample is closed${s.closedAt ? ` (${fmtFull(s.closedAt)})` : ""}.${(s.materials || []).length ? " A lab supervisor can reverse a material movement recorded by mistake, under Retained material." : ""}</p>`;
+  else if (st.closed) actions = `<p class="small muted" style="margin:0">This sample is closed${s.closedAt ? ` (${fmtFull(s.closedAt)})` : ""}.</p>`;
   else if (ci >= 0 && ci < tIdx) actions = moveForm(s);
   else actions = releasedForm(s);
 
@@ -2088,7 +2084,6 @@ function receiptForm(s){
     <details class="more" id="rejBox"><summary>Reject the sample</summary>
       <div class="stack" style="gap:8px;margin-top:8px">
         <label class="f">What happens to it<select class="inp" id="rcDisp"><option value="returned">Returned to the submitter</option><option value="disposed">Disposed at the lab</option><option value="cancel">Nothing arrived: cancel the submission</option></select></label>
-        <p class="small muted" style="margin:0">Returned or disposed material goes in the ledger as received, then sent out, so the counts balance. Put the reason in the note above.</p>
         <div class="row"><button type="button" class="btn danger" data-receipt="reject">Reject sample</button></div></div></details>
   </div>`;
 }
@@ -2116,7 +2111,7 @@ function redoBox(s){
   const reasons = [...new Set([...(s.triggers || r?.triggers || []), "CRM outside limits", "Blank above limit", "Duplicate or replicate out of tolerance", "Client query on the result", "Other (see note)"])];
   return `<details class="more" id="redoBox"><summary>QC failed or a result needs repeating?</summary>
       <div class="stack" style="gap:8px;margin-top:8px">
-        <p class="small muted" style="margin:0">Sends the sample back to <b>${esc(p[ri].name)}</b> and moves the expected finish out. The note is saved with it.${curIdx(s) >= targetIdx(s) ? " Results already released stay on record; the repeat is reported as an amendment." : ""}</p>
+        <p class="small muted" style="margin:0">Back to <b>${esc(p[ri].name)}</b>.${curIdx(s) >= targetIdx(s) ? " The repeat is reported as an amendment." : ""}</p>
         <label class="f">Reason<select class="inp" id="redoWhy">${reasons.map(x => `<option>${esc(x)}</option>`).join("")}</select></label>
         <div class="row"><button type="button" class="btn" id="redoBtn">Send back for re-assay</button></div></div></details>`;
 }
@@ -2147,27 +2142,24 @@ function moveForm(s){
       <div class="stack" style="gap:8px;margin-top:8px">
         <label class="f">Move to<select class="inp" id="mvKey">${back.map(([x]) => `<option value="${esc(x.key)}">Back to ${esc(x.name)} (correction)</option>`).join("")}${ahead.map(([x]) => `<option value="${esc(x.key)}">Skip ahead to ${esc(x.name)}</option>`).join("")}</select></label>
         <label class="f">Reason (required)<input id="corrWhy" data-clear placeholder="e.g. Recorded against the wrong sample"></label>
-        <p class="small muted" style="margin:0">A correction never adds a ledger movement. ${canApprove() ? "Skipped steps stay on the record as skipped, with the reason. A skip can't reach or pass QA/QC or the release of results." : "Only a lab supervisor can skip steps."}</p>
         <div class="row"><button type="button" class="btn" id="corrBtn">Record correction</button></div></div></details>` : ""}
     ${canRedo ? redoBox(s) : ""}
     ${ci >= 1 ? `<details class="more" id="rrBox"><summary>Change the test or workflow route</summary>
       <div class="stack" style="gap:8px;margin-top:8px">
         <div class="form"><label class="f">Test<select class="inp" id="rrTest">${testOptions(s.typeKey, s.test)}</select></label><label class="f">Route<select class="inp" id="rrCode"></select></label></div>
         <p class="small muted" id="rrInfo" style="margin:0"></p>
-        <p class="small muted" style="margin:0">Only routes that perform the chosen test are listed. Steps already done stay in the chain of custody; the sample carries on from the same step in the new route if it has one.</p>
         <div class="row"><button type="button" class="btn" id="rerouteBtn">Change route</button></div></div></details>
     <details class="more" id="cxBox"><summary>Stop testing and send the sample out</summary>
       <div class="stack" style="gap:8px;margin-top:8px">
         <label class="f">What happens to the sample<select class="inp" id="cxDisp"><option value="returned">Returned to the submitter</option><option value="disposed">Disposed at the lab</option><option value="external">Sent to an external lab</option></select></label>
         <label class="f">Reason (required)<input id="cxWhy" data-clear placeholder="e.g. Submitter withdrew the request"></label>
-        <p class="small muted" style="margin:0">Writes an outbound ledger movement and closes the sample.</p>
         <div class="row"><button type="button" class="btn danger" id="cxBtn">Stop testing</button></div></div></details>` : ""}
   </div>`;
 }
 function releasedForm(s){
   const ci = curIdx(s), ti = targetIdx(s), ri = redoIdx(s);
   return `<div id="moveForm" class="stack" style="gap:10px">
-    <p class="small" style="margin:0">Results released ${fmt(s.relAt || lastEntry(s, "released")?.at)}. Put the retained material away and record returns or disposal under <b>Retained material</b>; each material has its own retention date.</p>
+    <p class="small" style="margin:0">Results released ${fmt(s.relAt || lastEntry(s, "released")?.at)}.</p>
     <div class="form">${meBox("Recorded by")}${twoPerson(s) ? witnessField("mvWit") : ""}<label class="f full">Note<input id="mvNote" data-clear placeholder="e.g. Client asked for a copy of the certificate"></label></div>
     <div class="row"><button type="button" class="btn" data-step="note">Save note only</button></div>
     ${ri >= 0 && ci === ti ? redoBox(s) : ""}
@@ -2194,7 +2186,6 @@ function materialsPanel(s){
       <td>${state}${ctl}</td></tr>`;
   }).join("");
   return `<div class="panel stack" id="matBox"><h3>Retained material</h3>
-    <p class="small muted" style="margin:0">Each material is kept for its own period from the release of results, then returned or disposed. Every return, disposal or send-out is written to the ledger.</p>
     ${edit && !closed && twoPerson(s) ? `<div class="form">${witnessField("mtWit")}</div>` : ""}
     <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
@@ -2207,7 +2198,7 @@ function bindTrack(v, s){
       if (rt.value !== s.test) lines.push(`Test changes from “${s.testName || testOf(s.test)?.name || s.test}”: give the reason in the note.`);
       if (r) lines.push(routeLine(r));
       if (c.holdH != null && !c.warn.some(w => w.startsWith("holding"))) lines.push(`Received ${hoursLabel(c.holdH)} after collection; holding time for ${typeOf(s.typeKey).holdWhat} is ${hoursLabel(typeOf(s.typeKey).hold)}.`);
-      $("#rcInfo", v).innerHTML = lines.map(esc).join(" ") + (c.warn.length ? `<div class="notice warn" style="margin-top:6px"><b>Check before confirming:</b> ${c.warn.map(esc).join("; ")}. Describe it in the note; it is printed on the record.</div>` : "");
+      $("#rcInfo", v).innerHTML = lines.map(esc).join(" ") + (c.warn.length ? `<div class="notice warn" style="margin-top:6px"><b>Check before confirming:</b> ${c.warn.map(esc).join("; ")}. Describe it in the note.</div>` : "");
     };
     syncers.push(info);
     ["#rcTest", "#rcRoute", "#rcAt", "#rcBags", "#rcSeal", "#rcCond", "#rcTemp"].forEach(id => { const el = $(id, v); if (el){ el.addEventListener("change", info); el.addEventListener("input", info); } });
@@ -2548,7 +2539,7 @@ function renderBoard(){
   };
   if (!list.length && (boardSec || boardRoute)){ v.innerHTML = `<div class="stack">${filters}<div class="panel empty"><strong>No open samples match these filters</strong>Choose another section or route, or show all.</div></div>`; bind(); return; }
   if (!list.length){
-    v.innerHTML = `<div class="panel empty"><strong>No open samples</strong>Submitted samples appear here until all their material has left the lab, grouped by where they are, with late ones flagged.
+    v.innerHTML = `<div class="panel empty"><strong>No open samples</strong>
       <div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-goto="submit">Submit a sample</button></div></div>`;
     return;
   }
@@ -2568,7 +2559,7 @@ function renderBoard(){
           <div class="cmeta">${esc(s.type)}${s.priority === "Urgent" ? " · <b>Urgent</b>" : ""}${s.flag && awaiting(s) ? ` · <b style="color:var(--warn)">Flagged</b>` : ""}</div>
           ${hazTags(s).length || twoPerson(s) ? `<div class="cmeta">${hazPills(s)}${twoPerson(s) ? `<span class="haz two" title="Two-person custody">2P</span>` : ""}</div>` : ""}
           <div class="cmeta">${od.length ? `<b style="color:var(--bad)">${esc(od.map(m => m.item).join(", "))} past retention</b>` : x.key === "report" && stt.late ? `<b style="color:var(--warn)">Not yet put in storage</b>` : x.key === "store" ? `${keptMaterials(s).length} material(s) kept` : stt.late ? `<b style="color:var(--bad)">${dur(Date.now() - due)} late</b>` : due ? `due ${fmt(due)}` : ""}</div></button>`; }).join("")}
-      ${items.length > 40 ? `<div class="small muted" style="margin-top:6px">+${items.length - 40} more: use the filters or look a sample up by ID</div>` : ""}
+      ${items.length > 40 ? `<div class="small muted" style="margin-top:6px">+${items.length - 40} more</div>` : ""}
       ${!items.length ? `<div class="small muted">None</div>` : ""}</div>`;
   }).join("");
   v.innerHTML = `<div class="stack">
@@ -2586,10 +2577,9 @@ function renderBoard(){
       <div class="stat"><div class="n" style="color:${notStored ? "var(--warn)" : "inherit"}">${notStored}</div><div class="l">Released, not yet put in storage</div></div>
       <div class="stat"><div class="n" style="color:${dueM ? "var(--warn)" : "inherit"}">${dueM}</div><div class="l">Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}</div></div>
     </div>
-    ${alerts.length ? `<div class="notice bad" id="bdAlerts"><b>Past a limit:</b> ${alerts.slice(0, 12).map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button> <span class="small">${esc(openAlerts(s).map(h => alertLine(s, h)).join("; "))}</span>`).join("<br>")}${alerts.length > 12 ? `<br>+${alerts.length - 12} more` : ""}<div class="small">Open each sample, act as the limit says and record what was done and who was told. In the production system these also go out by email or SMS.</div></div>` : ""}
+    ${alerts.length ? `<div class="notice bad" id="bdAlerts"><b>Past a limit:</b> ${alerts.slice(0, 12).map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button> <span class="small">${esc(openAlerts(s).map(h => alertLine(s, h)).join("; "))}</span>`).join("<br>")}${alerts.length > 12 ? `<br>+${alerts.length - 12} more` : ""}</div>` : ""}
     ${trends.length ? `<div class="notice warn" id="bdTrends"><b>Reference material trends:</b> ${esc(trends.map(t => `${t.crm}${t.k ? " " + t.k : ""}: ${t.msg}`).join("; "))}. See the control chart on the <button type="button" class="linkish" data-goto="batches">Lab batches</button> tab.</div>` : ""}
-    <div class="lanes">${lanes}</div>
-    <p class="small muted">Lanes group samples by where they are in their own route; each card shows the current step. Showing all ${samples.size} open samples: awaiting receipt, in the lab, or with material still in storage. Closed samples open by ID or tag. Times are ${esc(TZ() || "this device's")} time.</p></div>`;
+    <div class="lanes">${lanes}</div></div>`;
   bind();
 }
 
@@ -2621,25 +2611,25 @@ function refreshFormRoute(){
   }
   const r = formRoute();
   box.innerHTML = r ? routePreview(r) : te && $("#rType")?.value ? `<div class="route-box"><div class="small" style="color:var(--bad)">No workflow route performs this test yet. Ask the lab manager to add one in Settings.</div></div>`
-    : `<div class="route-box"><div class="small muted">Choose the sample type, purpose and test to see the workflow this sample will follow and when results can be expected.</div></div>`;
+    : "";
   const w = $("#rWitBox");
   if (w){ const two = (r && r.two) || ["bullion", "conc"].includes($("#rType")?.value) || $("#rSection")?.value === "GR"; w.hidden = !two; }
 }
 function renderSampleForm(mode){
   const v = $(mode === "submit" ? "#view-submit" : "#view-register");
-  if (mode === "register" && !canEdit()){ v.innerHTML = `<div class="panel empty"><strong>View-only access</strong>Only lab staff register samples at the lab. Anyone can use Submit a sample.</div>`; return; }
+  if (mode === "register" && !canEdit()){ v.innerHTML = `<div class="panel empty"><strong>View-only access</strong></div>`; return; }
   const me = session?.u || "public";
   if ($("#regForm", v) && v.dataset.who === me) return; // keep what the user is typing
   $(mode === "submit" ? "#view-register" : "#view-submit").innerHTML = "";  // one form in the page at a time (shared field ids)
   v.dataset.who = me;
   const now = Date.now(), lab = mode === "register";
   v.innerHTML = `<form class="panel stack" id="regForm" data-mode="${mode}" autocomplete="off" novalidate>
-    ${lab ? `<div><h2>Register at lab</h2><p class="muted small" style="margin:4px 0 0">For samples brought straight to the lab without an online submission. The sample is recorded as received by you and written to the inbound ledger. Each sample gets an ID made of the section code, the date and a running number, like <span class="mono">${esc(exampleId("EXP"))}</span>, and follows the workflow route for its type and test.</p></div>`
-      : `<div><h2>Submit a sample</h2><p class="muted small" style="margin:4px 0 0">No sign-in needed. Fill this in when you send samples to the MET Lab. You get the sample ID straight away: write it on the bag, or print the label, and use it to track progress. Each ID is the section code, the submission date and a running number, like <span class="mono">${esc(exampleId("EXP"))}</span>. The sample type and test decide its workflow and expected finish; a lab technician confirms receipt when it arrives.</p></div>`}
+    ${lab ? `<div><h2>Register at lab</h2></div>`
+      : `<div><h2>Submit a sample</h2></div>`}
     <div class="form">
       <label class="f"><span>Sample type <span class="req">*</span></span><select id="rType" required><option value="">Choose…</option>${typeOptions()}</select></label>
       <label class="f"><span>Assay purpose (why it is tested) <span class="req">*</span></span><select id="rPurpose" required><option value="">Choose…</option>${PURPOSES.map(p => `<option value="${esc(p.key)}">${esc(p.name)}</option>`).join("")}</select></label>
-      <label class="f full"><span>Test requested <span class="req">*</span></span><select id="rTest" required>${testOptions("")}</select><span class="small muted" style="font-weight:400">All ${TESTS.length} tests are in this list: the ones recommended for the sample type first, then every other test by category. <button type="button" class="btn ghost small" data-goto="routes">See all tests</button></span></label>
+      <label class="f full"><span>Test requested <span class="req">*</span></span><select id="rTest" required>${testOptions("")}</select></label>
       ${lab ? `<label class="f full"><span>Workflow route (only routes that perform the test)</span><select id="rRouteSel"><option value="">Automatic</option></select></label>` : ""}
       <div class="full" id="rRoute"></div>
       <div class="full" id="rDetails"></div>
@@ -2779,9 +2769,9 @@ async function register(){
     ids.forEach((id, i) => tagSets[i].forEach(tg => db.doc("tagidx/" + tagKey(tg)).set({ sid: id, tag: tg, at: now }).catch(() => {})));
     if (lab) ids.forEach(id => flushLedger(id));
     msg.textContent = "";
-    $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? (lab ? "Sample registered." : "Sample submitted.") : `${n} samples ${lab ? "registered" : "submitted"}.`}</b> Write ${n === 1 ? "this ID" : "these IDs"} on the sample bag${n === 1 ? "" : "s"}, or print the label${n === 1 ? "" : "s"}${lab ? "" : ", then bring or send the sample to the MET Lab. Its status shows “Awaiting receipt” until a lab technician confirms it has arrived"}:
+    $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? (lab ? "Sample registered." : "Sample submitted.") : `${n} samples ${lab ? "registered" : "submitted"}.`}</b> Write ${n === 1 ? "this ID" : "these IDs"} on the bag${n === 1 ? "" : "s"} or print the label${n === 1 ? "" : "s"}:
       <div class="label-strip" style="margin-top:8px">${ids.map((id, i) => `<code>${esc(id)}${tagSets[i].length ? ` · ${esc(tagSets[i].join(", "))}` : ""}</code>`).join("")}</div>
-      <div class="small" style="margin-top:8px">Workflow: <span class="code">${esc(r.code)}</span> ${esc(r.name)}. Results about ${hoursLabel(routeTat(r))} after the lab receives ${n === 1 ? "it" : "them"} (an estimate).</div>
+      <div class="small" style="margin-top:8px">Workflow: <span class="code">${esc(r.code)}</span> ${esc(r.name)}. Results about ${hoursLabel(routeTat(r))} after receipt.</div>
       <div class="row" style="margin-top:10px"><button type="button" class="btn" id="rCopy">Copy IDs</button>${n === 1 ? `<button type="button" class="btn" data-link="${esc(ids[0])}">Copy tracking link</button>` : ""}<button type="button" class="btn" data-open="${esc(ids[0])}">Track ${esc(ids[0])}</button><button type="button" class="btn ghost" id="rAgain">${lab ? "Register more" : "Submit another"}</button></div></div>`;
     $("#rCopy").onclick = () => navigator.clipboard.writeText(ids.join("\n")).then(() => toast("IDs copied"), () => toast("Copy blocked here. Select the IDs and copy them."));
     $("#rAgain").onclick = () => { $(lab ? "#view-register" : "#view-submit").innerHTML = ""; renderSampleForm(mode); };
@@ -2865,9 +2855,9 @@ function renderLedger(){
         <button class="btn" id="lgCsv">Export CSV</button>
       </div>
       ${rc ? `<div class="recon"><b>Month check:</b> ${rc.opening} on hand at the start + ${rc.ins} received − ${rc.outs} fully out = <b>${rc.closing}</b> on hand at the end${rc.now != null ? (rc.now === rc.closing ? ` <span class="pill ok">matches the ${rc.now} on hand now</span>` : ` <span class="pill bad">${rc.now} on hand now: check for missing movements</span>`) : ""}.</div>` : ""}
-      <p class="small muted" style="margin:0">${inN} inbound and ${outN} outbound movement${outN === 1 ? "" : "s"}${revN ? `, ${revN} reversal${revN === 1 ? "" : "s"}` : ""} in ${esc(f.month)}. A sample is written in once, when the lab receives it. Each retained material is written out when it is returned, disposed, sent to another lab or archived. Mistakes are reversed with a visible entry, never deleted. Times are ${esc(TZ() || "this device's")} time.</p>
+      <p class="small muted" style="margin:0">${inN} inbound and ${outN} outbound movement${outN === 1 ? "" : "s"}${revN ? `, ${revN} reversal${revN === 1 ? "" : "s"}` : ""} in ${esc(f.month)}.</p>
       ${!ledgerReady && db ? `<div class="panel empty"><strong>Loading ${esc(f.month)}…</strong></div>` : rows.length ? `<div class="tbl-wrap"><table><thead><tr><th>Date &amp; time</th><th>Dir.</th><th>Sample ID</th><th>Tag no.</th><th>Type</th><th>Material</th><th>Section</th><th>From / to</th><th>Reference</th><th>Submitted by</th><th>Lab staff</th><th>Note</th></tr></thead><tbody>${body}</tbody></table></div>`
-        : `<div class="panel empty"><strong>No ledger entries${f.dir !== "all" || f.q || f.sec ? " match these filters" : ` in ${esc(f.month)}`}</strong>Entries appear when samples are received at the lab or leave it.</div>`}
+        : `<div class="panel empty"><strong>No ledger entries${f.dir !== "all" || f.q || f.sec ? " match these filters" : ` in ${esc(f.month)}`}</strong></div>`}
     </div>`;
   });
   $("#lgDir").value = f.dir;
@@ -2904,7 +2894,6 @@ function renderRoutes(){
   v.innerHTML = `<div class="stack">
     <div class="panel stack" style="gap:8px">
       <h2>Workflow routes</h2>
-      <p class="small muted" style="margin:0">Each sample follows the route for its sample type and the test requested. The route is picked automatically at submission and the lab technician confirms or changes it at receipt; only routes that perform the requested test can be chosen. Every route starts with <b>Submitted</b> and <b>Received &amp; logged</b>, and ends with <b>Results released</b> and retention in storage. Each retained material is then returned, sent out or disposed on its own date. Expected finish times add up the hours below and are estimates: queues can add to them.${isAdmin() ? " Admins edit routes on the Settings tab." : ""}</p>
       <div class="row" style="gap:6px"><span class="ph-tag ph-intake">Intake</span><span class="ph-tag ph-prep">Preparation</span><span class="ph-tag ph-test">Analysis / test</span><span class="ph-tag ph-qc">QA/QC</span></div>
     </div>
     <div class="panel stack" style="gap:10px"><h3>All ${TESTS.length} tests</h3>
@@ -3032,41 +3021,32 @@ function renderStages(){
     <td><input class="inp" data-ti="${i}" data-tf="then" value="${esc(x.then)}" aria-label="Then"></td>
     <td><button class="btn ghost danger" data-trm="${i}" aria-label="Remove">✕</button></td></tr>`).join("");
   v.innerHTML = `<div class="stack">
-    <div class="notice">Edit accounts, sections, the site time zone and workflow routes, then press Save settings. Changes apply for everyone.</div>
 
     <h2>Staff accounts</h2>
-    <p class="small muted" style="margin:0">Anyone can submit a sample without an account. Lab technicians confirm receipt, register walk-in samples and record stages; their name is filled in automatically as "Received by" and on every stage update. Lab supervisors also release results, approve skipped steps and reverse ledger movements recorded by mistake. Viewers can see the board and ledger but change nothing. A section account sees only the released results of its own section's samples, with a notice when new ones are ready. Anyone can look up a sample by ID without an account.</p>
-    <div class="mock"><b>Microsoft sign-in.</b><span>Each person signs in with the Microsoft account whose email is on their row (work, school or personal). An account without an email can't sign in. Only admins see these emails.</span></div>
     <div class="tbl-wrap"><table><thead><tr><th>Username</th><th>Full name</th><th>Role</th><th>Section</th><th>Microsoft sign-in email</th><th></th></tr></thead><tbody>${userRows}</tbody></table></div>
     <div class="row"><button class="btn" id="userAdd">Add account</button></div>
 
     <h2 style="margin-top:12px">Submitting sections</h2>
-    <p class="small muted" style="margin:0">Sample IDs are the section code, the submission date and a running number, for example <span class="mono">${esc(exampleId((draft.sections[1] || draft.sections[0] || {code:"EXP"}).code))}</span>. Each section's number restarts at 0001 every day. Codes are 2 to 5 capital letters; changing a code only affects new samples.</p>
     <div class="tbl-wrap"><table><thead><tr><th>Code</th><th>Section name</th><th>Open samples</th><th></th></tr></thead><tbody>${secRows}</tbody></table></div>
     <div class="row"><button class="btn" id="secAdd">Add section</button></div>
 
     <h2 style="margin-top:12px">Site time</h2>
-    <p class="small muted" style="margin:0">Sample ID dates, ledger months and every time on screen use the site's time zone, whatever each phone or PC is set to. Use a name from the IANA list, such as Africa/Accra or Africa/Johannesburg.</p>
     <div class="row"><input class="inp mono" id="cfgTz" style="width:260px" value="${esc(draft.tz)}" aria-label="Site time zone"><span class="small muted">Now at site: ${esc(fmtFull(Date.now()))}</span></div>
 
     <h2 style="margin-top:12px">Results and certificates</h2>
-    <p class="small muted" style="margin:0">A lab supervisor releases results with a numbered certificate of analysis. Corrections issue an amended certificate; earlier versions stay on record.</p>
     <label class="f" style="max-width:520px"><span>Who can see results on a sample record</span><select class="inp" id="cfgResPub"><option value="0" ${draft.resultsPublic ? "" : "selected"}>Signed-in staff only (recommended)</option><option value="1" ${draft.resultsPublic ? "selected" : ""}>Anyone with the sample ID or tag</option></select></label>
 
     <h2 style="margin-top:12px">Reference materials (CRMs and check standards)</h2>
-    <div class="mock"><b>Example values.</b><span>The certified values and standard deviations below are placeholders for the prototype. Replace them with the values on your own CRM certificates before relying on the QC checks.</span></div>
-    <p class="small muted" style="margin:0">A material certified for several results has one row per result under the same ID (type an existing ID in a new row). Lab batches pick reference materials for their analyte and unit, preferring those whose batch types list the batch's prefix (FA fire assay, GC grade control, FG gravimetric, SF screen fire assay, PL plant, PT tails, CC concentrate, BU bullion, SL solutions, EL eluate, CB carbon, CY and CS cyanide, EW water, IC ICP, ME multi-element, LE LECO, AR aqua regia, LW cyanide-soluble gold, SO soil, AB ARD, DN density). Leave batch types empty to allow any. A standard deviation is needed wherever the rule is in SD.</p>
+    <div class="mock"><b>Example values.</b><span>Replace them with the values on your CRM certificates.</span></div>
     <div class="tbl-wrap"><table><thead><tr><th>ID</th><th>Description</th><th>Analyte</th><th>Certified value</th><th>SD</th><th>Batch types</th><th></th></tr></thead><tbody>${crmRows}</tbody></table></div>
     <div class="row"><button class="btn" id="crmAdd">Add reference material</button></div>
 
     <h2 style="margin-top:12px">Action and permit limits</h2>
-    <div class="mock"><b>Example values.</b><span>The permit and guideline limits (marked Permit) are placeholders. Replace them with the limits in the site's environmental permit before go-live.</span></div>
-    <p class="small muted" style="margin:0">A result past a limit raises an alert on the sample and on the board. The release waits until someone records what was done and who was told; the record is printed on the certificate. "Only when" limits a row to one sampling point.</p>
+    <div class="mock"><b>Example values.</b><span>Replace them with the limits in the site's permit.</span></div>
     <div class="tbl-wrap"><table><thead><tr><th>Route</th><th>Result</th><th></th><th>Limit</th><th>Only when</th><th>Permit</th><th>Action</th><th></th></tr></thead><tbody>${limitRows()}</tbody></table></div>
     <div class="row"><button class="btn" id="limAdd">Add limit</button></div>
 
     <h2 style="margin-top:12px">Workflow routes</h2>
-    <p class="small muted" style="margin:0">A sample's route is chosen from its sample type, test and purpose when it is submitted. Changes apply to samples submitted after you save; samples already in the lab keep the steps they started with. Steps 1 and 2 (Submitted, Received &amp; logged) and the closing steps (Results released, storage, return or disposal) are shared by every route.</p>
     <div class="row"><select class="inp" id="rtPick" style="width:auto;max-width:100%" aria-label="Route to edit">${draft.routes.map((r, i) => `<option value="${i}" ${i === routeIdx ? "selected" : ""}>${esc(r.code)} · ${esc(r.name)}</option>`).join("")}</select>
       <button class="btn" id="rtCopy">Copy as new route</button><button class="btn ghost danger" id="rtDel">Remove route</button></div>
     <div class="panel stack">
@@ -3077,7 +3057,6 @@ function renderStages(){
         <label class="f">Transit allowance (hours from submission to receipt)<input type="number" min="0" step="0.5" data-rf="transit" value="${esc(transitOf(R))}"></label>
         <label class="f" style="flex-direction:row;align-items:center;gap:8px;padding-top:22px"><input type="checkbox" data-rf="two" ${R.two ? "checked" : ""}> Two-person custody (a witness at every step)</label>
       </div>
-      ${inUse ? `<p class="small muted" style="margin:0">${inUse} open sample(s) are on this route. They keep the steps, QA/QC rule and retention they started with.</p>` : ""}
       <fieldset><div class="legend">Tests this route performs</div><div class="checks">${checks("tests", TESTS.map(t => [t.key, t.name]), R.tests)}</div></fieldset>
       <fieldset><div class="legend">Sample types it is meant for</div><div class="checks">${checks("types", [["*", "Any type"], ...TYPES.map(t => [t.key, t.name])], R.types)}</div></fieldset>
       <fieldset><div class="legend">Purposes it is chosen first for</div><div class="checks">${checks("purposes", PURPOSES.map(p => [p.key, p.name]), R.purposes)}</div></fieldset>
@@ -3085,7 +3064,7 @@ function renderStages(){
       <div class="row"><button class="btn" id="rsAdd">Add step</button><span class="small muted">Results about <b>${hoursLabel(routeTat(R))}</b> after receipt.</span></div>
       <label class="f" style="max-width:520px"><span>Lab batch and QC</span><select class="inp" id="rtQcp"><option value="">None: checks run on each sample's own results</option>${Object.entries(QC_PROFILES).map(([k, p]) => `<option value="${k}" ${R.qcp === k ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
       ${(R.qcg || []).length > 1 ? `<p class="small muted" style="margin:0">Samples on this route join ${esc(listAnd(R.qcg.map(g => `${aAn(lcName(QC_PROFILES[g.p]?.name || g.p))} for ${listAnd(groupAns(g, RESULTS[(R.tests || [])[0]]).map(a => /^[A-Z][a-z]?$/.test(a.k) ? a.k : lcName(a.n)))}`)))}.</p>` : ""}
-      <label class="f full">QA/QC rule<textarea data-rf="qc">${esc(R.qc || "")}</textarea><span class="small muted" style="font-weight:400">${R.qcp ? "Written from the batch type, so it says what the batch enforces. Choosing another batch type or test rewrites it; you can add notes after it." : "Describe the checks. Only the checks built into the test's results are enforced."}</span></label>
+      <label class="f full">QA/QC rule<textarea data-rf="qc">${esc(R.qc || "")}</textarea></label>
       <label class="f full">Re-assay triggers (one per line)<textarea data-rf="triggers">${esc(R.triggers.join("\n"))}</textarea></label>
       <div class="legend" style="margin:0">Retention and disposal</div>
       <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Days kept after results</th><th>Then</th><th></th></tr></thead><tbody>${keepRows}</tbody></table></div>
@@ -3578,7 +3557,7 @@ function resultsPanel(s){
   const ci = curIdx(s), ti = targetIdx(s), ph = stage(s, s.stageKey)?.phase, certs = s.certs || [], last = certs.at(-1);
   const entering = canEdit() && ci >= 0 && ci < ti && (ph === "test" || ph === "qc");
   if (!s.results && !certs.length && !entering && !Object.keys(labsOf(s)).length) return "";
-  if (!canSeeResults(s)) return certs.length ? `<div class="panel stack" id="resPanel"><h3>Results</h3><p class="small muted" style="margin:0">Results were released on ${fmtDate(last.at)} on certificate <b class="mono">${esc(last.no)}</b>${last.code ? `, check code <span class="mono">${esc(last.code)}</span>` : ""}. The lab sends them to the submitting section; ask the MET Lab for the certificate. A copy you hold is genuine if its number and check code match these.</p></div>` : "";
+  if (!canSeeResults(s)) return certs.length ? `<div class="panel stack" id="resPanel"><h3>Results</h3><p class="small muted" style="margin:0">Results were released on ${fmtDate(last.at)} on certificate <b class="mono">${esc(last.no)}</b>${last.code ? `, check code <span class="mono">${esc(last.code)}</span>` : ""}.</p></div>` : "";
   const rows = s.results?.rows || {}, ans = anOf(s), draft = s.results && (!last || s.results.at > last.at);
   const checks = draft ? resultChecks(s) : [], bad = checks.filter(c => !c.ok);
   const over = draft ? overRes(s) : [];
@@ -3589,7 +3568,7 @@ function resultsPanel(s){
       ${last.amends ? `<div class="small"><span class="pill warn">Amended</span> Replaces ${esc(last.amends)}: ${esc(last.why || "")}</div>` : ""}
       ${last.qcNote ? `<div class="small muted">${esc(last.qcNote)}</div>` : ""}${last.acc ? `<div class="small muted">Accepted outside a check by ${esc(last.acc.tech)}: ${esc(last.acc.why)}</div>` : ""}
       ${resTable(last.an, last.rows, last.cov)}
-      ${certs.length > 1 ? `<div class="small muted">Earlier versions: ${certs.slice(0, -1).reverse().map(certLine).join(", ")}. They stay on record.</div>` : ""}
+      ${certs.length > 1 ? `<div class="small muted">Earlier versions: ${certs.slice(0, -1).reverse().map(certLine).join(", ")}.</div>` : ""}
     </div>`);
   if (draft) parts.push(`<div class="stack" style="gap:6px">
       <div class="row" style="gap:8px"><span class="pill gold">${last ? "Re-assay results, not yet released" : "Not yet released"}</span><span class="small muted">Saved ${fmt(s.results.at)} by ${esc(s.results.tech || "")}${s.results.inst ? ` · ${esc(s.results.inst)}` : ""}</span></div>
@@ -3623,7 +3602,7 @@ function resultsForm(s){
   const fromBatch = ans.filter(a => bk.has(a.k));
   return `<details class="more" id="resBox" ${s.results ? "" : "open"}><summary>${s.results ? "Update results" : "Enter results"}</summary>
     <div class="stack" style="gap:8px;margin-top:8px">
-      <p class="small muted" style="margin:0">${fromBatch.length ? `${esc(listAnd(fromBatch.map((a, i) => i ? lcName(a.n) : a.n)))} ${fromBatch.length > 1 ? "come" : "comes"} from lab batches with their QC. Enter the other results here.` : "Type each result."} Use <b>&lt;DL</b> when a result is below the detection limit. The dot is the decimal mark; a number such as 1,500 is refused because it could mean 1500 or 1.5.</p>
+      <p class="small muted" style="margin:0">${fromBatch.length ? `${esc(listAnd(fromBatch.map((a, i) => i ? lcName(a.n) : a.n)))} ${fromBatch.length > 1 ? "come" : "comes"} from lab batches with their QC. Enter the other results here.` : ""} Use <b>&lt;DL</b> below the detection limit; the dot is the decimal mark.</p>
       <div class="form">${others.map(a => `<label class="f${a.t === "text" ? " full" : ""}"><span>${esc(a.n)}${a.u ? ` (${esc(a.u)})` : ""}${a.opt ? ` <span class="muted" style="font-weight:400">optional</span>` : ""}</span>${resInput("rs_" + a.k, a, rows[a.k]?.raw, rows)}</label>`).join("")}
         <label class="f"><span>Instrument file or worksheet</span><input id="rsInst" data-live autocomplete="off" value="${esc(s.results?.inst || "")}" placeholder="e.g. AAS run 13-10-02"></label>
       </div>
@@ -3640,7 +3619,7 @@ function amendForm(s, last){
   const defs = anOf(s), list = [...last.an.map(a => defs.find(d => d.k === a.k) || a), ...defs.filter(d => !d.opt && !last.an.some(a => a.k === d.k))];
   return `<details class="more" id="amBox"><summary>Correct a reported result (amended certificate, approved by a second person)</summary>
     <div class="stack" style="gap:8px;margin-top:8px">
-      <p class="small muted" style="margin:0">For a transcription or calculation error only. A result that needs re-testing goes back for re-assay instead. The corrected results go through the same range, check and limit tests as a first release, and another lab supervisor or the lab manager approves them before ${esc(last.no)} is replaced. ${esc(last.no)} stays on record.</p>
+      <p class="small muted" style="margin:0">For transcription or calculation errors only.</p>
       <div class="form">${list.map(a => `<label class="f${a.t === "text" ? " full" : ""}"><span>${esc(a.n)}${a.u ? ` (${esc(a.u)})` : ""}</span>${resInput("am_" + a.k, a, last.rows[a.k]?.raw, last.rows)}</label>`).join("")}
         <label class="f full"><span>Reason (printed on the certificate) <span class="req">*</span></span><input id="amWhy" data-clear placeholder="e.g. Dilution factor applied twice in the worksheet"></label></div>
       <div class="row"><button type="button" class="btn" id="amBtn">Propose the amended certificate</button></div></div></details>`;
@@ -3813,8 +3792,7 @@ function showCert(v){
     const dl = window.claude?.use ? await claude.use("downloads") : null;
     if (!dl){ toast("Downloads are not available in this view."); return; }
     const css = [...document.querySelectorAll("style")].map(x => x.textContent).join("\n");
-    try { await dl.save({ filename: `${c.no}.html`, data: `<!doctype html><html><head>
-<!-- Built by sample-tracking-azure/build.py from met-lab-sample-tracker.html (sha256 053f3b059003) --><meta charset="utf-8"><title>${esc(c.no)}</title><style>${css}</style></head><body class="cert-only">${certHtml(s, c)}</body></html>` }); }
+    try { await dl.save({ filename: `${c.no}.html`, data: `<!doctype html><html><head><meta charset="utf-8"><title>${esc(c.no)}</title><style>${css}</style></head><body class="cert-only">${certHtml(s, c)}</body></html>` }); }
     catch { toast("Download was not saved."); }
   };
   $("#certClose").focus();
@@ -4236,24 +4214,22 @@ function buildBatches(v){
   v.innerHTML = `<div class="stack">
     <div class="panel stack" style="gap:8px">
       <h2>Lab batches</h2>
-      <p class="small muted" style="margin:0">Samples are assayed in batches with reference materials (CRMs), blanks and duplicates placed by the route's QC rule. A sample joins one batch for each method its route uses (for example solution gold and solids gold), and every result a batch checks is judged on each QC position. The number of QC positions is fixed per batch, whatever its size (not per 20 samples). The QC is checked automatically when the results are saved, and a sample's results can't be released until each of its batches passes. Testwork and physical tests have their checks on each sample's results instead.</p>
     </div>
     ${trends.length ? `<div class="notice warn"><b>Reference material trends:</b> ${trends.map(t => `${esc(t.crm)}${t.k ? ` ${esc(t.k)}` : ""}: ${esc(t.msg)}`).join("; ")}. Check the control chart before the next batch.</div>` : ""}
     ${edit ? `<div class="panel stack" style="gap:10px"><h3>New batch</h3>
       ${ready.length ? `<label class="f" style="max-width:520px"><span>Batch type</span><select class="inp" id="nbProf"><option value="">Choose…</option>${profs.map(([k, p, l]) => `<option value="${k}" ${k === batchNewProf ? "selected" : ""} ${l.length ? "" : "disabled"}>${esc(p.name)} · ${l.length} sample${l.length === 1 ? "" : "s"} ready</option>`).join("")}</select></label>`
-        : `<p class="small muted" style="margin:0">No samples are waiting for a batch. Samples join a batch after receipt and before QA/QC review.</p>`}
+        : `<p class="small muted" style="margin:0">No samples are waiting for a batch.</p>`}
       ${np ? `<p class="small" style="margin:0"><b>QC rule:</b> ${esc(qcRuleText(np, el[0] ? batchAns(batchNewProf, el[0]) : null))}</p>
         ${sigs.size > 1 ? `<p class="small muted" style="margin:0">These samples report different results, so they go in separate batches: tick samples that check the same results.</p>` : ""}
         <div class="tbl-wrap" id="nbList"><table><thead><tr><th></th><th>Sample</th><th>Route</th>${sigs.size > 1 ? "<th>Results checked</th>" : ""}<th>Step now</th><th>Received</th></tr></thead><tbody>
         ${el.map((s, i) => `<tr><td><input type="checkbox" id="nb_${esc(s.id)}" value="${esc(s.id)}" ${i < np.size && sigOf(batchAns(batchNewProf, s)) === sigOf(batchAns(batchNewProf, el[0])) ? "checked" : ""}></td><td class="mono">${esc(s.id)}${s.priority === "Urgent" ? ` <span class="pill gold">Urgent</span>` : ""}</td><td class="mono">${esc(s.route || "")}</td>${sigs.size > 1 ? `<td>${esc(batchAns(batchNewProf, s).map(anShort).join(", "))}</td>` : ""}<td>${esc(stage(s, s.stageKey)?.name || "")}</td><td style="white-space:nowrap">${fmt(s.recvAt)}</td></tr>`).join("")}</tbody></table></div>
-        <div class="row"><button type="button" class="btn primary" id="nbCreate">Create batch</button><span class="small muted">Up to ${np.size} samples. QC positions are added automatically.</span></div>` : ""}
+        <div class="row"><button type="button" class="btn primary" id="nbCreate">Create batch</button><span class="small muted">Up to ${np.size} samples.</span></div>` : ""}
     </div>` : ""}
     <div class="panel stack" style="gap:8px"><h3>Open batches</h3>
       ${open.length ? `<div class="tbl-wrap"><table><thead><tr><th>Batch</th><th>Type</th><th>Samples</th><th>Status</th><th>Created</th><th>By</th></tr></thead><tbody>${open.map(row).join("")}</tbody></table></div>` : `<p class="small muted" style="margin:0">No open batches.</p>`}
     </div>
     ${batchLive ? batchDetail(batchLive) : batchSel ? `<div class="panel empty"><strong>Loading ${esc(batchSel)}…</strong></div>` : ""}
     <div class="panel stack" style="gap:8px"><h3>QC control chart</h3>
-      <p class="small muted" style="margin:0">Every result for one reference material, oldest first, against the certified value each batch was judged on. Two results in a row beyond 2 SD on the same side make a batch a warning; nine in a row on one side of the certified value are flagged as a bias.</p>
       <div class="row"><select class="inp" id="chCrm" style="width:auto;max-width:100%"><option value="">Choose a reference material…</option>${crmOpts}</select></div>
       <div id="chBox"></div></div>
     ${closed.length ? `<div class="panel stack" style="gap:8px"><h3>Closed this month</h3><div class="tbl-wrap"><table><thead><tr><th>Batch</th><th>Type</th><th>Samples</th><th>Status</th><th>Created</th><th>By</th></tr></thead><tbody>${closed.map(row).join("")}</tbody></table></div></div>` : ""}
@@ -4300,7 +4276,7 @@ function batchDetail(b){
     ${canEdit() && b.open && anyTwo ? `<div class="form">${witnessField("bWit")}</div>` : ""}
     <div class="tbl-wrap"><table class="bpos${one ? "" : " multi"}"><thead><tr>${one ? "<th>#</th><th>Position</th><th>Sample or material</th><th>Expected</th>" : "<th>Position</th>"}${ans.map(ch => `<th>${one ? "Result" : esc(anShort(ch))} (${esc(ch.u || "")})</th>`).join("")}<th>Check</th></tr></thead><tbody>${posRows}</tbody></table></div>
     ${edit ? `<details class="more" id="bPaste"><summary>Paste results from the instrument</summary><div class="stack" style="gap:8px;margin-top:8px">
-        <p class="small muted" style="margin:0">One line per reading: the position number, sample ID or CRM ID, then ${one ? "the value" : `the values for ${esc(listAnd(ans.map(anShort)))} in that order`} (separated by tabs, semicolons, commas or spaces; a unit after a value is ignored). A sample ID given twice fills the sample, then its duplicate. A first line of column names (for example <span class="mono">Sample, ${esc(ans.map(anShort).join(", "))}</span>) picks the columns by name. Use tabs or semicolons when values contain commas. Lines that match nothing are listed.</p>
+        <p class="small muted" style="margin:0">One line per reading: the position number, sample ID or CRM ID, then ${one ? "the value" : `the values for ${esc(listAnd(ans.map(anShort)))} in that order`}.</p>
         <textarea id="bPasteText" rows="5" placeholder="1, <0.005&#10;EXP-20261013-0001, 1.234&#10;STD-AU-MED, 2.08"></textarea>
         <div class="row"><button type="button" class="btn" id="bPasteBtn">Fill in the results</button></div></div></details>
       <div class="row"><label class="f" style="flex:1 1 220px"><span>Instrument file or worksheet</span><input id="bInst" autocomplete="off" placeholder="e.g. AAS run 13-10-02"></label></div>
@@ -4316,7 +4292,7 @@ function batchDetail(b){
           ${b.qc.status === "fail" && !b.qc.accepted && isAdmin() ? `<button type="button" class="btn ghost danger" data-bdec="override">Accept the failure as an exception</button>` : ""}</div>
         ${relDone && !b.qc.accepted ? `<p class="small muted" style="margin:0">${relDone} sample${relDone === 1 ? " was" : "s were"} already released from this batch, so its entries can't be opened again: correct a released result with an amended certificate.</p>` : ""}</div>` : ""}
     ${b.open && canApprove() ? `<div class="stack" style="gap:6px">${adminSelf ? `<label class="f"><span>Some of these results were entered by you: reason for releasing them yourself (recorded on the certificates)</span><input id="bSelfWhy" data-clear></label>` : ""}
-      <div class="row"><button type="button" class="btn ${releasable ? "primary" : ""}" id="bRelease" ${releasable ? "" : "disabled data-hold"}>Release results for ${releasable} sample${releasable === 1 ? "" : "s"} at QA/QC review</button><span class="small muted">Each gets its own certificate.${mineHeld ? ` ${mineHeld} with results you entered wait for another supervisor.` : ""}</span></div></div>` : ""}
+      <div class="row"><button type="button" class="btn ${releasable ? "primary" : ""}" id="bRelease" ${releasable ? "" : "disabled data-hold"}>Release results for ${releasable} sample${releasable === 1 ? "" : "s"} at QA/QC review</button><span class="small muted">${mineHeld ? `${mineHeld} with results you entered wait for another supervisor.` : ""}</span></div></div>` : ""}
     ${(b.log || []).length ? `<details class="more"><summary>Batch history</summary><ul class="hist">${b.log.slice().reverse().map(l => `<li><time>${fmt(l.at)} · ${esc(l.tech || "")}</time><div>${esc(l.note)}</div></li>`).join("")}</ul></details>` : ""}
   </div>`;
 }
@@ -4423,11 +4399,11 @@ function renderResultsTab(){
   if (session?.role !== "section"){ v.innerHTML = ""; return; }
   const seen = +lsGet(seenKey()) || 0, list = secRes.slice().sort((a, b) => b.certs.at(-1).at - a.certs.at(-1).at).slice(0, 200), fresh = newResults().length;
   v.innerHTML = `<div class="stack"><div class="panel stack" style="gap:8px"><h2>Results for ${esc(session.sec)} · ${esc(sectionName(session.sec))}</h2>
-      <p class="small muted" style="margin:0">Certificates of analysis for samples your section submitted, newest first. ${fresh ? `<b>${fresh} new since you last marked them as seen.</b>` : "Nothing new since you last looked."} In the production system this notice also goes to the section by email.</p>
+      <p class="small muted" style="margin:0">${fresh ? `<b>${fresh} new since you last marked them as seen.</b>` : "Nothing new since you last looked."}</p>
       ${fresh ? `<div class="row"><button type="button" class="btn" id="secSeen">Mark all as seen</button></div>` : ""}</div>
     ${list.length ? `<div class="panel"><div class="tbl-wrap"><table><thead><tr><th>Sample</th><th>Type</th><th>Tag</th><th>Test</th><th>Certificate</th><th>Released</th></tr></thead><tbody>
       ${list.map(s => { const c = s.certs.at(-1); return `<tr><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>${c.at > seen ? ` <span class="pill gold">New</span>` : ""}</td><td>${esc(s.type || "")}</td><td>${esc(tagText(s))}</td><td>${esc(c.testName || "")}</td><td class="mono">${esc(c.no)}${c.amends ? ` <span class="pill warn">Amended</span>` : ""}</td><td style="white-space:nowrap">${fmt(c.at)}</td></tr>`; }).join("")}</tbody></table></div></div>`
-      : `<div class="panel empty"><strong>No released results yet</strong>Certificates for ${esc(session.sec)} samples appear here as soon as the lab releases them.</div>`}</div>`;
+      : `<div class="panel empty"><strong>No released results yet</strong></div>`}</div>`;
   $("#secSeen", v)?.addEventListener("click", () => { lsSet(seenKey(), String(Date.now())); resultsBadge(); renderResultsTab(); });
 }
 
@@ -4597,3 +4573,4 @@ setTab(tab);
 })();
 };
 </script>
+</body></html>

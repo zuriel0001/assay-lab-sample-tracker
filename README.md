@@ -109,13 +109,14 @@ Staff see each other's names and roles but not their sign-in emails. The ledger 
 | `dev/server.js` | Local stand-in for Static Web Apps: `node dev/server.js` → http://localhost:4280, in-memory data, a local sign-in page (type an email, or an example username such as `tech1`). |
 | `test/api-tests.js` | 55 checks of the read/write rules and the Functions entry points. |
 | `test/store-tests.js` | 22 checks on each store; Cosmos runs against `@vercel/cosmosdb-server` (a local Cosmos imitation) or a real account. |
-| `test/run-suites.js` | Runs the prototype's own five browser suites, unchanged, against this build (real page, real API over HTTP), then `azure-extra.js`. |
+| `test/run-suites.js` | Runs the prototype's own five browser suites against this build (real page, real API over HTTP), then `azure-extra.js`. Two board checks that read a removed sentence ("Showing all N open samples") check the lane counts instead. |
 | `test/azure-extra.js` | 22 browser checks of what is new: Microsoft sign-in, first admin, accounts by email, upgrade on staff sign-in, what the public sees. |
 
 Patches `build.py` makes to the page: start after `/api/me` answers; tracking links use this site's address; the
 sign-in tab is *Sign in with Microsoft*; accounts have a *Microsoft sign-in email* instead of a password; the first
 admin is added to the account list on their first visit to Settings; upgrades and ledger repairs run when a staff
-member signs in; permission errors from the server are shown as such; the header says *Test system*.
+member signs in; permission errors from the server are shown as such; the header says *Test system*; the prototype's
+explanatory paragraphs are taken out (labels, warnings, status lines and each route's own description stay).
 
 ### Test results (2026-10-14)
 
