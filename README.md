@@ -161,6 +161,7 @@ can't make a signed-in person's browser change records.
 | `app/azure-shim.js` | Gives the page the shared-database interface it was written for, over `/api/db`: documents, where-filters, live snapshots (by polling for changes), short leases; plus the signed-in person (`/api/me`) and downloads. |
 | `app/staticwebapp.config.json` | Node 22 API, Microsoft sign-in only (GitHub sign-in turned off), `/login` and `/logout`. |
 | `api/db`, `api/me`, `api/auth` | Azure Functions (HTTP) behind `/api`. |
+| `api/health` | `GET /api/health`: tries the database steps a sample submission takes (read, query, changes, lease) and lists which work. Nothing private in the answer; repeats within 30 seconds are answered from memory. |
 | `api/lib/core.js` | Accounts (sign-in email and how it signs in → role from Settings; `ADMIN_EMAILS` are admins), the read/write rules above and the record-keeping rules (checked inside each write, on the record as it is at that moment). |
 | `api/lib/auth.js` | Email sign-in: sign-up, sign-in and out, password change and reset, sessions, slowing down guessing. Logins and the signing key (made once, kept in the database; or set `AUTH_SECRET`) live under `auth/` records that `/api/db` can't reach. |
 | `api/lib/store-cosmos.js` | Cosmos DB store: one container `docs` in database `tracker` (created on first use with 1000 RU/s on the container), partitioned by collection; filters, sorting and limits run in the database; ETag checks on every read-modify-write; leases as records; deletes kept as markers so open pages hear about them. |

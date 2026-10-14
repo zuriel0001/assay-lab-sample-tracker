@@ -1,12 +1,19 @@
 // Azure Cosmos DB (NoSQL API) document store. One container, partitioned by collection.
 // Record: { id, pk: collection path, p: full path, d: the document, u: change stamp (ms), del: true once deleted }.
 // Leases live in the same container under pk "_lease". Every read-modify-write uses the record's ETag.
+const crypto = require("crypto");
 const { CosmosClient } = require("@azure/cosmos");
 const { merge, matches, clone, sortAndLimit, FIELD, refuse } = require("./docutil");
 
 const DB = process.env.COSMOS_DATABASE || "tracker", CONTAINER = process.env.COSMOS_CONTAINER || "docs";
 const enc = s => encodeURIComponent(s);     // Cosmos ids can't hold / \ ? #
 const split = p => { const i = p.lastIndexOf("/"); return { pk: p.slice(0, i), id: enc(p.slice(i + 1)) }; };
+/* A lease's id spells its record's path with letters, digits, - _ . and ~hex~ only. A "%" in an id (as encodeURIComponent
+   writes the "/") is refused by the Cosmos DB service on reads, so it is kept out of ids. */
+const leaseId = p => {
+  const s = [...p].map(c => /[A-Za-z0-9._-]/.test(c) ? c : "~" + c.codePointAt(0).toString(16) + "~").join("");
+  return s.length <= 250 ? s : "h~" + crypto.createHash("sha256").update(p).digest("hex");
+};
 let last = 0;
 const stamp = () => { last = Math.max(last + 1, Date.now()); return last; };
 const status = e => e && (e.code || e.statusCode);
@@ -97,11 +104,11 @@ function createCosmosStore(connectionString){
     },
     async peekLease(p){
       const c = await box();
-      try { const r = await c.item(enc(p), "_lease").read(); const l = r.resource; return l && l.exp > Date.now() ? { holder: l.holder, exp: l.exp } : null; }
+      try { const r = await c.item(leaseId(p), "_lease").read(); const l = r.resource; return l && l.exp > Date.now() ? { holder: l.holder, exp: l.exp } : null; }
       catch (e){ if (status(e) === 404) return null; throw e; }
     },
     async acquire(p, holder, ttl){
-      const c = await box(), id = enc(p);
+      const c = await box(), id = leaseId(p);
       for (let i = 0; i < 6; i++){
         let cur = null;
         try { const r = await c.item(id, "_lease").read(); if (r.resource) cur = { rec: r.resource, etag: r.etag || r.resource._etag }; }
@@ -116,6 +123,15 @@ function createCosmosStore(connectionString){
         } catch (e){ if (status(e) !== 412 && status(e) !== 409) throw e; }
       }
       return { acquired: false, expiresAt: new Date(Date.now() + 500).toISOString() };
+    },
+    /* For /api/health: how the service answers a read of a missing lease with an id like this store's and one with a "%". */
+    async probeIds(){
+      const c = await box(), out = {};
+      for (const [k, id] of [["plain", leaseId("health/probe")], ["percent", enc("health/probe")]]){
+        try { const r = await c.item(id, "_lease").read(); out[k] = r.statusCode || (r.resource ? 200 : 404); }
+        catch (e){ out[k] = e; }
+      }
+      return out;
     }
   };
 }

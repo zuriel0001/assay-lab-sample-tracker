@@ -2623,7 +2623,8 @@ function setMoveBusy(b){ document.querySelectorAll("#actBox button, #matBox butt
 function writeFailed(e){
   if (e && (e.code === "permission_denied" || e.code === "invalid_argument")) toast(e.message && e.message !== e.code ? e.message : "Your account can't make this change. Ask the lab manager if you need access.");
   else if (e && e.code === "quota_exceeded") toast("This record is too large to save. Tell the lab manager.");
-  else toast("Could not save. Check your connection and try again.");
+  else if (!e || (e.code === "unavailable" && !e.message)) toast("Could not save: no answer from the server. Check your connection and try again.");
+  else toast(`Could not save (${String(e.message && e.message !== e.code ? e.message : e.code || e).slice(0, 160)}). Try again, or tell the lab manager.`);
 }
 document.addEventListener("click", e => { const g = e.target.closest("[data-goto]"); if (g) setTab(g.dataset.goto); });
 

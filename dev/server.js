@@ -51,6 +51,7 @@ function start({ port = 4280, store = null, adminEmails = (process.env.ADMIN_EMA
       }
       if (url.pathname === "/.auth/me") return json(200, { clientPrincipal: who ? principalFor(who) : null });
       if (url.pathname === "/api/me"){ const r = await core.handleMe(principal); return json(r.status, r.body, r.cookie); }
+      if (url.pathname === "/api/health"){ const r = await core.handleHealth(); return json(r.status, r.body); }
       if (url.pathname === "/api/auth" && req.method === "POST"){
         const bad = requestProblem(req.headers); if (bad) return json(403, { error: { code: "permission_denied", message: bad } });
         let body; try { body = JSON.parse(await readBody(req)); } catch { return json(400, { error: { code: "bad_request" } }); }

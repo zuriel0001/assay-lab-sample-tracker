@@ -34,7 +34,7 @@ async function flush(){
   try {
     const r = await fetch("/api/db", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ops: batch.map(b => b.op) }) });
     const j = await r.json().catch(() => null);
-    if (!r.ok || !j || !Array.isArray(j.results)) throw { code: r.status === 401 || r.status === 403 ? "permission_denied" : "unavailable", message: j && j.error && j.error.message };
+    if (!r.ok || !j || !Array.isArray(j.results)) throw { code: r.status === 401 || r.status === 403 ? "permission_denied" : "unavailable", message: (j && j.error && j.error.message) || `the server answered ${r.status}` };
     noteNow(j.now);
     batch.forEach((b, i) => { const x = j.results[i]; if (x && x.ok) b.resolve(x); else b.reject(x ? x.error : { code: "unavailable" }); });
   } catch (e){

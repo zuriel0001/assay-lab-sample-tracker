@@ -226,6 +226,11 @@ function markAccessGiven(users){
 # 5. Write errors: the server refuses changes a person's role does not allow.
 put('''  if (e && e.code === "invalid_argument"){ canWrite = false; toast("This copy of the prototype is view-only for your claude.ai account, so changes can't be saved."); }''',
     '''  if (e && (e.code === "permission_denied" || e.code === "invalid_argument")) toast(e.message && e.message !== e.code ? e.message : "Your account can't make this change. Ask the lab manager if you need access.");''')
+# Any other failure says what went wrong: the server's message or code, or the page's own error, so a report carries the cause.
+put('''  else toast("Could not save. Check your connection and try again.");
+}''', '''  else if (!e || (e.code === "unavailable" && !e.message)) toast("Could not save: no answer from the server. Check your connection and try again.");
+  else toast(`Could not save (${String(e.message && e.message !== e.code ? e.message : e.code || e).slice(0, 160)}). Try again, or tell the lab manager.`);
+}''')
 put('''e?.code === "invalid_argument" ? toast("This copy of the prototype is view-only for your claude.ai account, so settings can't be saved.") : toast("Could not save settings.");''',
     '''e?.code === "permission_denied" ? toast(e.message && e.message !== e.code ? e.message : "Only an admin can save settings.") : toast("Could not save settings.");''')
 

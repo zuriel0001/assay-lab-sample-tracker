@@ -20,6 +20,16 @@ function principalOf(headers){
   try { const p = JSON.parse(Buffer.from(h, "base64").toString("utf8")); return p && p.userId && p.userDetails ? p : null; } catch { return null; }
 }
 const fail = (code, msg) => ({ code, message: msg || code });
+/* A short, safe description of an unexpected error (a database status and its first line, without addresses), so the page
+   can say what went wrong instead of only "Server error". */
+function errorDetail(e){
+  if (!e) return "";
+  const st = [e.statusCode || (typeof e.code === "number" ? e.code : ""), e.substatus ? "/" + e.substatus : "", e.body && typeof e.body.code === "string" ? " " + e.body.code : typeof e.code === "string" ? " " + e.code : ""].join("").trim();
+  let m = String((e.body && e.body.message) || e.message || (typeof e === "string" ? e : "") || "");
+  const inner = m.match(/"Errors":\s*\["((?:[^"\\]|\\.)*)"/);
+  m = (inner ? inner[1] : m.split(/\r?\n/)[0]).replace(/^Message:\s*/, "").replace(/https?:\/\/\S+/g, "").replace(/ActivityId:.*$/i, "").replace(/[{}"]/g, "").trim();
+  return [st, m].filter(Boolean).join(": ").slice(0, 140);
+}
 /* The API answers this site's own page: a JSON POST from the same origin. That keeps another website from making a signed-in
    person's browser send changes (a form post can't carry JSON, and browsers mark where a request came from). */
 function requestProblem(headers){
@@ -322,7 +332,7 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
         const known = e && typeof e.code === "string" && !e.stack;
         if (!known) log("db op failed", op && op.op, op && (op.path || op.coll), e && (e.stack || e.message || e));
         const code = known ? e.code : "server";
-        results.push({ ok: false, error: { code, message: known ? e.message || code : "Server error" } });
+        results.push({ ok: false, error: { code, message: known ? e.message || code : "Server error" + (errorDetail(e) ? " (" + errorDetail(e) + ")" : "") } });
       }
     }
     return { status: 200, body: { now: Date.now(), results } };
@@ -332,9 +342,25 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
   async function handleAuth(headers, body){
     return auth.handle(await principal(headers), body || {}, { accountOf: account, ip: clientIp(headers) });
   }
-  return { handleDb, handleMe, handleAuth, principal, account, _run: run, _auth: auth };
+  /* GET /api/health: runs the database steps a public submission takes and says which work. It reads nothing private and
+     answers from memory for 30 seconds, so calling it often costs the database nothing. */
+  let lastHealth = null;
+  async function handleHealth(){
+    if (lastHealth && Date.now() - lastHealth.at < 30000) return lastHealth.r;
+    const checks = {};
+    const step = async (k, fn) => { try { const r = await fn(); checks[k] = r || "ok"; } catch (e){ checks[k] = "failed: " + (errorDetail(e) || "error"); } };
+    await step("read", async () => { await store.get("settings/stages"); });
+    await step("query", async () => { await store.query("samples", [["tags", "array-contains", "HEALTH CHECK"]], { limit: 1 }); });
+    await step("changes", async () => { await store.changes(Date.now() + 3600e3); });
+    await step("lease", async () => { const l = await store.acquire("samples/HEALTH-00000000-0000", "health:" + Date.now(), 1000); return l.acquired ? "" : "not acquired"; });
+    if (store.probeIds) await step("ids", async () => Object.entries(await store.probeIds()).map(([k, v]) => k + " " + (typeof v === "number" ? v : "failed: " + (errorDetail(v) || "error"))).join(", "));
+    const r = { status: 200, body: { store: store.kind, at: new Date().toISOString(), checks } };
+    lastHealth = { at: Date.now(), r };
+    return r;
+  }
+  return { handleDb, handleMe, handleAuth, handleHealth, principal, account, _run: run, _auth: auth };
 }
 /* The session cookie as Azure Functions sets it, and as a Set-Cookie header (local server). */
 const sessionCookies = c => [{ name: c.name, value: c.value, path: "/", secure: true, httpOnly: true, sameSite: "Strict", maxAge: c.maxAge, ...(c.maxAge ? {} : { expires: new Date(0) }) }];
 const setCookieHeader = c => `${c.name}=${c.value}; Path=/; Max-Age=${c.maxAge}; HttpOnly; Secure; SameSite=Strict`;
-module.exports = { createCore, principalOf, redactSample, requestProblem, sessionCookies, setCookieHeader };
+module.exports = { createCore, principalOf, redactSample, requestProblem, sessionCookies, setCookieHeader, errorDetail };
