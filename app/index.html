@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 6c7b062e4d5f) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 c1afba3e48c6) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -520,6 +520,11 @@ details.facts-more dl{margin-top:8px}
 details.crm-log{margin-top:4px}
 details.crm-log summary{cursor:pointer;font-weight:600;min-height:var(--tap);display:flex;align-items:center}
 details.crm-log td{vertical-align:top}
+/* v17: one entry form; lab staff receive on the spot or submit for later; hand-over fields for samples received later */
+#regForm:not(.recv-now) [data-lab]{display:none!important}
+#regForm.recv-now [data-hand]{display:none!important}
+.recv-toggle{display:inline-flex;align-items:center;gap:8px;min-height:var(--tap);font-weight:600;cursor:pointer}
+.recv-toggle input{width:20px;height:20px;margin:0;accent-color:var(--accent)}
 </style>
 
 <div class="wrap">
@@ -1731,11 +1736,11 @@ let cfg = clone(DEFAULT_CONFIG);
 let db = null, user = null, canWrite = null;
 const ROLES = { admin: "Admin (lab manager)", super: "Lab supervisor (QA/QC)", tech: "Lab technician", viewer: "Viewer", section: "Section (sees its results)" };
 const ROLE_TABS = {
-  admin:  ["track", "board", "submit", "register", "batches", "storage", "ledger", "routes", "stages"],
-  super:  ["track", "board", "submit", "register", "batches", "storage", "ledger", "routes"],
-  tech:   ["track", "board", "submit", "register", "batches", "storage", "ledger", "routes"],
-  viewer: ["track", "board", "submit", "register", "batches", "storage", "ledger", "routes"],
-  section: ["track", "results", "submit", "register", "routes"]
+  admin:  ["track", "board", "submit", "batches", "storage", "ledger", "routes", "stages"],
+  super:  ["track", "board", "submit", "batches", "storage", "ledger", "routes"],
+  tech:   ["track", "board", "submit", "batches", "storage", "ledger", "routes"],
+  viewer: ["track", "board", "submit", "batches", "storage", "ledger", "routes"],
+  section: ["track", "results", "submit", "routes"]
 };
 let session = null;   // { u, name, role, sec } of the signed-in demo account; null = public lookup only
 const canEdit = () => !!session && ["tech", "super", "admin"].includes(session.role);
@@ -2396,7 +2401,7 @@ function buildTrack(v, s){
   const hist = (s.history || []).slice().reverse().map(h => `<li>
       <div>${h.redo ? `<span class="pill warn">Re-assay</span> ` : h.reroute ? `<span class="pill info">${h.testTo ? "Test changed" : "Route changed"}</span> ` : h.corr ? `<span class="pill warn">Correction</span> ` : h.skipped ? `<span class="pill warn">Skipped steps</span> ` : ""}<b>${esc(stageName(s, h))}</b>${h.ref ? ` · <span>${esc(h.ref)}</span>` : ""}${h.loc ? ` · <span>${esc(h.loc)}</span>` : ""}</div>
       <time>${fmt(h.at)} · by ${h.tech ? esc(h.tech) : h.name ? `${esc(h.name)} (submitter)` : who(h.by)}${h.wit ? `, witnessed by ${esc(h.wit)}` : ""}</time>
-      ${h.note ? `<div>${esc(h.note)}</div>` : ""}</li>`).join("");
+      ${h.note ? `<div>${esc(h.note)}</div>` : ""}${h.hand || h.badge ? `<div>Handed to <b>${esc(h.hand || "—")}</b>${h.badge ? `, badge <span class="mono">${esc(h.badge)}</span>` : ""}</div>` : ""}</li>`).join("");
 
   const det = s.details ? Object.entries(s.details).map(([k, val]) => `${esc(k)}: <b>${esc(val)}</b>`).join(" · ") : "";
   const rv = s.recv || null;
@@ -2407,6 +2412,7 @@ function buildTrack(v, s){
     ["Site reference", s.siteRef ? `<span class="mono">${esc(s.siteRef)}</span>` : "—"],
     ["Section", s.section ? `<span class="mono">${esc(s.section)}</span> ${esc(sectionName(s.section))}` : esc(s.department) || "—"],
     ["Submitted by", esc(s.submitter)],
+    ...(s.handedTo || s.handedBadge ? [["Handed to", `${esc(s.handedTo || "—")}${s.handedBadge ? ` · badge <span class="mono">${esc(s.handedBadge)}</span>` : ""}`]] : []),
     ["Collected", fmt(s.collectedAt)],
     [s.createdBy === "public" && s.via !== "walkin" ? "Submitted" : "Registered", `${fmt(s.createdAt)}${s.via === "walkin" ? (awaiting(s) ? " at the lab, waiting for receipt by a technician" : " at the lab (walk-in)") : s.createdBy === "public" ? " through the submission form" : ` by ${s.createdByName ? esc(s.createdByName) : who(s.createdBy)}`}`],
     ["Received by", s.receivedBy ? `${esc(s.receivedBy)} <span class="muted">(lab technician)</span>, ${fmt(s.receivedAt)}${rv?.wit ? `; witness ${esc(rv.wit)}` : ""}` : "—"],
@@ -2502,6 +2508,7 @@ function receiptForm(s){
   return `<div class="stack" id="moveForm" style="gap:10px">
     <p class="small" style="margin:0">Check the bag against the submission: tag <b class="mono">${esc(tagText(s) || "none given")}</b>, ${esc(s.type)}, ${esc(s.containers || 1)} bag(s)${s.massKg ? `, ${esc(s.massKg)} kg` : ""}${s.seal ? `, seal <span class="mono">${esc(s.seal)}</span>` : ""}.</p>
     ${t?.check ? `<p class="small" style="margin:0"><b>Also check:</b> ${esc(t.check)}</p>` : ""}
+    ${s.handedTo || s.handedBadge ? `<div class="small"><b>Handed to:</b> ${esc(s.handedTo || "—")}${s.handedBadge ? `, badge <span class="mono">${esc(s.handedBadge)}</span>` : ""}</div>` : ""}
     ${hazTags(s).length ? `<p class="small" style="margin:0"><b>Hazards declared:</b> ${hazTags(s).map(h => esc(h.l)).join(", ")}. Handle with the matching PPE.</p>` : ""}
     <div class="form">
       ${meBox("Received by")}
@@ -2906,7 +2913,9 @@ function writeFailed(e){
   else if (!e || (e.code === "unavailable" && !e.message)) toast("Could not save: no answer from the server. Check your connection and try again.");
   else toast(`Could not save (${String(e.message && e.message !== e.code ? e.message : e.code || e).slice(0, 160)}). Try again, or tell the lab manager.`);
 }
-document.addEventListener("click", e => { const g = e.target.closest("[data-goto]"); if (g) setTab(g.dataset.goto); });
+/* One way in for new samples: Register at lab for people who are not signed in, Submit a sample for everyone signed in. */
+const entryTab = t => t === "register" && session ? "submit" : t === "submit" && !session ? "register" : t;
+document.addEventListener("click", e => { const g = e.target.closest("[data-goto]"); if (g) setTab(entryTab(g.dataset.goto)); });
 
 /* ---------- ledger movements: written once, on a real transition; a mistake is reversed, never deleted ---------- */
 function baseMove(s, at, dir, mid, extra){
@@ -3021,7 +3030,7 @@ function renderBoard(){
   if (!list.length && (boardSec || boardRoute)){ v.innerHTML = `<div class="stack">${wallHead}${filters}<div class="panel empty"><strong>No samples in the lab match these filters</strong></div></div>`; bind(); return; }
   if (!list.length){
     v.innerHTML = `${wallHead}<div class="panel empty"><strong>No samples in the lab</strong>
-      <div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-goto="register">Register at lab</button>${allowedTabs().includes("storage") ? `<button class="btn" data-goto="storage">Storage</button>` : ""}</div></div>`;
+      <div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-goto="submit">Submit a sample</button>${allowedTabs().includes("storage") ? `<button class="btn" data-goto="storage">Storage</button>` : ""}</div></div>`;
     bind(); return;
   }
   const laneDefs = PHASES.filter(x => x.key !== "store");
@@ -3037,6 +3046,7 @@ function renderBoard(){
           ${showStep[x.key] && stp ? `<div class="cmeta"><b style="color:var(--ink)">${esc(stp.name)}</b>${s.reassays ? ` · <b style="color:var(--warn)">re-assay</b>` : ""}</div>` : ""}
           ${curIdx(s) < targetIdx(s) ? Object.values(labsOf(s)).map(l => `<div class="cmeta">Batch <span class="mono">${esc(l.b)}</span>${l.q && l.q !== "pending" ? ` · <b style="color:var(--${{ ok: "ok", bad: "bad" }[qcCls(l.q)] || "warn"})">${esc(qcLabel(l.q))}</b>` : ""}</div>`).join("") : ""}
           ${alerts.includes(s) ? `<div class="cmeta"><b style="color:var(--bad)">Result past a limit</b></div>` : ""}
+          ${awaiting(s) && s.handedTo ? `<div class="cmeta">Handed to ${esc(s.handedTo)}</div>` : ""}
           <div class="cmeta">${esc(s.type)}${s.priority === "Urgent" ? ` · <span class="urg">Urgent</span>` : ""}${s.flag && awaiting(s) ? ` · <b style="color:var(--warn)">Flagged</b>` : ""}</div>
           ${hazTags(s).length || twoPerson(s) ? `<div class="cmeta">${hazPills(s)}${twoPerson(s) ? `<span class="haz two" title="Two-person custody">2P</span>` : ""}</div>` : ""}
           ${od.length ? `<div class="cmeta"><b style="color:var(--bad)">${esc(od.map(m => m.item).join(", "))} past retention</b></div>` : x.key === "report" && stt.late ? `<div class="cmeta"><b style="color:var(--warn)">Not yet put in storage</b></div>` : ""}
@@ -3095,19 +3105,25 @@ function renderSampleForm(mode){
   if ($("#regForm", v) && v.dataset.who === me) return; // keep what the user is typing
   $(mode === "submit" ? "#view-register" : "#view-submit").innerHTML = "";  // one form in the page at a time (shared field ids)
   v.dataset.who = me;
-  const now = Date.now(), lab = mode === "register" && canEdit(), walk = mode === "register" && !lab;
-  v.innerHTML = `<form class="panel stack" id="regForm" data-mode="${mode}" autocomplete="off" novalidate>
-    <div class="form-h"><h2>${mode === "register" ? "Register at lab" : "Submit a sample"}</h2>${walk ? `<span class="pill info">Waits for receipt by a lab technician</span>` : ""}</div>
+  // Signed out: Register at lab (a walk-in, received later by a technician). Signed in: Submit a sample; lab staff can receive it on the spot.
+  const now = Date.now(), walk = mode === "register", staff = !walk && canEdit(), req = ` <span class="req">*</span>`;
+  const techs = (cfg.users || []).filter(x => ["tech", "super", "admin"].includes(x.role)).map(x => x.name).filter(Boolean);
+  v.innerHTML = `<form class="panel stack${staff ? " recv-now" : ""}" id="regForm" data-mode="${mode}" autocomplete="off" novalidate>
+    <div class="form-h"><h2>${walk ? "Register at lab" : "Submit a sample"}</h2>${walk ? `<span class="pill info">Waits for receipt by a lab technician</span>` : ""}
+      ${staff ? `<label class="recv-toggle"><input type="checkbox" id="rRecvNow" checked> Received now at the lab, by me</label>` : ""}</div>
     <div class="form">
       <label class="f"><span>Sample type <span class="req">*</span></span><select id="rType" required><option value="">Choose…</option>${typeOptions()}</select></label>
       <label class="f"><span>Assay purpose (why it is tested) <span class="req">*</span></span><select id="rPurpose" required><option value="">Choose…</option>${PURPOSES.map(p => `<option value="${esc(p.key)}">${esc(p.name)}</option>`).join("")}</select></label>
       <label class="f full" id="rWhyBox" hidden><span>Why it is being tested <span class="req">*</span></span><input id="rWhy" maxlength="200" placeholder="e.g. customer check sample, survey of old stockpile"></label>
       <label class="f full"><span>Test requested <span class="req">*</span></span><select id="rTest" required>${testOptions("")}</select></label>
-      ${lab ? `<label class="f full"><span>Workflow route (only routes that perform the test)</span><select id="rRouteSel"><option value="">Automatic</option></select></label>` : ""}
+      ${staff ? `<label class="f full" data-lab><span>Workflow route (only routes that perform the test)</span><select id="rRouteSel"><option value="">Automatic</option></select></label>` : ""}
       <div class="full" id="rRoute"></div>
       <div class="full" id="rDetails"></div>
       <label class="f"><span>Submitted by (name) <span class="req">*</span></span><input id="rSubmitter" required placeholder="Person who sent the sample"></label>
       <label class="f"><span>Submitting section <span class="req">*</span></span><select id="rSection" required><option value="">Choose…</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select></label>
+      <label class="f" data-hand><span>Handed to (lab technician)${walk ? req : ""}</span><input id="rHandTo" maxlength="60" list="rTechList" autocomplete="off"></label>
+      <label class="f" data-hand><span>Technician's badge number${walk ? req : ""}</span><input id="rHandBadge" maxlength="20" autocomplete="off"></label>
+      <datalist id="rTechList">${techs.map(n => `<option value="${esc(n)}">`).join("")}</datalist>
       <label class="f">Tag number<input id="rTag" placeholder="e.g. T-10421; a batch counts up: T-10421, T-10422…"></label>
       <label class="f">Site reference<input id="rSiteRef" placeholder="e.g. GC-PIT2-B340-017"></label>
       <label class="f">Source location<input id="rSource" placeholder="Pit / bench / hole / plant sampling point"></label>
@@ -3119,12 +3135,12 @@ function renderSampleForm(mode){
       <fieldset class="full" id="rHaz"><div class="legend">Hazards (shown on the label and the lab board)</div><div class="checks">${HAZARDS.map(h => `<label><input type="checkbox" id="rHz_${h.k}" value="${h.k}"> ${esc(h.l)}</label>`).join("")}</div></fieldset>
       <fieldset class="full"><div class="legend">Add-on analyses (optional, run alongside the main test)</div><div class="checks">${ADDONS.map((a, i) => `<label><input type="checkbox" id="rAn${i}" value="${a}"> ${a}</label>`).join("")}</div></fieldset>
       <label class="f full">Notes<textarea id="rNotes" placeholder="Special handling, client reference…"></textarea></label>
-      ${lab ? `${meBox("Received by (lab staff)")}
-      <label class="f"><span>Date &amp; time received <span class="req">*</span></span><input id="rRecvAt" type="datetime-local" required value="${localInput(now)}"></label>
-      <div id="rWitBox" hidden>${witnessField("rWit")}</div>` : ""}
+      ${staff ? `${meBox("Received by (lab staff)").replace('<label class="f">', '<label class="f" data-lab>')}
+      <label class="f" data-lab><span>Date &amp; time received <span class="req">*</span></span><input id="rRecvAt" type="datetime-local" required value="${localInput(now)}"></label>
+      <div id="rWitBox" data-lab hidden>${witnessField("rWit")}</div>` : ""}
       <label class="f">Number of samples in this batch<input id="rCount" type="number" min="1" max="100" step="1" value="1"></label>
     </div>
-    <div class="row sticky-bar bar"><span class="small muted" id="rMsg"></span><button class="btn primary big" type="submit" id="rSubmit">${lab ? "Register and issue IDs" : walk ? "Register and get sample IDs" : "Submit and get sample IDs"}</button></div>
+    <div class="row sticky-bar bar"><span class="small muted" id="rMsg"></span><button class="btn primary big" type="submit" id="rSubmit">${staff ? "Register and issue IDs" : walk ? "Register and get sample IDs" : "Submit and get sample IDs"}</button></div>
     <div id="rResult"></div>
   </form>`;
   const ty = $("#rType", v), pu = $("#rPurpose", v), te = $("#rTest", v), hz = $("#rHaz", v);
@@ -3141,7 +3157,14 @@ function renderSampleForm(mode){
   hz.addEventListener("change", () => hz.dataset.touched = "1");
   $("#rRouteSel", v)?.addEventListener("change", refreshFormRoute);
   $("#rSection", v).addEventListener("change", refreshFormRoute);
-  if (session && mode === "submit"){ $("#rSubmitter", v).value = session.name || ""; if (session.role === "section" && session.sec) $("#rSection", v).value = session.sec; }
+  if (session && !walk && !staff){ $("#rSubmitter", v).value = session.name || ""; if (session.role === "section" && session.sec) $("#rSection", v).value = session.sec; }
+  const rn = $("#rRecvNow", v);
+  if (rn) rn.onchange = () => {
+    $("#regForm", v).classList.toggle("recv-now", rn.checked);
+    if (!rn.checked) $("#rRouteSel", v).value = "";
+    $("#rSubmit", v).textContent = rn.checked ? "Register and issue IDs" : "Submit and get sample IDs";
+    refreshFormRoute();
+  };
   refreshFormRoute();
   $("#regForm", v).addEventListener("submit", e => { e.preventDefault(); register(); });
 }
@@ -3181,7 +3204,7 @@ async function claimIds(code, stamp, n, makeBody, progress){
   return ids;
 }
 async function register(){
-  const mode = $("#regForm")?.dataset.mode || "register", lab = mode === "register" && canEdit(), walk = mode === "register" && !lab;
+  const mode = $("#regForm")?.dataset.mode || "register", walk = mode === "register", lab = !walk && canEdit() && !!$("#rRecvNow")?.checked;
   if (!db){ toast("The shared register is not connected in this view."); return; }
   const btn = $("#rSubmit"), msg = $("#rMsg");
   const fail = (m, focus) => { toast(m); if (focus) $(focus)?.focus(); };
@@ -3195,6 +3218,9 @@ async function register(){
   if (!teK) return fail("Choose the test requested.", "#rTest");
   if (!submitter) return fail("Type the name of the person submitting.", "#rSubmitter");
   if (!code) return fail("Choose the submitting section.", "#rSection");
+  const handTo = lab ? "" : val("#rHandTo").slice(0, 60), handBadge = lab ? "" : val("#rHandBadge").slice(0, 20);
+  if (walk && !handTo) return fail("Type the name of the technician you handed it to.", "#rHandTo");
+  if (walk && !handBadge) return fail("Type the technician's badge number.", "#rHandBadge");
   const r = formRoute();
   if (!r || !(r.tests || []).includes(teK)) return fail("No workflow route performs this test. Ask the lab manager to add one.");
   const now = Date.now();
@@ -3224,7 +3250,7 @@ async function register(){
     const t = typeOf(tyK), holdH = t?.hold && collected && lab ? Math.max(0, (recvAt - collected) / HOUR) : null;
     const recv = lab ? { bags: containers, mass: massKg, unit: "kg", seal: seal ? "ok" : "none", cond: "Good", temp: "", holdH, warn: holdH != null && holdH > t.hold ? [`holding time for ${t.holdWhat} exceeded: received ${hoursLabel(holdH)} after collection, limit ${hoursLabel(t.hold)}`] : [], ...(wit ? { wit } : {}) } : null;
     const base = {
-      v: 13, type: t?.name || tyK, typeKey: tyK, purpose: why ? `Other: ${why}` : purposeOf(puK)?.name || puK, purposeKey: puK, ...(why ? { purposeWhy: why } : {}), ...rf, details, reassays: 0,
+      v: 13, type: t?.name || tyK, typeKey: tyK, purpose: why ? `Other: ${why}` : purposeOf(puK)?.name || puK, purposeKey: puK, ...(why ? { purposeWhy: why } : {}), ...(handTo ? { handedTo: handTo } : {}), ...(handBadge ? { handedBadge: handBadge } : {}), ...rf, details, reassays: 0,
       submitter, section: code, receivedBy: lab ? session.name : "", receivedAt: recvAt, recvAt, recv,
       source: val("#rSource"), collectedAt: collected, containers, massKg, seal, priority: $("#rPriority").value,
       hazards: HAZARDS.filter(h => $("#rHz_" + h.k)?.checked).map(h => h.k),
@@ -3237,7 +3263,7 @@ async function register(){
       const body = { ...base, id, batchIndex: i + 1, tags: tagSets[i], tagNo: tagSets[i].join(", "),
         siteRef: n > 1 && siteRef ? `${siteRef}-${i + 1}` : siteRef, siteRefU: normTag(n > 1 && siteRef ? `${siteRef}-${i + 1}` : siteRef),
         history: [lab ? { key: start, sn: startName, at: recvAt, by: session.u, tech: session.name, note: `Received and registered at the lab; route ${r.code}`, ref: "", ...(wit ? { wit } : {}) }
-                      : { key: start, sn: startName, at: now, by: "public", name: submitter, note: walk ? "Registered at the lab (walk-in)" : "Submitted through the submission form", ref: "" }] };
+                      : { key: start, sn: startName, at: now, by: "public", name: submitter, note: walk ? "Registered at the lab (walk-in)" : "Submitted through the submission form", ref: "", ...(handTo ? { hand: handTo } : {}), ...(handBadge ? { badge: handBadge } : {}) }] };
       if (lab){ body.inMid = `${id}~in`; body.ledgerPending = [inMove(body, recvAt, recv, "Registered at the lab", wit)]; body.lp = true; }
       return body;
     }, d => msg.textContent = `Saved ${d} of ${n}…`);

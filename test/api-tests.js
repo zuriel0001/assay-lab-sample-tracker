@@ -235,6 +235,11 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
     const seen = (await one(null, { op: "get", path: "settings/stages" })).data;
     check(JSON.stringify(seen.crms) === JSON.stringify(crms) && JSON.stringify(seen.crmLog) === JSON.stringify(crmLog), "every page reads the edited register and its history");
     check(!(await one("t1@site.com", { op: "update", path: "settings/stages", data: { crmLog: [] } })).ok && !(await one("s1@site.com", { op: "update", path: "settings/stages", data: { crms: [] } })).ok, "only the lab manager changes the register or its history"); }
+  { const hid = `GC-${day}-0005`, lid = `GR-${day}-0002`, hand = { handedTo: "Kofi Mensah", handedBadge: "B-1042" };   // v17 hand-over, one entry tab
+    check((await one(null, { op: "set", path: "samples/" + hid, data: sub(hid, { via: "walkin", ...hand,
+      history: [{ key: "submitted", at: now, by: "public", name: "J", note: "Registered at the lab (walk-in)", hand: "Kofi Mensah", badge: "B-1042" }] }) })).ok, "a walk-in names the technician it was handed to and their badge number");
+    check((await one("t1@site.com", { op: "set", path: "samples/" + lid, data: sub(lid, { ...hand, createdByName: "J",
+      history: [{ key: "submitted", at: now, by: "public", name: "J", note: "Submitted through the submission form", hand: "Kofi Mensah", badge: "B-1042" }] }) })).ok, "a technician's Submit with Received now cleared waits for receipt like any submission"); }
 
   console.log(`\n${pass} PASS, ${fail} FAIL`);
   process.exit(fail ? 1 : 0);
