@@ -171,7 +171,7 @@ can't make a signed-in person's browser change records.
 | `test/auth-tests.js` | 51 checks of email sign-in: sign-up, forged and expired sessions, password guessing, resets, an email login not taking a Microsoft account's access, the Functions entry point. |
 | `test/store-tests.js` | 27 checks on each store; Cosmos runs against `@vercel/cosmosdb-server` (a local Cosmos imitation) or a real account. |
 | `test/run-suites.js` | Runs the prototype's own ten suites against this build (real page, real API over HTTP), unchanged except where tracking links carry this site's address or a check writes straight to the database (its ADJUST list), then `azure-extra.js`. |
-| `test/azure-extra.js` | 55 browser checks of what is new: Microsoft sign-in, email sign-up and sign-in, password change and reset, first admin, accounts by email, requesting and approving access, upgrade on staff sign-in, what the public sees, the backup download, the server refusing a tampered page's changes. |
+| `test/azure-extra.js` | 56 browser checks of what is new: Microsoft sign-in, email sign-up and sign-in, password change and reset, first admin, accounts by email, requesting and approving access, upgrade on staff sign-in, what the public sees, the backup download, the server refusing a tampered page's changes. |
 
 Patches `build.py` makes to the page: start after `/api/me` answers; tracking links use this site's address; the
 sign-in tab has *Sign in* and *Sign up*, each with Microsoft or email; accounts have a sign-in email and a *Sign in with* choice instead of a password; the first
@@ -186,7 +186,7 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 | `api-tests.js` | 131 / 131 |
 | `store-tests.js` | 54 / 54 (27 in memory, 27 on the local Cosmos DB imitation) |
 | `auth-tests.js` | 51 / 51 |
-| `azure-extra.js` | 55 / 55 |
+| `azure-extra.js` | 56 / 56 |
 | Prototype `run.js` | 101 / 107 |
 | Prototype `results-tests.js` | 87 / 88 |
 | Prototype `v12-tests.js` | 67 / 70 |

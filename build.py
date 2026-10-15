@@ -33,6 +33,14 @@ put('<script>\n(() => {\n"use strict";\nconst SHARE_URL = "https://claude.ai/art
 assert page.endswith("})();\n})();\n</script>\n"), "unexpected end of page script"
 page = page[: -len("})();\n</script>\n")] + "};\n</script>\n"
 
+put('''function setTab(t){
+  if (!allowedTabs().includes(t)) t = homeTab();
+  closeCert();
+  tab = t;''', '''function setTab(t){
+  if (!allowedTabs().includes(t)) t = homeTab();
+  closeCert();
+  tab = t; shownFor = JSON.stringify(session);''')
+
 # 2. Header: this is the test system, and a Microsoft account without a role can still sign out.
 put('<span class="pill" title="Design prototype">Prototype</span>', '<span class="pill" title="Test deployment on Azure: not yet the validated production system">Test system</span>')
 put('$("#who").textContent = session ? `${session.name} · ${ROLES[session.role]}` : "Not signed in";',
@@ -54,9 +62,12 @@ put_re(r'function resolveSession\(\)\{\n.*?\n\}\n\$\("#signBtn"\)\.addEventListe
   if (!allowedTabs().includes(tab)) tab = homeTab();
   updateChrome();
 }
-/* Called by the shim when the sign-in or the account's role changes (for example an admin edits it, or the sign-in expires). */
+/* Called by the shim when the sign-in or the account's role changes (for example an admin edits it, or the sign-in expires).
+   It compares with the account the open view was drawn for (setTab keeps it), not with `session`: the Settings listener may
+   already have picked up the new sign-in while the sign-in form is still on screen. */
+var shownFor = "null";
 window.__resession = () => {
-  const before = JSON.stringify(session);
+  const before = shownFor;
   resolveSession();
   if (before === JSON.stringify(session)) return;
   $("#view-register").innerHTML = "";

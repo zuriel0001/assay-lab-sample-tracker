@@ -127,6 +127,8 @@ const log = t => console.log("• " + t);
   for (let i = errors.length - 1; i >= before401; i--) if (/status of 401/.test(errors[i])) errors.splice(i, 1);   // the browser logs the refusal this check expects
   await E.fill("#siPw", "efua password 2"); await E.click("#emGo");
   check(!!(await E.waitForFunction(() => document.querySelector("#who")?.textContent === "Efua Owusu · Viewer", null, { timeout: 5000 }).catch(() => null)), "sign in with email and password");
+  await E.waitForTimeout(400);
+  check(!(await E.isVisible("#siEmail")) && !(await E.isVisible("#view-login")), "once signed in, the sign-in form gives way to the page (Settings already saved)");
   await A.click('[data-tab="board"]').catch(() => {}); await A.click('[data-tab="stages"]'); await A.waitForSelector("[data-pwreset]", { timeout: 5000 }).catch(() => {});
   const ri = await A.$$eval('[data-uf="em"]', els => els.findIndex(e => e.value === "efua.owusu@gmail.com"));
   check(ri >= 0 && !!(await A.$(`[data-pwreset="${ri}"]`)) && await A.$eval(`[data-ui="${ri}"][data-uf="via"]`, e => e.value) === "email", "Settings shows the account signs in by email, with Reset password");

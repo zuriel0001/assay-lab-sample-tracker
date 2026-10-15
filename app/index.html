@@ -2020,9 +2020,12 @@ function resolveSession(){
   if (!allowedTabs().includes(tab)) tab = homeTab();
   updateChrome();
 }
-/* Called by the shim when the sign-in or the account's role changes (for example an admin edits it, or the sign-in expires). */
+/* Called by the shim when the sign-in or the account's role changes (for example an admin edits it, or the sign-in expires).
+   It compares with the account the open view was drawn for (setTab keeps it), not with `session`: the Settings listener may
+   already have picked up the new sign-in while the sign-in form is still on screen. */
+var shownFor = "null";
 window.__resession = () => {
-  const before = JSON.stringify(session);
+  const before = shownFor;
   resolveSession();
   if (before === JSON.stringify(session)) return;
   $("#view-register").innerHTML = "";
@@ -2036,7 +2039,7 @@ $("#pwBtn").addEventListener("click", () => pwDialog());
 function setTab(t){
   if (!allowedTabs().includes(t)) t = homeTab();
   closeCert();
-  tab = t;
+  tab = t; shownFor = JSON.stringify(session);
   document.querySelectorAll("#tabs button[data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
   document.querySelectorAll("section.view").forEach(v => v.hidden = v.id !== "view-" + t);
   if (t === "ledger") ledgerWatch();
