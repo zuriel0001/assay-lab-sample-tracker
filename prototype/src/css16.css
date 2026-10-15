@@ -1,0 +1,10 @@
+/* v16 */
+.form-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+details.crm-log{margin-top:4px}
+details.crm-log summary{cursor:pointer;font-weight:600;min-height:var(--tap);display:flex;align-items:center}
+details.crm-log td{vertical-align:top}
+/* v17: one entry form; lab staff receive on the spot or submit for later; hand-over fields for samples received later */
+#regForm:not(.recv-now) [data-lab]{display:none!important}
+#regForm.recv-now [data-hand]{display:none!important}
+.recv-toggle{display:inline-flex;align-items:center;gap:8px;min-height:var(--tap);font-weight:600;cursor:pointer}
+.recv-toggle input{width:20px;height:20px;margin:0;accent-color:var(--accent)}

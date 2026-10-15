@@ -1,0 +1,31 @@
+/* v14: Settings tabs, lab working hours, bag labels */
+.subtabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid var(--line)}
+.subtabs button{background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:8px 12px;font:inherit;font-weight:600;color:var(--muted);cursor:pointer}
+.subtabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.subtabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.daychip{display:inline-flex;align-items:center;gap:6px;background:var(--soft);border-radius:999px;padding:3px 10px;font-size:13px}
+.label-sheet{display:flex;flex-wrap:wrap;gap:4mm;justify-content:center;background:var(--soft);padding:16px;border-radius:0 0 var(--r) var(--r)}
+.bag-label{width:100mm;height:50mm;box-sizing:border-box;padding:3mm;display:flex;gap:3mm;align-items:center;background:#fff;color:#000;border:1px dashed #9aa19d;font-family:var(--f-body);overflow:hidden;break-inside:avoid;page-break-inside:avoid}
+.bl-qr{flex:0 0 40mm;height:40mm}
+.bl-qr svg{width:40mm;height:40mm;display:block}
+.bl-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:.7mm}
+.bl-org{font-size:2.8mm;text-transform:uppercase;letter-spacing:.12em;font-weight:700}
+.bl-id{font:700 4.6mm/1.15 var(--f-mono);white-space:nowrap;letter-spacing:-.02em}
+.bl-line{display:flex;gap:2mm;font-size:3.3mm;line-height:1.25;min-width:0}
+.bl-line span{flex:0 0 16mm;color:#444}
+.bl-line b{min-width:0;overflow-wrap:anywhere;max-height:2.5em;overflow:hidden}
+.bl-flags{display:flex;flex-wrap:wrap;gap:1mm;margin-top:.5mm}
+.bl-flags b{border:.3mm solid #000;padding:0 1mm;font-size:2.9mm}
+body.labels-only{background:#fff;margin:0}
+body.labels-only .label-sheet{background:none;padding:0;justify-content:flex-start}
+@media screen and (max-width:440px){.label-sheet .bag-label{zoom:.8}}
+@media print{
+  body.print-label{background:#fff}
+  body.print-label .wrap,body.print-label .toast,body.print-label .cert-bar{display:none!important}
+  body.print-label .cert-overlay{position:static;background:none;padding:0;overflow:visible}
+  body.print-label .cert-wrap{max-width:none}
+  .label-sheet{background:none!important;padding:0!important;gap:0 4mm;justify-content:flex-start}
+  .label-sheet.roll{gap:0}
+  .label-sheet.roll .bag-label{border:0;break-after:page;page-break-after:always}
+  .label-sheet .bag-label{border-color:#ccc;zoom:1}
+}
