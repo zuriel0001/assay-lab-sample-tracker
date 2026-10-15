@@ -2,7 +2,7 @@
 // The suites are copied from ../sample-tracking/test into a scratch folder next to an Azure harness (unchanged, except
 // the ADJUST list below);
 // azure-extra.js (this folder) checks what is new in the Azure build.
-//   node test/run-suites.js run.js results-tests.js     (default: all ten, then azure-extra.js)
+//   node test/run-suites.js run.js results-tests.js     (default: all eleven, then azure-extra.js)
 const fs = require("fs"), path = require("path"), os = require("os"), { spawnSync } = require("child_process");
 const AZ = path.resolve(__dirname, ".."), PROTO = path.resolve(AZ, "..", "sample-tracking", "test");
 const work = process.env.WORK_DIR || fs.mkdtempSync(path.join(os.tmpdir(), "az-suites-"));
@@ -12,7 +12,7 @@ const a = tail.indexOf("async function signIn("), b = tail.indexOf("async functi
 if (a < 0 || b < 0) throw new Error("harness layout changed");
 tail = tail.slice(0, a) + tail.slice(b);
 fs.writeFileSync(path.join(work, "harness.js"), fs.readFileSync(path.join(__dirname, "harness-head.js"), "utf8") + "\n" + tail);
-const suites = process.argv.slice(2).length ? process.argv.slice(2) : ["run.js", "results-tests.js", "v12-tests.js", "v13-tests.js", "review-tests-v11.js", "review-v11-scenarios.js", "hours-shortcut-tests.js", "v14-tests.js", "work-hours-unit.js", "v15-tests.js", "azure-extra.js"];
+const suites = process.argv.slice(2).length ? process.argv.slice(2) : ["run.js", "results-tests.js", "v12-tests.js", "v13-tests.js", "review-tests-v11.js", "review-v11-scenarios.js", "hours-shortcut-tests.js", "v14-tests.js", "work-hours-unit.js", "v15-tests.js", "v16-tests.js", "azure-extra.js"];
 /* Checks the prototype's suites make differently here. Since v13 no suite reads a sentence build.py section 10 takes out.
    v14-tests.js: tracking links and bag-label QR codes carry this site's own address, not the Claude artifact's, and the suite
    opens them there; where no QR decoder is installed, a label's QR code is compared with the page's own encoder run in Node on the text it
@@ -30,7 +30,8 @@ const qrOf = (() => { const page = require("fs").readFileSync(path.join(process.
   "work-hours-unit.js": [['path.resolve(__dirname, "../assay-lab-sample-tracker.html")', 'path.join(process.env.AZ_ROOT, "app/index.html")']],   // this build's page
   // A logo the server would refuse (api-tests.js) is put straight into the database, to show the page ignores it too.
   "v15-tests.js": [['await A.evaluate(() => window.__dbPush("settings/stages", { ...window.__mirror["settings/stages"], logo: "javascript:alert(1)" })); await A.waitForTimeout(200);',
-    'await H.broadcast("settings/stages", { ...store["settings/stages"], logo: "javascript:alert(1)" }); await A.waitForTimeout(400);']]
+    'await H.broadcast("settings/stages", { ...store["settings/stages"], logo: "javascript:alert(1)" }); await A.waitForTimeout(400);']],
+  "v16-tests.js": [['const src = fs.readFileSync(H.FILE.replace("file://", ""), "utf8");', 'const src = fs.readFileSync(require("path").join(process.env.AZ_ROOT, "app/index.html"), "utf8");']]   // this build's page
 };
 let bad = 0;
 for (const s of suites){

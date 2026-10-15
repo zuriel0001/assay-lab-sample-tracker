@@ -319,7 +319,6 @@ put('''For a transcription or calculation error only. A result that needs re-tes
 put('''
       Check the ID on the bag or submission form. IDs look like <span class="mono">${esc(exampleId())}</span>: section code, submission date, running number. Tag numbers and site references are searched too.''', '''
       Check the ID on the bag.''')
-put('''<strong>View-only access</strong>Only lab staff register samples at the lab. Anyone can use Submit a sample.</div>''', '''<strong>View-only access</strong></div>''')
 put('''</strong>Entries appear when samples are received at the lab or leave it.</div>''', '''</strong></div>''')
 put('''<strong>No released results yet</strong>Certificates for ${esc(session.sec)} samples appear here as soon as the lab releases them.</div>''', '''<strong>No released results yet</strong></div>''')
 
@@ -332,12 +331,10 @@ put('''<div class="small">Open each sample, act as the limit says and record wha
 put('''+${items.length - 40} more: use the filters or look a sample up by ID</div>''', '''+${items.length - 40} more</div>''')
 
 # Submit a sample / Register at lab
-put('''<p class="muted small" style="margin:4px 0 0">For samples brought straight to the lab without an online submission. The sample is recorded as received by you and written to the inbound ledger. Each sample gets an ID made of the section code, the date and a running number, like <span class="mono">${esc(exampleId("EXP"))}</span>, and follows the workflow route for its type and test.</p>''', '')
-put('''<p class="muted small" style="margin:4px 0 0">No sign-in needed. Fill this in when you send samples to the Assay Lab. You get the sample ID straight away: write it on the bag, or print the label, and use it to track progress. Each ID is the section code, the submission date and a running number, like <span class="mono">${esc(exampleId("EXP"))}</span>. The sample type and test decide its workflow and expected finish; a lab technician confirms receipt when it arrives.</p>''', '')
 put('''<span class="small muted" style="font-weight:400">All ${TESTS.length} tests are in this list: the ones recommended for the sample type first, then every other test by category. <button type="button" class="btn ghost small" data-goto="routes">See all tests</button></span>''', '')
 put('''\n    : `<div class="route-box"><div class="small muted">Choose the sample type, purpose and test to see the workflow this sample will follow and when results can be expected.</div></div>`;''', '''\n    : "";''')
 put('''after the lab receives the sample (an estimate from the step times). ${(r.retention''', '''after receipt. ${(r.retention''')
-put(''' Write ${n === 1 ? "this ID" : "these IDs"} on the sample bag${n === 1 ? "" : "s"}, or print the label${n === 1 ? "" : "s"}${lab ? "" : ", then bring or send the sample to the Assay Lab. Its status shows “Awaiting receipt” until a lab technician confirms it has arrived"}:''',
+put(''' Write ${n === 1 ? "this ID" : "these IDs"} on the sample bag${n === 1 ? "" : "s"}, or print the label${n === 1 ? "" : "s"}${lab ? "" : walk ? ". It shows “Awaiting receipt” until a lab technician confirms it" : ", then bring or send the sample to the Assay Lab. Its status shows “Awaiting receipt” until a lab technician confirms it has arrived"}:''',
     ''' Write ${n === 1 ? "this ID" : "these IDs"} on the bag${n === 1 ? "" : "s"} or print the label${n === 1 ? "" : "s"}:''')
 put('''after the lab receives ${n === 1 ? "it" : "them"} (an estimate).</div>''', '''after receipt.</div>''')
 
@@ -347,7 +344,7 @@ drop('''<p class="small muted" style="margin:0">Each sample follows the route fo
 
 # Settings
 drop('''<div class="notice">Edit accounts, sections, the site time zone and workflow routes, then press Save settings. Changes apply for everyone.</div>''')
-drop('''<p class="small muted" style="margin:0">Anyone can submit a sample without an account. Lab technicians confirm receipt, register walk-in samples and record stages; their name is filled in automatically as "Received by" and on every stage update. Lab supervisors also release results, approve skipped steps and reverse ledger movements recorded by mistake. Viewers can see the board and ledger but change nothing. A section account sees only the released results of its own section's samples, with a notice when new ones are ready. Anyone can look up a sample by ID without an account.</p>''')
+drop('''<p class="small muted" style="margin:0">Anyone can register a sample at the lab without an account. Lab technicians confirm receipt, register walk-in samples and record stages; their name is filled in automatically as "Received by" and on every stage update. Lab supervisors also release results, approve skipped steps and reverse ledger movements recorded by mistake. Viewers can see the board and ledger but change nothing. A section account sees only the released results of its own section's samples, with a notice when new ones are ready. Anyone can look up a sample by ID without an account.</p>''')
 drop('''<p class="small muted" style="margin:0">Sample IDs are the section code, the submission date and a running number, for example <span class="mono">${esc(exampleId((draft.sections[1] || draft.sections[0] || {code:"EXP"}).code))}</span>. Each section's number restarts at 0001 every day. Codes are 2 to 5 capital letters; changing a code only affects new samples.</p>''')
 drop('''<p class="small muted" style="margin:0">Sample ID dates, ledger months and every time on screen use the site's time zone, whatever each phone or PC is set to. Use a name from the IANA list, such as Africa/Accra or Africa/Johannesburg.</p>''')
 drop('''<p class="small muted" style="margin:0">A lab supervisor releases results with a numbered certificate of analysis. Corrections issue an amended certificate; earlier versions stay on record.</p>''')

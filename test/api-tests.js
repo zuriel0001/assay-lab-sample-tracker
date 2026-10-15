@@ -223,6 +223,19 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   c = ctx(); await fn(c, { headers: { ...JS, "sec-fetch-site": "cross-site" }, body: { ops: [{ op: "get", path: "meta/schema" }] } });
   check(c.res.status === 403, "a request another website's page makes is refused");
 
+  { const wid = `GC-${day}-0001`, vid = `GC-${day}-0002`, sid = `GR-${day}-0001`;   // v16 walk-ins, Submit after sign-in, reference material edits
+    check((await one(null, { op: "set", path: "samples/" + wid, data: sub(wid, { via: "walkin", purpose: "Other: dispute check", purposeKey: "other", purposeWhy: "dispute check",
+      history: [{ key: "submitted", at: now, by: "public", name: "J", note: "Registered at the lab (walk-in)" }] }) })).ok, "someone signed out registers a walk-in sample, with its reason for Other");
+    check((await one("v@site.com", { op: "set", path: "samples/" + vid, data: sub(vid, { createdByName: "Viewer" }) })).ok, "a viewer submits a sample after signing in; it waits for receipt like any submission");
+    check((await one("exp@site.com", { op: "set", path: "samples/" + sid, data: sub(sid, { createdByName: "EXP results" }) })).ok, "a section account submits a sample");
+    check(!(await one("v@site.com", { op: "set", path: `samples/GC-${day}-0003`, data: sub(`GC-${day}-0003`, { via: "walkin", stageKey: "received", receivedBy: "Viewer" }) })).ok, "a walk-in can't arrive already received");
+    const crms = [{ id: "OREAS-LOW", rk: "k1", was: ["STD-AU-LOW"], an: "Au g/t", val: 0.515, sd: 0.021, bt: ["FA", "GC"] }];
+    const crmLog = [{ at: now, by: "Manager", id: "OREAS-LOW", what: "ID STD-AU-LOW → OREAS-LOW; Certified value 0.52 → 0.515" }];
+    check((await one("boss@site.com", { op: "update", path: "settings/stages", data: { crms, crmLog } })).ok, "the lab manager edits a reference material, with its earlier ID and the change history");
+    const seen = (await one(null, { op: "get", path: "settings/stages" })).data;
+    check(JSON.stringify(seen.crms) === JSON.stringify(crms) && JSON.stringify(seen.crmLog) === JSON.stringify(crmLog), "every page reads the edited register and its history");
+    check(!(await one("t1@site.com", { op: "update", path: "settings/stages", data: { crmLog: [] } })).ok && !(await one("s1@site.com", { op: "update", path: "settings/stages", data: { crms: [] } })).ok, "only the lab manager changes the register or its history"); }
+
   console.log(`\n${pass} PASS, ${fail} FAIL`);
   process.exit(fail ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });
