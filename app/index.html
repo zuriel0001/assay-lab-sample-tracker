@@ -3646,7 +3646,7 @@ function renderStages(){
       <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Days kept after results</th><th>Then</th><th></th></tr></thead><tbody>${keepRows}</tbody></table></div>
       <div class="row"><button class="btn" id="rkAdd">Add material</button></div>
     </div>
-    <div class="row sticky-bar"><button class="btn ghost" id="cfgBackup">Download backup</button><span style="flex:1"></span><button class="btn ghost" id="cfgReset">Restore default sections and routes</button><button class="btn ghost" id="cfgCancel">Discard changes</button><button class="btn primary big" id="cfgSave">Save settings</button></div>
+    <div class="row sticky-bar"><button class="btn ghost" id="cfgBackup">Download backup</button><button class="btn ghost" id="cfgRestore" hidden>Restore backup</button><input type="file" id="cfgRestoreFile" accept=".json,application/json" hidden><span style="flex:1"></span><button class="btn ghost" id="cfgReset">Restore default sections and routes</button><button class="btn ghost" id="cfgCancel">Discard changes</button><button class="btn primary big" id="cfgSave">Save settings</button></div>
   </div>`;
   splitSettings(v);
   if (goEdit) $("#rtEdit").scrollIntoView({ block: "start" });
@@ -3656,6 +3656,29 @@ function renderStages(){
     try { toast(`Backup downloaded: ${await window.__backup()} records`); }
     catch (err){ toast(err && err.code === "permission_denied" ? err.message || "Only the lab manager downloads backups." : "The backup could not be made. Try again."); }
     finally { b.disabled = false; b.textContent = "Download backup"; }
+  });
+  const rb = $("#cfgRestore"), rf = $("#cfgRestoreFile");
+  window.__restoreState().then(r => { if (r && (r.empty || r.mine)) rb.hidden = false; });
+  rb.addEventListener("click", () => rf.click());
+  rf.addEventListener("change", async () => {
+    const f = rf.files[0]; rf.value = ""; if (!f) return;
+    let bk = null; try { bk = JSON.parse(await f.text()); } catch {}
+    if (!bk || bk.app !== "Assay Lab Sample Tracker" || !bk.collections || typeof bk.collections !== "object"){ toast("That is not a backup file from this site."); return; }
+    const n = c => Object.keys(bk.collections[c] || {}).length, total = Object.values(bk.collections).reduce((t, c) => t + Object.keys(c || {}).length, 0);
+    const parts = [["samples", "Samples"], ["batches", "Lab batches"], ["ledger", "Ledger days"], ["stock", "Stock records"], ["files", "Results files"], ["access", "Access requests"], ["settings", "Settings"]];
+    $("#cfgRestoreBox")?.remove();
+    rb.parentElement.insertAdjacentHTML("afterend", `<div class="notice" id="cfgRestoreBox"><b>${esc(f.name)}</b>${bk.site ? ` · ${esc(bk.site)}` : ""}${Date.parse(bk.exportedAt) ? ` · ${esc(fmt(Date.parse(bk.exportedAt)))}` : ""}
+      <div class="small" style="margin:6px 0" id="cfgRestoreCounts">${parts.map(([c, l]) => `${l} ${n(c).toLocaleString()}`).join(" · ")}</div>
+      <div class="row"><button type="button" class="btn primary" id="cfgRestoreGo">Load ${total.toLocaleString()} records</button><button type="button" class="btn ghost" id="cfgRestoreNo">Cancel</button><span class="small muted" id="cfgRestoreMsg"></span></div></div>`);
+    $("#cfgRestoreNo").onclick = () => $("#cfgRestoreBox")?.remove();
+    $("#cfgRestoreGo").onclick = async e => {
+      const go = e.currentTarget, msg = $("#cfgRestoreMsg"); go.disabled = true; $("#cfgRestoreNo").disabled = true;
+      try {
+        const k = await window.__restore(bk, (d, all) => { msg.textContent = `${d.toLocaleString()} of ${all.toLocaleString()}`; });
+        msg.textContent = `${k.toLocaleString()} records loaded`; toast(`Backup restored: ${k.toLocaleString()} records`);
+        setTimeout(() => location.reload(), 900);
+      } catch (err){ go.disabled = false; $("#cfgRestoreNo").disabled = false; msg.textContent = ""; toast(err && err.message ? `Not restored: ${err.message}` : "The backup could not be loaded. Try again."); }
+    };
   });
   $("#cfgResPub").addEventListener("change", e => { draft.resultsPublic = e.target.value === "1"; dirty(); });
   $("#rtQcp").addEventListener("change", e => { R.qcp = e.target.value; regenQc(R); dirty(); });

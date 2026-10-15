@@ -368,9 +368,10 @@ put(''' : "Nothing new since you last looked."} In the production system this no
 # On Azure "quota_exceeded" means one record grew past what Cosmos DB holds (samples are never deleted).
 put('toast("The register is full. Archive or delete old samples before adding more.");', 'toast("This record is too large to save. Tell the lab manager.");')
 
-# 11. Settings: the lab manager can download a backup of every record (one JSON file), next to Save settings.
+# 11. Settings: the lab manager can download a backup of every record (one JSON file), next to Save settings, and on a copy
+#     of the site that has no samples yet, load one (Restore backup: the file's counts first, then the records).
 put('<span style="flex:1"></span><button class="btn ghost" id="cfgReset">',
-    '<button class="btn ghost" id="cfgBackup">Download backup</button><span style="flex:1"></span><button class="btn ghost" id="cfgReset">')
+    '<button class="btn ghost" id="cfgBackup">Download backup</button><button class="btn ghost" id="cfgRestore" hidden>Restore backup</button><input type="file" id="cfgRestoreFile" accept=".json,application/json" hidden><span style="flex:1"></span><button class="btn ghost" id="cfgReset">')
 put('''  const dirty = () => { draftDirty = true; renderStages(); };''',
     '''  const dirty = () => { draftDirty = true; renderStages(); };
   $("#cfgBackup").addEventListener("click", async e => {
@@ -378,6 +379,29 @@ put('''  const dirty = () => { draftDirty = true; renderStages(); };''',
     try { toast(`Backup downloaded: ${await window.__backup()} records`); }
     catch (err){ toast(err && err.code === "permission_denied" ? err.message || "Only the lab manager downloads backups." : "The backup could not be made. Try again."); }
     finally { b.disabled = false; b.textContent = "Download backup"; }
+  });
+  const rb = $("#cfgRestore"), rf = $("#cfgRestoreFile");
+  window.__restoreState().then(r => { if (r && (r.empty || r.mine)) rb.hidden = false; });
+  rb.addEventListener("click", () => rf.click());
+  rf.addEventListener("change", async () => {
+    const f = rf.files[0]; rf.value = ""; if (!f) return;
+    let bk = null; try { bk = JSON.parse(await f.text()); } catch {}
+    if (!bk || bk.app !== "Assay Lab Sample Tracker" || !bk.collections || typeof bk.collections !== "object"){ toast("That is not a backup file from this site."); return; }
+    const n = c => Object.keys(bk.collections[c] || {}).length, total = Object.values(bk.collections).reduce((t, c) => t + Object.keys(c || {}).length, 0);
+    const parts = [["samples", "Samples"], ["batches", "Lab batches"], ["ledger", "Ledger days"], ["stock", "Stock records"], ["files", "Results files"], ["access", "Access requests"], ["settings", "Settings"]];
+    $("#cfgRestoreBox")?.remove();
+    rb.parentElement.insertAdjacentHTML("afterend", `<div class="notice" id="cfgRestoreBox"><b>${esc(f.name)}</b>${bk.site ? ` · ${esc(bk.site)}` : ""}${Date.parse(bk.exportedAt) ? ` · ${esc(fmt(Date.parse(bk.exportedAt)))}` : ""}
+      <div class="small" style="margin:6px 0" id="cfgRestoreCounts">${parts.map(([c, l]) => `${l} ${n(c).toLocaleString()}`).join(" · ")}</div>
+      <div class="row"><button type="button" class="btn primary" id="cfgRestoreGo">Load ${total.toLocaleString()} records</button><button type="button" class="btn ghost" id="cfgRestoreNo">Cancel</button><span class="small muted" id="cfgRestoreMsg"></span></div></div>`);
+    $("#cfgRestoreNo").onclick = () => $("#cfgRestoreBox")?.remove();
+    $("#cfgRestoreGo").onclick = async e => {
+      const go = e.currentTarget, msg = $("#cfgRestoreMsg"); go.disabled = true; $("#cfgRestoreNo").disabled = true;
+      try {
+        const k = await window.__restore(bk, (d, all) => { msg.textContent = `${d.toLocaleString()} of ${all.toLocaleString()}`; });
+        msg.textContent = `${k.toLocaleString()} records loaded`; toast(`Backup restored: ${k.toLocaleString()} records`);
+        setTimeout(() => location.reload(), 900);
+      } catch (err){ go.disabled = false; $("#cfgRestoreNo").disabled = false; msg.textContent = ""; toast(err && err.message ? `Not restored: ${err.message}` : "The backup could not be loaded. Try again."); }
+    };
   });''')
 
 # 12. Access requests: the lab manager sees pending requests on Settings (count on the tab) and approves each with a role

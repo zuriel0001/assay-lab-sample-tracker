@@ -271,6 +271,30 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
     const bid = `GC-${day}-0008`;
     check((await one(null, { op: "set", path: "samples/" + bid, data: sub(bid, { subBadge: "B-2231", tags: ["MS-0042"] }) })).ok && (await one(null, { op: "get", path: "samples/" + bid })).data.subBadge === "B-2231", "a submission carries the submitter's badge number and its site sample code");
     check((await one("t1@site.com", { op: "update", path: np, data: { results: { rows: { scr: { raw: "+40 0.2", t: "+40 0.2", by: "t1" } } } } })).ok, "a technician corrects the screen analysis line under their own name"); }
+  { // Restore: a backup loads into a copy with no samples, by its lab manager only, and comes back as it was.
+    const backup = {};
+    for (const coll of ["settings", "access", "meta", "tagidx", "samples", "batches", "stock", "ledger", "files"])
+      for (let after = ""; after != null; ){ const r = await one("boss@site.com", { op: "export", coll, after }); r.docs.forEach(x => { backup[x.path] = x.data; }); after = r.next; }
+    const mem2 = createMemoryStore(), core2 = createCore({ store: mem2, adminEmails: ["new@lab.org"] });
+    const one2 = async (who, op) => (await core2.handleDb(P(who), { ops: [op] })).body.results[0];
+    const docs = Object.entries(backup).map(([path, data]) => ({ path, data }));
+    check(!(await one("boss@site.com", { op: "restore", docs: docs.slice(0, 2) })).ok, "a copy that has samples won't take a backup");
+    check((await one2("new@lab.org", { op: "restore", check: true })).empty && !(await one2("someone@lab.org", { op: "restore", docs: docs.slice(0, 2) })).ok, "the new copy is empty; only its lab manager restores");
+    check(!(await one2("new@lab.org", { op: "restore", docs: [{ path: "auth/secret", data: { k: "x" } }] })).ok && !(await one2("new@lab.org", { op: "restore", docs: [{ path: "samples/X", data: [1] }] })).ok, "only records of a backup are taken");
+    check(!(await one2("new@lab.org", { op: "restore", docs: Array.from({ length: 501 }, (_, i) => ({ path: "meta/n" + i, data: {} })) })).ok, "a backup is sent in parts");
+    const settingsFirst = [...docs].sort((x, y) => (y.path === "settings/stages") - (x.path === "settings/stages"));
+    let sent = 0;
+    for (let i = 0; i < settingsFirst.length; i += 40) sent += (await one2("new@lab.org", { op: "restore", docs: settingsFirst.slice(i, i + 40) })).written || 0;
+    check(sent === docs.length && (await one2("new@lab.org", { op: "restore", done: true, records: sent })).done, `all ${docs.length} records are loaded, Settings first`);
+    const same2 = docs.filter(x => x.path !== "settings/stages").every(x => JSON.stringify(mem2.docs[x.path]) === JSON.stringify(x.data));
+    check(same2, "every record comes back exactly as it was saved, results files included");
+    const st2 = mem2.docs["settings/stages"];
+    check(st2.users.some(x => x.em === "new@lab.org" && x.role === "admin") && st2.users.some(x => x.em === "boss@site.com" && x.role === "admin") && JSON.stringify({ ...st2, users: null }) === JSON.stringify({ ...backup["settings/stages"], users: null }),
+      "Settings come back with the person restoring kept as lab manager");
+    check((await core2.account(P("new@lab.org"))).role === "admin" && (await core2.account(P("t1@site.com"))).role === "tech", "after the restore the restorer is lab manager and the staff keep their roles");
+    check(!(await one2("new@lab.org", { op: "restore", check: true })).empty && !(await one2("new@lab.org", { op: "restore", docs: docs.slice(0, 1) })).ok, "once loaded, the copy takes no second backup");
+    check(!(await one2(null, { op: "get", path: "_restore/state" })).ok && !Object.keys(backup).some(k => k.startsWith("_restore")), "the restore's own note is not readable or in a backup");
+    check((await one2(null, { op: "get", path: "samples/" + id })).data.id === id, "a restored sample is looked up by ID as before"); }
 
   console.log(`\n${pass} PASS, ${fail} FAIL`);
   process.exit(fail ? 1 : 0);

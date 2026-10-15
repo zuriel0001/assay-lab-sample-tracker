@@ -7,7 +7,7 @@ the page is built from (`prototype/`, with `build.py`) and the tests. Deploying 
 
 - **The data.** Samples, lab batches, the ledger, stock records, kept results files, Settings (staff accounts, sections,
   site time, workflow routes, reference materials, limits, logo), access requests and email logins all live in the
-  copy's own database. A new copy starts empty. See *Moving data* below.
+  copy's own database. A new copy starts empty; a backup from another copy can be loaded into it (*Moving data* below).
 - **The settings in step 4** (database connection string, admin emails). Keep the connection string private: never
   put it in GitHub and never send it to anyone.
 - The lab's two real SGS report files used in testing are kept out of GitHub on purpose.
@@ -50,18 +50,28 @@ These are the steps of *Deploying it* in `README.md`, with what differs for a se
    press **Save settings**. Until an admin is saved there, anyone who signs up with email using an `ADMIN_EMAILS`
    address becomes admin.
 7. **Fill in Settings** for this copy (sections, site time and lab shifts, staff, reference materials, limits, routes,
-   logo), as on the live site.
+   logo), or load a backup of another copy instead (*Moving data* below).
 
 Also for each copy: the Azure free account is a 30-day trial (move to pay-as-you-go to keep the free plans running),
 and a budget alert (*Cost Management* → *Budgets*) is a good safety net.
 
 ## Moving data between copies
 
-- **Settings → Download backup** (lab manager) saves one JSON file with every record: Settings, samples, batches, ledger,
-  stock records, site sample code index, ID counters, access requests and kept results files. It leaves out email
-  logins (people sign up again, or the lab manager adds them) and the sign-in key.
-- **Loading a backup into a copy is not possible yet**: the site has no restore. A new copy starts empty, and the
-  database's own 7-day backup (README step 3) restores only into that same Azure account.
+1. On the copy that has the data: **Settings → Download backup** (lab manager). The file holds every record: Settings,
+   samples, batches, ledger, stock records, site sample code index, ID counters, access requests and kept results files.
+2. On the new copy, before anyone registers a sample there: sign in as its lab manager (step 6 above), open
+   **Settings** and press **Restore backup** (it shows only while the copy has no samples). Pick the file; the page
+   shows how many samples, batches and other records it holds. Press **Load … records**. The page reloads when done.
+3. Check a few samples by ID and the staff list on Settings.
+
+What does not come across:
+- **Email logins.** Passwords are never in a backup. People who signed in with email sign up again with the same
+  address (the lab manager approves them), or the lab manager presses **Reset password** on their row and gives them
+  the temporary password. Microsoft sign-ins work at once: their accounts are on the restored staff list.
+- The person who restores the backup stays lab manager on the new copy, whatever the backup's staff list says.
+- A backup loads only into a copy with no samples, and only once; it never merges into a copy already in use.
+
+The database's own 7-day backup (README step 3) is separate: it puts one Azure database back as it was, inside Azure.
 
 ## Running it outside Azure
 

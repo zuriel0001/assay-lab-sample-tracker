@@ -135,6 +135,22 @@ function fileProblem(a, id, d){
   return signedBy(a)(d) ? "" : "A results file must be kept under the name of the person signed in.";
 }
 
+/* Restoring a backup: the collections a backup holds, loaded in this order (Settings first). */
+const RESTORE = ["settings", "access", "meta", "tagidx", "samples", "batches", "stock", "ledger", "files"];
+const RESTORE_MARK = "_restore/state";   // outside every collection: nobody reads it through the API
+/* The restored staff list keeps the person restoring it as lab manager, so loading a backup never locks them out. */
+function keepRestorer(d, a){
+  const users = Array.isArray(d.users) ? d.users.map(x => x && typeof x === "object" ? { ...x } : x) : [];
+  const row = users.find(x => x && x.em && String(x.em).trim().toLowerCase() === a.email && (x.via === "email" ? "email" : "microsoft") === a.via);
+  if (row) row.role = "admin";
+  else {
+    let u = String(a.bootstrap ? a.email.split("@")[0] : a.u || "").toLowerCase().replace(/[^a-z0-9._-]/g, "") || "admin";
+    while (users.some(x => x && x.u === u)) u += "1";
+    users.unshift({ u, name: a.bootstrap ? "Lab Manager" : a.name || "Lab Manager", role: "admin", em: a.email, ...(a.via === "email" ? { via: "email" } : {}) });
+  }
+  return { ...d, users };
+}
+
 function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }){
   const admins = adminEmails.map(x => String(x).trim().toLowerCase()).filter(Boolean);
   let cache = null;
@@ -251,6 +267,33 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
       const n = Math.max(1, Math.min(op.coll === "files" ? 4 : 500, op.limit | 0 || 200));   // file pieces are up to 180 KB each
       const docs = await store.page(op.coll, typeof op.after === "string" ? op.after : "", n);
       return { docs, next: docs.length === n ? docs[docs.length - 1].path : null };
+    }
+    if (t === "restore"){
+      // The lab manager loads a backup file into a copy of the site that has no samples yet, a page of records at a time.
+      // Records are written as they were saved, so the record-keeping rules (which check who writes each new line) don't apply.
+      if (a.role !== "admin") throw fail("permission_denied", "Only the lab manager restores a backup.");
+      const mark = await store.get(RESTORE_MARK), mine = !!(mark && mark.state === "running" && mark.by === a.email + "/" + a.via);
+      const empty = !(await store.page("samples", "", 1)).length;
+      if (op.check) return { empty, mine };
+      if (!mine){
+        if (!empty) throw fail("failed_precondition", "This copy already has samples. A backup is loaded only into an empty copy.");
+        await store.set(RESTORE_MARK, { state: "running", by: a.email + "/" + a.via, at: Date.now() });
+      }
+      if (op.done){
+        await store.set(RESTORE_MARK, { state: "done", by: a.email + "/" + a.via, at: Date.now(), records: Math.max(0, +op.records || 0) });
+        cache = null;
+        return { done: true };
+      }
+      const docs = Array.isArray(op.docs) ? op.docs : [];
+      if (docs.length > 500 || JSON.stringify(docs).length > 1200000) throw fail("bad_request", "Send the backup in smaller parts.");
+      for (const x of docs){
+        const p = x && parsePath(x.path);
+        if (!p || !RESTORE.includes(p.coll) || !x.data || typeof x.data !== "object" || Array.isArray(x.data) || JSON.stringify(x.data).length > MAX_DOC)
+          throw fail("bad_request", "Not a record of a backup: " + String(x && x.path).slice(0, 80));
+      }
+      for (const x of docs) await store.set(x.path, x.path === "settings/stages" ? keepRestorer(x.data, a) : x.data);
+      if (docs.some(x => x.path.startsWith("settings/"))) cache = null;
+      return { written: docs.length };
     }
     const pp = parsePath(op.path);
     if (!pp) throw fail("bad_request", "bad path");

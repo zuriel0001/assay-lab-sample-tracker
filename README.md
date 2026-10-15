@@ -147,7 +147,7 @@ the tracker already shapes them. Sources: [SQL free offer](https://learn.microso
 | Section account | A sample as the public sees it, plus its own section's samples with results | Submit new samples only |
 | Viewer | Everything | Submit new samples only |
 | Lab technician, lab supervisor | Everything | Samples, batches, ledger, stock records, tag index; attached results files (kept once under their name, never changed or deleted) |
-| Admin | Everything, including sign-in emails and access requests | All of that, plus Settings (the company logo only as a PNG, JPEG or WebP picture under 90 KB), answering access requests, resetting email passwords and the backup download |
+| Admin | Everything, including sign-in emails and access requests | All of that, plus Settings (the company logo only as a PNG, JPEG or WebP picture under 90 KB), answering access requests, resetting email passwords, the backup download, and loading a backup into a copy with no samples |
 
 Staff see each other's names and roles but not their sign-in emails. A request gives no access by itself: a role
 comes only from the staff list in Settings, which only the admin saves; who approved or declined it, and when, stays
@@ -170,7 +170,7 @@ can't make a signed-in person's browser change records.
 | `api/lib/store-cosmos.js` | Cosmos DB store: one container `docs` in database `tracker` (created on first use with 1000 RU/s on the container), partitioned by collection; filters, sorting and limits run in the database; ETag checks on every read-modify-write; leases as records; deletes kept as markers so open pages hear about them. |
 | `api/lib/store-memory.js` | The same store in memory, for local runs and tests. |
 | `dev/server.js` | Local stand-in for Static Web Apps: `node dev/server.js` → http://localhost:4280, in-memory data, a local sign-in page (type an email, or an example username such as `tech1`). |
-| `test/api-tests.js` | 158 checks of the read/write rules, the record-keeping rules, stock records, access requests, the company logo, walk-in registration and hand-over, reference material edits, attached results files, the backup export and the Functions entry points. |
+| `test/api-tests.js` | 169 checks of the read/write rules, the record-keeping rules, stock records, access requests, the company logo, walk-in registration and hand-over, reference material edits, attached results files, the backup export, restoring a backup into an empty copy, and the Functions entry points. |
 | `test/auth-tests.js` | 51 checks of email sign-in: sign-up, forged and expired sessions, password guessing, resets, an email login not taking a Microsoft account's access, the Functions entry point. |
 | `test/store-tests.js` | 28 checks on each store; Cosmos runs against `@vercel/cosmosdb-server` (a local Cosmos imitation) or a real account. |
 | `test/run-suites.js` | Runs the prototype's own thirteen suites against this build (real page, real API over HTTP), unchanged except where tracking links carry this site's address or a check writes straight to the database (its ADJUST list), then `azure-extra.js`. |
@@ -186,10 +186,10 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 
 | Suite | Result |
 |---|---|
-| `api-tests.js` | 158 / 158 |
+| `api-tests.js` | 169 / 169 |
 | `store-tests.js` | 56 / 56 (28 in memory, 28 on the local Cosmos DB imitation) |
 | `auth-tests.js` | 51 / 51 |
-| `azure-extra.js` | 56 / 56 |
+| `azure-extra.js` | 62 / 62 (including a backup restored into a second copy of the site) |
 | Prototype `run.js` | 101 / 107 |
 | Prototype `results-tests.js` | 92 / 93 |
 | Prototype `v12-tests.js` | 68 / 71 |

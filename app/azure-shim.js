@@ -240,6 +240,34 @@ window.__backup = async () => {
   return n;
 };
 
+/* Restore: the lab manager loads a backup file into an empty copy of the site (the server checks both), Settings first,
+   in parts well under 1 MB. Asked once per page load whether this copy can take one. */
+let restoreState = null;
+window.__restoreState = () => restoreState || (restoreState = call({ op: "restore", check: true }).catch(() => ({ empty: false, mine: false })));
+const RESTORE_ORDER = ["settings", "access", "meta", "tagidx", "samples", "batches", "stock", "ledger", "files"];
+window.__restore = async (backup, progress) => {
+  const cols = backup && backup.collections;
+  if (!cols || typeof cols !== "object") throw { message: "This is not a backup file from this site." };
+  const all = [];
+  for (const c of RESTORE_ORDER) for (const [id, data] of Object.entries(cols[c] || {})) all.push({ path: c + "/" + id, data });
+  let part = [], size = 0, done = 0;
+  const send = async () => {
+    if (!part.length) return;
+    await call({ op: "restore", docs: part });
+    done += part.length; part = []; size = 0;
+    if (progress) progress(done, all.length);
+  };
+  for (const x of all){
+    const n = JSON.stringify(x).length;
+    if (part.length && (size + n > 800000 || part.length >= 200)) await send();
+    part.push(x); size += n;
+  }
+  await send();
+  await call({ op: "restore", done: true, records: all.length });
+  restoreState = null;
+  return all.length;
+};
+
 /* The page starts once the signed-in person is known, so it opens on the right tab. */
 const meReady = fetchMe().then(m => { window.__me = m; });
 const domReady = document.readyState === "loading" ? new Promise(r => document.addEventListener("DOMContentLoaded", r, { once: true })) : Promise.resolve();
