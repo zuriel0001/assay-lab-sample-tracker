@@ -65,6 +65,9 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   check(asTech.users.length === 5 && asTech.users.every(x => !x.em), "staff see names and roles but not sign-in emails");
   check((await one(null, { op: "get", path: "settings/stages" })).data.users.length === 0, "the public sees no accounts");
   check((await one("boss@site.com", { op: "get", path: "settings/stages" })).data.users[1].em === "T1@Site.com", "admin sees the emails to edit them");
+  { const work = { days: [1, 2, 3, 4, 5], shifts: [{ from: "07:00", to: "15:00" }], off: ["2026-12-25"] };   // v14 lab working hours
+    check((await one("boss@site.com", { op: "update", path: "settings/stages", data: { work } })).ok && JSON.stringify((await one(null, { op: "get", path: "settings/stages" })).data.work) === JSON.stringify(work), "the lab manager saves lab working hours, and the public page reads them for expected finish times");
+    check(!(await one("t1@site.com", { op: "update", path: "settings/stages", data: { work: null } })).ok && (await one(null, { op: "get", path: "settings/stages" })).data.work.days.length === 5, "a technician can't change the working hours"); }
   { const m2 = createMemoryStore(); await m2.set("settings/stages", { users }); const c2 = createCore({ store: m2, adminEmails: [] });
     const r = (await c2.handleDb(P("boss@site.com"), { ops: [{ op: "set", path: "settings/stages", data: { users: users.filter(x => x.role !== "admin") } }] })).body.results[0];
     check(!r.ok, "without ADMIN_EMAILS, settings can't be saved with no admin left"); }

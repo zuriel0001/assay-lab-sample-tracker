@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 2cb68716388f) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 b10beca74e7a) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -274,6 +274,37 @@ table.bpos.multi thead th:first-child{background:var(--soft)}
 table.bpos.multi tr.qcrow td.pos-cell{background:var(--soft)}
 table.bpos.multi tr.sel td.pos-cell{background:var(--accent-soft)}
 table.bpos.multi td.pos-cell .mono{white-space:nowrap}
+/* v14: Settings tabs, lab working hours, bag labels */
+.subtabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid var(--line)}
+.subtabs button{background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:8px 12px;font:inherit;font-weight:600;color:var(--muted);cursor:pointer}
+.subtabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.subtabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.daychip{display:inline-flex;align-items:center;gap:6px;background:var(--soft);border-radius:999px;padding:3px 10px;font-size:13px}
+.label-sheet{display:flex;flex-wrap:wrap;gap:4mm;justify-content:center;background:var(--soft);padding:16px;border-radius:0 0 var(--r) var(--r)}
+.bag-label{width:100mm;height:50mm;box-sizing:border-box;padding:3mm;display:flex;gap:3mm;align-items:center;background:#fff;color:#000;border:1px dashed #9aa19d;font-family:var(--f-body);overflow:hidden;break-inside:avoid;page-break-inside:avoid}
+.bl-qr{flex:0 0 40mm;height:40mm}
+.bl-qr svg{width:40mm;height:40mm;display:block}
+.bl-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:.7mm}
+.bl-org{font-size:2.8mm;text-transform:uppercase;letter-spacing:.12em;font-weight:700}
+.bl-id{font:700 4.6mm/1.15 var(--f-mono);white-space:nowrap;letter-spacing:-.02em}
+.bl-line{display:flex;gap:2mm;font-size:3.3mm;line-height:1.25;min-width:0}
+.bl-line span{flex:0 0 16mm;color:#444}
+.bl-line b{min-width:0;overflow-wrap:anywhere;max-height:2.5em;overflow:hidden}
+.bl-flags{display:flex;flex-wrap:wrap;gap:1mm;margin-top:.5mm}
+.bl-flags b{border:.3mm solid #000;padding:0 1mm;font-size:2.9mm}
+body.labels-only{background:#fff;margin:0}
+body.labels-only .label-sheet{background:none;padding:0;justify-content:flex-start}
+@media screen and (max-width:440px){.label-sheet .bag-label{zoom:.8}}
+@media print{
+  body.print-label{background:#fff}
+  body.print-label .wrap,body.print-label .toast,body.print-label .cert-bar{display:none!important}
+  body.print-label .cert-overlay{position:static;background:none;padding:0;overflow:visible}
+  body.print-label .cert-wrap{max-width:none}
+  .label-sheet{background:none!important;padding:0!important;gap:0 4mm;justify-content:flex-start}
+  .label-sheet.roll{gap:0}
+  .label-sheet.roll .bag-label{border:0;break-after:page;page-break-after:always}
+  .label-sheet .bag-label{border-color:#ccc;zoom:1}
+}
 </style>
 
 <div class="wrap">
@@ -318,6 +349,7 @@ table.bpos.multi td.pos-cell .mono{white-space:nowrap}
 </div>
 <div class="toast" id="toast" hidden></div>
 <div class="cert-overlay" id="certBox" role="dialog" aria-modal="true" aria-label="Certificate of analysis" hidden></div>
+<div class="cert-overlay" id="labelBox" role="dialog" aria-modal="true" aria-label="Bag labels" hidden></div>
 
 <script src="azure-shim.js"></script>
 <script>
@@ -464,15 +496,15 @@ const DEFAULT_ROUTES = [
   { code: "EXP-FA", name: "Exploration fire assay (50 g, AAS finish)", tests: ["fa_aas"], types: ["rc", "core", "channel", "rom", "*"], purposes: ["exp", "recon", "qc", "other"],
     desc: "Standard route for drill and surface samples: full preparation to a 50 g pulp, lead-collection fire assay, AAS finish. Range 0.005 to 10 g/t Au.",
     stages: [
-      S("sort", "Sorting & lab QC insertion", 1, "intake", "Sort into sequence and reconcile with the submission sheet. Lab QC is placed per 50-position furnace batch as in the QA/QC rule; client blind QC stays as submitted."),
-      S("dry", "Drying at 105 °C", 12, "prep", "Stainless trays to constant mass; wet and dry mass recorded."),
-      S("crush", "Jaw crushing to 90% passing 2 mm", 4, "prep", "Preparation blank (barren quartz) crushed first; barren flush between samples; crusher duplicate split once per batch; sieve check 1 in 20."),
-      S("split", "Riffle / rotary split to 1 kg", 1.5, "prep", "Coarse reject bagged and kept."),
-      S("pulv", "Pulverising to 85% passing 75 µm", 4, "prep", "Quartz wash between samples; wet-sieve check 1 in 20."),
+      S("sort", "Sorting & lab QC insertion", 0.5, "intake", "Sort into sequence and reconcile with the submission sheet. Lab QC is placed per 50-position furnace batch as in the QA/QC rule; client blind QC stays as submitted."),
+      S("dry", "Drying at 105 °C", 8, "prep", "Stainless trays to constant mass; wet and dry mass recorded."),
+      S("crush", "Jaw crushing to 90% passing 2 mm", 2, "prep", "Preparation blank (barren quartz) crushed first; barren flush between samples; crusher duplicate split once per batch; sieve check 1 in 20."),
+      S("split", "Riffle / rotary split to 1 kg", 1, "prep", "Coarse reject bagged and kept."),
+      S("pulv", "Pulverising to 85% passing 75 µm", 2, "prep", "Quartz wash between samples; wet-sieve check 1 in 20."),
       S("weigh", "Weighing 50 g charge & flux", 1, "test", "Balance checked with a certified weight each batch."),
-      S("fuse", "Fusion & cupellation", 5, "test", "Lead-collection fusion at 1,050 °C, then cupellation to a precious-metal bead.", true),
-      S("finish", "Bead digest & AAS finish", 3, "test", "Aqua regia digest; Au read by AAS against matrix-matched standards."),
-      S("qc", "QA/QC review", 3, "qc", "Batch checked against the pass rules before release.")
+      S("fuse", "Fusion & cupellation", 3, "test", "Lead-collection fusion at 1,050 °C, then cupellation to a precious-metal bead.", true),
+      S("finish", "Bead digest & AAS finish", 2, "test", "Aqua regia digest; Au read by AAS against matrix-matched standards."),
+      S("qc", "QA/QC review", 1, "qc", "Batch checked against the pass rules before release.")
     ],
     qc: "Per 50-position furnace batch: 1 preparation blank, 1 crusher duplicate, 2 pulp duplicates, 2 CRMs and 1 analytical blank. Passes when CRMs are within ±2 SD (2 to 3 SD is a warning, outside ±3 SD fails), blanks are below 5× the detection limit (0.025 g/t Au), pulp duplicates agree within 20% and crusher duplicates within 30% (relative difference, above 10× detection limit). Client blind QC is reported unchanged.",
     triggers: ["Au of 10 g/t or more: repeat by gravimetric finish (FA-GRAV)", "Replicates differ by more than 20%, or visible gold logged: screen fire assay (SFA)", "CRM outside ±3 SD or blank above 5× detection limit: re-assay the batch from fusion"],
@@ -481,11 +513,11 @@ const DEFAULT_ROUTES = [
     desc: "Quick turnaround so ore and waste boundaries can be marked before digging. Whole sample pulverised; 30 g charge.",
     stages: [
       S("sort", "Sorting & QC insertion", 0.5, "intake", "Sorted by pattern and hole; CRM and blank inserted 1 in 25."),
-      S("dry", "Fast drying at 105 °C", 6, "prep", "Forced-air oven; samples over 3 kg split before drying."),
+      S("dry", "Fast drying at 105 °C", 4, "prep", "Forced-air oven; samples over 3 kg split before drying."),
       S("pulv", "Crush & pulverise whole sample (LM5)", 3, "prep", "Single stage to 85% passing 75 µm; sieve check 1 in 25."),
       S("weigh", "Weighing 30 g charge", 0.5, "test"),
-      S("fuse", "Fusion & cupellation", 3, "test", "Lead-collection fire assay, 30 g charge.", true),
-      S("finish", "AAS finish", 1.5, "test", "Results posted to mine geology by blast pattern."),
+      S("fuse", "Fusion & cupellation", 2, "test", "Lead-collection fire assay, 30 g charge.", true),
+      S("finish", "AAS finish", 1, "test", "Results posted to mine geology by blast pattern."),
       S("qc", "QA/QC review", 1, "qc", "CRMs, blanks and duplicates near the cut-off grade checked.")
     ],
     qc: "1 CRM and 1 blank per 25 samples; pulp duplicate on any result within ±20% of the ore / waste cut-off grade.",
@@ -494,15 +526,15 @@ const DEFAULT_ROUTES = [
   { code: "FA-GRAV", name: "High-grade fire assay (gravimetric finish)", tests: ["fa_grav"], types: ["*"], purposes: [],
     desc: "For expected high-grade ore and for over-range repeats (10 g/t or more by AAS). The gold prill is parted and weighed on a microbalance.",
     stages: [
-      S("sort", "Sorting & QC insertion", 1, "intake", "High-grade CRM and blank inserted per batch."),
-      S("dry", "Drying at 105 °C", 12, "prep"),
-      S("crush", "Crushing to 90% passing 2 mm", 4, "prep"),
-      S("split", "Riffle split to 1 kg", 1.5, "prep"),
-      S("pulv", "Pulverising to 85% passing 75 µm", 4, "prep", "Barren wash after every high-grade sample to stop carry-over."),
+      S("sort", "Sorting & QC insertion", 0.5, "intake", "High-grade CRM and blank inserted per batch."),
+      S("dry", "Drying at 105 °C", 8, "prep"),
+      S("crush", "Crushing to 90% passing 2 mm", 2, "prep"),
+      S("split", "Riffle split to 1 kg", 1, "prep"),
+      S("pulv", "Pulverising to 85% passing 75 µm", 2, "prep", "Barren wash after every high-grade sample to stop carry-over."),
       S("weigh", "Weighing 50 g charge", 1, "test"),
-      S("fuse", "Fusion & cupellation", 5, "test", "", true),
-      S("part", "Parting & prill weighing", 4, "test", "Silver parted with nitric acid; gold annealed and weighed on a 1 µg microbalance."),
-      S("qc", "QA/QC review", 3, "qc")
+      S("fuse", "Fusion & cupellation", 3, "test", "", true),
+      S("part", "Parting & prill weighing", 2, "test", "Silver parted with nitric acid; gold annealed and weighed on a 1 µg microbalance."),
+      S("qc", "QA/QC review", 1, "qc")
     ],
     qc: "1 high-grade CRM and 1 blank per batch; every sample in duplicate, agreeing within 10%.",
     triggers: ["Duplicates differ by more than 10%: screen fire assay", "Prill too small to weigh (under 0.1 mg): report the AAS result", "Blank after a high-grade sample above 5× detection limit: re-pulverise and repeat"],
@@ -510,16 +542,16 @@ const DEFAULT_ROUTES = [
   { code: "SFA", name: "Screen fire assay (coarse / nuggety gold)", tests: ["sfa"], types: ["*"], purposes: [],
     desc: "Separates coarse free gold so it is assayed in full instead of being sub-sampled. Used where visible gold or poor duplicate repeatability is seen.",
     stages: [
-      S("sort", "Sorting & QC insertion", 1, "intake"),
-      S("dry", "Drying at 105 °C", 12, "prep"),
-      S("crush", "Crushing to 90% passing 2 mm", 4, "prep"),
-      S("split", "Split 1 kg (or whole sample)", 1.5, "prep"),
-      S("pulv", "Pulverising the whole 1 kg split", 4, "prep", "Gold flakes are not over-ground into the bowl."),
+      S("sort", "Sorting & QC insertion", 0.5, "intake"),
+      S("dry", "Drying at 105 °C", 8, "prep"),
+      S("crush", "Crushing to 90% passing 2 mm", 2, "prep"),
+      S("split", "Split 1 kg (or whole sample)", 1, "prep"),
+      S("pulv", "Pulverising the whole 1 kg split", 2, "prep", "Gold flakes are not over-ground into the bowl."),
       S("screen", "Screening at 75 µm & weighing fractions", 3, "prep", "Plus and minus fraction masses recorded; loss under 2%."),
       S("fuse", "Fire assay: all of +75 µm, 2 × 50 g of −75 µm", 8, "test", "Coarse fraction fused in full; fine fraction in duplicate.", true),
       S("finish", "Gravimetric / AAS finish", 4, "test"),
       S("calc", "Weighted total gold calculation", 1, "test", "Total Au from mass-weighted coarse and fine grades; coarse gold % reported."),
-      S("qc", "QA/QC review", 3, "qc")
+      S("qc", "QA/QC review", 1, "qc")
     ],
     qc: "Screen mass balance loss under 2%; the two −75 µm assays agree within 10%; CRM and blank pass as for fire assay.",
     triggers: ["Screen loss above 2%: re-screen from the pulp", "Fine-fraction duplicates differ by more than 10%: repeat fine-fraction fusion"],
@@ -527,15 +559,15 @@ const DEFAULT_ROUTES = [
   { code: "CN-SOL", name: "Cyanide-soluble gold (LeachWELL)", tests: ["cn_sol"], types: ["*"], purposes: [],
     desc: "Accelerated cyanide leach of a large charge. Compared with fire assay it shows how much of the gold cyanide can recover.",
     stages: [
-      S("sort", "Sorting & QC insertion", 1, "intake"),
-      S("dry", "Drying at 105 °C", 12, "prep"),
-      S("crush", "Crushing to 2 mm", 4, "prep"),
-      S("pulv", "Pulverising to 85% passing 75 µm", 4, "prep", "200 g kept for a fire assay head grade."),
+      S("sort", "Sorting & QC insertion", 0.5, "intake"),
+      S("dry", "Drying at 105 °C", 8, "prep"),
+      S("crush", "Crushing to 2 mm", 2, "prep"),
+      S("pulv", "Pulverising to 85% passing 75 µm", 2, "prep", "200 g kept for a fire assay head grade."),
       S("weigh", "Weighing 500 g or 1 kg charge", 1, "test"),
       S("leach", "Accelerated cyanide leach on rolls (12–24 h)", 24, "test", "LeachWELL tablet and NaCN at pH 10.5 to 11.", true),
       S("finish", "Settle, filter & AAS on solution", 3, "test", "DIBK extraction for low levels."),
       S("tails", "Residue fire assay", 6, "test", "Closes the gold balance."),
-      S("qc", "QA/QC review", 3, "qc")
+      S("qc", "QA/QC review", 1, "qc")
     ],
     qc: "CRM with a certified cyanide-soluble value each batch, reagent blank, duplicate 1 in 20.",
     triggers: ["Cyanide-soluble Au below 50% of fire assay: flag as refractory and offer diagnostic leach", "Solution plus residue gold differs from head by more than 15%: repeat"],
@@ -548,14 +580,14 @@ const DEFAULT_ROUTES = [
       S("crush", "Stage crushing to 100% passing 2 mm", 4, "prep"),
       S("split", "Rotary split 1 kg test charges", 2, "prep"),
       S("grind", "Grind calibration & grind to P80 75 µm", 6, "prep", "Rod mill grind-time curve; P80 confirmed by wet screen."),
-      S("head", "Head assays (Au duplicate, Ag, S, C, Cu)", 24, "test", "Fire assay in duplicate; LECO S and C; ICP for cyanicides (Cu, As, Sb)."),
+      S("head", "Head assays (Au duplicate, Ag, S, C, Cu)", 12, "test", "Fire assay in duplicate; LECO S and C; ICP for cyanicides (Cu, As, Sb)."),
       S("setup", "Pulp set-up: 40% solids, lime to pH 10.5, NaCN 500 ppm", 2, "test"),
       S("leach", "Bottle roll leach, samples at 2, 4, 8, 24, 48 h", 48, "test", "Cyanide and lime topped up at each sample; DO recorded.", true),
       S("solns", "Kinetic solution assays & reagent titrations", 6, "test", "Au by AAS; free cyanide by AgNO₃ titration; lime consumption."),
-      S("residue", "Filter, wash & dry residue", 12, "prep"),
-      S("resfa", "Residue fire assay in duplicate", 8, "test"),
+      S("residue", "Filter, wash & dry residue", 8, "prep"),
+      S("resfa", "Residue fire assay in duplicate", 6, "test"),
       S("balance", "Metallurgical balance & recovery", 4, "test", "Calculated vs assayed head; extraction curve; NaCN and lime in kg/t."),
-      S("qc", "Metallurgist review", 8, "qc")
+      S("qc", "Metallurgist review", 4, "qc")
     ],
     qc: "Calculated head within ±10% of the assayed head; residue duplicates within 10%; a reference ore leached each campaign.",
     triggers: ["Calculated and assayed head more than 10% apart: repeat residue assay, then the leach", "Extraction below 80%: diagnostic leach recommended", "Organic carbon above 0.2% (preg-robbing): repeat as a CIL test"],
@@ -568,12 +600,12 @@ const DEFAULT_ROUTES = [
       S("crush", "Stage crushing to 2 mm", 4, "prep"),
       S("split", "Rotary split test charges", 2, "prep"),
       S("grind", "Grind to target P80", 6, "prep"),
-      S("head", "Head assays (Au, Ag, S, organic C)", 24, "test"),
+      S("head", "Head assays (Au, Ag, S, organic C)", 12, "test"),
       S("carbon", "Carbon preparation (attritioned, −2.36 +1.18 mm)", 4, "prep", "Plant or fresh carbon at 20 g/L."),
       S("leach", "CIL leach 24 h with kinetic samples", 24, "test", "Solution sampled at 2, 4, 8 and 24 h; pH 10.5, NaCN 500 ppm.", true),
       S("assay", "Solution, carbon & residue assays", 12, "test", "Solution by AAS; carbon ashed then AAS; residue fire assay in duplicate."),
       S("balance", "Gold balance & carbon loading", 4, "test", "Recovery to carbon, loading in g/t, preg-robbing compared with bottle roll."),
-      S("qc", "Metallurgist review", 8, "qc")
+      S("qc", "Metallurgist review", 4, "qc")
     ],
     qc: "Gold balance (solution + carbon + residue) within ±10% of head; residue duplicates within 10%.",
     triggers: ["Gold balance outside ±10%: repeat carbon and residue assays", "Carbon loading does not match solution loss: repeat the leach"],
@@ -588,9 +620,9 @@ const DEFAULT_ROUTES = [
       S("k2", "Grind to P50 about 250 µm & stage 2 Knelson", 6, "test"),
       S("k3", "Grind to P80 75 µm & stage 3 Knelson", 6, "test"),
       S("clean", "Concentrate cleaning (panning / Mozley table)", 6, "test", "Concentrates sealed between steps under gold-room custody."),
-      S("assay", "Concentrate & tails assays", 36, "test", "Concentrates fire assayed to extinction; tails screened and assayed size by size.", true),
+      S("assay", "Concentrate & tails assays", 24, "test", "Concentrates fire assayed to extinction; tails screened and assayed size by size.", true),
       S("calc", "GRG calculation & gold by size", 6, "test"),
-      S("qc", "Metallurgist review", 8, "qc")
+      S("qc", "Metallurgist review", 4, "qc")
     ],
     qc: "Calculated head within ±15% of the assayed head; concentrates handled under gold-room custody.",
     triggers: ["Calculated and assayed head more than 15% apart: repeat tails assays", "GRG above 30%: report recommends a gravity circuit study"],
@@ -600,16 +632,16 @@ const DEFAULT_ROUTES = [
     stages: [
       S("log", "Sample log & head split", 2, "intake"),
       S("dry", "Drying at 80 °C or below", 12, "prep"),
-      S("pulv", "Pulverise to P80 75 µm", 6, "prep"),
-      S("head", "Head assay (duplicate fire assay, S, C)", 24, "test"),
+      S("pulv", "Pulverise to P80 75 µm", 3, "prep"),
+      S("head", "Head assay (duplicate fire assay, S, C)", 12, "test"),
       S("s1", "Stage 1: direct cyanidation (free gold)", 24, "test", "", true),
       S("s2", "Stage 2: HCl digest + cyanidation (carbonates, pyrrhotite)", 24, "test"),
       S("s3", "Stage 3: H₂SO₄ digest + cyanidation (base-metal sulphides)", 24, "test"),
       S("s4", "Stage 4: HNO₃ digest + cyanidation (pyrite, arsenopyrite)", 24, "test"),
       S("s5", "Stage 5: roast or acetonitrile + cyanidation (carbonaceous)", 24, "test"),
-      S("res", "Final residue fire assay (silicate-locked gold)", 8, "test"),
+      S("res", "Final residue fire assay (silicate-locked gold)", 6, "test"),
       S("calc", "Gold deportment calculation", 4, "test"),
-      S("qc", "Metallurgist review", 8, "qc")
+      S("qc", "Metallurgist review", 4, "qc")
     ],
     qc: "Sum of all stages within ±10% of the head grade.",
     triggers: ["Stage sum outside ±10% of head: repeat from stage 1", "More than 30% of gold locked in sulphides: recommend flotation, fine grinding or oxidation testwork"],
@@ -627,7 +659,7 @@ const DEFAULT_ROUTES = [
       S("bwi", "Bond ball mill work index (BWi)", 16, "test", "Closing screen 106 µm; run until 3 cycles are stable."),
       S("sg", "Specific gravity", 2, "test"),
       S("calc", "Report Axb, DWi, RWi, BWi, Ai & SG", 4, "test"),
-      S("qc", "Metallurgist review", 8, "qc")
+      S("qc", "Metallurgist review", 4, "qc")
     ],
     qc: "Reference ore run through the Bond mill each campaign; BWi accepted only after 3 cycles at equilibrium (±3%).",
     triggers: ["BWi not stable after 3 cycles: repeat", "Not enough competent pieces for SMC: request more core"],
@@ -635,15 +667,15 @@ const DEFAULT_ROUTES = [
   { code: "ICP", name: "Multi-element ICP (four-acid / aqua regia)", tests: ["icp"], types: ["*"], purposes: [],
     desc: "48-element package for geochemistry, cyanicides (Cu, As, Sb, Bi, Te) and deleterious elements.",
     stages: [
-      S("sort", "Sorting & QC insertion", 1, "intake"),
-      S("dry", "Drying at 105 °C", 12, "prep", "60 °C or below if mercury or arsenic matter."),
-      S("crush", "Crushing to 2 mm", 4, "prep"),
-      S("split", "Riffle split", 1.5, "prep"),
-      S("pulv", "Pulverising to 85% passing 75 µm", 4, "prep", "Chrome-steel bowls add Cr and Fe; noted on the report."),
+      S("sort", "Sorting & QC insertion", 0.5, "intake"),
+      S("dry", "Drying at 105 °C", 8, "prep", "60 °C or below if mercury or arsenic matter."),
+      S("crush", "Crushing to 2 mm", 2, "prep"),
+      S("split", "Riffle split", 1, "prep"),
+      S("pulv", "Pulverising to 85% passing 75 µm", 2, "prep", "Chrome-steel bowls add Cr and Fe; noted on the report."),
       S("weigh", "Weighing 0.25 g", 1, "test"),
       S("digest", "Four-acid digestion (HF-HNO₃-HClO₄-HCl)", 8, "test", "Aqua regia on request for a partial digest.", true),
       S("read", "ICP-OES / ICP-MS reading", 6, "test"),
-      S("qc", "QA/QC review", 3, "qc")
+      S("qc", "QA/QC review", 1, "qc")
     ],
     qc: "2 CRMs, 1 blank and 1 replicate per 40; key elements on CRMs within ±10%.",
     triggers: ["Cu, As, Zn or S above the upper limit: ore-grade dilution re-run", "CRM outside limits for key elements: repeat the batch"],
@@ -651,13 +683,13 @@ const DEFAULT_ROUTES = [
   { code: "LECO", name: "Sulphur & carbon (LECO), sulphide S, organic C", tests: ["leco"], types: ["*"], purposes: [],
     desc: "Sulphur and carbon speciation to judge refractory and preg-robbing behaviour, and for acid-rock-drainage screening.",
     stages: [
-      S("sort", "Sorting & QC insertion", 1, "intake"),
+      S("sort", "Sorting & QC insertion", 0.5, "intake"),
       S("dry", "Drying at 80 °C or below", 12, "prep"),
-      S("pulv", "Crush & pulverise to 85% passing 75 µm", 6, "prep"),
+      S("pulv", "Crush & pulverise to 85% passing 75 µm", 4, "prep"),
       S("weigh", "Weighing 0.1–0.2 g", 1, "test"),
       S("total", "Total S & C by combustion infrared", 3, "test", "", true),
       S("spec", "Sulphide S and organic C (acid-washed residue)", 6, "test", "HCl wash removes carbonate carbon; residue burnt again for organic carbon."),
-      S("qc", "QA/QC review", 2, "qc")
+      S("qc", "QA/QC review", 1, "qc")
     ],
     qc: "LECO CRM every 20; duplicate every 20 within 5% relative.",
     triggers: ["Organic carbon above 0.2%: flag preg-robbing and offer a CIL test", "S above the calibration range: smaller weight and repeat"],
@@ -677,7 +709,7 @@ const DEFAULT_ROUTES = [
     desc: "Grind control and testwork sizing: % passing 75 µm and P80 from a √2 sieve series.",
     stages: [
       S("wet", "Wet mass & % solids", 1, "test"),
-      S("dry", "Drying at 105 °C", 12, "prep"),
+      S("dry", "Drying at 105 °C", 8, "prep"),
       S("split", "Split a representative 500 g", 1, "prep"),
       S("deslime", "Wet screening at 38 µm (desliming)", 3, "test", "", true),
       S("sieve", "Dry sieving, 2 mm to 38 µm", 3, "test", "15 minutes on the shaker; each fraction weighed."),
@@ -706,7 +738,7 @@ const DEFAULT_ROUTES = [
     stages: [
       S("filter", "Pressure filter: solution separated from solids", 1, "prep"),
       S("soln", "Solution Au by AAS (DIBK extraction)", 2, "test", "Detection 0.005 mg/L."),
-      S("dry", "Wash & dry residue", 8, "prep"),
+      S("dry", "Wash & dry residue", 4, "prep"),
       S("pulv", "Pulverise", 2, "prep"),
       S("fuse", "Residue fire assay, 50 g in duplicate", 4, "test", "Low-level method, detection 0.01 g/t.", true),
       S("finish", "AAS finish", 1, "test"),
@@ -723,7 +755,7 @@ const DEFAULT_ROUTES = [
       S("filter", "Filter: separate solution from solids", 1, "prep"),
       S("soln", "Solution Au by AAS for each stage", 2, "test", "DIBK extraction for low levels.", true),
       S("cn", "Free cyanide & pH", 1, "test"),
-      S("dry", "Wash & dry underflow solids", 8, "prep"),
+      S("dry", "Wash & dry underflow solids", 4, "prep"),
       S("pulv", "Pulverise", 2, "prep"),
       S("fa", "Underflow solids Au fire assay", 4, "test"),
       S("calc", "Wash efficiency & soluble gold loss per stage", 1, "test", "Soluble loss = solution Au × solution tonnes in the final underflow."),
@@ -769,7 +801,7 @@ const DEFAULT_ROUTES = [
       S("split", "Riffle split", 1, "prep"),
       S("load", "Au & Ag loading (ashed at 700 °C, aqua regia, AAS)", 8, "test", "", true),
       S("act", "Carbon activity (rate test against fresh carbon)", 6, "test"),
-      S("qc", "QA/QC review", 2, "qc")
+      S("qc", "QA/QC review", 1, "qc")
     ],
     qc: "Carbon CRM and duplicate each batch; duplicate within 10%.",
     triggers: ["Eluted carbon above 100 g/t Au: repeat and notify the elution operator", "Activity below 50% of fresh carbon: recommend regeneration"],
@@ -790,13 +822,13 @@ const DEFAULT_ROUTES = [
     desc: "High-grade concentrates handled under gold-room security and assayed in triplicate by gravimetric fire assay.",
     stages: [
       S("wet", "Witnessed wet weight & moisture", 0.5, "test", "Seal numbers recorded."),
-      S("dry", "Drying at 105 °C", 12, "prep"),
+      S("dry", "Drying at 105 °C", 8, "prep"),
       S("split", "Homogenise & split under custody", 2, "prep"),
       S("pulv", "Pulverise (screen first if coarse gold)", 2, "prep"),
       S("fuse", "Reduced-charge fire assay in triplicate", 6, "test", "", true),
       S("grav", "Gravimetric finish", 3, "test"),
       S("icp", "Ag, S, As, Cu (ICP / LECO)", 6, "test", "Payable and penalty elements."),
-      S("qc", "QA/QC review", 2, "qc")
+      S("qc", "QA/QC review", 1, "qc")
     ],
     qc: "Triplicates within 5% relative; high-grade CRM per batch; two-person custody for all handling.",
     triggers: ["Triplicates differ by more than 5%: screen fire assay of the whole concentrate", "Mass at receipt differs from dispatch: hold and report to security"],
@@ -810,7 +842,7 @@ const DEFAULT_ROUTES = [
       S("fuse", "Cupellation with proof gold, in duplicate", 6, "test", "ISO 11426; proof gold corrects for losses.", true),
       S("part", "Parting & cornet weighing", 2, "test"),
       S("imp", "Silver and impurities (Cu, Fe, Pb) by ICP-OES", 4, "test"),
-      S("qc", "QA/QC review", 2, "qc"),
+      S("qc", "QA/QC review", 1, "qc"),
       S("cert", "Fineness certificate signed", 1, "qc", "Signed by the lab manager.")
     ],
     qc: "Duplicates within 0.5 parts per thousand; proof gold recovery checked each run; top and bottom within 2 parts per thousand.",
@@ -822,11 +854,11 @@ const DEFAULT_ROUTES = [
       S("wet", "Wet mass, density & % solids", 1, "test"),
       S("filter", "Decant / filter solution", 1, "prep", "Cyanide aliquot preserved with NaOH to pH above 12 straight away."),
       S("soln", "Solution: WAD & free CN, pH, EC, Au", 4, "test", "", true),
-      S("dry", "Drying at 105 °C", 12, "prep"),
+      S("dry", "Drying at 105 °C", 8, "prep"),
       S("pulv", "Pulverise", 2, "prep"),
       S("fa", "Solids Au fire assay", 6, "test"),
       S("chem", "Total S & C (LECO) and ICP metals (As, Cu)", 8, "test"),
-      S("qc", "QA/QC review", 2, "qc")
+      S("qc", "QA/QC review", 1, "qc")
     ],
     qc: "Cyanide check standard every batch; duplicates within 10%; field blank where supplied.",
     triggers: ["WAD cyanide above 50 mg/L at discharge or in the pond: alert Environment immediately", "Solids Au more than 20% above plant tails grade: repeat"],
@@ -840,7 +872,7 @@ const DEFAULT_ROUTES = [
       S("met", "Dissolved metals by ICP-MS (As, Hg, Pb, Cd, Cu, Zn, Fe, Mn)", 8, "test", "Filtered 0.45 µm before acidifying."),
       S("anion", "Sulphate, chloride, nitrate, ammonia", 6, "test"),
       S("tss", "Total suspended solids", 6, "test"),
-      S("qc", "QA/QC review", 4, "qc", "Field and trip blanks, duplicate, spike."),
+      S("qc", "QA/QC review", 2, "qc", "Field and trip blanks, duplicate, spike."),
       S("permit", "Comparison with permit limits", 1, "qc", "Exceedances flagged on the report.")
     ],
     qc: "Field blank, trip blank and a field duplicate per sampling round; spike recovery 85–115%.",
@@ -855,7 +887,7 @@ const DEFAULT_ROUTES = [
       S("ph", "pH & EC (1:2.5 in water)", 2, "test"),
       S("met", "Aqua regia digest + ICP-MS (As, Hg, Pb, Cd, Cu, Zn, Cr)", 12, "test", "", true),
       S("cn", "Total cyanide (near plant / TSF)", 6, "test"),
-      S("qc", "QA/QC review", 4, "qc")
+      S("qc", "QA/QC review", 2, "qc")
     ],
     qc: "Soil CRM and duplicate per 20; blank per batch.",
     triggers: ["Above the guideline value: re-analyse and notify Environment", "CRM outside limits: repeat the batch"],
@@ -865,12 +897,12 @@ const DEFAULT_ROUTES = [
     stages: [
       S("log", "Sample log & head split", 1, "intake"),
       S("dry", "Drying at 80 °C or below", 12, "prep", "Low temperature so carbonaceous matter is not altered."),
-      S("pulv", "Pulverise to 85% passing 75 µm", 4, "prep"),
+      S("pulv", "Pulverise to 85% passing 75 µm", 2, "prep"),
       S("head", "Head assays: Au (fire assay), total & organic carbon (LECO)", 12, "test", "Organic carbon is the main preg-robbing indicator."),
       S("spike", "Spiked-solution test: sample + gold-cyanide solution (2 mg/L Au)", 6, "test", "Pulp at 40% solids, NaCN 0.1%, pH 10.5, bottle rolled; a sample-free blank of the same solution runs alongside.", true),
       S("aas", "Filter & solution Au by AAS", 2, "test", "Spiked solution, blank and sample read together."),
       S("pair", "Paired leach: cyanide alone vs cyanide with carbon (24 h)", 24, "test", "Extra gold recovered with carbon present shows how much a plain leach loses to preg-robbing."),
-      S("resfa", "Residue fire assays", 8, "test"),
+      S("resfa", "Residue fire assays", 6, "test"),
       S("calc", "Preg-robbing index & classification", 2, "test", "PRI = % of the spiked gold taken out of solution by the ore."),
       S("qc", "Metallurgist review", 4, "qc")
     ],
@@ -882,14 +914,14 @@ const DEFAULT_ROUTES = [
     stages: [
       S("log", "Sample log & split", 2, "intake"),
       S("dry", "Drying at 80 °C or below", 12, "prep"),
-      S("crush", "Crushing to 2 mm", 4, "prep"),
+      S("crush", "Crushing to 2 mm", 2, "prep"),
       S("split", "Rotary split: four or more 1 kg charges", 2, "prep"),
       S("grind", "Grind to plant P80", 6, "prep"),
       S("lime", "Lime demand curve (pH 10.0, 10.5, 11.0)", 4, "test", "Lime added in steps to reach each pH; kg/t CaO recorded."),
       S("set", "Leach series at 250, 500 and 1,000 ppm NaCN", 2, "test"),
       S("leach", "Parallel bottle rolls, 24 h, with cyanide & lime top-ups", 24, "test", "Free cyanide and pH checked at 2, 4, 8 and 24 h and topped up; every addition logged.", true),
       S("tit", "Titrations & solution Au", 6, "test", "Free cyanide by AgNO₃ titration; Au by AAS on each sample."),
-      S("resfa", "Residue fire assays", 8, "test"),
+      S("resfa", "Residue fire assays", 6, "test"),
       S("calc", "Consumption (kg/t NaCN, CaO) vs recovery; optimum dose", 4, "test"),
       S("qc", "Metallurgist review", 4, "qc")
     ],
@@ -924,7 +956,7 @@ const DEFAULT_ROUTES = [
       S("unload", "Unload, dry & split residue", 24, "prep"),
       S("resfa", "Residue size-by-size assays", 48, "test"),
       S("bal", "Metallurgical balance, recovery curve, reagent & binder use", 8, "test"),
-      S("qc", "Metallurgist review", 8, "qc")
+      S("qc", "Metallurgist review", 4, "qc")
     ],
     qc: "Calculated head within ±10% of the assayed head; solution balance (in, out, evaporation) closes within 5%.",
     triggers: ["Percolation fails or the column slumps more than 10%: increase binder and repeat agglomeration", "Recovery still rising at day 60: extend the leach", "Head balance outside ±10%: repeat residue assays"],
@@ -939,7 +971,7 @@ const DEFAULT_ROUTES = [
       S("aas", "Solution Au & Ag by AAS (diluted)", 4, "test"),
       S("res", "Residue fire assay", 6, "test"),
       S("calc", "Recovery & kinetics", 2, "test"),
-      S("qc", "QA/QC review", 2, "qc")
+      S("qc", "QA/QC review", 1, "qc")
     ],
     qc: "Gold balance within ±5% of head; two-person custody throughout.",
     triggers: ["Recovery below 95%: check for coarse gold, repeat with longer time or finer grind", "Balance outside ±5%: repeat residue assay"],
@@ -954,7 +986,7 @@ const DEFAULT_ROUTES = [
       S("aas", "Eluate Au, Ag, Cu by AAS", 4, "test"),
       S("barren", "Eluted (barren) carbon assay", 8, "test"),
       S("calc", "Elution efficiency & strip profile", 2, "test"),
-      S("qc", "QA/QC review", 2, "qc")
+      S("qc", "QA/QC review", 1, "qc")
     ],
     qc: "Gold balance (eluate + barren carbon) within ±10% of the loaded carbon.",
     triggers: ["Barren carbon above 100 g/t Au: check temperature and caustic strength, repeat", "Balance outside ±10%: repeat carbon assays"],
@@ -964,7 +996,7 @@ const DEFAULT_ROUTES = [
     stages: [
       S("log", "Sample log & split", 2, "intake"),
       S("dry", "Drying at 80 °C or below", 12, "prep"),
-      S("crush", "Crushing to 2 mm", 4, "prep"),
+      S("crush", "Crushing to 2 mm", 2, "prep"),
       S("split", "Rotary split 1 kg charges", 2, "prep"),
       S("grind", "Grind to target P80 in a lab rod mill", 4, "prep"),
       S("cond", "Conditioning: pH, activator (CuSO₄), collector (PAX), frother", 1, "test"),
@@ -973,7 +1005,7 @@ const DEFAULT_ROUTES = [
       S("dry2", "Filter & dry products", 12, "prep"),
       S("assay", "Concentrate & tails assays: Au (FA), S (LECO), As", 24, "test"),
       S("calc", "Recovery, grade and mass-pull curves", 4, "test"),
-      S("qc", "Metallurgist review", 8, "qc")
+      S("qc", "Metallurgist review", 4, "qc")
     ],
     qc: "Calculated head within ±10% of the assayed head; product masses within 2% of feed.",
     triggers: ["Mass loss above 2%: repeat", "Gold recovery below 80% with sulphide left in tails: repeat at a finer grind or with a different collector"],
@@ -982,7 +1014,7 @@ const DEFAULT_ROUTES = [
     desc: "Bulk density of core for tonnage in the resource model (water immersion, wax-coated if porous) and pulp SG by pycnometer for metallurgical calculations.",
     stages: [
       S("log", "Log core pieces & weigh", 1, "intake", "Competent pieces 10–20 cm long."),
-      S("dry", "Drying at 105 °C", 12, "prep"),
+      S("dry", "Drying at 105 °C", 8, "prep"),
       S("wax", "Wax coating of porous pieces", 2, "prep"),
       S("immerse", "Weigh in air & in water (Archimedes)", 2, "test", "Bulk density = mass in air ÷ (mass in air − mass in water), corrected for wax.", true),
       S("pyc", "Pulp SG by gas or water pycnometer", 4, "test", "On a pulverised split."),
@@ -1008,14 +1040,14 @@ const DEFAULT_ROUTES = [
   { code: "DELET", name: "Deleterious & cyanicide elements (Cu, As, Sb, Hg…)", tests: ["delet"], types: ["*"], purposes: ["met", "plant"],
     desc: "Elements that consume cyanide, lock up gold or need special handling: copper (especially cyanide-soluble), arsenic, antimony, bismuth, tellurium, mercury.",
     stages: [
-      S("sort", "Sorting & QC insertion", 1, "intake"),
+      S("sort", "Sorting & QC insertion", 0.5, "intake"),
       S("dry", "Drying at 60 °C or below", 12, "prep", "Low temperature so mercury is not lost."),
-      S("pulv", "Crush & pulverise to 85% passing 75 µm", 6, "prep"),
+      S("pulv", "Crush & pulverise to 85% passing 75 µm", 4, "prep"),
       S("weigh", "Weighing", 1, "test"),
       S("digest", "Aqua regia digest & ICP-OES: Cu, As, Sb, Bi, Te, Pb, Zn, Ni", 8, "test", "", true),
       S("hg", "Mercury by cold-vapour AAS", 6, "test", "Separate low-temperature digest."),
       S("cncu", "Cyanide-soluble copper", 8, "test", "The copper that will consume cyanide in the leach."),
-      S("qc", "QA/QC review", 3, "qc")
+      S("qc", "QA/QC review", 1, "qc")
     ],
     qc: "CRMs for Cu, As and Hg each batch; blank; duplicate 1 in 20.",
     triggers: ["Cyanide-soluble Cu above 200 ppm: flag high cyanide consumption to the plant", "As above 1% or Sb above 0.1%: flag possible refractory ore and offer diagnostic leach", "Hg above 10 ppm: flag for gold-room mercury controls"],
@@ -1029,8 +1061,8 @@ const DEFAULT_ROUTES = [
       S("qem", "QEMSCAN / MLA modal mineralogy & liberation", 72, "test", "", true),
       S("au", "Gold deportment search (grain size, associations, exposure)", 72, "test", "Bright-phase search for gold grains; free, locked and attached gold."),
       S("opt", "Optical microscopy / SEM check", 16, "test"),
-      S("report", "Mineralogy report", 16, "test"),
-      S("qc", "Mineralogist review", 8, "qc")
+      S("report", "Mineralogy report", 8, "test"),
+      S("qc", "Mineralogist review", 4, "qc")
     ],
     qc: "XRD standard each run; assays calculated from mineralogy reconcile with chemical assays within 10%.",
     triggers: ["Calculated assays more than 10% off chemical assays: re-check the sections", "Too few gold grains for a reliable result: prepare more sections"],
@@ -1045,7 +1077,7 @@ const DEFAULT_ROUTES = [
       S("total", "Total cyanide (strong-acid distillation)", 4, "test", "Includes iron cyanide complexes."),
       S("scn", "Thiocyanate & cyanate", 4, "test"),
       S("metals", "Cu, Fe, Zn in solution (AAS / ICP)", 3, "test", "Metal-cyanide complexes that carry WAD cyanide."),
-      S("qc", "QA/QC review", 2, "qc", "Standards, spikes and duplicates.")
+      S("qc", "QA/QC review", 1, "qc", "Standards, spikes and duplicates.")
     ],
     qc: "Spike recovery 85–115% for each form; duplicates within 10%; free ≤ WAD ≤ total checked on every sample.",
     triggers: ["WAD cyanide above 50 mg/L at TSF discharge: alert Environment and the plant immediately", "Free above WAD or WAD above total: repeat", "Holding time exceeded: report as indicative"],
@@ -1066,7 +1098,7 @@ const DEFAULT_ROUTES = [
   { code: "ABA", name: "Acid-base accounting & NAG (acid rock drainage)", tests: ["aba"], types: ["waste", "tsf", "core", "rc", "env_soil", "*"], purposes: ["env"],
     desc: "Predicts whether waste rock or tailings will generate acid: sulphide sulphur, neutralising capacity and net acid generation.",
     stages: [
-      S("sort", "Sorting & QC insertion", 1, "intake"),
+      S("sort", "Sorting & QC insertion", 0.5, "intake"),
       S("dry", "Drying at 40 °C or below", 12, "prep"),
       S("pulv", "Crush & pulverise", 4, "prep"),
       S("paste", "Paste pH & EC", 2, "test"),
@@ -1074,7 +1106,7 @@ const DEFAULT_ROUTES = [
       S("anc", "Acid neutralising capacity (Sobek titration)", 8, "test", "", true),
       S("nag", "Net acid generation test (NAG pH)", 24, "test", "Peroxide oxidation, then titration."),
       S("calc", "NAPP & classification (PAF / NAF / uncertain)", 2, "test"),
-      S("qc", "QA/QC review", 2, "qc")
+      S("qc", "QA/QC review", 1, "qc")
     ],
     qc: "ARD reference material each batch; duplicate 1 in 20.",
     triggers: ["NAPP and NAG disagree (uncertain): run kinetic column testing", "Potentially acid-forming: notify Environment for waste-dump placement"],
@@ -1082,13 +1114,13 @@ const DEFAULT_ROUTES = [
   { code: "AR-AU", name: "Low-level gold by aqua regia / BLEG (soils, sediments)", tests: ["ar_au"], types: ["soil_geo", "env_soil"], purposes: ["exp"],
     desc: "Parts-per-billion gold for soil and stream-sediment geochemistry, from a large aqua regia digest or bulk cyanide leach (BLEG).",
     stages: [
-      S("sort", "Sorting & QC insertion", 1, "intake"),
+      S("sort", "Sorting & QC insertion", 0.5, "intake"),
       S("dry", "Drying at 60 °C or below", 12, "prep"),
       S("sieve", "Sieve to −180 µm (−80 mesh)", 4, "prep"),
       S("weigh", "Weighing 25–50 g", 1, "test"),
       S("digest", "Aqua regia digest (or BLEG cyanide leach)", 8, "test", "", true),
       S("read", "Au by ICP-MS or solvent-extraction AAS", 4, "test", "Detection about 1 ppb Au."),
-      S("qc", "QA/QC review", 2, "qc")
+      S("qc", "QA/QC review", 1, "qc")
     ],
     qc: "Low-level CRM and blank every 20; field duplicates as supplied.",
     triggers: ["Au above 1 g/t: repeat by fire assay", "Duplicates differ by more than 30% at low levels: repeat"],
@@ -1097,10 +1129,10 @@ const DEFAULT_ROUTES = [
     desc: "A share of pulps re-assayed blind at an independent lab to prove the site lab has no bias, as resource reporting codes expect.",
     stages: [
       S("select", "Select pulps (5% of batch, all high grades) & renumber blind", 2, "intake", "Original IDs replaced with blind numbers; CRMs inserted."),
-      S("dispatch", "Dispatch to umpire lab with chain of custody", 4, "prep", "Waybill number recorded as the reference."),
+      S("dispatch", "Dispatch to umpire lab with chain of custody", 2, "prep", "Waybill number recorded as the reference."),
       S("ext", "Umpire lab analysis", 240, "test", "Usually 5–10 days at the external lab.", true),
-      S("compare", "Compare with original results (RPD, HARD plot, bias)", 4, "test"),
-      S("qc", "QA/QC manager review", 4, "qc")
+      S("compare", "Compare with original results (RPD, HARD plot, bias)", 2, "test"),
+      S("qc", "QA/QC manager review", 2, "qc")
     ],
     qc: "90% of pairs within ±10% (half absolute relative difference); CRMs in the umpire batch pass.",
     triggers: ["Bias above 5% between labs: review the original batch and repeat", "Umpire CRMs fail: ask the umpire lab to repeat"],
@@ -1310,6 +1342,9 @@ function routeQcText(r, groups = routeGroups(r)){
   return parts.join(" ") + (x && x[0] === r.qcp && x[1] ? " " + x[1] : "");
 }
 DEFAULT_ROUTES.forEach(r => { const x = ROUTE_QC[r.code]; if (!x) return; r.qcp = x[0]; r.qcg = routeGroups(r); r.qc = routeQcText(r, r.qcg); });
+/* Steps that run unattended (ovens, leaches, curing, an outside lab) keep running outside the lab's working hours. */
+const CLOCK_STEP = /^(Drying|Fast drying|Oven drying|Air drying|Bottle roll leach|CIL leach|Accelerated cyanide leach|Intensive cyanide leach|Paired leach|Parallel bottle rolls|Stage [1-5]:|Cyanide irrigation|Rinse & drain|Agglomeration|Percolation|Net acid generation|Repeat after|Umpire lab analysis|Polished sections|Filter & dry products|Unload, dry|Spiked-solution test)/;
+DEFAULT_ROUTES.forEach(r => r.stages.forEach(x => { if (CLOCK_STEP.test(x.name)) x.clock = true; }));
 /* ROUTES-END */
 const ADDONS = ["Ag", "Cu", "As", "Total sulphur", "Hg", "Moisture", "Particle size", "Specific gravity"];
 /* Hazards show on the record, the board card and the bag label. Each sample type pre-ticks its usual ones. */
@@ -1620,12 +1655,12 @@ const keepDays = r => Math.max(0, ...((r && r.retention) || []).map(x => +x.days
 const transitOf = r => r && r.transit != null && r.transit !== "" ? +r.transit : HEAD[0].hours;
 function buildPlan(r){
   return [{ ...HEAD[0], hours: transitOf(r) }, { ...HEAD[1] },
-    ...((r && r.stages) || []).map(x => ({ key: x.key, name: x.name, hours: +x.hours || 0, phase: x.phase || "test", ...(x.redo ? { redo: true } : {}) })),
+    ...((r && r.stages) || []).map(x => ({ key: x.key, name: x.name, hours: +x.hours || 0, phase: x.phase || "test", ...(x.redo ? { redo: true } : {}), ...(x.clock ? { clock: true } : {}) })),
     { key: "released", name: "Results released", hours: 24, phase: "report", target: true },
-    { key: "storage", name: "Retained in storage", hours: Math.max(1, keepDays(r)) * 24, phase: "store" }];
+    { key: "storage", name: "Retained in storage", hours: Math.max(1, keepDays(r)) * 24, phase: "store", clock: true }];
 }
-/* Hours from receipt to results for a route. */
-const routeTat = r => HEAD[1].hours + ((r && r.stages) || []).reduce((t, x) => t + (+x.hours || 0), 0);
+/* Hours from receipt to results for a route (elapsed time when the lab works in shifts). */
+const routeTat = r => routeSpan(r);
 /* What a sample copies from its route, so later edits to the route never change samples already in the lab. */
 function routeFields(r, test){
   return { route: r.code, routeName: r.name, test, testName: testOf(test)?.name || "", plan: buildPlan(r), retention: clone(r.retention || []),
@@ -1664,7 +1699,7 @@ function skipInfo(s, key){
   for (let i = h.length - 1; i >= 0; i--){ if (h[i].key === key && !h[i].skipped) return null; if ((h[i].skipped || []).includes(key)) return h[i]; }
   return null;
 }
-function stageDue(s){ const st = stage(s, s.stageKey); return st && !st.final ? s.stageAt + st.hours * HOUR : null; }
+function stageDue(s){ const st = stage(s, s.stageKey); return st && !st.final ? dueFrom(s.stageAt, st) : null; }
 const awaiting = s => s.stageKey === "submitted";
 const twoPerson = s => !!(s && (s.two || ["bullion", "conc"].includes(s.typeKey) || s.section === "GR"));
 const massUnit = s => typeOf(s?.typeKey)?.unit || "kg";
@@ -1708,8 +1743,8 @@ function status(s){
 function projection(s){
   const p = planOf(s), i = p.findIndex(x => x.key === s.stageKey), t = targetIdx(s), out = {};
   if (i < 0 || i >= t) return { out, eta: null };
-  let clock = Math.max(s.stageAt + p[i].hours * HOUR, Date.now());
-  for (let j = i + 1; j <= t; j++){ out[p[j].key] = clock; clock += p[j].hours * HOUR; }
+  let clock = Math.max(dueFrom(s.stageAt, p[i]), Date.now());
+  for (let j = i + 1; j <= t; j++){ const at = p[j].clock ? clock : workStart(clock); out[p[j].key] = at; clock = dueFrom(at, p[j]); }
   return { out, eta: out[p[t].key] };
 }
 function daysLabel(d){
@@ -2107,7 +2142,7 @@ function buildTrack(v, s){
       if (x.phase === "store"){
         const kept = keptMaterials(s), od = overdueMaterials(s), nextDue = Math.min(...kept.map(m => m.dueAt || Infinity));
         meta = `${kept.length} material${kept.length === 1 ? "" : "s"} kept` + (od.length ? ` · <b style="color:var(--bad)">${esc(od.map(m => m.item).join(", "))} past retention</b>` : isFinite(nextDue) ? ` · next due ${fmtDate(nextDue)}` : "");
-      } else meta = `Started ${fmt(s.stageAt)}` + (due && !x.final ? (now > due ? ` · <b style="color:var(--bad)">${dur(now - due)} over the ${hoursLabel(x.hours)} allowed</b>` : ` · due ${fmt(due)}`) : "");
+      } else meta = `Started ${fmt(s.stageAt)}` + (due && !x.final ? (now > due ? ` · <b style="color:var(--bad)">${dur(overBy(due, now, x))} over the ${hoursLabel(x.hours)} allowed</b>` : ` · due ${fmt(due)}`) : "");
       note = routeStageNote(s, x.key);
     } else if (i < curI){
       const sk = skipInfo(s, x.key);
@@ -2174,7 +2209,7 @@ function buildTrack(v, s){
     <div class="panel">
       <div class="card-head">
         <div class="stack" style="gap:6px">
-          <div class="row"><div class="sid">${esc(s.id)}</div><button class="btn ghost small" data-link="${esc(s.id)}">Copy tracking link</button></div>
+          <div class="row"><div class="sid">${esc(s.id)}</div><button class="btn ghost small" data-link="${esc(s.id)}">Copy tracking link</button><button class="btn ghost small" data-label="${esc(s.id)}">Print label</button></div>
           <div class="row"><span class="pill ${st.cls}">${esc(st.label)}</span>${s.priority === "Urgent" ? `<span class="pill gold">Urgent</span>` : ""}${s.route ? `<span class="code">${esc(s.route)}</span>` : ""}${hazPills(s)}${twoPerson(s) ? `<span class="pill warn">Two-person custody</span>` : ""}<span class="muted small">${esc(s.type)} · ${esc(s.testName || s.purpose)}</span></div>
         </div>
         <div class="eta">${etaHtml}</div>
@@ -2940,7 +2975,9 @@ async function register(){
     $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? (lab ? "Sample registered." : "Sample submitted.") : `${n} samples ${lab ? "registered" : "submitted"}.`}</b> Write ${n === 1 ? "this ID" : "these IDs"} on the bag${n === 1 ? "" : "s"} or print the label${n === 1 ? "" : "s"}:
       <div class="label-strip" style="margin-top:8px">${ids.map((id, i) => `<code>${esc(id)}${tagSets[i].length ? ` · ${esc(tagSets[i].join(", "))}` : ""}</code>`).join("")}</div>
       <div class="small" style="margin-top:8px">Workflow: <span class="code">${esc(r.code)}</span> ${esc(r.name)}. Results about ${hoursLabel(routeTat(r))} after receipt.</div>
-      <div class="row" style="margin-top:10px"><button type="button" class="btn" id="rCopy">Copy IDs</button>${n === 1 ? `<button type="button" class="btn" data-link="${esc(ids[0])}">Copy tracking link</button>` : ""}<button type="button" class="btn" data-open="${esc(ids[0])}">Track ${esc(ids[0])}</button><button type="button" class="btn ghost" id="rAgain">${lab ? "Register more" : "Submit another"}</button></div></div>`;
+      <div class="row" style="margin-top:10px"><button type="button" class="btn primary" id="rLabels">Print label${n === 1 ? "" : "s"}</button><button type="button" class="btn" id="rCopy">Copy IDs</button>${n === 1 ? `<button type="button" class="btn" data-link="${esc(ids[0])}">Copy tracking link</button>` : ""}<button type="button" class="btn" data-open="${esc(ids[0])}">Track ${esc(ids[0])}</button><button type="button" class="btn ghost" id="rAgain">${lab ? "Register more" : "Submit another"}</button></div></div>`;
+    const labels = ids.map((id, i) => labelOf({ ...base, id, tags: tagSets[i] }));
+    $("#rLabels").onclick = () => showLabels(labels);
     $("#rCopy").onclick = () => navigator.clipboard.writeText(ids.join("\n")).then(() => toast("IDs copied"), () => toast("Copy blocked here. Select the IDs and copy them."));
     $("#rAgain").onclick = () => { $(lab ? "#view-register" : "#view-submit").innerHTML = ""; renderSampleForm(mode); };
     btn.disabled = true;
@@ -3174,7 +3211,7 @@ function renderStages(){
     <td class="mono">${secCount(x.code)}</td>
     <td><button class="btn ghost danger" data-srm="${i}" aria-label="Remove section">✕</button></td></tr>`).join("");
   const goEdit = routeEditGo; routeEditGo = "";
-  if (goEdit){ const j = draft.routes.findIndex(r => r.code === goEdit); if (j >= 0) routeIdx = j; }
+  if (goEdit){ const j = draft.routes.findIndex(r => r.code === goEdit); if (j >= 0) routeIdx = j; cfgTab = "routes"; }
   if (routeIdx >= draft.routes.length) routeIdx = 0;
   const R = draft.routes[routeIdx];
   R.stages = R.stages || []; R.tests = R.tests || []; R.types = R.types || []; R.purposes = R.purposes || []; R.triggers = R.triggers || []; R.retention = R.retention || [];
@@ -3184,6 +3221,7 @@ function renderStages(){
     <td class="mono">${i + 3}</td>
     <td><input class="inp" style="min-width:200px" data-ri="${i}" data-rk="name" value="${esc(x.name)}" aria-label="Step name"></td>
     <td><input class="inp" style="width:90px" type="number" min="0" step="0.25" data-ri="${i}" data-rk="hours" value="${esc(x.hours)}" aria-label="Hours allowed"></td>
+    <td style="text-align:center"><input type="checkbox" data-ri="${i}" data-rk="clock" ${x.clock ? "checked" : ""} aria-label="Round the clock"></td>
     <td><select class="inp" style="width:auto" data-ri="${i}" data-rk="phase" aria-label="Phase">${["intake", "prep", "test", "qc"].map(p => `<option value="${p}" ${x.phase === p ? "selected" : ""}>${PHASE_LABEL[p]}</option>`).join("")}</select></td>
     <td style="text-align:center"><input type="radio" name="redo" data-ri="${i}" data-rk="redo" ${x.redo ? "checked" : ""} aria-label="Re-assays restart here"></td>
     <td><input class="inp" style="min-width:240px" data-ri="${i}" data-rk="note" value="${esc(x.note || "")}" aria-label="Method and checks"></td>
@@ -3214,6 +3252,7 @@ function renderStages(){
 
     <h2 style="margin-top:12px">Site time</h2>
     <div class="row"><input class="inp mono" id="cfgTz" style="width:260px" value="${esc(draft.tz)}" aria-label="Site time zone"><span class="small muted">Now at site: ${esc(fmtFull(Date.now()))}</span></div>
+    ${workHtml()}
 
     <h2 style="margin-top:12px">Results and certificates</h2>
     <label class="f" style="max-width:520px"><span>Who can see results on a sample record</span><select class="inp" id="cfgResPub"><option value="0" ${draft.resultsPublic ? "" : "selected"}>Signed-in staff only (recommended)</option><option value="1" ${draft.resultsPublic ? "selected" : ""}>Anyone with the sample ID or tag</option></select></label>
@@ -3242,7 +3281,7 @@ function renderStages(){
       <fieldset><div class="legend">Tests this route performs</div><div class="checks">${checks("tests", TESTS.map(t => [t.key, t.name]), R.tests)}</div></fieldset>
       <fieldset><div class="legend">Sample types it is meant for</div><div class="checks">${checks("types", [["*", "Any type"], ...TYPES.map(t => [t.key, t.name])], R.types)}</div></fieldset>
       <fieldset><div class="legend">Purposes it is chosen first for</div><div class="checks">${checks("purposes", PURPOSES.map(p => [p.key, p.name]), R.purposes)}</div></fieldset>
-      <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Lab step</th><th>Hours</th><th>Phase</th><th>Re-assay restarts here</th><th>Method and checks</th><th></th></tr></thead><tbody>${stRows}</tbody></table></div>
+      <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Lab step</th><th>Hours</th><th>Round the clock</th><th>Phase</th><th>Re-assay restarts here</th><th>Method and checks</th><th></th></tr></thead><tbody>${stRows}</tbody></table></div>
       <div class="row"><button class="btn" id="rsAdd">Add step</button><span class="small muted">Results about <b>${hoursLabel(routeTat(R))}</b> after receipt.</span></div>
       <label class="f" style="max-width:520px"><span>Lab batch and QC</span><select class="inp" id="rtQcp"><option value="">None: checks run on each sample's own results</option>${Object.entries(QC_PROFILES).map(([k, p]) => `<option value="${k}" ${R.qcp === k ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
       ${(R.qcg || []).length > 1 ? `<p class="small muted" style="margin:0">Samples on this route join ${esc(listAnd(R.qcg.map(g => `${aAn(lcName(QC_PROFILES[g.p]?.name || g.p))} for ${listAnd(groupAns(g, RESULTS[(R.tests || [])[0]]).map(a => /^[A-Z][a-z]?$/.test(a.k) ? a.k : lcName(a.n)))}`)))}.</p>` : ""}
@@ -3254,6 +3293,7 @@ function renderStages(){
     </div>
     <div class="row" style="border-top:1px solid var(--line);padding-top:14px"><button class="btn ghost" id="cfgBackup">Download backup</button><span style="flex:1"></span><button class="btn ghost" id="cfgReset">Restore default sections and routes</button><button class="btn ghost" id="cfgCancel">Discard changes</button><button class="btn primary big" id="cfgSave">Save settings</button></div>
   </div>`;
+  splitSettings(v);
   if (goEdit) $("#rtEdit").scrollIntoView({ block: "start" });
   const dirty = () => { draftDirty = true; renderStages(); };
   $("#cfgBackup").addEventListener("click", async e => {
@@ -3288,6 +3328,7 @@ function renderStages(){
     draft.crms.push({ id, name: "New reference material", an: "Au", u: "g/t", val: 1, sd: 0.05, use: "" }); dirty();
   };
   bindLimits(v, dirty);
+  bindWork(v, dirty);
   $("#cfgTz").addEventListener("change", e => { const z = e.target.value.trim(); if (!tzOk(z)){ toast(`${z || "That"} is not a time zone name. Try Africa/Accra.`); renderStages(); return; } draft.tz = z; dirty(); });
   v.querySelectorAll("[data-sf]").forEach(el => el.addEventListener("change", () => {
     const x = draft.sections[+el.dataset.si];
@@ -3334,6 +3375,7 @@ function renderStages(){
     const x = R.stages[+el.dataset.ri], f = el.dataset.rk;
     if (f === "redo"){ R.stages.forEach(y => delete y.redo); x.redo = true; }
     else if (f === "hours") x.hours = Math.max(0, +el.value || 0);
+    else if (f === "clock"){ if (el.checked) x.clock = true; else delete x.clock; }
     else x[f] = f === "name" ? (el.value.trim() || "Unnamed step") : el.value.trim();
     dirty();
   }));
@@ -3426,15 +3468,17 @@ function renderStages(){
     draft.users.push({ u, name: "New lab technician", role: "tech", em: "" }); dirty();
   };
   $("#cfgSave").onclick = async () => {
-    if (!draft.users.some(x => x.role === "admin")){ toast("Keep at least one admin account."); return; }
+    const fail = (pane, m) => { cfgTab = pane; renderStages(); toast(m); };
+    if (!draft.users.some(x => x.role === "admin")) return fail("accounts", "Keep at least one admin account.");
+    if (workProblem(draft.work)) return fail("sections", workProblem(draft.work));
     const sdPre = Object.values(QC_PROFILES).filter(p => p.crm?.mode === "sd").map(p => p.prefix);
     for (const c of draft.crms){
-      if (!(c.val > 0)){ toast(`${c.id}: the certified value must be above 0.`); return; }
+      if (!(c.val > 0)) return fail("crms", `${c.id}: the certified value must be above 0.`);
       const use = useList(c);
-      if (!(c.sd > 0) && (use.length ? use.some(x => sdPre.includes(x)) : true)){ toast(`${c.id}: give the standard deviation; batches of type ${(use.length ? use.filter(x => sdPre.includes(x)) : sdPre).slice(0, 4).join(", ")} judge it in SD.`); return; }
+      if (!(c.sd > 0) && (use.length ? use.some(x => sdPre.includes(x)) : true)) return fail("crms", `${c.id}: give the standard deviation; batches of type ${(use.length ? use.filter(x => sdPre.includes(x)) : sdPre).slice(0, 4).join(", ")} judge it in SD.`);
     }
     for (const [i, r] of draft.routes.entries()){
-      const bad = msg => { routeIdx = i; renderStages(); toast(`${r.code}: ${msg}`); };
+      const bad = msg => { routeIdx = i; fail("routes", `${r.code}: ${msg}`); };
       if (!r.tests.length) return bad("tick at least one test.");
       if (!r.stages.length) return bad("add at least one lab step.");
       const keys = r.stages.map(x => x.key);
@@ -3442,15 +3486,15 @@ function renderStages(){
     }
     for (const l of draft.limits){
       const r = draft.routes.find(x => x.code === l.route), a = r && (RESULTS[(r.tests || [])[0]]?.an || []).find(x => x.k === l.k);
-      if (!r || !a){ toast(`Limit ${l.id}: choose a route and one of its results.`); return; }
-      if (!(isFinite(+l.val) && String(l.val).trim() !== "")){ toast(`Limit ${l.id}: type the limit as a number.`); return; }
-      if (!String(l.act || "").trim()){ toast(`Limit ${l.id}: say what is done when it is crossed.`); return; }
+      if (!r || !a) return fail("limits", `Limit ${l.id}: choose a route and one of its results.`);
+      if (!(isFinite(+l.val) && String(l.val).trim() !== "")) return fail("limits", `Limit ${l.id}: type the limit as a number.`);
+      if (!String(l.act || "").trim()) return fail("limits", `Limit ${l.id}: say what is done when it is crossed.`);
     }
     const uncovered = TESTS.filter(t => !draft.routes.some(r => r.tests.includes(t.key))).map(t => t.name);
     const mine = draft;
     draftDirty = false;                      // our own save coming back is not "someone else's"
     try {
-      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users), crms: clone(draft.crms), limits: clone(draft.limits), resultsPublic: !!draft.resultsPublic, routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
+      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users), crms: clone(draft.crms), limits: clone(draft.limits), resultsPublic: !!draft.resultsPublic, work: workOf(draft.work), routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
       draftDirty = false; draft = null; renderStages(); markAccessGiven(mine.users);
       toast(uncovered.length ? `Saved. No route performs: ${uncovered.slice(0, 3).join(", ")}${uncovered.length > 3 ? "…" : ""}` : "Settings saved for everyone.");
     }
@@ -4769,6 +4813,321 @@ const bs = id => samples.get(id) || batchSamps.get(id);
 
 /* Version 13: the in-lab flag and a stock record for every received sample. */
 function upgrade13(s){ return { v: 13, lab: labOf(s), ...(stockOf(s) ? { sx: 1 } : {}) }; }
+/* ---------- lab working hours ---------- */
+/* cfg.work is null (round the clock) or { days: [0-6, Sunday = 0], shifts: [{ from: "06:00", to: "18:00" }], off: ["YYYY-MM-DD"] }.
+   Step allowances count only time inside a shift on a working day, except steps marked `clock` (ovens, leaches, curing, an outside
+   lab), which keep running overnight. A shift that ends before it starts runs past midnight and belongs to the day it starts. */
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const hhmm = v => /^([01]\d|2[0-3]):[0-5]\d$/.test(v || "");
+function workOf(w){
+  if (!w || typeof w !== "object") return null;
+  const days = [...new Set((w.days || []).map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 6))].sort();
+  const shifts = (w.shifts || []).filter(x => x && hhmm(x.from) && hhmm(x.to) && x.from !== x.to).map(x => ({ from: x.from, to: x.to }));
+  const off = [...new Set((w.off || []).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)))].sort();
+  return days.length && shifts.length ? { days, shifts, off } : null;
+}
+const keyAdd = (k, n) => { const [y, m, d] = k.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
+const keyDow = k => { const [y, m, d] = k.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };
+let workSig = "", workCache = new Map();
+/* Working spans [start, end] of the shifts that start on site day k, in epoch ms. */
+function workSpans(k){
+  const w = cfg.work, sig = JSON.stringify([w, TZ()]);
+  if (sig !== workSig){ workSig = sig; workCache = new Map(); }
+  let v = workCache.get(k); if (v) return v;
+  v = [];
+  if (w.days.includes(keyDow(k)) && !w.off.includes(k)) for (const x of w.shifts){
+    const a = fromInput(`${k}T${x.from}`), b = fromInput(`${x.to > x.from ? k : keyAdd(k, 1)}T${x.to}`);
+    if (b > a) v.push([a, b]);
+  }
+  v.sort((p, q) => p[0] - q[0]);
+  workCache.set(k, v); return v;
+}
+/* The moment `hours` of working time have passed after t. */
+function addWork(t, hours){
+  const ms = (+hours || 0) * HOUR;
+  if (!cfg.work || !(ms > 0)) return t + Math.max(0, ms);
+  let left = ms, cur = t, k = keyAdd(dayKey(t), -1);
+  for (let i = 0; i < 1500; i++, k = keyAdd(k, 1)) for (const [a, b] of workSpans(k)){
+    const s = Math.max(a, cur); if (b <= s) continue;
+    if (b - s >= left) return s + left;
+    left -= b - s; cur = b;
+  }
+  return cur + left;
+}
+/* The first working moment at or after t. */
+function workStart(t){
+  if (!cfg.work) return t;
+  let k = keyAdd(dayKey(t), -1);
+  for (let i = 0; i < 1500; i++, k = keyAdd(k, 1)) for (const [a, b] of workSpans(k)) if (b > t) return Math.max(a, t);
+  return t;
+}
+/* Working time between a and b, in ms. */
+function workBetween(a, b){
+  if (!(b > a)) return 0;
+  if (!cfg.work) return b - a;
+  let sum = 0, cur = a, k = keyAdd(dayKey(a), -1);
+  const end = dayKey(b);
+  for (let i = 0; i < 1500 && k <= end; i++, k = keyAdd(k, 1)) for (const [x, y] of workSpans(k)){
+    const s = Math.max(x, cur), e = Math.min(y, b);
+    if (e > s){ sum += e - s; cur = e; }
+  }
+  return sum;
+}
+/* When a step that starts at t is due, and how far past due it is at `now`. */
+const dueFrom = (t, x) => x.clock || !cfg.work ? t + (+x.hours || 0) * HOUR : addWork(t, x.hours);
+const overBy = (due, now, x) => x.clock || !cfg.work ? now - due : workBetween(due, now);
+/* Hours a route takes from receipt to results: the sum of its steps round the clock, or the elapsed time from the next shift start. */
+function routeSpan(r){
+  const steps = [HEAD[1], ...((r && r.stages) || [])];
+  if (!cfg.work) return steps.reduce((t, x) => t + (+x.hours || 0), 0);
+  const t0 = workStart(Date.now());
+  let t = t0;
+  for (const x of steps) t = dueFrom(x.clock ? t : workStart(t), x);
+  return (t - t0) / HOUR;
+}
+const weekHours = w => {
+  if (!w) return 168;
+  const len = x => { const [a, b] = [x.from, x.to].map(v => +v.slice(0, 2) * 60 + +v.slice(3)); return ((b - a + 1440) % 1440) / 60; };
+  return w.days.length * w.shifts.reduce((t, x) => t + len(x), 0);
+};
+
+/* Settings: lab working hours (on the Sections and site time tab). */
+function workHtml(){
+  const w = draft.work;
+  const days = w ? [1, 2, 3, 4, 5, 6, 0].map(d => `<label><input type="checkbox" data-wday="${d}" ${w.days.includes(d) ? "checked" : ""}> ${WEEKDAYS[d]}</label>`).join("") : "";
+  const shifts = w ? w.shifts.map((x, i) => `<tr><td>Shift ${i + 1}</td>
+    <td><input class="inp mono" type="time" style="width:auto" data-wsi="${i}" data-wsf="from" value="${esc(x.from)}" aria-label="Shift ${i + 1} starts"></td>
+    <td><input class="inp mono" type="time" style="width:auto" data-wsi="${i}" data-wsf="to" value="${esc(x.to)}" aria-label="Shift ${i + 1} ends"></td>
+    <td><button class="btn ghost danger" data-wsrm="${i}" aria-label="Remove shift ${i + 1}" ${w.shifts.length > 1 ? "" : "disabled"}>✕</button></td></tr>`).join("") : "";
+  const off = w ? w.off.map((d, i) => `<span class="daychip">${esc(fmtDate(fromInput(d + "T12:00")))}<button type="button" class="linkish" data-woffrm="${i}" aria-label="Remove ${esc(d)}">✕</button></span>`).join("") : "";
+  const ok = workOf(w);
+  return `<h2 style="margin-top:12px">Lab working hours</h2>
+    <div class="row"><select class="inp" id="wkMode" style="width:auto" aria-label="Lab working hours">
+      <option value="" ${w ? "" : "selected"}>Round the clock (24/7)</option><option value="1" ${w ? "selected" : ""}>Working days and shifts</option></select>
+      <span class="small muted">${ok ? `${+weekHours(ok).toFixed(2)} working hours a week` : w ? "" : "168 hours a week"}</span></div>
+    ${w ? `<fieldset><div class="legend">Working days</div><div class="checks" id="wkDays">${days}</div></fieldset>
+    <div class="tbl-wrap" style="max-width:440px"><table><thead><tr><th></th><th>Starts</th><th>Ends</th><th></th></tr></thead><tbody>${shifts}</tbody></table></div>
+    <div class="row"><button class="btn" id="wkAdd">Add shift</button></div>
+    <fieldset><div class="legend">Closed days</div>${off ? `<div class="row" style="gap:6px;margin-bottom:8px">${off}</div>` : ""}<div class="row"><input class="inp mono" type="date" id="wkOffNew" style="width:auto" aria-label="Closed day"><button class="btn" id="wkOffAdd">Add closed day</button></div></fieldset>` : ""}`;
+}
+function bindWork(v, dirty){
+  const w = draft.work;
+  $("#wkMode", v).addEventListener("change", e => { draft.work = e.target.value ? (draft.workWas || { days: [1, 2, 3, 4, 5, 6], shifts: [{ from: "06:00", to: "18:00" }], off: [] }) : null; if (!draft.work) draft.workWas = w; dirty(); });
+  if (!w) return;
+  v.querySelectorAll("[data-wday]").forEach(el => el.addEventListener("change", () => { w.days = [...v.querySelectorAll("[data-wday]:checked")].map(x => +x.dataset.wday).sort(); dirty(); }));
+  v.querySelectorAll("[data-wsf]").forEach(el => el.addEventListener("change", () => {
+    if (!hhmm(el.value)){ toast("Type the time as hours and minutes, like 06:00."); renderStages(); return; }
+    w.shifts[+el.dataset.wsi][el.dataset.wsf] = el.value; dirty();
+  }));
+  v.querySelectorAll("[data-wsrm]").forEach(b => b.onclick = () => { w.shifts.splice(+b.dataset.wsrm, 1); dirty(); });
+  $("#wkAdd", v).onclick = () => { const last = w.shifts[w.shifts.length - 1]; w.shifts.push({ from: last ? last.to : "06:00", to: last ? last.from : "18:00" }); dirty(); };
+  v.querySelectorAll("[data-woffrm]").forEach(b => b.onclick = () => { w.off.splice(+b.dataset.woffrm, 1); dirty(); });
+  $("#wkOffAdd", v).onclick = () => {
+    const d = $("#wkOffNew", v).value;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)){ toast("Pick the date first."); return; }
+    w.off = [...new Set([...w.off, d])].sort(); dirty();
+  };
+}
+/* Why a draft calendar can't be saved, or "". */
+function workProblem(w){
+  if (!w) return "";
+  if (!w.days.length) return "Tick at least one working day, or choose Round the clock.";
+  const bad = w.shifts.find(x => !hhmm(x.from) || !hhmm(x.to) || x.from === x.to);
+  return bad ? "Each shift needs a start and an end time that differ." : "";
+}
+
+/* ---------- Settings tabs ---------- */
+/* Settings draws every section on one page; the tabs show one group at a time, keyed by each section's heading, and keep the single Save. */
+const CFG_TABS = [["accounts", "Accounts"], ["sections", "Sections and site time"], ["crms", "Reference materials"], ["limits", "Limits"], ["routes", "Workflow routes"]];
+let cfgTab = "accounts";
+const paneOf = h => /^(Staff accounts|Access requests|Results and certificates)/.test(h) ? "accounts"
+  : /^(Submitting sections|Site time|Lab working hours)/.test(h) ? "sections" : /^Reference materials/.test(h) ? "crms"
+  : /^Action and permit limits/.test(h) ? "limits" : /^Workflow routes/.test(h) ? "routes" : "";
+function splitSettings(v){
+  const stack = v.firstElementChild; if (!stack) return;
+  const kids = [...stack.children], bar = kids[kids.length - 1];
+  let pane = "";
+  for (const el of kids){
+    if (el === bar) break;
+    if (el.tagName === "H2") pane = paneOf(el.textContent.trim()) || pane;
+    if (pane){ el.dataset.pane = pane; el.hidden = pane !== cfgTab; }
+  }
+  if (draftDirty) bar.insertAdjacentHTML("afterbegin", `<span class="pill warn">Unsaved changes</span>`);
+  stack.insertAdjacentHTML("afterbegin", `<div class="subtabs" role="tablist" aria-label="Settings">${CFG_TABS.map(([k, l]) => `<button type="button" role="tab" data-cfgtab="${k}" aria-selected="${k === cfgTab}">${l}</button>`).join("")}</div>`);
+  stack.querySelectorAll("[data-cfgtab]").forEach(b => b.onclick = () => { cfgTab = b.dataset.cfgtab; renderStages(); });
+}
+
+/* ---------- QR codes, drawn in the page (byte mode, error correction level M) ---------- */
+const QR_ECC = [0, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26, 30, 22, 22, 24, 24, 28, 28, 26, 26, 26, 26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28];
+const QR_BLOCKS = [0, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5, 5, 8, 9, 9, 10, 10, 11, 13, 14, 16, 17, 17, 18, 20, 21, 23, 25, 26, 28, 29, 31, 33, 35, 37, 38, 40, 43, 45, 47, 49];
+function qrRaw(v){ let r = (16 * v + 128) * v + 64; if (v >= 2){ const n = Math.floor(v / 7) + 2; r -= (25 * n - 10) * n - 55; if (v >= 7) r -= 36; } return r; }
+function qrMul(x, y){ let z = 0; for (let i = 7; i >= 0; i--){ z = (z << 1) ^ ((z >>> 7) * 0x11D); z ^= ((y >>> i) & 1) * x; } return z; }
+function qrDivisor(deg){
+  const r = new Array(deg).fill(0); r[deg - 1] = 1;
+  let root = 1;
+  for (let i = 0; i < deg; i++){ for (let j = 0; j < deg; j++){ r[j] = qrMul(r[j], root); if (j + 1 < deg) r[j] ^= r[j + 1]; } root = qrMul(root, 2); }
+  return r;
+}
+function qrRem(data, div){ const r = div.map(() => 0); for (const b of data){ const f = b ^ r.shift(); r.push(0); div.forEach((c, i) => r[i] ^= qrMul(c, f)); } return r; }
+function qrPenalty(m, n){
+  let p = 0, dark = 0;
+  const line = get => {
+    let s = 0, run = 1, seq = get(0) ? "1" : "0";
+    for (let i = 1; i < n; i++){ const c = get(i); seq += c ? "1" : "0"; if (c === get(i - 1)) run++; else { if (run >= 5) s += run - 2; run = 1; } }
+    if (run >= 5) s += run - 2;
+    for (const pat of ["10111010000", "00001011101"]) for (let i = seq.indexOf(pat); i >= 0; i = seq.indexOf(pat, i + 1)) s += 40;
+    return s;
+  };
+  for (let k = 0; k < n; k++) p += line(i => m[k][i]) + line(i => m[i][k]);
+  for (let y = 0; y < n - 1; y++) for (let x = 0; x < n - 1; x++){ const c = m[y][x]; if (c === m[y][x + 1] && c === m[y + 1][x] && c === m[y + 1][x + 1]) p += 3; }
+  for (const r of m) for (const c of r) if (c) dark++;
+  return p + Math.floor(Math.abs(dark * 20 - n * n * 10) / (n * n)) * 10;
+}
+/* The modules of a QR code for `text` (true = dark), smallest version that fits. */
+function qrMatrix(text){
+  const bytes = [...new TextEncoder().encode(text)];
+  const capOf = v => Math.floor(qrRaw(v) / 8) - QR_ECC[v] * QR_BLOCKS[v];
+  let v = 1;
+  while (v <= 40 && 4 + (v < 10 ? 8 : 16) + bytes.length * 8 > capOf(v) * 8) v++;
+  if (v > 40) throw new Error("Text too long for a QR code");
+  const cap = capOf(v), bits = [];
+  const put = (val, len) => { for (let i = len - 1; i >= 0; i--) bits.push((val >>> i) & 1); };
+  put(4, 4); put(bytes.length, v < 10 ? 8 : 16); bytes.forEach(b => put(b, 8));
+  put(0, Math.min(4, cap * 8 - bits.length)); put(0, (8 - bits.length % 8) % 8);
+  for (let pad = 0xEC; bits.length < cap * 8; pad ^= 0xEC ^ 0x11) put(pad, 8);
+  const data = [];
+  for (let i = 0; i < bits.length; i += 8) data.push(bits.slice(i, i + 8).reduce((a, b) => a * 2 + b, 0));
+  // Error correction per block, then interleaved.
+  const nb = QR_BLOCKS[v], el = QR_ECC[v], raw = Math.floor(qrRaw(v) / 8), short = nb - raw % nb, slen = Math.floor(raw / nb), div = qrDivisor(el), blocks = [];
+  for (let i = 0, k = 0; i < nb; i++){
+    const d = data.slice(k, k + slen - el + (i < short ? 0 : 1)); k += d.length;
+    const e = qrRem(d, div); if (i < short) d.push(0);
+    blocks.push(d.concat(e));
+  }
+  const cw = [];
+  for (let i = 0; i < blocks[0].length; i++) blocks.forEach((b, j) => { if (i !== slen - el || j >= short) cw.push(b[i]); });
+  // Finder, timing and alignment patterns, format and version information.
+  const n = v * 4 + 17, m = [...Array(n)].map(() => Array(n).fill(false)), fn = [...Array(n)].map(() => Array(n).fill(false));
+  const set = (x, y, d) => { m[y][x] = d; fn[y][x] = true; };
+  for (let i = 0; i < n; i++){ set(6, i, i % 2 === 0); set(i, 6, i % 2 === 0); }
+  for (const [cx, cy] of [[3, 3], [n - 4, 3], [3, n - 4]]) for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++){
+    const x = cx + dx, y = cy + dy, d = Math.max(Math.abs(dx), Math.abs(dy));
+    if (x >= 0 && x < n && y >= 0 && y < n) set(x, y, d !== 2 && d !== 4);
+  }
+  if (v > 1){
+    const na = Math.floor(v / 7) + 2, step = Math.floor((v * 8 + na * 3 + 5) / (na * 4 - 4)) * 2, pos = [6];
+    for (let p = n - 7; pos.length < na; p -= step) pos.splice(1, 0, p);
+    pos.forEach((a, i) => pos.forEach((b, j) => {
+      if ((i === 0 && j === 0) || (i === 0 && j === na - 1) || (i === na - 1 && j === 0)) return;
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) set(a + dx, b + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+    }));
+  }
+  const format = mask => {
+    let r = mask; for (let i = 0; i < 10; i++) r = (r << 1) ^ ((r >>> 9) * 0x537);
+    const b = ((mask << 10) | r) ^ 0x5412, g = i => ((b >>> i) & 1) === 1;   // level M = 00
+    for (let i = 0; i <= 5; i++) set(8, i, g(i));
+    set(8, 7, g(6)); set(8, 8, g(7)); set(7, 8, g(8));
+    for (let i = 9; i < 15; i++) set(14 - i, 8, g(i));
+    for (let i = 0; i < 8; i++) set(n - 1 - i, 8, g(i));
+    for (let i = 8; i < 15; i++) set(8, n - 15 + i, g(i));
+    set(8, n - 8, true);
+  };
+  format(0);
+  if (v >= 7){
+    let r = v; for (let i = 0; i < 12; i++) r = (r << 1) ^ ((r >>> 11) * 0x1F25);
+    const b = (v << 12) | r;
+    for (let i = 0; i < 18; i++){ const d = ((b >>> i) & 1) === 1, a = n - 11 + i % 3, c = Math.floor(i / 3); set(a, c, d); set(c, a, d); }
+  }
+  // Data in the zigzag order.
+  let bi = 0;
+  for (let right = n - 1; right >= 1; right -= 2){
+    if (right === 6) right = 5;
+    for (let vert = 0; vert < n; vert++) for (let j = 0; j < 2; j++){
+      const x = right - j, y = ((right + 1) & 2) === 0 ? n - 1 - vert : vert;
+      if (!fn[y][x] && bi < cw.length * 8){ m[y][x] = ((cw[bi >>> 3] >>> (7 - (bi & 7))) & 1) === 1; bi++; }
+    }
+  }
+  // The mask with the lowest penalty.
+  const masks = [(x, y) => (x + y) % 2 === 0, (x, y) => y % 2 === 0, x => x % 3 === 0, (x, y) => (x + y) % 3 === 0,
+    (x, y) => (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0, (x, y) => x * y % 2 + x * y % 3 === 0,
+    (x, y) => (x * y % 2 + x * y % 3) % 2 === 0, (x, y) => ((x + y) % 2 + x * y % 3) % 2 === 0];
+  const flip = k => { for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (!fn[y][x] && masks[k](x, y)) m[y][x] = !m[y][x]; };
+  let best = 0, low = Infinity;
+  for (let k = 0; k < 8; k++){ flip(k); format(k); const p = qrPenalty(m, n); if (p < low){ low = p; best = k; } flip(k); }
+  flip(best); format(best);
+  return m;
+}
+function qrSvg(text){
+  const m = qrMatrix(text), n = m.length, q = 4;
+  let d = "";
+  m.forEach((r, y) => r.forEach((c, x) => { if (c) d += `M${x + q} ${y + q}h1v1h-1z`; }));
+  return `<svg class="qr" viewBox="0 0 ${n + 2 * q} ${n + 2 * q}" shape-rendering="crispEdges" role="img" aria-label="QR code"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+}
+
+/* ---------- bag labels ---------- */
+const trackUrl = id => SHARE_URL + "#" + id;
+const labelOf = s => ({ id: s.id, tag: (s.tags || []).join(", "), type: s.type || "", sec: s.section || "", at: s.createdAt || s.recvAt || 0,
+  haz: hazTags(s).map(h => h.tag), two: twoPerson(s), urgent: s.priority === "Urgent" });
+function labelHtml(x){
+  return `<div class="bag-label">
+    <div class="bl-qr">${qrSvg(trackUrl(x.id))}</div>
+    <div class="bl-main">
+      <div class="bl-org">Assay Lab</div>
+      <div class="bl-id">${esc(x.id)}</div>
+      ${x.tag ? `<div class="bl-line"><span>Tag</span><b>${esc(x.tag)}</b></div>` : ""}
+      <div class="bl-line"><span>Type</span><b>${esc(x.type)}</b></div>
+      <div class="bl-line"><span>Section</span><b>${esc(x.sec)}</b></div>
+      <div class="bl-line"><span>Submitted</span><b>${esc(fmtDate(x.at))}</b></div>
+      ${x.haz.length || x.two || x.urgent ? `<div class="bl-flags">${x.urgent ? "<b>URGENT</b>" : ""}${x.haz.map(t => `<b>${esc(t)}</b>`).join("")}${x.two ? "<b>2-PERSON</b>" : ""}</div>` : ""}
+    </div></div>`;
+}
+let labelItems = [], labelPaper = "a4";
+const labelPage = () => labelPaper === "roll" ? "@page{size:100mm 50mm;margin:0}" : "@page{size:A4;margin:8mm}";
+function showLabels(items){
+  labelItems = items.filter(x => x && x.id);
+  if (!labelItems.length) return;
+  const box = $("#labelBox"), n = labelItems.length;
+  box.innerHTML = `<div class="cert-wrap"><div class="cert-bar"><b>${n === 1 ? esc(labelItems[0].id) : `${n} labels`}</b><span style="flex:1"></span>
+    <select class="inp" id="lbPaper" style="width:auto" aria-label="Paper"><option value="a4">A4 sheet</option><option value="roll">Label printer, 100 × 50 mm</option></select>
+    <button type="button" class="btn" id="lbPrint">Print</button><button type="button" class="btn" id="lbDl">Download</button><button type="button" class="btn primary" id="lbClose">Close</button></div>
+    <div class="label-sheet ${labelPaper}">${labelItems.map(labelHtml).join("")}</div></div>`;
+  box.hidden = false;
+  $("#lbPaper").value = labelPaper;
+  $("#lbPaper").onchange = e => { labelPaper = e.target.value; $(".label-sheet", box).className = "label-sheet " + labelPaper; };
+  $("#lbClose").onclick = closeLabels;
+  box.onclick = e => { if (e.target === box) closeLabels(); };
+  $("#lbPrint").onclick = () => {
+    let st = $("#labelPageCss"); if (!st){ st = document.createElement("style"); st.id = "labelPageCss"; document.head.appendChild(st); }
+    st.textContent = `@media print{${labelPage()}}`;
+    document.body.classList.add("print-label");
+    try { window.print(); } catch { toast("Printing is blocked in this view. Use Download instead."); }
+  };
+  $("#lbDl").onclick = async () => {
+    const dl = window.claude?.use ? await claude.use("downloads") : null;
+    if (!dl){ toast("Downloads are not available in this view."); return; }
+    const css = [...document.querySelectorAll("style")].filter(x => x.id !== "labelPageCss").map(x => x.textContent).join("\n");
+    const name = n === 1 ? `label-${labelItems[0].id}.html` : `labels-${labelItems[0].id}-${n}.html`;
+    try { await dl.save({ filename: name, data: `<!doctype html><html><head><meta charset="utf-8"><title>${esc(name)}</title><style>${css}\n${labelPage()}</style></head><body class="labels-only"><div class="label-sheet ${labelPaper}">${labelItems.map(labelHtml).join("")}</div></body></html>` }); }
+    catch { toast("Download was not saved."); }
+  };
+  $("#lbClose").focus();
+}
+function closeLabels(){
+  const box = $("#labelBox"); if (!box || box.hidden) return;
+  box.hidden = true; box.innerHTML = ""; document.body.classList.remove("print-label");
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeLabels(); });
+addEventListener("afterprint", () => document.body.classList.remove("print-label"));
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-label]"); if (!b) return;
+  const s = current?.body && current.body.id === b.dataset.label ? current.body : samples.get(b.dataset.label);
+  if (s) showLabels([labelOf(s)]);
+});
+/* A scanned label opened in a tab that already has the tracker: show that sample. */
+addEventListener("hashchange", () => {
+  let h = ""; try { h = decodeURIComponent((location.hash || "").slice(1)); } catch {}
+  if (h && (idFromText(h) || h) !== current?.id) openSample(h);
+});
 
 /* ---------- upgrade of records written by earlier versions (runs once, under a lease) ---------- */
 function upgradeSample(s){
@@ -4907,7 +5266,7 @@ setTab(tab);
         routes: mergeRoutes(d.routes, d.removed), removed: Array.isArray(d.removed) ? d.removed.slice() : [],
         sections: Array.isArray(d.sections) && d.sections.length ? clone(d.sections) : clone(DEFAULT_CONFIG.sections),
         users, tz: d.tz && tzOk(d.tz) ? d.tz : DEFAULT_CONFIG.tz,
-        crms: Array.isArray(d.crms) && d.schema >= 12 ? clone(d.crms) : mergeCrms(d.crms), limits: Array.isArray(d.limits) ? clone(d.limits) : clone(DEFAULT_CONFIG.limits), resultsPublic: !!d.resultsPublic
+        crms: Array.isArray(d.crms) && d.schema >= 12 ? clone(d.crms) : mergeCrms(d.crms), limits: Array.isArray(d.limits) ? clone(d.limits) : clone(DEFAULT_CONFIG.limits), resultsPublic: !!d.resultsPublic, work: workOf(d.work)
       };
     }
     if (!draftDirty) draft = null;          // someone else's save shows up unless you have unsaved edits

@@ -2,7 +2,7 @@
 // The suites are copied from ../sample-tracking/test into a scratch folder next to an Azure harness (unchanged, except
 // the ADJUST list below);
 // azure-extra.js (this folder) checks what is new in the Azure build.
-//   node test/run-suites.js run.js results-tests.js     (default: all seven, then azure-extra.js)
+//   node test/run-suites.js run.js results-tests.js     (default: all nine, then azure-extra.js)
 const fs = require("fs"), path = require("path"), os = require("os"), { spawnSync } = require("child_process");
 const AZ = path.resolve(__dirname, ".."), PROTO = path.resolve(AZ, "..", "sample-tracking", "test");
 const work = process.env.WORK_DIR || fs.mkdtempSync(path.join(os.tmpdir(), "az-suites-"));
@@ -12,10 +12,23 @@ const a = tail.indexOf("async function signIn("), b = tail.indexOf("async functi
 if (a < 0 || b < 0) throw new Error("harness layout changed");
 tail = tail.slice(0, a) + tail.slice(b);
 fs.writeFileSync(path.join(work, "harness.js"), fs.readFileSync(path.join(__dirname, "harness-head.js"), "utf8") + "\n" + tail);
-const suites = process.argv.slice(2).length ? process.argv.slice(2) : ["run.js", "results-tests.js", "v12-tests.js", "v13-tests.js", "review-tests-v11.js", "review-v11-scenarios.js", "hours-shortcut-tests.js", "azure-extra.js"];
-/* Checks that read a sentence this build takes out of the page (build.py section 10) check the same fact another way.
-   None at present: since v13 the prototype's own suites no longer read such sentences. */
-const ADJUST = {};
+const suites = process.argv.slice(2).length ? process.argv.slice(2) : ["run.js", "results-tests.js", "v12-tests.js", "v13-tests.js", "review-tests-v11.js", "review-v11-scenarios.js", "hours-shortcut-tests.js", "v14-tests.js", "work-hours-unit.js", "azure-extra.js"];
+/* Checks the prototype's suites make differently here. Since v13 no suite reads a sentence build.py section 10 takes out.
+   v14-tests.js: tracking links and bag-label QR codes carry this site's own address, not the Claude artifact's, and the suite
+   opens them there; where no QR decoder is installed, a label's QR code is compared with the page's own encoder run in Node on the text it
+   should hold (the prototype's suite proves that encoder with a decoder). */
+const ADJUST = {
+  "v14-tests.js": [
+    ['const SHARE = "https://claude.ai/artifact/5JgoyE2wokT67u8TCtYDop";', `let SHARE = "";
+const qrOf = (() => { const page = require("fs").readFileSync(path.join(process.env.AZ_ROOT, "app/index.html"), "utf8"); const a = page.indexOf("/* ---------- QR codes"), b = page.indexOf("/* ---------- bag labels"); if (a < 0 || b < a) throw new Error("QR code not found in the page"); const f = {}; eval(page.slice(a, b) + "\\nf.qrSvg = qrSvg;"); return f.qrSvg; })();`],
+    ["  if (!jsQR) return null;", `  if (!jsQR){ const t = await page.$eval(sel, s => s.closest(".bag-label").textContent); const want = SHARE + "#" + ((t.match(/[A-Z0-9]{1,8}-\\d{8}-\\d{4}/) || [""])[0]); return qrOf(want).includes(\`d="\${d}"\`) ? want : "(a different code)"; }`],
+    ["  const q0 = await readQr(P,", "  SHARE = new URL(P.url()).origin + \"/\"; const q0 = await readQr(P,"],
+    ["check(jsQR ? q0 === SHARE + \"#\" + ex[0] && q1 === SHARE + \"#\" + ex[1] : false,", "check(q0 === SHARE + \"#\" + ex[0] && q1 === SHARE + \"#\" + ex[1],"],
+    ['await T2.goto(H.FILE + "#" + ex[0]);', 'await T2.goto(SHARE + "#" + ex[0]);'],
+    ['await P.goto(H.FILE + "#" + ex[0]);', 'await P.goto(SHARE + "#" + ex[0]);']
+  ],
+  "work-hours-unit.js": [['path.resolve(__dirname, "../assay-lab-sample-tracker.html")', 'path.join(process.env.AZ_ROOT, "app/index.html")']]   // this build's page
+};
 let bad = 0;
 for (const s of suites){
   let code = fs.readFileSync(fs.existsSync(path.join(PROTO, s)) ? path.join(PROTO, s) : path.join(__dirname, s), "utf8");   // the prototype's suites, or this folder's own
