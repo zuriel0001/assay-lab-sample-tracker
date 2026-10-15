@@ -39,6 +39,10 @@ function requestProblem(headers){
   if (site && site !== "same-origin") return "Requests must come from this site.";
   return "";
 }
+/* The company logo in Settings (shown in everyone's header): empty, or a small PNG, JPEG or WebP picture as a data URL, as the
+   page makes it. Anything else (another type, a link, a large file) is refused. */
+const LOGO_MAX = 90000;
+const validLogo = v => v === "" || (typeof v === "string" && v.length <= LOGO_MAX && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(v));
 /* Results and certificate contents are hidden from people who may not see them; the certificate number and check code stay visible. */
 function redactSample(d){
   if (!d) return d;
@@ -281,6 +285,7 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
         if (!users.some(x => x && x.role === "admin") && !admins.length) throw fail("bad_request", "Keep at least one admin account.");
       }
       if (t === "delete") throw fail("permission_denied");
+      if (op.data.logo != null && !validLogo(op.data.logo)) throw fail("bad_request", "The company logo must be a PNG, JPEG or WebP picture under 90 KB.");
       if (t === "set") await store.set(op.path, op.data); else await store.update(op.path, op.data);
       cache = null;
       return { ok: true };

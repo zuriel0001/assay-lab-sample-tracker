@@ -118,7 +118,7 @@ function renderLogin(){
   }
   if (m.signedIn && !session){
     v.innerHTML = `<div class="panel stack" id="loginForm" style="max-width:520px"><h2>Staff sign in</h2>
-      <div class="notice warn">Signed in as <b>${esc(m.email)}</b>: no access yet. <a href="#" id="otherAcct">Use a different account</a></div><div id="accReq"></div></div>`;
+      <div class="notice warn">Signed in as <b>${esc(m.email)}</b>: no access yet. <button type="button" class="linkish" id="otherAcct">Use a different account</button></div><div id="accReq"></div></div>`;
     $("#otherAcct").onclick = e => { e.preventDefault(); signOut(); };
     renderAccessRequest();
     return;
@@ -284,10 +284,7 @@ def drop(s):
     else: put(s, "")
 
 # Sample record
-drop('''      Every sample gets an ID like <span class="mono">${esc(exampleId())}</span> when it is submitted: the section that sent it, the submission date, then a running number. You can also type the sample's tag number or scan its label.''')
-drop('''      Type it above to see the sample type, who submitted it, the test and its workflow route, the current stage and when results are expected.''')
 drop('''<p class="small muted" style="margin:0">The tag number or site reference is on more than one sample. Pick the one you want.</p>''')
-put('''""}. Based on the route's step times; queues can add to it.</div>''', '''""}</div>''')
 put('''${session ? "You can view this sample. Only lab staff can update it." : "Only lab staff update samples. <button class='btn ghost small' data-goto='login'>Staff sign in</button>"}''',
     '''${session ? "View only." : "<button class='btn ghost small' data-goto='login'>Staff sign in</button>"}''')
 put('''.${(s.materials || []).length ? " A lab supervisor can reverse a material movement recorded by mistake, under Retained material." : ""}</p>''', '''.</p>''')

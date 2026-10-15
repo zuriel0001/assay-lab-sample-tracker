@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 b10beca74e7a) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 f7bb44c43057) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -305,34 +305,248 @@ body.labels-only .label-sheet{background:none;padding:0;justify-content:flex-sta
   .label-sheet.roll .bag-label{border:0;break-after:page;page-break-after:always}
   .label-sheet .bag-label{border-color:#ccc;zoom:1}
 }
+/* v15: design refresh. Icons (stroke, 24 px grid) are CSS masks, so they take the text colour and survive label changes. */
+:root{
+  --ic-board:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Crect x=%223%22 y=%224%22 width=%225%22 height=%2216%22 rx=%221%22/%3E%3Crect x=%2210%22 y=%224%22 width=%225%22 height=%2210%22 rx=%221%22/%3E%3Crect x=%2217%22 y=%224%22 width=%224%22 height=%2213%22 rx=%221%22/%3E%3C/svg%3E");
+  --ic-track:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Ccircle cx=%2211%22 cy=%2211%22 r=%226.5%22/%3E%3Cpath d=%22m20.5 20.5-4.8-4.8%22/%3E%3C/svg%3E");
+  --ic-submit:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M12 15V4M7.5 8.5 12 4l4.5 4.5%22/%3E%3Cpath d=%22M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5%22/%3E%3C/svg%3E");
+  --ic-register:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Crect x=%225%22 y=%224%22 width=%2214%22 height=%2217%22 rx=%222%22/%3E%3Cpath d=%22M9 4V3h6v1%22/%3E%3Cpath d=%22m9 13 2 2 4-4%22/%3E%3C/svg%3E");
+  --ic-batches:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M6 4v12a2 2 0 0 0 4 0V4M14 4v12a2 2 0 0 0 4 0V4%22/%3E%3Cpath d=%22M4 4h16%22/%3E%3Cpath d=%22M6 11h4M14 13h4%22/%3E%3C/svg%3E");
+  --ic-storage:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Crect x=%223%22 y=%224%22 width=%2218%22 height=%225%22 rx=%221%22/%3E%3Cpath d=%22M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9%22/%3E%3Cpath d=%22M10 13h4%22/%3E%3C/svg%3E");
+  --ic-results:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z%22/%3E%3Cpath d=%22M14 3v5h5%22/%3E%3Cpath d=%22m9 15 2 2 4-4%22/%3E%3C/svg%3E");
+  --ic-ledger:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M4 8h14l-4-4%22/%3E%3Cpath d=%22M20 16H6l4 4%22/%3E%3C/svg%3E");
+  --ic-routes:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Ccircle cx=%226%22 cy=%2219%22 r=%222%22/%3E%3Ccircle cx=%2218%22 cy=%225%22 r=%222%22/%3E%3Cpath d=%22M8 19h8.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H16%22/%3E%3C/svg%3E");
+  --ic-stages:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1%22/%3E%3Ccircle cx=%2215%22 cy=%226%22 r=%222%22/%3E%3Ccircle cx=%229%22 cy=%2212%22 r=%222%22/%3E%3Ccircle cx=%2217%22 cy=%2218%22 r=%222%22/%3E%3C/svg%3E");
+  --ic-login:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4%22/%3E%3Cpath d=%22m10 17 5-5-5-5%22/%3E%3Cpath d=%22M15 12H3%22/%3E%3C/svg%3E");
+  --ic-more:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Ccircle cx=%225%22 cy=%2212%22 r=%221.2%22/%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%221.2%22/%3E%3Ccircle cx=%2219%22 cy=%2212%22 r=%221.2%22/%3E%3C/svg%3E");
+  --ic-moon:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z%22/%3E%3C/svg%3E");
+  --ic-sun:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%224%22/%3E%3Cpath d=%22M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4%22/%3E%3C/svg%3E");
+  --ic-wall:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Crect x=%223%22 y=%224%22 width=%2218%22 height=%2212%22 rx=%221%22/%3E%3Cpath d=%22M8 20h8M12 16v4%22/%3E%3C/svg%3E");
+  --ic-close:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M6 6l12 12M18 6 6 18%22/%3E%3C/svg%3E");
+  --ic-chev:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22m6 9 6 6 6-6%22/%3E%3C/svg%3E");
+  --ic-flask:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M9 3h6M10 3v6l-5.5 9.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3%22/%3E%3Cpath d=%22M7.5 15h9%22/%3E%3C/svg%3E");
+  --ic-clock:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%228.5%22/%3E%3Cpath d=%22M12 7.5V12l3 2%22/%3E%3C/svg%3E");
+}
+:root{--r:8px;--tap:44px;--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;
+  --brand:#1e2925;--brand-2:#2b3934;--brand-ink:#f3f0e7;--brand-muted:#b4bfb9;--shadow:0 1px 2px rgba(20,28,24,.05),0 2px 10px rgba(20,28,24,.05);--lift:0 10px 30px rgba(10,16,13,.18)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--brand:#0d1311;--brand-2:#18211e;--shadow:none;--lift:0 10px 30px rgba(0,0,0,.5)}}
+:root[data-theme="dark"]{--brand:#0d1311;--brand-2:#18211e;--shadow:none;--lift:0 10px 30px rgba(0,0,0,.5)}
+:root[data-theme="light"]{color-scheme:light}
+.wrap{padding-top:0}
+.panel{box-shadow:var(--shadow)}
+/* Header: brand bar with logo, search and account */
+header.top{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px 24px;padding:14px 0 16px;border-bottom:0;background:var(--brand);color:var(--brand-ink);box-shadow:0 0 0 100vmax var(--brand);clip-path:inset(0 -100vmax)}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand-t{min-width:0}
+header.top .brand small{color:var(--brand-muted);font-size:11px}
+header.top h1{font-size:22px;color:var(--brand-ink);white-space:nowrap}
+.logo{flex:none;display:grid;place-items:center;height:42px;min-width:42px;max-width:150px;border-radius:var(--r);background:var(--accent);overflow:hidden}
+.logo::before{content:"";width:24px;height:24px;background:#fff;-webkit-mask:var(--ic-flask) center/contain no-repeat;mask:var(--ic-flask) center/contain no-repeat}
+.logo.has-img{background:#fff;padding:4px 7px}
+.logo.has-img::before{display:none}
+.logo img{display:block;height:34px;width:auto;max-width:136px;object-fit:contain}
+header.top .lookup{grid-column:1/-1;grid-row:2;margin:0;flex-wrap:nowrap;width:100%}
+header.top .lookup input{flex:1 1 auto;font-size:18px;padding:8px 14px;min-height:48px;border:1px solid transparent;background:var(--panel);color:var(--ink)}
+header.top .lookup input::placeholder{font-size:15px}
+header.top .lookup .btn.big{min-height:48px;padding:0 20px;font-size:15px;white-space:nowrap}
+.top-meta{display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:nowrap;min-width:0}
+header.top .pill{background:rgba(255,255,255,.1);color:var(--brand-ink)}
+header.top .pill.ok{background:rgba(108,196,143,.16);color:#a3e2ba}
+header.top .pill.warn,header.top .pill.gold{background:rgba(232,162,90,.16);color:#f2c48f}
+header.top .pill.bad{background:rgba(239,125,117,.18);color:#ffb4ae}
+header.top .who{color:var(--brand-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
+header.top .btn{background:transparent;border-color:rgba(255,255,255,.26);color:var(--brand-ink);min-height:var(--tap)}
+header.top .btn:hover{border-color:var(--brand-ink)}
+header.top .lookup .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.icon-btn{flex:none;display:inline-grid;place-items:center;width:44px;height:44px;padding:0;border-radius:var(--r);border:1px solid rgba(255,255,255,.26);background:transparent;color:var(--brand-ink);cursor:pointer}
+.icon-btn:hover{border-color:var(--brand-ink)}
+.icon-btn::before{content:"";width:20px;height:20px;background:currentColor;-webkit-mask:var(--ic-moon) center/contain no-repeat;mask:var(--ic-moon) center/contain no-repeat}
+.icon-btn[aria-pressed="true"]::before{-webkit-mask-image:var(--ic-sun);mask-image:var(--ic-sun)}
+/* Navigation: icons, a More menu when the row is full, a bottom bar on phones */
+#tabs{position:relative;display:flex;flex-wrap:nowrap;gap:2px;margin-top:6px;border-bottom:1px solid var(--line);overflow:visible;-webkit-mask-image:none!important;mask-image:none!important}
+#tabs>button[data-tab],#tabMore{flex:none;display:inline-flex;align-items:center;gap:8px;min-height:50px;padding:0 14px;margin:0;border:0;border-bottom:3px solid transparent;border-radius:0;background:none;font-family:var(--f-display);font-size:16px;font-weight:600;color:var(--muted);white-space:nowrap;cursor:pointer}
+#tabs button[data-tab]::before,#tabMore::before{content:"";flex:none;width:19px;height:19px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+#tabs>button[data-tab]:hover,#tabMore:hover{color:var(--ink)}
+#tabs>button[aria-selected="true"],#tabMore.on{color:var(--ink);border-bottom-color:var(--accent)}
+#tabs .count{margin-left:0}
+[data-tab="board"]{--ic:var(--ic-board)} [data-tab="track"]{--ic:var(--ic-track)} [data-tab="submit"]{--ic:var(--ic-submit)} [data-tab="register"]{--ic:var(--ic-register)}
+[data-tab="batches"]{--ic:var(--ic-batches)} [data-tab="storage"]{--ic:var(--ic-storage)} [data-tab="results"]{--ic:var(--ic-results)} [data-tab="ledger"]{--ic:var(--ic-ledger)}
+[data-tab="routes"]{--ic:var(--ic-routes)} [data-tab="stages"]{--ic:var(--ic-stages)} [data-tab="login"]{--ic:var(--ic-login)} #tabMore{--ic:var(--ic-more)}
+.tab-more{position:relative;display:flex}
+#tabMore.dot::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--bad)}
+.tab-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:30;min-width:230px;padding:6px;display:flex;flex-direction:column;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--lift)}
+#tabMenu button[data-tab]{display:flex;align-items:center;gap:10px;width:100%;min-height:46px;padding:0 12px;border:0;border-radius:calc(var(--r) - 2px);background:none;font-family:var(--f-display);font-size:16px;font-weight:600;color:var(--ink);text-align:left;white-space:nowrap;cursor:pointer}
+#tabMenu button[data-tab]:hover{background:var(--soft)}
+#tabMenu button[aria-selected="true"]{background:var(--accent-soft)}
+@media (max-width:760px){
+  header.top{gap:10px;padding:12px 0 14px}
+  header.top h1{font-size:19px;white-space:normal}
+  header.top .brand small{font-size:10px;letter-spacing:.1em}
+  .logo{height:36px;min-width:36px}
+  .logo::before{width:21px;height:21px}
+  .logo img{height:28px}
+  .top-meta{grid-column:1/-1;grid-row:2;justify-content:flex-start;flex-wrap:wrap;gap:6px 8px}
+  header.top .who{max-width:100%;flex:1 1 auto}
+  header.top .lookup{grid-row:3;position:relative}
+  header.top .btn{min-height:36px;padding:5px 12px}
+  .icon-btn{width:36px;height:36px}
+  header.top .pill,header.top .who{font-size:12px}
+  #bdWall{display:none}
+  header.top .lookup input{padding-right:58px;font-size:17px}
+  header.top .lookup .btn.big{position:absolute;right:4px;top:4px;bottom:4px;min-height:0;width:50px;padding:0}
+  header.top .lookup .lk-t{display:none}
+  header.top .lookup .btn.big::before{content:"";width:22px;height:22px;background:currentColor;-webkit-mask:var(--ic-track) center/contain no-repeat;mask:var(--ic-track) center/contain no-repeat}
+  #tabs{position:fixed;left:0;right:0;bottom:0;z-index:15;margin:0;gap:2px;padding:5px 6px calc(5px + env(safe-area-inset-bottom,0px));background:var(--panel);border-top:1px solid var(--line);border-bottom:0;box-shadow:0 -4px 18px rgba(0,0,0,.08)}
+  #tabs>button[data-tab],#tabMore{position:relative;flex:1 1 0;min-width:0;flex-direction:column;justify-content:center;gap:3px;min-height:56px;padding:4px 2px;border:0;border-radius:var(--r);font-family:var(--f-body);font-size:11.5px;overflow:hidden;text-overflow:ellipsis}
+  #tabs>button[data-tab]::before,#tabMore::before{width:22px;height:22px}
+  #tabs>button[aria-selected="true"],#tabMore.on{color:var(--accent);background:var(--accent-soft)}
+  .tab-more{flex:1 1 0;min-width:0}
+  .tab-more #tabMore{width:100%}
+  #tabMore.dot::after{position:absolute;top:7px;left:calc(50% + 8px)}
+  #tabs .count{position:absolute;top:3px;left:calc(50% + 5px);padding:0 5px;font-size:10px;line-height:15px;background:var(--accent);color:var(--accent-ink)}
+  .tab-menu{top:auto;bottom:calc(100% + 10px);right:0;max-height:70vh;overflow:auto}
+  .wrap{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))}
+  .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+}
+/* Touch and readability: 44 px targets for gloved hands on tablets */
+.btn{min-height:var(--tap)}
+.btn.small{min-height:36px}
+.btn.big{min-height:48px}
+.f input,.f select,.inp{min-height:var(--tap)}
+.f textarea{min-height:88px}
+.checks label{min-height:36px}
+input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(--accent)}
+.subtabs button{min-height:var(--tap)}
+.sticky-bar{position:sticky;bottom:0;z-index:5;background:var(--panel);border-top:1px solid var(--line);padding:12px 0;margin-bottom:-12px}
+@media (max-width:760px){.sticky-bar{bottom:calc(66px + env(safe-area-inset-bottom,0px))}}
+.bar{justify-content:flex-end}
+/* Tables: zebra rows; long tables keep their header in view */
+:where(.tbl-wrap tbody tr:nth-child(even))>td{background:color-mix(in srgb,var(--soft) 50%,var(--panel))}
+@media (min-width:761px){
+  .tbl-wrap{max-height:min(74vh,900px);overflow:auto}
+  .tbl-wrap thead th{position:sticky;top:0;z-index:2}
+  table.bpos.multi thead th:first-child{z-index:3}
+}
+.cert .tbl-wrap,.label-sheet .tbl-wrap{max-height:none;overflow:visible}
+#view-stages .tbl-wrap{max-height:none;overflow-y:visible}
+/* One radius */
+.chip,.code,ol.steps li,.label-strip code,.ph-tag,.haz,.tchip{border-radius:var(--r)}
+.tchip{border-radius:999px}
+/* Board: summary chips, cards with time left, empty lanes folded */
+.stats.sumbar{display:flex;flex-wrap:wrap;gap:8px}
+.sum{display:inline-flex;align-items:center;gap:8px;min-height:var(--tap);padding:6px 14px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.sum:hover{border-color:var(--muted)}
+.sum .n{font-family:var(--f-display);font-size:20px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.sum .l{color:var(--muted)}
+.sum.bad{background:var(--bad-soft);border-color:transparent} .sum.bad .n,.sum.bad .l{color:var(--bad)}
+.sum.warn{background:var(--warn-soft);border-color:transparent} .sum.warn .n,.sum.warn .l{color:var(--warn)}
+.sum.info .n{color:var(--info)} .sum.ok .n{color:var(--ok)}
+.sum[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:1px}
+.sum.static{cursor:default}
+.sum.static:hover{border-color:var(--line)}
+.bd-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.bd-top .grow{flex:1}
+.pick-note{display:flex;align-items:center;gap:8px;font-size:14px}
+.lanes{display:flex;gap:12px;align-items:flex-start;overflow-x:auto;padding-bottom:6px}
+.lane{flex:1 1 230px;min-width:230px}
+.lane.empty{flex:0 0 48px;min-width:48px;padding:10px 4px;align-self:stretch;min-height:160px}
+.lane.empty h4{writing-mode:vertical-rl;transform:rotate(180deg);flex-direction:row-reverse;justify-content:flex-end;align-items:center;margin:0 auto;white-space:nowrap;color:var(--muted)}
+.lane.empty .small.muted{display:none}
+.chip{border-left-width:4px;padding:8px 10px}
+.chip.t-ok{border-left-color:var(--ok)} .chip.t-soon{border-left-color:var(--warn)} .chip.t-late{border-left-color:var(--bad)} .chip.t-wait{border-left-color:var(--info)}
+.chip .ctop{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:0 8px}
+.chip .cid{white-space:nowrap}
+.chip .left{font-size:12px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.t-ok .left{color:var(--ok)} .t-soon .left{color:var(--warn)} .t-late .left{color:var(--bad)} .t-wait .left{color:var(--info)}
+.chip .urg{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent)}
+@media (max-width:760px){
+  .lanes{flex-direction:column;align-items:stretch;overflow:visible}
+  .lane,.lane.empty{flex:none;min-width:0;min-height:0}
+  .lane.empty{padding:8px 10px}
+  .lane.empty h4{writing-mode:horizontal-tb;transform:none;flex-direction:row;justify-content:space-between;margin:0}
+}
+/* Wall screen: the board alone, large, for a screen in the lab */
+.wall-head{display:none}
+body.wall .wrap{max-width:none;padding:14px 22px 22px}
+body.wall header.top,body.wall #tabs,body.wall .bd-tools,body.wall .toast{display:none!important}
+body.wall section.view{padding-top:0}
+body.wall .wall-head{display:flex;align-items:center;gap:16px;margin-bottom:4px}
+.wall-head h2{font-size:30px}
+.wall-head .clock{margin-left:auto;font-family:var(--f-mono);font-size:30px;font-weight:600;font-variant-numeric:tabular-nums}
+body.wall .sum{font-size:18px;min-height:52px}
+body.wall .sum .n{font-size:28px}
+body.wall .lane h4{font-size:21px}
+body.wall .chip{padding:10px 12px}
+body.wall .chip .cid{font-size:18px}
+body.wall .chip .cmeta,body.wall .chip .left{font-size:15px}
+body.wall .lane:not(.empty){min-width:300px}
+/* Sample record: progress, countdown, details on demand */
+.prog{display:flex;flex-direction:column;gap:6px;min-width:0;max-width:520px}
+.prog-bar{height:8px;border-radius:999px;background:var(--soft);overflow:hidden}
+.prog-bar i{display:block;height:100%;background:var(--ok);border-radius:inherit}
+.prog.late .prog-bar i{background:var(--bad)}
+.prog.wait .prog-bar i{background:var(--info)}
+.prog-t{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.prog-t b{color:var(--ink)}
+.eta .cd{font-family:var(--f-display);font-size:30px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.eta.late{background:var(--bad-soft)} .eta.late .cd{color:var(--bad)}
+.eta.done{background:var(--ok-soft)}
+details.facts-more{border-top:1px dashed var(--line);padding-top:10px}
+details.facts-more>summary{cursor:pointer;font-weight:600;font-size:14px;min-height:32px;display:flex;align-items:center}
+details.facts-more dl{margin-top:8px}
+/* Start page: search and today's numbers */
+.hero{display:flex;flex-direction:column;align-items:center;gap:16px;padding:36px 18px;text-align:center}
+.hero h2{font-size:28px}
+.hero form{display:flex;gap:8px;width:100%;max-width:580px}
+.hero input{flex:1;min-width:0;min-height:54px;padding:10px 16px;font-family:var(--f-mono);font-size:21px;letter-spacing:.04em;text-transform:uppercase;border:2px solid var(--line);border-radius:var(--r);background:var(--panel);color:var(--ink)}
+.hero input::placeholder{text-transform:none;letter-spacing:0;font-family:var(--f-body);font-size:17px}
+.hero input:focus{border-color:var(--accent);outline:none}
+.hero .row{justify-content:center}
+.today{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.today button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:14px 16px;min-height:88px;border:1px solid var(--line);border-left:4px solid var(--line);border-radius:var(--r);background:var(--panel);color:var(--ink);font:inherit;text-align:left;cursor:pointer;box-shadow:var(--shadow)}
+.today button:hover{border-color:var(--muted)}
+.today .n{font-family:var(--f-display);font-size:32px;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums}
+.today .l{font-size:14px;color:var(--muted)}
+.today .t-in{border-left-color:var(--info)} .today .t-due{border-left-color:var(--warn)} .today .t-late{border-left-color:var(--bad)} .today .t-rel{border-left-color:var(--ok)}
+.today .t-late .n{color:var(--bad)}
+.today-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+@media (max-width:640px){.today{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{padding:26px 14px}.hero h2{font-size:23px}.hero input{font-size:18px}}
+/* Settings: company logo */
+.logo-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.logo-prev{display:grid;place-items:center;min-width:120px;height:56px;padding:6px 10px;border:1px dashed var(--line);border-radius:var(--r);background:#fff}
+.logo-prev img{max-height:44px;max-width:200px;display:block}
+@media print{header.top,#tabs{display:none!important}}
+.eta .cd+.val{font-family:var(--f-body);font-size:15px;font-weight:600}
+.eta{min-width:230px}
+@media (max-width:760px){.card-head .eta{flex:1 1 100%}}
 </style>
 
 <div class="wrap">
   <header class="top">
-    <div class="brand">
+    <div class="brand"><span class="logo" id="brandLogo"></span><div class="brand-t">
       <small>Mine site → Assay laboratory</small>
       <h1>Assay Lab Sample Tracker</h1>
-    </div>
-    <div class="row" style="gap:8px"><span class="pill" title="Test deployment on Azure: not yet the validated production system">Test system</span><span class="pill warn" id="sync">Connecting…</span><span class="who" id="who"></span><button class="btn" id="pwBtn" type="button" hidden>Password</button><button class="btn" id="signBtn" type="button" hidden>Sign out</button></div>
+    </div></div>
+    <form class="lookup" id="lookupForm" autocomplete="off" role="search">
+      <input id="lookupInput" placeholder="Enter sample ID or tag number" aria-label="Sample ID">
+      <button class="btn primary big" type="submit" aria-label="Track sample"><span class="lk-t">Track sample</span></button>
+    </form>
+    <div class="row top-meta"><span class="pill" title="Test deployment on Azure: not yet the validated production system">Test system</span><span class="pill warn" id="sync">Connecting…</span><span class="who" id="who"></span><button class="btn" id="pwBtn" type="button" hidden>Password</button><button class="btn" id="signBtn" type="button" hidden>Sign out</button><button class="icon-btn" id="themeBtn" type="button" aria-label="Dark theme" aria-pressed="false"></button></div>
   </header>
 
-  <form class="lookup" id="lookupForm" autocomplete="off">
-    <input id="lookupInput" placeholder="Enter sample ID or tag number" aria-label="Sample ID">
-    <button class="btn primary big" type="submit">Track sample</button>
-  </form>
-
-  <nav class="tabs" role="tablist" id="tabs">
-    <button role="tab" data-tab="track" aria-selected="true">Sample record</button>
-    <button role="tab" data-tab="board" aria-selected="false">Workflow board <span class="count" id="cntActive">0</span></button>
-    <button role="tab" data-tab="submit" aria-selected="false">Submit a sample</button>
-    <button role="tab" data-tab="register" aria-selected="false">Register at lab</button>
-    <button role="tab" data-tab="batches" aria-selected="false">Lab batches</button>
+  <nav class="tabs" role="tablist" id="tabs" aria-label="Main">
+    <button role="tab" data-tab="board" aria-selected="false">Board <span class="count" id="cntActive">0</span></button>
+    <button role="tab" data-tab="track" aria-selected="true">Sample</button>
+    <button role="tab" data-tab="submit" aria-selected="false">Submit</button>
+    <button role="tab" data-tab="register" aria-selected="false">Register</button>
+    <button role="tab" data-tab="batches" aria-selected="false">Batches</button>
     <button role="tab" data-tab="storage" aria-selected="false">Storage</button>
     <button role="tab" data-tab="results" aria-selected="false">Results</button>
-    <button role="tab" data-tab="ledger" aria-selected="false">In / out ledger</button>
-    <button role="tab" data-tab="routes" aria-selected="false">Workflow routes</button>
+    <button role="tab" data-tab="ledger" aria-selected="false">Ledger</button>
+    <button role="tab" data-tab="routes" aria-selected="false">Routes</button>
     <button role="tab" data-tab="stages" aria-selected="false">Settings</button>
-    <button role="tab" data-tab="login" aria-selected="false">Staff sign in</button>
+    <button role="tab" data-tab="login" aria-selected="false">Sign in</button>
+    <div class="tab-more" id="tabMoreWrap" hidden><button type="button" id="tabMore" aria-haspopup="true" aria-expanded="false" aria-controls="tabMenu">More</button><div class="tab-menu" id="tabMenu" hidden></div></div>
   </nav>
 
   <section class="view" id="view-login" hidden></section>
@@ -1784,12 +1998,12 @@ function lsSet(k, v){ try { v ? localStorage.setItem(k, v) : localStorage.remove
 function allowedTabs(){ return session ? ROLE_TABS[session.role] || ["track"] : ["submit", "track", "routes", "login"]; }
 /* Where a person lands: the board for lab staff, their results for a section account, the submission form when signed out. */
 const homeTab = () => !session ? "submit" : allowedTabs().includes("board") ? "board" : allowedTabs().includes("results") ? "results" : "track";
-function tabCue(){ const t = $("#tabs"); t.classList.toggle("more-r", t.scrollLeft + t.clientWidth < t.scrollWidth - 4); t.classList.toggle("more-l", t.scrollLeft > 4); }
-$("#tabs").addEventListener("scroll", tabCue, { passive: true });
+/* Tabs that don't fit go in the More menu (layoutNav, app15-j.js). */
+function tabCue(){ layoutNav(); }
 addEventListener("resize", tabCue);
 function updateChrome(){
   const tabs = allowedTabs();
-  document.querySelectorAll("#tabs button").forEach(b => { b.hidden = !tabs.includes(b.dataset.tab); b.style.order = !session && b.dataset.tab === "submit" ? -1 : ""; });
+  document.querySelectorAll("#tabs button[data-tab]").forEach(b => { b.hidden = !tabs.includes(b.dataset.tab); b.style.order = !session && b.dataset.tab === "submit" ? -1 : ""; });
   $("#who").textContent = session ? `${session.name} · ${ROLES[session.role]}` : window.__me?.signedIn ? `${window.__me.email} · no access yet` : "Not signed in";
   $("#signBtn").hidden = !session && !window.__me?.signedIn;
   $("#pwBtn").hidden = !(session && window.__me?.via === "email");
@@ -1823,7 +2037,7 @@ function setTab(t){
   if (!allowedTabs().includes(t)) t = homeTab();
   closeCert();
   tab = t;
-  document.querySelectorAll("#tabs button").forEach(b => { const on = b.dataset.tab === t; b.setAttribute("aria-selected", String(on)); if (on) b.scrollIntoView({ block: "nearest", inline: "nearest" }); });
+  document.querySelectorAll("#tabs button[data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
   document.querySelectorAll("section.view").forEach(v => v.hidden = v.id !== "view-" + t);
   if (t === "ledger") ledgerWatch();
   renderTab();
@@ -1885,7 +2099,7 @@ function renderLogin(){
   }
   if (m.signedIn && !session){
     v.innerHTML = `<div class="panel stack" id="loginForm" style="max-width:520px"><h2>Staff sign in</h2>
-      <div class="notice warn">Signed in as <b>${esc(m.email)}</b>: no access yet. <a href="#" id="otherAcct">Use a different account</a></div><div id="accReq"></div></div>`;
+      <div class="notice warn">Signed in as <b>${esc(m.email)}</b>: no access yet. <button type="button" class="linkish" id="otherAcct">Use a different account</button></div><div id="accReq"></div></div>`;
     $("#otherAcct").onclick = e => { e.preventDefault(); signOut(); };
     renderAccessRequest();
     return;
@@ -2091,12 +2305,25 @@ function renderTrack(){
   const v = $("#view-track");
   if (!current){
     v.dataset.ctx = "";
-    v.innerHTML = `<div class="panel empty">
-      <strong>Enter a sample ID to see where it is</strong>
-      <div class="row" style="justify-content:center;margin-top:16px">
-        ${!session ? `<button class="btn" data-goto="login">Staff sign in</button>` : allowedTabs().includes("board") ? `<button class="btn" data-goto="board">Open workflow board</button>` : allowedTabs().includes("results") ? `<button class="btn" data-goto="results">See your section's results</button>` : ""}
-        <button class="btn primary" data-goto="submit">Submit a sample</button>
-      </div></div>`;
+    const staff = isStaff() && allowedTabs().includes("board"), list = [...samples.values()];
+    const today = staff ? [
+      ["in", "recvToday", list.filter(s => isToday(recvOf(s))).length, "Received today"],
+      ["due", "dueToday", list.filter(dueToday).length, "Results due today"],
+      ["late", "late", list.filter(s => { const i = curIdx(s); return i > 0 && i < targetIdx(s) && status(s).late; }).length, "Running late"],
+      ["rel", "rel", releasedToday.size, "Results released today"]
+    ] : [];
+    v.innerHTML = `<div class="stack">
+      <div class="panel hero"><h2>Find a sample</h2>
+        <form id="heroForm" autocomplete="off" role="search"><input id="heroInput" placeholder="Sample ID or tag number" aria-label="Sample ID or tag number"><button class="btn primary big" type="submit">Track</button></form>
+        <div class="row">
+          ${!session ? `<button class="btn" data-goto="login">Staff sign in</button>` : allowedTabs().includes("board") ? `<button class="btn" data-goto="board">Open workflow board</button>` : allowedTabs().includes("results") ? `<button class="btn" data-goto="results">See your section's results</button>` : ""}
+          <button class="btn" data-goto="submit">Submit a sample</button>
+        </div></div>
+      ${staff ? `<div class="today-h"><h3>Today</h3><span class="small muted">${esc(fmtDate(Date.now()))}</span></div>
+        <div class="today">${today.map(([c, k, n, l]) => `<button type="button" class="t-${c}" data-today="${k}"><span class="n">${n}</span><span class="l">${l}</span></button>`).join("")}</div>` : ""}
+    </div>`;
+    $("#heroForm", v).onsubmit = e => { e.preventDefault(); openSample($("#heroInput", v).value); };
+    v.querySelectorAll("[data-today]").forEach(b => b.onclick = () => { boardPick = b.dataset.today === "rel" ? "" : b.dataset.today; setTab("board"); });
     return;
   }
   if (current.matches){
@@ -2125,7 +2352,7 @@ function buildTrack(v, s){
   const tIdx = targetIdx(s), released = lastEntry(s, plan[tIdx].key), curI = stageIdx(s, s.stageKey), final = !!stage(s, s.stageKey)?.final;
   let etaHtml;
   if (st.closed) etaHtml = `<div class="lbl">Closed</div><div class="val">${esc(stage(s, s.stageKey)?.name || "")}</div><div class="small muted">${fmt(s.closedAt || s.stageAt)}</div>`;
-  else if (proj.eta) etaHtml = `<div class="lbl">Results expected (estimate)</div><div class="val">${fmt(proj.eta)}</div><div class="small muted">in ${dur(proj.eta - now)}${st.late ? " · current step is running late" : ""}</div>`;
+  else if (proj.eta) etaHtml = `<div class="lbl">Results expected in</div><div class="cd">${dur(Math.max(proj.eta - now, 60000))}</div><div class="val">${fmt(proj.eta)}</div><div class="small muted">${st.late ? "Current step running late" : "Estimate"}</div>`;
   else etaHtml = `<div class="lbl">Results released</div><div class="val">${fmt(s.relAt || (released ? released.at : s.stageAt))}</div><div class="small muted">Turnaround ${dur((s.relAt || (released ? released.at : s.stageAt)) - (s.recvAt || lastEntry(s, "received")?.at || s.createdAt))}</div>`;
 
   // Stage rail: this sample's own route, plus the closing state if it reached one.
@@ -2162,7 +2389,7 @@ function buildTrack(v, s){
 
   const det = s.details ? Object.entries(s.details).map(([k, val]) => `${esc(k)}: <b>${esc(val)}</b>`).join(" · ") : "";
   const rv = s.recv || null;
-  const facts = [
+  const factList = [
     ["Sample type", esc(s.type)],
     ...(det ? [["Type details", det]] : []),
     ["Tag number", tagText(s) ? `<span class="mono">${esc(tagText(s))}</span>` : "—"],
@@ -2188,7 +2415,13 @@ function buildTrack(v, s){
     ["Location", esc(s.location) || "—"],
     ["Batch", s.batchId ? `<span class="mono">${esc(s.batchId)}</span>${s.batchSize > 1 ? ` (${s.batchIndex} of ${s.batchSize})` : ""}` : "—"],
     ["Notes", esc(s.notes) || "—"]
-  ].map(([k, val]) => `<dt>${k}</dt><dd>${val}</dd>`).join("");
+  ];
+  const blank = ([, val]) => val === "—" || val === "", row = ([k, val]) => `<dt>${k}</dt><dd>${val}</dd>`;
+  const facts = factList.filter(f => !blank(f)).map(row).join(""), factsMore = factList.filter(blank).map(row).join("");
+  // Progress along the route up to the release of results, in the same colours as the board.
+  const tone = !st.closed && !st.post ? { "t-ok": "ok", "t-soon": "warn", "t-late": "bad", "t-wait": "info" }[cardTime(s).cls] || st.cls : st.cls;
+  const stepNo = Math.min(Math.max(curI, 0), tIdx) + 1, pct = curI >= tIdx ? 100 : Math.round(Math.max(curI, 0) / tIdx * 100);
+  const prog = st.closed ? "" : `<div class="prog${st.late && !st.post ? " late" : awaiting(s) ? " wait" : ""}"><div class="prog-t"><span>${curI >= tIdx ? "<b>Results released</b>" : `Step <b>${stepNo}</b> of ${tIdx + 1}`}</span><span>${curI < tIdx && cardTime(s).left ? esc(cardTime(s).left) + " on this step" : ""}</span></div><div class="prog-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div></div>`;
 
   const ret = s.retention || r?.retention || [], qcText = s.qc || r?.qc || "", trig = s.triggers || r?.triggers || [];
   const qcBlock = qcText || trig.length || ret.length ? `<details class="more" id="qcBox"><summary>Quality control, re-assay triggers and retention</summary><div class="stack" style="gap:8px;margin-top:8px">
@@ -2208,11 +2441,12 @@ function buildTrack(v, s){
   v.innerHTML = `<div class="stack">
     <div class="panel">
       <div class="card-head">
-        <div class="stack" style="gap:6px">
+        <div class="stack" style="gap:8px;flex:1 1 300px;min-width:0">
           <div class="row"><div class="sid">${esc(s.id)}</div><button class="btn ghost small" data-link="${esc(s.id)}">Copy tracking link</button><button class="btn ghost small" data-label="${esc(s.id)}">Print label</button></div>
-          <div class="row"><span class="pill ${st.cls}">${esc(st.label)}</span>${s.priority === "Urgent" ? `<span class="pill gold">Urgent</span>` : ""}${s.route ? `<span class="code">${esc(s.route)}</span>` : ""}${hazPills(s)}${twoPerson(s) ? `<span class="pill warn">Two-person custody</span>` : ""}<span class="muted small">${esc(s.type)} · ${esc(s.testName || s.purpose)}</span></div>
+          <div class="row"><span class="pill ${tone}">${esc(st.label)}</span>${s.priority === "Urgent" ? `<span class="pill gold">Urgent</span>` : ""}${s.route ? `<span class="code">${esc(s.route)}</span>` : ""}${hazPills(s)}${twoPerson(s) ? `<span class="pill warn">Two-person custody</span>` : ""}<span class="muted small">${esc(s.type)} · ${esc(s.testName || s.purpose)}</span></div>
+          ${prog}
         </div>
-        <div class="eta">${etaHtml}</div>
+        <div class="eta${st.late && !st.post && !st.closed ? " late" : !proj.eta && !st.closed ? " done" : ""}">${etaHtml}</div>
       </div>
     </div>
     ${s.flag && awaiting(s) ? `<div class="notice warn"><b>Flagged at receipt:</b> ${esc(s.flag)}</div>` : ""}
@@ -2224,7 +2458,7 @@ function buildTrack(v, s){
       <div class="stack">
         ${resultsPanel(s)}
         ${(s.materials || []).length ? materialsPanel(s) : ""}
-        <div class="panel stack"><h3>Sample details</h3><dl class="facts">${facts}</dl></div>
+        <div class="panel stack"><h3>Sample details</h3><dl class="facts">${facts}</dl>${factsMore ? `<details class="facts-more"><summary>Show all details</summary><dl class="facts">${factsMore}</dl></details>` : ""}</div>
         <div class="panel stack"><h3>Chain of custody</h3><ul class="hist">${hist || "<li class='muted'>No movements recorded.</li>"}</ul></div>
       </div>
     </div></div>`;
@@ -2714,9 +2948,12 @@ async function flushLedger(sid){
 }
 
 /* ---------- board: every sample still in the lab, queried by state (lab == true) rather than a recent-items window ---------- */
-let boardSec = "", boardRoute = "";
+let boardSec = "", boardRoute = "", boardPick = "";
+const isToday = t => !!t && dayKey(t) === dayKey(Date.now());
+const recvOf = s => s.receivedAt || s.recvAt || 0;
+const dueToday = s => { const i = curIdx(s); if (i < 0 || i >= targetIdx(s) || awaiting(s)) return false; const p = projection(s); return isToday(p.eta || stageDue(s)); };
 function renderBoard(){
-  const v = $("#view-board");
+  const v = $("#view-board"), wall = document.body.classList.contains("wall");
   const pass = s => (!boardSec || s.section === boardSec) && (!boardRoute || (s.route || "") === boardRoute);
   const list = [...samples.values()].filter(pass);
   const waiting = list.filter(awaiting);
@@ -2727,59 +2964,79 @@ function renderBoard(){
   const qcAct = inProc.filter(s => Object.values(labsOf(s)).some(l => l.q === "fail" || l.q === "warn"));
   const alerts = isStaff() ? list.filter(s => (s.results || s.amend) && openAlerts(s).length) : [], trends = isStaff() ? crmTrendFlags() : [];
   const relN = [...releasedToday.values()].filter(pass).length;
-  const notStored = list.filter(s => s.stageKey === "released" && stageDue(s) && Date.now() > stageDue(s)).length;
+  const unstored = list.filter(s => s.stageKey === "released" && stageDue(s) && Date.now() > stageDue(s)), notStored = unstored.length;
   const dueNow = Date.now(), dueL = [...list.filter(s => overdueMaterials(s).length).map(s => ({ sec: s.section, route: s.route || "", n: overdueMaterials(s).length })),
     ...[...storeDue.values()].filter(x => !samples.has(x.id)).map(x => ({ sec: x.sec, route: x.route, n: x.m.filter(m => m.dueAt && dueNow > m.dueAt).length }))]
     .filter(x => x.n && (!boardSec || x.sec === boardSec) && (!boardRoute || x.route === boardRoute));
   const dueS = dueL, dueM = dueL.reduce((n, x) => n + x.n, 0);
-  const filters = `<div class="row">
-    <select class="inp" id="bdSec" style="width:auto;max-width:100%"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${boardSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
-    <select class="inp" id="bdRoute" style="width:auto;max-width:100%"><option value="">All tests and routes</option>${routeOptions(boardRoute)}</select></div>`;
+  const flagged = waiting.filter(s => s.flag).length;
+  // Summary chips: counts above zero only; a chip with a list filters the board to those samples, a chip with a tab opens it.
+  const sums = [
+    { k: "await", n: waiting.length, l: `Awaiting receipt${flagged ? `, ${flagged} flagged` : ""}`, tone: flagged ? "warn" : "info", pick: waiting },
+    { k: "lab", n: inProc.length, l: "In the lab, before results", tone: "", pick: inProc, keep: true },
+    { k: "late", n: late.length, l: "Running late", tone: "bad", pick: late },
+    { k: "redo", n: redo.length, l: "Being re-assayed", tone: "warn", pick: redo },
+    ...(canEdit() ? [{ k: "nobatch", n: noBatch.length, l: "Waiting for a lab batch", tone: "", pick: noBatch },
+      { k: "qc", n: qcAct.length, l: "In a batch with QC to act on", tone: "warn", pick: qcAct }] : []),
+    ...(isStaff() ? [{ k: "alerts", n: alerts.length, l: "Results past an action or permit limit, not yet recorded", tone: "bad", pick: alerts },
+      { k: "trends", n: trends.length, l: "Reference material trends", tone: "warn", go: "batches" }] : []),
+    { k: "rel", n: relN, l: "Results released today", tone: "ok" },
+    { k: "unstored", n: notStored, l: "Released, not yet put in storage", tone: "warn", pick: unstored },
+    { k: "retention", n: dueM, l: `Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}`, tone: "warn", go: allowedTabs().includes("storage") ? "storage" : "" },
+    { k: "recvToday", n: list.filter(s => isToday(recvOf(s))).length, l: "Received today", tone: "", pick: list.filter(s => isToday(recvOf(s))), hide: true },
+    { k: "dueToday", n: list.filter(dueToday).length, l: "Results due today", tone: "", pick: list.filter(dueToday), hide: true }
+  ];
+  const cur = sums.find(x => x.k === boardPick && x.pick);
+  if (boardPick && !cur) boardPick = "";
+  const shown = cur ? new Set(cur.pick) : null;
+  const sumHtml = sums.filter(x => !x.hide && (x.n || x.keep)).map(x => {
+    const act = x.pick ? `data-bpick="${x.k}" aria-pressed="${boardPick === x.k}"` : x.go ? `data-goto="${x.go}"` : "";
+    return `<button type="button" class="sum ${x.tone}${act ? "" : " static"}" ${act || "tabindex=\"-1\""}><span class="n">${x.n}</span> <span class="l">${esc(x.l)}</span></button>`;
+  }).join("");
+  const filters = `<div class="bd-top bd-tools">
+    <select class="inp" id="bdSec" style="width:auto;max-width:100%" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${boardSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
+    <select class="inp" id="bdRoute" style="width:auto;max-width:100%" aria-label="Test or route"><option value="">All tests and routes</option>${routeOptions(boardRoute)}</select>
+    <span class="grow"></span>${isStaff() ? `<button type="button" class="btn ghost" id="bdWall">${wall ? "Exit wall screen" : "Wall screen"}</button>` : ""}</div>`;
+  const wallHead = `<div class="wall-head"><h2>Assay Lab · Workflow board</h2><span class="clock" id="wallClock"></span><button type="button" class="btn" data-wall-exit>Exit</button></div>`;
   const bind = () => {
     const a = $("#bdSec"), b = $("#bdRoute");
     if (a) a.onchange = e => { boardSec = e.target.value; renderBoard(); };
     if (b) b.onchange = e => { boardRoute = e.target.value; renderBoard(); };
+    v.querySelectorAll("[data-bpick]").forEach(x => x.onclick = () => { boardPick = boardPick === x.dataset.bpick ? "" : x.dataset.bpick; renderBoard(); });
+    const w = $("#bdWall"); if (w) w.onclick = () => setWall(!wall);
+    v.querySelectorAll("[data-wall-exit]").forEach(x => x.onclick = () => setWall(false));
+    wallClock();
   };
-  if (!list.length && (boardSec || boardRoute)){ v.innerHTML = `<div class="stack">${filters}<div class="panel empty"><strong>No samples in the lab match these filters</strong></div></div>`; bind(); return; }
+  if (!list.length && (boardSec || boardRoute)){ v.innerHTML = `<div class="stack">${wallHead}${filters}<div class="panel empty"><strong>No samples in the lab match these filters</strong></div></div>`; bind(); return; }
   if (!list.length){
-    v.innerHTML = `<div class="panel empty"><strong>No samples in the lab</strong>
+    v.innerHTML = `${wallHead}<div class="panel empty"><strong>No samples in the lab</strong>
       <div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-goto="submit">Submit a sample</button>${allowedTabs().includes("storage") ? `<button class="btn" data-goto="storage">Storage</button>` : ""}</div></div>`;
-    return;
+    bind(); return;
   }
   const laneDefs = PHASES.filter(x => x.key !== "store");
   if (list.some(s => !stage(s, s.stageKey))) laneDefs.push({ key: "__unknown", name: "Stage removed (move these)" });
   const showStep = { intake: 1, prep: 1, test: 1, qc: 1 };
   const lanes = laneDefs.map(x => {
-    const items = list.filter(s => { const st = stage(s, s.stageKey); return x.key === "__unknown" ? !st : st && st.phase === x.key; })
+    const items = list.filter(s => { const st = stage(s, s.stageKey); return (!shown || shown.has(s)) && (x.key === "__unknown" ? !st : st && st.phase === x.key); })
       .sort((a, b) => (status(b).late - status(a).late) || (b.priority === "Urgent") - (a.priority === "Urgent") || a.stageAt - b.stageAt);
-    return `<div class="lane ph-${x.key}"><h4>${esc(x.name)} <span>${items.length}</span></h4>
-      ${items.slice(0, 40).map(s => { const stt = status(s), due = stageDue(s), stp = stage(s, s.stageKey), od = overdueMaterials(s);
-        return `<button class="chip ${stt.late ? "late" : s.priority === "Urgent" ? "urgent" : ""}" data-open="${esc(s.id)}">
-          <div class="cid">${esc(s.id)}${s.route ? ` <span class="rc">${esc(s.route)}</span>` : ""}</div>
+    return `<div class="lane ph-${x.key}${items.length ? "" : " empty"}"><h4>${esc(x.name)} <span>${items.length}</span></h4>
+      ${items.slice(0, 40).map(s => { const stt = status(s), stp = stage(s, s.stageKey), od = overdueMaterials(s), tm = cardTime(s);
+        return `<button class="chip ${tm.cls}${stt.late ? " late" : ""}${s.priority === "Urgent" ? " urgent" : ""}" data-open="${esc(s.id)}"${stageDue(s) && !stp?.final ? ` title="Due ${esc(fmt(stageDue(s)))}"` : ""}>
+          <div class="ctop"><span class="cid">${esc(s.id)}${s.route ? ` <span class="rc">${esc(s.route)}</span>` : ""}</span>${tm.left && !od.length && x.key !== "report" ? `<span class="left">${esc(tm.left)}</span>` : ""}</div>
           ${showStep[x.key] && stp ? `<div class="cmeta"><b style="color:var(--ink)">${esc(stp.name)}</b>${s.reassays ? ` · <b style="color:var(--warn)">re-assay</b>` : ""}</div>` : ""}
           ${curIdx(s) < targetIdx(s) ? Object.values(labsOf(s)).map(l => `<div class="cmeta">Batch <span class="mono">${esc(l.b)}</span>${l.q && l.q !== "pending" ? ` · <b style="color:var(--${{ ok: "ok", bad: "bad" }[qcCls(l.q)] || "warn"})">${esc(qcLabel(l.q))}</b>` : ""}</div>`).join("") : ""}
           ${alerts.includes(s) ? `<div class="cmeta"><b style="color:var(--bad)">Result past a limit</b></div>` : ""}
-          <div class="cmeta">${esc(s.type)}${s.priority === "Urgent" ? " · <b>Urgent</b>" : ""}${s.flag && awaiting(s) ? ` · <b style="color:var(--warn)">Flagged</b>` : ""}</div>
+          <div class="cmeta">${esc(s.type)}${s.priority === "Urgent" ? ` · <span class="urg">Urgent</span>` : ""}${s.flag && awaiting(s) ? ` · <b style="color:var(--warn)">Flagged</b>` : ""}</div>
           ${hazTags(s).length || twoPerson(s) ? `<div class="cmeta">${hazPills(s)}${twoPerson(s) ? `<span class="haz two" title="Two-person custody">2P</span>` : ""}</div>` : ""}
-          <div class="cmeta">${od.length ? `<b style="color:var(--bad)">${esc(od.map(m => m.item).join(", "))} past retention</b>` : x.key === "report" && stt.late ? `<b style="color:var(--warn)">Not yet put in storage</b>` : stt.late ? `<b style="color:var(--bad)">${dur(Date.now() - due)} late</b>` : due ? `due ${fmt(due)}` : ""}</div></button>`; }).join("")}
+          ${od.length ? `<div class="cmeta"><b style="color:var(--bad)">${esc(od.map(m => m.item).join(", "))} past retention</b></div>` : x.key === "report" && stt.late ? `<div class="cmeta"><b style="color:var(--warn)">Not yet put in storage</b></div>` : ""}</button>`; }).join("")}
       ${items.length > 40 ? `<div class="small muted" style="margin-top:6px">+${items.length - 40} more</div>` : ""}
       ${!items.length ? `<div class="small muted">None</div>` : ""}</div>`;
   }).join("");
   v.innerHTML = `<div class="stack">
+    ${wallHead}
     ${filters}
-    <div class="stats">
-      <div class="stat"><div class="n" style="color:${waiting.some(s => s.flag) ? "var(--warn)" : "inherit"}">${waiting.length}</div><div class="l">Awaiting receipt${waiting.some(s => s.flag) ? `, ${waiting.filter(s => s.flag).length} flagged` : ""}</div></div>
-      <div class="stat"><div class="n">${inProc.length}</div><div class="l">In the lab, before results</div></div>
-      <div class="stat"><div class="n" style="color:${late.length ? "var(--bad)" : "inherit"}">${late.length}</div><div class="l">Running late</div></div>
-      <div class="stat"><div class="n" style="color:${redo.length ? "var(--warn)" : "inherit"}">${redo.length}</div><div class="l">Being re-assayed</div></div>
-      ${canEdit() ? `<div class="stat"><div class="n">${noBatch.length}</div><div class="l">Waiting for a lab batch</div></div>
-      <div class="stat"><div class="n" style="color:${qcAct.length ? "var(--bad)" : "inherit"}">${qcAct.length}</div><div class="l">In a batch with QC to act on</div></div>` : ""}
-      ${isStaff() ? `<div class="stat"><div class="n" style="color:${alerts.length ? "var(--bad)" : "inherit"}">${alerts.length}</div><div class="l">Results past an action or permit limit, not yet recorded</div></div>
-      <div class="stat"><div class="n" style="color:${trends.length ? "var(--warn)" : "inherit"}">${trends.length}</div><div class="l">Reference material trends</div></div>` : ""}
-      <div class="stat"><div class="n">${relN}</div><div class="l">Results released today</div></div>
-      <div class="stat"><div class="n" style="color:${notStored ? "var(--warn)" : "inherit"}">${notStored}</div><div class="l">Released, not yet put in storage</div></div>
-      <div class="stat"><div class="n" style="color:${dueM ? "var(--warn)" : "inherit"}">${dueM}</div><div class="l">Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}${dueM && allowedTabs().includes("storage") ? ` <button type="button" class="linkish" data-goto="storage">Storage</button>` : ""}</div></div>
-    </div>
+    <div class="stats sumbar">${sumHtml}</div>
+    ${cur ? `<div class="pick-note"><span>Showing <b>${esc(cur.l.toLowerCase())}</b>: ${cur.n}</span><button type="button" class="btn ghost small" data-bpick="${cur.k}">Show all</button></div>` : ""}
     ${alerts.length ? `<div class="notice bad" id="bdAlerts"><b>Past a limit:</b> ${alerts.slice(0, 12).map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button> <span class="small">${esc(openAlerts(s).map(h => alertLine(s, h)).join("; "))}</span>`).join("<br>")}${alerts.length > 12 ? `<br>+${alerts.length - 12} more` : ""}</div>` : ""}
     ${trends.length ? `<div class="notice warn" id="bdTrends"><b>Reference material trends:</b> ${esc(trends.map(t => `${t.crm}${t.k ? " " + t.k : ""}: ${t.msg}`).join("; "))}. See the control chart on the <button type="button" class="linkish" data-goto="batches">Lab batches</button> tab.</div>` : ""}
     <div class="lanes">${lanes}</div></div>`;
@@ -2854,7 +3111,7 @@ function renderSampleForm(mode){
       <div id="rWitBox" hidden>${witnessField("rWit")}</div>` : ""}
       <label class="f">Number of samples in this batch<input id="rCount" type="number" min="1" max="100" step="1" value="1"></label>
     </div>
-    <div class="row"><button class="btn primary big" type="submit" id="rSubmit">${lab ? "Register and issue IDs" : "Submit and get sample IDs"}</button><span class="small muted" id="rMsg"></span></div>
+    <div class="row sticky-bar bar"><span class="small muted" id="rMsg"></span><button class="btn primary big" type="submit" id="rSubmit">${lab ? "Register and issue IDs" : "Submit and get sample IDs"}</button></div>
     <div id="rResult"></div>
   </form>`;
   const ty = $("#rType", v), pu = $("#rPurpose", v), te = $("#rTest", v), hz = $("#rHaz", v);
@@ -3253,6 +3510,7 @@ function renderStages(){
     <h2 style="margin-top:12px">Site time</h2>
     <div class="row"><input class="inp mono" id="cfgTz" style="width:260px" value="${esc(draft.tz)}" aria-label="Site time zone"><span class="small muted">Now at site: ${esc(fmtFull(Date.now()))}</span></div>
     ${workHtml()}
+    ${logoHtml()}
 
     <h2 style="margin-top:12px">Results and certificates</h2>
     <label class="f" style="max-width:520px"><span>Who can see results on a sample record</span><select class="inp" id="cfgResPub"><option value="0" ${draft.resultsPublic ? "" : "selected"}>Signed-in staff only (recommended)</option><option value="1" ${draft.resultsPublic ? "selected" : ""}>Anyone with the sample ID or tag</option></select></label>
@@ -3291,7 +3549,7 @@ function renderStages(){
       <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Days kept after results</th><th>Then</th><th></th></tr></thead><tbody>${keepRows}</tbody></table></div>
       <div class="row"><button class="btn" id="rkAdd">Add material</button></div>
     </div>
-    <div class="row" style="border-top:1px solid var(--line);padding-top:14px"><button class="btn ghost" id="cfgBackup">Download backup</button><span style="flex:1"></span><button class="btn ghost" id="cfgReset">Restore default sections and routes</button><button class="btn ghost" id="cfgCancel">Discard changes</button><button class="btn primary big" id="cfgSave">Save settings</button></div>
+    <div class="row sticky-bar"><button class="btn ghost" id="cfgBackup">Download backup</button><span style="flex:1"></span><button class="btn ghost" id="cfgReset">Restore default sections and routes</button><button class="btn ghost" id="cfgCancel">Discard changes</button><button class="btn primary big" id="cfgSave">Save settings</button></div>
   </div>`;
   splitSettings(v);
   if (goEdit) $("#rtEdit").scrollIntoView({ block: "start" });
@@ -3329,6 +3587,7 @@ function renderStages(){
   };
   bindLimits(v, dirty);
   bindWork(v, dirty);
+  bindLogo(v, dirty);
   $("#cfgTz").addEventListener("change", e => { const z = e.target.value.trim(); if (!tzOk(z)){ toast(`${z || "That"} is not a time zone name. Try Africa/Accra.`); renderStages(); return; } draft.tz = z; dirty(); });
   v.querySelectorAll("[data-sf]").forEach(el => el.addEventListener("change", () => {
     const x = draft.sections[+el.dataset.si];
@@ -3494,7 +3753,7 @@ function renderStages(){
     const mine = draft;
     draftDirty = false;                      // our own save coming back is not "someone else's"
     try {
-      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users), crms: clone(draft.crms), limits: clone(draft.limits), resultsPublic: !!draft.resultsPublic, work: workOf(draft.work), routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
+      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users), crms: clone(draft.crms), limits: clone(draft.limits), resultsPublic: !!draft.resultsPublic, work: workOf(draft.work), logo: logoOf(draft.logo), routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
       draftDirty = false; draft = null; renderStages(); markAccessGiven(mine.users);
       toast(uncovered.length ? `Saved. No route performs: ${uncovered.slice(0, 3).join(", ")}${uncovered.length > 3 ? "…" : ""}` : "Settings saved for everyone.");
     }
@@ -4941,7 +5200,7 @@ function workProblem(w){
 const CFG_TABS = [["accounts", "Accounts"], ["sections", "Sections and site time"], ["crms", "Reference materials"], ["limits", "Limits"], ["routes", "Workflow routes"]];
 let cfgTab = "accounts";
 const paneOf = h => /^(Staff accounts|Access requests|Results and certificates)/.test(h) ? "accounts"
-  : /^(Submitting sections|Site time|Lab working hours)/.test(h) ? "sections" : /^Reference materials/.test(h) ? "crms"
+  : /^(Submitting sections|Site time|Lab working hours|Company logo)/.test(h) ? "sections" : /^Reference materials/.test(h) ? "crms"
   : /^Action and permit limits/.test(h) ? "limits" : /^Workflow routes/.test(h) ? "routes" : "";
 function splitSettings(v){
   const stack = v.firstElementChild; if (!stack) return;
@@ -5128,6 +5387,133 @@ addEventListener("hashchange", () => {
   let h = ""; try { h = decodeURIComponent((location.hash || "").slice(1)); } catch {}
   if (h && (idFromText(h) || h) !== current?.id) openSample(h);
 });
+/* ---------- v15 design: navigation, theme, logo, wall screen, time left ---------- */
+/* Tabs that do not fit go in a More menu: on a computer when the row is full, on a phone after the first four of the bottom bar. */
+const NAV_ORDER = ["board", "track", "submit", "register", "batches", "storage", "results", "ledger", "routes", "stages", "login"];
+const PHONE = matchMedia("(max-width: 760px)");
+function closeNavMenu(){ const m = $("#tabMenu"); if (m && !m.hidden){ m.hidden = true; $("#tabMore").setAttribute("aria-expanded", "false"); } }
+function layoutNav(){
+  const nav = $("#tabs"), wrap = $("#tabMoreWrap"), menu = $("#tabMenu");
+  if (!nav || !wrap || !menu || document.body.classList.contains("wall")) return;
+  const all = [...nav.querySelectorAll("button[data-tab]")].sort((a, b) => NAV_ORDER.indexOf(a.dataset.tab) - NAV_ORDER.indexOf(b.dataset.tab));
+  all.forEach(b => nav.insertBefore(b, wrap));
+  const shown = all.filter(b => !b.hidden).sort((a, b) => (+a.style.order || 0) - (+b.style.order || 0));
+  let extra = [];
+  wrap.hidden = true;
+  if (PHONE.matches) extra = shown.length > 5 ? shown.slice(4) : [];
+  else {
+    const over = () => Math.max(...[...nav.children].filter(e => !e.hidden).map(e => e.getBoundingClientRect().right)) > nav.getBoundingClientRect().right + 1;
+    if (over()){
+      wrap.hidden = false;
+      for (let i = shown.length - 1; i > 0 && over(); i--){ extra.unshift(shown[i]); menu.prepend(shown[i]); }
+    }
+  }
+  extra.forEach(b => menu.appendChild(b));
+  wrap.hidden = !extra.length;
+  if (!extra.length) closeNavMenu();
+  navMarks();
+}
+/* The More button is underlined when the open tab is inside it, and carries a dot when a tab inside has a count waiting. */
+function navMarks(){
+  const more = $("#tabMore"), menu = $("#tabMenu"); if (!more || !menu) return;
+  const inMenu = [...menu.querySelectorAll("button[data-tab]")];
+  more.classList.toggle("on", inMenu.some(b => b.getAttribute("aria-selected") === "true"));
+  more.classList.toggle("dot", inMenu.some(b => /\(\d/.test(b.textContent)));
+}
+$("#tabMore").addEventListener("click", e => {
+  e.stopPropagation();
+  const m = $("#tabMenu"); m.hidden = !m.hidden;
+  e.currentTarget.setAttribute("aria-expanded", String(!m.hidden));
+  if (!m.hidden) m.querySelector('[aria-selected="true"]')?.focus() || m.querySelector("button")?.focus();
+});
+$("#tabMenu").addEventListener("click", e => { if (e.target.closest("button[data-tab]")) closeNavMenu(); });
+document.addEventListener("click", e => { if (!e.target.closest(".tab-more")) closeNavMenu(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#tabMenu").hidden){ closeNavMenu(); $("#tabMore").focus(); } });
+new MutationObserver(navMarks).observe($("#tabMenu"), { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["aria-selected"] });
+PHONE.addEventListener?.("change", layoutNav);
+
+/* Theme: follows the device until someone picks the other one on this device. */
+const DARK = matchMedia("(prefers-color-scheme: dark)");
+const isDark = () => (document.documentElement.dataset.theme || (DARK.matches ? "dark" : "light")) === "dark";
+function applyTheme(){
+  const t = lsGet("theme"), root = document.documentElement;
+  if (t === "dark" || t === "light") root.dataset.theme = t; else delete root.dataset.theme;
+  const b = $("#themeBtn"), dark = isDark();
+  b.setAttribute("aria-pressed", String(dark));
+  b.setAttribute("aria-label", dark ? "Light theme" : "Dark theme"); b.title = dark ? "Light theme" : "Dark theme";
+}
+$("#themeBtn").addEventListener("click", () => { const dark = !isDark(); lsSet("theme", dark === DARK.matches ? "" : dark ? "dark" : "light"); applyTheme(); });
+DARK.addEventListener?.("change", applyTheme);
+applyTheme();
+
+/* Company logo: a small picture kept in Settings, shown in the header (and on nothing that prints). */
+const LOGO_MAX = 90000;
+const logoOf = v => typeof v === "string" && v.length <= LOGO_MAX && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(v) ? v : "";
+function showLogo(){
+  const el = $("#brandLogo"), src = logoOf(cfg.logo);
+  el.classList.toggle("has-img", !!src);
+  el.textContent = "";
+  if (src){ const img = new Image(); img.alt = ""; img.src = src; el.appendChild(img); }
+}
+/* Reads an image file, scales it to at most 480 × 140 px and keeps it as PNG or WebP, whichever is smaller. */
+async function readLogo(file){
+  if (!file || !/^image\//.test(file.type)) throw new Error("Choose a PNG, JPEG or WebP picture.");
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error("That file could not be read as a picture.")); i.src = url; });
+    for (const box of [[480, 140], [360, 104], [240, 70]]){
+      const k = Math.min(1, box[0] / img.naturalWidth, box[1] / img.naturalHeight);
+      const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      const best = [c.toDataURL("image/png"), c.toDataURL("image/webp", .9)].filter(logoOf).sort((a, b) => a.length - b.length)[0];
+      if (best) return best;
+    }
+    throw new Error("That picture is too detailed. Use a simpler logo file.");
+  } finally { URL.revokeObjectURL(url); }
+}
+function logoHtml(){
+  const src = logoOf(draft.logo);
+  return `<h2 style="margin-top:12px">Company logo</h2>
+    <div class="logo-row"><div class="logo-prev" id="logoPrev">${src ? `<img alt="Company logo" src="${src}">` : `<span class="small muted">No logo</span>`}</div>
+      <label class="btn" style="cursor:pointer">Choose picture<input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp" hidden></label>
+      ${src ? `<button type="button" class="btn ghost danger" id="logoDel">Remove</button>` : ""}</div>`;
+}
+function bindLogo(v, dirty){
+  const f = $("#logoFile", v), del = $("#logoDel", v);
+  if (f) f.onchange = async () => { try { draft.logo = await readLogo(f.files[0]); dirty(); } catch (e){ toast(e.message); f.value = ""; } };
+  if (del) del.onclick = () => { draft.logo = ""; dirty(); };
+}
+
+/* Time left on a step: working time for hands-on steps when the lab has shifts, clock time otherwise. */
+const leftBy = (due, now, x) => x?.clock || !cfg.work ? due - now : workBetween(now, due);
+const SOON = 2 * HOUR;
+function cardTime(s){
+  const stp = stage(s, s.stageKey), due = stageDue(s), now = Date.now(), st = status(s);
+  if (awaiting(s)) return { cls: st.late || s.flag ? "t-soon" : "t-wait", left: st.late && due ? `${dur(overBy(due, now, stp || {}))} late` : "" };
+  if (!due || !stp || stp.final) return { cls: "", left: "" };
+  if (now > due) return { cls: "t-late", left: `${dur(overBy(due, now, stp))} late` };
+  const left = leftBy(due, now, stp);
+  return { cls: left <= SOON ? "t-soon" : "t-ok", left: `${dur(Math.max(left, 60000))} left` };
+}
+
+/* Wall screen: the board alone, large and kept fresh, for a screen in the lab. */
+let wallTimer = 0;
+function wallClock(){ const c = $("#wallClock"); if (c) c.textContent = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ() || undefined }).format(new Date()); }
+function setWall(on){
+  document.body.classList.toggle("wall", on);
+  clearInterval(wallTimer);
+  if (on){
+    document.documentElement.requestFullscreen?.().catch(() => {});
+    wallTimer = setInterval(() => { if (tab === "board") renderBoard(); else setWall(false); }, 30000);
+  } else {
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    layoutNav();
+  }
+  if (tab === "board") renderBoard();
+}
+document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && document.body.classList.contains("wall")) setWall(false); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && document.body.classList.contains("wall")) setWall(false); });
+setInterval(wallClock, 15000);
 
 /* ---------- upgrade of records written by earlier versions (runs once, under a lease) ---------- */
 function upgradeSample(s){
@@ -5225,7 +5611,7 @@ async function maintenance(){
 
 /* ---------- boot ---------- */
 const typingIn = sel => { const a = document.activeElement; return !!(a && a.closest?.(sel) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); };
-function rerenderSoon(){ clearTimeout(rerenderSoon.t); rerenderSoon.t = setTimeout(() => { if (tab === "board") renderBoard(); else if (tab === "ledger") renderLedger(); else if (tab === "batches" && !typingIn("#view-batches")) renderBatches(); else if (tab === "results") renderResultsTab(); else if (tab === "storage") renderStorage(); updateCount(); }, 80); }
+function rerenderSoon(){ clearTimeout(rerenderSoon.t); rerenderSoon.t = setTimeout(() => { if (tab === "board") renderBoard(); else if (tab === "ledger") renderLedger(); else if (tab === "batches" && !typingIn("#view-batches")) renderBatches(); else if (tab === "results") renderResultsTab(); else if (tab === "storage") renderStorage(); else if (tab === "track" && !current && !typingIn("#view-track")) renderTrack(); updateCount(); }, 80); }
 let monthBatchSub = null, monthBatchKey = "";
 function watchBatches(){
   if (!db) return;
@@ -5266,12 +5652,13 @@ setTab(tab);
         routes: mergeRoutes(d.routes, d.removed), removed: Array.isArray(d.removed) ? d.removed.slice() : [],
         sections: Array.isArray(d.sections) && d.sections.length ? clone(d.sections) : clone(DEFAULT_CONFIG.sections),
         users, tz: d.tz && tzOk(d.tz) ? d.tz : DEFAULT_CONFIG.tz,
-        crms: Array.isArray(d.crms) && d.schema >= 12 ? clone(d.crms) : mergeCrms(d.crms), limits: Array.isArray(d.limits) ? clone(d.limits) : clone(DEFAULT_CONFIG.limits), resultsPublic: !!d.resultsPublic, work: workOf(d.work)
+        crms: Array.isArray(d.crms) && d.schema >= 12 ? clone(d.crms) : mergeCrms(d.crms), limits: Array.isArray(d.limits) ? clone(d.limits) : clone(DEFAULT_CONFIG.limits), resultsPublic: !!d.resultsPublic, work: workOf(d.work), logo: logoOf(d.logo)
       };
     }
     if (!draftDirty) draft = null;          // someone else's save shows up unless you have unsaved edits
     else if (tab === "stages") toast("Someone else just saved settings. Discard your changes to see theirs.");
     refreshRegisterOptions();
+    showLogo();
     const before = session && JSON.stringify(session);
     resolveSession();                       // an admin may have changed this account's role, password or removed it
     if (before && before !== JSON.stringify(session)){ $("#view-register").innerHTML = ""; if (!session) toast("Your account was changed by an admin. Please sign in again."); setTab(tab); }

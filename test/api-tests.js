@@ -45,6 +45,7 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   const pub = (await one(null, { op: "get", path: "samples/" + id })).data;
   check(pub && !pub.results && !pub.amend && pub.certs[0].no === id + "-R1" && pub.certs[0].code === "ABC" && !pub.certs[0].rows, "public lookup hides results but shows certificate number and check code");
   check((await one(null, { op: "query", coll: "samples", where: [["open", "==", true]] })).docs.length === 0, "public can't list open samples");
+  check((await one(null, { op: "query", coll: "samples", where: [["lab", "==", true]] })).docs.length === 0, "public can't list the samples in the lab (the board and wall screen)");
   const byTag = (await one(null, { op: "query", coll: "samples", where: [["tags", "array-contains", "T-1"]], limit: 100 })).docs;
   check(byTag.length === 1 && !byTag[0].data.results, "public tag lookup finds the sample, without results");
   check(!(await one(null, { op: "get", path: "ledger/2026-10-14_EXP" })).ok, "public can't read the ledger");
@@ -68,6 +69,12 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   { const work = { days: [1, 2, 3, 4, 5], shifts: [{ from: "07:00", to: "15:00" }], off: ["2026-12-25"] };   // v14 lab working hours
     check((await one("boss@site.com", { op: "update", path: "settings/stages", data: { work } })).ok && JSON.stringify((await one(null, { op: "get", path: "settings/stages" })).data.work) === JSON.stringify(work), "the lab manager saves lab working hours, and the public page reads them for expected finish times");
     check(!(await one("t1@site.com", { op: "update", path: "settings/stages", data: { work: null } })).ok && (await one(null, { op: "get", path: "settings/stages" })).data.work.days.length === 5, "a technician can't change the working hours"); }
+  { const logo = "data:image/png;base64," + Buffer.from("a small picture").toString("base64");   // v15 company logo
+    check((await one("boss@site.com", { op: "update", path: "settings/stages", data: { logo } })).ok && (await one(null, { op: "get", path: "settings/stages" })).data.logo === logo, "the lab manager saves a company logo, and everyone's page reads it");
+    check(!(await one("t1@site.com", { op: "update", path: "settings/stages", data: { logo: "" } })).ok, "a technician can't change the logo");
+    const bad = [["a large picture", "data:image/png;base64," + "A".repeat(90000)], ["an SVG", "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4="], ["a link", "https://example.com/logo.png"], ["not text", { src: logo }]];
+    for (const [what, v] of bad) check(!(await one("boss@site.com", { op: "update", path: "settings/stages", data: { logo: v } })).ok, `the server refuses ${what} as the logo`);
+    check((await one(null, { op: "get", path: "settings/stages" })).data.logo === logo && (await one("boss@site.com", { op: "update", path: "settings/stages", data: { logo: "" } })).ok, "a refused logo leaves the saved one; removing it is allowed"); }
   { const m2 = createMemoryStore(); await m2.set("settings/stages", { users }); const c2 = createCore({ store: m2, adminEmails: [] });
     const r = (await c2.handleDb(P("boss@site.com"), { ops: [{ op: "set", path: "settings/stages", data: { users: users.filter(x => x.role !== "admin") } }] })).body.results[0];
     check(!r.ok, "without ADMIN_EMAILS, settings can't be saved with no admin left"); }
