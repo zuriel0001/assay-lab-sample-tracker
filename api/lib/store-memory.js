@@ -35,7 +35,7 @@ function createMemoryStore(){
       return Object.keys(docs).filter(k => k.startsWith(coll + "/") && k.split("/").length === 2 && k > after).sort().slice(0, n).map(k => ({ path: k, data: clone(docs[k]) }));
     },
     async changes(since){
-      return Object.entries(meta).filter(([, m]) => m.u > since).map(([p, m]) => ({ path: p, data: m.del || !(p in docs) ? null : clone(docs[p]), u: m.u }));
+      return Object.entries(meta).filter(([p, m]) => m.u > since && !p.startsWith("files/")).map(([p, m]) => ({ path: p, data: m.del || !(p in docs) ? null : clone(docs[p]), u: m.u }));
     },
     async peekLease(p){ const l = leases[p]; return l && l.exp > Date.now() ? { holder: l.holder, exp: l.exp } : null; },
     async acquire(p, holder, ttl){

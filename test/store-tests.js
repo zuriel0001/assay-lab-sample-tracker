@@ -40,8 +40,10 @@ async function suite(name, s){
   await new Promise(r => setTimeout(r, 5));
   await s.update("samples/A-3", { n: 5 });
   await s.remove("samples/A-2");
+  await s.set("files/RF-0123456789ABCDEF~1", { id: "RF-0123456789ABCDEF~1", data: "QUJD" });
   const ch = await s.changes(t0);
   check(ch.some(c => c.path === "samples/A-3" && c.data.n === 5) && ch.some(c => c.path === "samples/A-2" && c.data === null) && !ch.some(c => c.path === "samples/A-1"), "changes since a time, including deletes");
+  check(!ch.some(c => c.path.startsWith("files/")) && (await s.get("files/RF-0123456789ABCDEF~1")).data === "QUJD", "results files are kept and read by ID, but left out of changes");
   check(await s.get("samples/A-2") === null && await q([["sec", "==", "PLT"]]) === "", "a deleted record is gone from reads and queries");
   await s.set("samples/A-2", { id: "A-2", sec: "PLT" }, { create: true });
   check((await s.get("samples/A-2")).sec === "PLT", "a deleted record can be created again");

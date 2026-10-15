@@ -240,6 +240,28 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
       history: [{ key: "submitted", at: now, by: "public", name: "J", note: "Registered at the lab (walk-in)", hand: "Kofi Mensah", badge: "B-1042" }] }) })).ok, "a walk-in names the technician it was handed to and their badge number");
     check((await one("t1@site.com", { op: "set", path: "samples/" + lid, data: sub(lid, { ...hand, createdByName: "J",
       history: [{ key: "submitted", at: now, by: "public", name: "J", note: "Submitted through the submission form", hand: "Kofi Mensah", badge: "B-1042" }] }) })).ok, "a technician's Submit with Received now cleared waits for receipt like any submission"); }
+  { const sha = "ab".repeat(32), fid = "RF-" + sha.slice(0, 16).toUpperCase(), t0 = Date.now() - 1;   // v18 results files
+    const piece = n => ({ id: `${fid}~${n}`, of: fid, n, data: Buffer.from("csv line " + n).toString("base64") });
+    const rec = { id: fid, name: "ak041110.xls", kind: "xls", size: 2048, sha, labRef: "AK1", parts: 2, at: now, by: "t1", tech: "Tech One" };
+    check((await one("t1@site.com", { op: "set", path: `files/${fid}~1`, data: piece(1) })).ok && (await one("t1@site.com", { op: "set", path: `files/${fid}~2`, data: piece(2) })).ok &&
+      (await one("t1@site.com", { op: "set", path: "files/" + fid, data: rec })).ok, "a technician keeps a results file: its pieces, then its record under their name");
+    check((await one("t1@site.com", { op: "set", path: `files/${fid}~1`, data: piece(1) })).ok, "saving the same piece again (a retry) is allowed");
+    check(!(await one("t1@site.com", { op: "set", path: `files/${fid}~1`, data: { ...piece(1), data: "QUJD" } })).ok, "a kept file can't be overwritten");
+    check(!(await one("t1@site.com", { op: "update", path: "files/" + fid, data: { name: "other.xls" } })).ok, "a kept file's record can't be changed");
+    check(!(await one("boss@site.com", { op: "delete", path: "files/" + fid })).ok && (await one("v@site.com", { op: "get", path: "files/" + fid })).data.name === "ak041110.xls", "a kept file is never deleted, even by the lab manager");
+    check(!(await one("t1@site.com", { op: "set", path: "files/RF-1111111111111111", data: { ...rec, id: "RF-1111111111111111", by: "s1", tech: "Super One" } })).ok, "a file can't be kept in someone else's name");
+    check(!(await one("v@site.com", { op: "set", path: "files/RF-2222222222222222~1", data: { id: "RF-2222222222222222~1", of: "RF-2222222222222222", n: 1, data: "QUJD" } })).ok, "a viewer can't keep files");
+    check(!(await one("t1@site.com", { op: "set", path: "files/RF-3333333333333333~1", data: { id: "RF-3333333333333333~1", of: "RF-3333333333333333", n: 1, data: "A".repeat(180004) } })).ok &&
+      !(await one("t1@site.com", { op: "set", path: "files/anything", data: { id: "anything" } })).ok, "an oversized piece or a stray record is refused");
+    check(!(await one(null, { op: "get", path: "files/" + fid })).ok && !(await one("exp@site.com", { op: "get", path: `files/${fid}~1` })).ok, "the public and section accounts can't read results files");
+    const found = (await one("t1@site.com", { op: "query", coll: "files", where: [["sha", "==", sha]], limit: 5 })).docs;
+    check(found.length === 1 && found[0].data.parts === 2, "staff find a file attached before by its fingerprint");
+    check(!(await one("s1@site.com", { op: "changes", since: t0 })).changes.some(c => c.path.startsWith("files/")), "file pieces are not sent to every page as live changes");
+    const ex = (await one("boss@site.com", { op: "export", coll: "files", after: "", limit: 200 }));
+    check(ex.docs.length === 3 && ex.next === null, "the backup includes results files, a few pieces at a time");
+    const bp = "batches/FA-B1", draft = { at: now, by: "t1", tech: "Tech One", file: { id: fid, name: rec.name }, vals: {}, crms: {} };
+    check((await one("t1@site.com", { op: "set", path: bp, data: { id: "FA-B1", status: "results", draft, files: [{ id: fid, name: rec.name, at: now, tech: "Tech One" }] } })).ok, "a batch keeps a results draft under the uploader's name");
+    check(!(await one("t1@site.com", { op: "update", path: bp, data: { draft: { ...draft, by: "s1", tech: "Super One" } } })).ok && (await one("t1@site.com", { op: "update", path: bp, data: { draft: null } })).ok, "a draft can't be saved in someone else's name; saving the results clears it"); }
 
   console.log(`\n${pass} PASS, ${fail} FAIL`);
   process.exit(fail ? 1 : 0);

@@ -99,7 +99,9 @@ function createCosmosStore(connectionString){
     },
     async changes(since){
       const c = await box();
-      const { resources } = await c.items.query({ query: 'SELECT c.p, c.d, c.u, c.del FROM c WHERE c.u > @s AND c.pk != "_lease"', parameters: [{ name: "@s", value: since }] }).fetchAll();
+      // Results files are read by ID when someone opens one, never followed live: leaving them out keeps every page's
+      // next poll from reading up to a megabyte of file pieces.
+      const { resources } = await c.items.query({ query: 'SELECT c.p, c.d, c.u, c.del FROM c WHERE c.u > @s AND c.pk != "_lease" AND c.pk != "files"', parameters: [{ name: "@s", value: since }] }).fetchAll();
       return resources.map(r => ({ path: r.p, data: r.del ? null : r.d, u: r.u }));
     },
     async peekLease(p){

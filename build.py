@@ -11,7 +11,9 @@ breaks one stops the build instead of producing a half-patched page.
 import os, re, sys, json, hashlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "..", "sample-tracking", "assay-lab-sample-tracker.html")
+# The prototype: ../sample-tracking in the project folder, or prototype/ in the GitHub repository.
+PROTO = next((d for d in (os.path.join(HERE, "prototype"), os.path.join(HERE, "..", "sample-tracking")) if os.path.isdir(d)), os.path.join(HERE, "..", "sample-tracking"))
+SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(PROTO, "assay-lab-sample-tracker.html")
 page = open(SRC, encoding="utf-8").read()
 src_hash = hashlib.sha256(page.encode()).hexdigest()[:12]
 
@@ -331,8 +333,6 @@ put('''<div class="small">Open each sample, act as the limit says and record wha
 put('''+${items.length - 40} more: use the filters or look a sample up by ID</div>''', '''+${items.length - 40} more</div>''')
 
 # Submit a sample / Register at lab
-put('''<span class="small muted" style="font-weight:400">All ${TESTS.length} tests are in this list: the ones recommended for the sample type first, then every other test by category. <button type="button" class="btn ghost small" data-goto="routes">See all tests</button></span>''', '')
-put('''\n    : `<div class="route-box"><div class="small muted">Choose the sample type, purpose and test to see the workflow this sample will follow and when results can be expected.</div></div>`;''', '''\n    : "";''')
 put('''after the lab receives the sample (an estimate from the step times). ${(r.retention''', '''after receipt. ${(r.retention''')
 put(''' Write ${n === 1 ? "this ID" : "these IDs"} on the sample bag${n === 1 ? "" : "s"}, or print the label${n === 1 ? "" : "s"}${lab ? "" : walk ? ". It shows “Awaiting receipt” until a lab technician confirms it" : ", then bring or send the sample to the Assay Lab. Its status shows “Awaiting receipt” until a lab technician confirms it has arrived"}:''',
     ''' Write ${n === 1 ? "this ID" : "these IDs"} on the bag${n === 1 ? "" : "s"} or print the label${n === 1 ? "" : "s"}:''')
@@ -359,18 +359,20 @@ drop('''${inUse ? `<p class="small muted" style="margin:0">${inUse} open sample(
 put('''<span class="small muted" style="font-weight:400">${R.qcp ? "Written from the batch type, so it says what the batch enforces. Choosing another batch type or test rewrites it; you can add notes after it." : "Describe the checks. Only the checks built into the test's results are enforced."}</span>''', '')
 
 # Lab batches, Results
-drop('''<p class="small muted" style="margin:0">Samples are assayed in batches with reference materials (CRMs), blanks and duplicates placed by the route's QC rule. A sample joins one batch for each method its route uses (for example solution gold and solids gold), and every result a batch checks is judged on each QC position. The number of QC positions is fixed per batch, whatever its size (not per 20 samples). The QC is checked automatically when the results are saved, and a sample's results can't be released until each of its batches passes. Testwork and physical tests have their checks on each sample's results instead.</p>''')
 put('''No samples are waiting for a batch. Samples join a batch after receipt and before QA/QC review.</p>''', '''No samples are waiting for a batch.</p>''')
 put('''Up to ${np.size} samples. QC positions are added automatically.</span>''', '''Up to ${np.size} samples.</span>''')
-drop('''<p class="small muted" style="margin:0">Every result for one reference material, oldest first, against the certified value each batch was judged on. Two results in a row beyond 2 SD on the same side make a batch a warning; nine in a row on one side of the certified value are flagged as a bias.</p>''')
-put(''' in that order`} (separated by tabs, semicolons, commas or spaces; a unit after a value is ignored). A sample ID given twice fills the sample, then its duplicate. A first line of column names (for example <span class="mono">Sample, ${esc(ans.map(anShort).join(", "))}</span>) picks the columns by name. Use tabs or semicolons when values contain commas. Lines that match nothing are listed.</p>''',
-    ''' in that order`}.</p>''')
 put('''<span class="small muted">Each gets its own certificate.${mineHeld ? ` ${mineHeld} with results''', '''<span class="small muted">${mineHeld ? `${mineHeld} with results''')
 put('''Certificates of analysis for samples your section submitted, newest first. ${fresh ?''', '''${fresh ?''')
 put(''' : "Nothing new since you last looked."} In the production system this notice also goes to the section by email.</p>''', ''' : "Nothing new since you last looked."}</p>''')
 
 # On Azure "quota_exceeded" means one record grew past what Cosmos DB holds (samples are never deleted).
 put('toast("The register is full. Archive or delete old samples before adding more.");', 'toast("This record is too large to save. Tell the lab manager.");')
+
+# 13. A result row (or lab batch entry) that is rewritten replaces the old one whole. An update merges maps, so without this a
+#     value typed over one read from a results file kept src: "file", and an approved amendment of such a value was refused by
+#     the server (the row no longer matched the proposal). Remove once the prototype's own patch() does the same.
+put('const patch = (old, now) => ({ ...Object.fromEntries(Object.keys(old || {}).map(k => [k, null])), ...now });',
+    'const patch = (old, now) => ({ ...Object.fromEntries(Object.keys(old || {}).map(k => [k, null])), ...Object.fromEntries(Object.entries(now).map(([k, v]) => [k, v && typeof v === "object" && !Array.isArray(v) && old?.[k] && typeof old[k] === "object" ? { ...Object.fromEntries(Object.keys(old[k]).map(j => [j, null])), ...v } : v])) });')
 
 # 11. Settings: the lab manager can download a backup of every record (one JSON file), next to Save settings.
 put('<span style="flex:1"></span><button class="btn ghost" id="cfgReset">',

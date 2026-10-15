@@ -3,7 +3,7 @@
 const { validWhere, clone, same } = require("./docutil");
 const { createAuth, requestKey, clientIp } = require("./auth");
 
-const COLLS = ["samples", "ledger", "batches", "stock", "tagidx", "meta", "settings", "access"];
+const COLLS = ["samples", "ledger", "batches", "stock", "tagidx", "meta", "settings", "access", "files"];
 const WRITERS = ["tech", "super", "admin"], STAFF = [...WRITERS, "viewer"], APPROVERS = ["super", "admin"];
 const SEG = /^[^\u0000-\u001f/\\?#]{1,200}$/;
 const MAX_DOC = 1500000;   // Cosmos DB items are limited to 2 MB
@@ -103,6 +103,7 @@ function batchRule(a, cur, next){
   const who = signedBy(a), q0 = cur && cur.qc, q1 = next.qc;
   const bare = q => q ? { ...q, accepted: null } : null;
   if (q1 && !same(bare(q1), bare(q0)) && !who(q1)) return "Batch results must be saved under the name of the person signed in.";
+  if (next.draft && !same(next.draft, cur && cur.draft) && !who(next.draft)) return "Results from a file must be saved under the name of the person signed in.";
   const x = q1 && q1.accepted;
   if (x && !same(x, q0 && q0.accepted)){
     if (!APPROVERS.includes(a.role) || !who(x)) return "Only a lab supervisor or the lab manager accepts batch QC, under their own name.";
@@ -120,6 +121,19 @@ function ledgerRule(a, cur, next){
   return "";
 }
 const RULES = { samples: sampleRule, batches: batchRule, ledger: ledgerRule };
+/* A results file the lab attached (CSV or Excel), kept as it came: files/RF-<id> describes it and names who attached it,
+   files/RF-<id>~1, ~2… hold it in base64 pieces. Written once; never changed or deleted. */
+const FILE_ID = /^RF-(?:[0-9A-F]{16}|\d{8}-[0-9A-Z]{1,10})$/, FILE_PIECE = 180000, FILE_PARTS = 10;
+const short = (v, n) => v == null || (typeof v === "string" && v.length <= n);
+function fileProblem(a, id, d){
+  const m = /^(RF-[^~]+)~(\d{1,2})$/.exec(id);
+  if (m) return FILE_ID.test(m[1]) && Object.keys(d).every(k => ["id", "of", "n", "data"].includes(k)) && d.id === id && d.of === m[1] && d.n === +m[2] &&
+    d.n >= 1 && d.n <= FILE_PARTS && typeof d.data === "string" && d.data.length <= FILE_PIECE && /^[A-Za-z0-9+/]*=*$/.test(d.data) ? "" : "Not a valid piece of a results file.";
+  if (!FILE_ID.test(id) || d.id !== id || !Object.keys(d).every(k => ["id", "name", "kind", "size", "sha", "labRef", "parts", "at", "by", "tech"].includes(k)) ||
+      typeof d.name !== "string" || !d.name || d.name.length > 200 || !short(d.kind, 20) || !short(d.labRef, 100) || !(d.size >= 0 && d.size <= 1100000) ||
+      !(Number.isInteger(d.parts) && d.parts >= 1 && d.parts <= FILE_PARTS) || !(d.sha == null || d.sha === "" || /^[0-9a-f]{64}$/i.test(d.sha))) return "Not a valid results file.";
+  return signedBy(a)(d) ? "" : "A results file must be kept under the name of the person signed in.";
+}
 
 function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }){
   const admins = adminEmails.map(x => String(x).trim().toLowerCase()).filter(Boolean);
@@ -234,7 +248,7 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
     if (t === "export"){   // the lab manager's backup download: every record, a page at a time
       if (a.role !== "admin") throw fail("permission_denied", "Only the lab manager downloads backups.");
       if (!COLLS.includes(op.coll)) throw fail("bad_request");
-      const n = Math.max(1, Math.min(500, op.limit | 0 || 200));
+      const n = Math.max(1, Math.min(op.coll === "files" ? 4 : 500, op.limit | 0 || 200));   // file pieces are up to 180 KB each
       const docs = await store.page(op.coll, typeof op.after === "string" ? op.after : "", n);
       return { docs, next: docs.length === n ? docs[docs.length - 1].path : null };
     }
@@ -291,6 +305,14 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
       return { ok: true };
     }
     if (isWriter(a)){
+      if (pp.coll === "files"){
+        // Written once. Saving the same piece again (a retry after a lost answer) changes nothing and is allowed.
+        if (t !== "set") throw fail("permission_denied", "Results files are kept as they were first saved.");
+        const why = fileProblem(a, pp.id, op.data);
+        if (why) throw fail("bad_request", why);
+        await store.set(op.path, op.data, { check: cur => cur && !same(cur, op.data) ? "Results files are kept as they were first saved." : "" });
+        return { ok: true };
+      }
       if (t === "delete"){
         if (["samples", "ledger", "stock"].includes(pp.coll)) throw fail("permission_denied", "Samples, their stock records and ledger entries are never deleted.");
         await store.remove(op.path);
