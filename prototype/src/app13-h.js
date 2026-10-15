@@ -110,7 +110,7 @@ async function exportStorageCsv(rows){
   const dl = window.claude?.use ? await claude.use("downloads") : null;
   if (!dl){ toast("Downloads are not available in this view."); return; }
   const q = x => `"${String(x ?? "").replace(/"/g, '""')}"`, now = Date.now();
-  const head = ["Sample ID", "Tag number", "Section", "Type", "Route", "Material", "Location", "Keep until", "Then", "Past retention"];
+  const head = ["Sample ID", "Site sample code", "Section", "Type", "Route", "Material", "Location", "Keep until", "Then", "Past retention"];
   const lines = rows.map(r => [r.id, r.tag, r.sec, r.type, r.route, r.item, r.loc, fmtDate(r.dueAt), r.then, r.dueAt && now > r.dueAt ? "yes" : ""].map(q).join(","));
   try { await dl.save({ filename: `storage-${dayKey(now)}.csv`, data: [head.map(q).join(","), ...lines].join("\n") }); }
   catch { toast("Download was not saved."); }

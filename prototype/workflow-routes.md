@@ -1087,7 +1087,7 @@ Mill samples (mill feed, cyclone overflow, leach feed) for daily metallurgical a
 - **Sample types:** Mill sample, ROM ore / stockpile
 - **Chosen first when the purpose is:** Plant process control, Mine-to-mill reconciliation
 - **Results:** about 7.25 h after receipt
-- **Reports:** Head grade (g/t), DL 0.01, range to 50; Grind, passing 75 µm (%); Moisture (%), optional
+- **Reports:** Head grade (g/t), DL 0.01, range to 50; Grind, passing 75 µm (%), optional; Screen analysis, % retained, optional; Moisture (%), optional
 - **Lab batch:** Plant shift batch (Mill samples) for Au
 
 | # | Step | Phase | Time allowed | Method and checks |

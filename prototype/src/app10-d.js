@@ -151,12 +151,13 @@ function renderSampleForm(mode){
       ${staff ? `<label class="f full" data-lab><span>Workflow route (only routes that perform the test)</span><select id="rRouteSel"><option value="">Automatic</option></select></label>` : ""}
       <div class="full" id="rRoute"></div>
       <label class="f"><span>Submitted by (name) <span class="req">*</span></span><input id="rSubmitter" required placeholder="Person who sent the sample"></label>
+      <label class="f"><span>Submitter's badge number</span><input id="rSubBadge" maxlength="20" autocomplete="off"></label>
       <label class="f"><span>Submitting section <span class="req">*</span></span><select id="rSection" required><option value="">Choose…</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select></label>
+      <label class="f">Number of samples<input id="rCount" type="number" min="1" max="100" step="1" value="1"></label>
+      <label class="f full">Site sample code<input id="rTag" placeholder="e.g. MLNSCLF120261014 (one per sample, separated by commas)"></label>
       <label class="f" data-hand><span>Handed to (lab technician)${walk ? req : ""}</span><input id="rHandTo" maxlength="60" list="rTechList" autocomplete="off"></label>
       <label class="f" data-hand><span>Technician's badge number${walk ? req : ""}</span><input id="rHandBadge" maxlength="20" autocomplete="off"></label>
       <datalist id="rTechList">${techs.map(n => `<option value="${esc(n)}">`).join("")}</datalist>
-      <label class="f">Tag number<input id="rTag" placeholder="e.g. T-10421 (a batch counts up)"></label>
-      <label class="f">Number of samples<input id="rCount" type="number" min="1" max="100" step="1" value="1"></label>
       ${staff ? `${meBox("Received by (lab staff)").replace('<label class="f">', '<label class="f" data-lab>')}
       <label class="f" data-lab><span>Date &amp; time received <span class="req">*</span></span><input id="rRecvAt" type="datetime-local" required value="${localInput(now)}"></label>
       <div id="rWitBox" data-lab hidden>${witnessField("rWit")}</div>` : ""}
@@ -252,7 +253,7 @@ async function register(){
   if (!teK) return fail("Choose the test requested.", "#rTest");
   if (!submitter) return fail("Type the name of the person submitting.", "#rSubmitter");
   if (!code) return fail("Choose the submitting section.", "#rSection");
-  const handTo = lab ? "" : val("#rHandTo").slice(0, 60), handBadge = lab ? "" : val("#rHandBadge").slice(0, 20);
+  const handTo = lab ? "" : val("#rHandTo").slice(0, 60), handBadge = lab ? "" : val("#rHandBadge").slice(0, 20), subBadge = val("#rSubBadge").slice(0, 20);
   if (walk && !handTo) return fail("Type the name of the technician you handed it to.", "#rHandTo");
   if (walk && !handBadge) return fail("Type the technician's badge number.", "#rHandBadge");
   const r = formRoute();
@@ -270,10 +271,10 @@ async function register(){
     if (!$("#rWitBox").hidden && !(wit = val("#rWit"))) return fail("Two-person custody: choose the witness.", "#rWit");
   }
   const tagsIn = splitTags($("#rTag").value).map(normTag);
-  if (n > 1 && tagsIn.length > 1 && tagsIn.length !== n) return fail(`You entered ${tagsIn.length} tag numbers for ${n} samples. Enter one per sample, or a single starting tag.`, "#rTag");
+  if (n > 1 && tagsIn.length > 1 && tagsIn.length !== n) return fail(`You entered ${tagsIn.length} site sample codes for ${n} samples. Enter one per sample, or a single starting code.`, "#rTag");
   const tagSets = batchTags(tagsIn, n), allTags = tagSets.flat();
-  if (new Set(allTags).size !== allTags.length) return fail("The same tag number appears twice in this batch.", "#rTag");
-  btn.disabled = true; msg.textContent = allTags.length ? "Checking tag numbers…" : "Issuing IDs…";
+  if (new Set(allTags).size !== allTags.length) return fail("The same site sample code appears twice in this batch.", "#rTag");
+  btn.disabled = true; msg.textContent = allTags.length ? "Checking site sample codes…" : "Issuing IDs…";
   try {
     for (const t of allTags){ const used = await tagOwner(t); if (used) throw { code: "tagused", tag: t, id: used }; }
     msg.textContent = "Issuing IDs…";
@@ -285,7 +286,7 @@ async function register(){
     const recv = lab ? { bags: containers, mass: massKg, unit: "kg", seal: seal ? "ok" : "none", cond: "Good", temp: "", holdH, warn: holdH != null && holdH > t.hold ? [`holding time for ${t.holdWhat} exceeded: received ${hoursLabel(holdH)} after collection, limit ${hoursLabel(t.hold)}`] : [], ...(wit ? { wit } : {}) } : null;
     const base = {
       v: 13, type: t?.name || tyK, typeKey: tyK, purpose: why ? `Other: ${why}` : purposeOf(puK)?.name || puK, purposeKey: puK, ...(why ? { purposeWhy: why } : {}), ...(handTo ? { handedTo: handTo } : {}), ...(handBadge ? { handedBadge: handBadge } : {}), ...rf, details, reassays: 0,
-      submitter, section: code, receivedBy: lab ? session.name : "", receivedAt: recvAt, recvAt, recv,
+      submitter, ...(subBadge ? { subBadge } : {}), section: code, receivedBy: lab ? session.name : "", receivedAt: recvAt, recvAt, recv,
       source: val("#rSource"), collectedAt: collected, containers, massKg, seal, priority: $("#rPriority").value,
       hazards: HAZARDS.filter(h => $("#rHz_" + h.k)?.checked).map(h => h.k),
       analyses: ADDONS.filter((_, i) => $("#rAn" + i)?.checked), notes: val("#rNotes"),
@@ -315,7 +316,7 @@ async function register(){
     btn.disabled = true;
   } catch (e) {
     btn.disabled = false; msg.textContent = "";
-    if (e && e.code === "tagused") toast(`Tag ${e.tag} is already on open sample ${e.id}. Use another tag number, or leave it blank.`);
+    if (e && e.code === "tagused") toast(`Site sample code ${e.tag} is already on open sample ${e.id}. Use another code, or leave it blank.`);
     else if (e && e.code === "busy") toast("Could not issue an ID. Try again in a moment.");
     else writeFailed(e);
   }
@@ -401,7 +402,7 @@ function renderLedger(){
       </div>
       ${rc ? `<div class="recon"><b>Month check:</b> ${rc.opening} on hand at the start + ${rc.ins} received − ${rc.outs} fully out = <b>${rc.closing}</b> on hand at the end${rc.now != null ? (rc.now === rc.closing ? ` <span class="pill ok">matches the ${rc.now} on hand now</span>` : ` <span class="pill bad">${rc.now} on hand now: check for missing movements</span>`) : ""}.</div>` : ""}
       <p class="small muted" style="margin:0">${inN} inbound and ${outN} outbound movement${outN === 1 ? "" : "s"}${revN ? `, ${revN} reversal${revN === 1 ? "" : "s"}` : ""} in ${esc(f.month)}. A sample is written in once, when the lab receives it. Each retained material is written out when it is returned, disposed, sent to another lab or archived. Mistakes are reversed with a visible entry, never deleted. Times are ${esc(TZ() || "this device's")} time.</p>
-      ${!ledgerReady && db ? `<div class="panel empty"><strong>Loading ${esc(f.month)}…</strong></div>` : rows.length ? `<div class="tbl-wrap"><table><thead><tr><th>Date &amp; time</th><th>Dir.</th><th>Sample ID</th><th>Tag no.</th><th>Type</th><th>Material</th><th>Section</th><th>From / to</th><th>Reference</th><th>Submitted by</th><th>Lab staff</th><th>Note</th></tr></thead><tbody>${body}</tbody></table></div>`
+      ${!ledgerReady && db ? `<div class="panel empty"><strong>Loading ${esc(f.month)}…</strong></div>` : rows.length ? `<div class="tbl-wrap"><table><thead><tr><th>Date &amp; time</th><th>Dir.</th><th>Sample ID</th><th>Site code</th><th>Type</th><th>Material</th><th>Section</th><th>From / to</th><th>Reference</th><th>Submitted by</th><th>Lab staff</th><th>Note</th></tr></thead><tbody>${body}</tbody></table></div>`
         : `<div class="panel empty"><strong>No ledger entries${f.dir !== "all" || f.q || f.sec ? " match these filters" : ` in ${esc(f.month)}`}</strong>Entries appear when samples are received at the lab or leave it.</div>`}
     </div>`;
   });
@@ -423,7 +424,7 @@ async function exportCsv(rows){
   const dl = window.claude?.use ? await claude.use("downloads") : null;
   if (!dl){ toast("Downloads are not available in this view."); return; }
   const q = x => `"${String(x ?? "").replace(/"/g, '""')}"`;
-  const head = ["Date time (site)", "Direction", "Reversed", "Sample ID", "Tag number", "Section", "Type", "Route", "Material", "Quantity", "From / to", "Reference", "Submitted by", "Lab staff", "Witness", "Note", "Movement ID"];
+  const head = ["Date time (site)", "Direction", "Reversed", "Sample ID", "Site sample code", "Section", "Type", "Route", "Material", "Quantity", "From / to", "Reference", "Submitted by", "Lab staff", "Witness", "Note", "Movement ID"];
   const lines = rows.map(r => [fmtFull(r.at), r.dir.toUpperCase(), r.reversed ? "yes" : "", r.sid, r.tag, r.sec, r.type, r.route, r.item, r.qty,
     r.dir === "in" ? r.from : r.dir === "rev" ? "Reversal" : DISPO[r.kind] || r.kind, r.ref, r.dir === "in" ? r.sub : "", r.tech, r.wit, r.note, r.mid].map(q).join(","));
   try { await dl.save({ filename: `sample-ledger-${ledgerFilter.month}.csv`, data: [head.map(q).join(","), ...lines].join("\n") }); }

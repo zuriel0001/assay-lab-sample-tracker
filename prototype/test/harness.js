@@ -91,7 +91,7 @@ async function signIn(page, u){
   await page.click('#loginForm button[type=submit]');
   await page.waitForTimeout(250);
 }
-async function fillForm(page, tabName, { section, type = "core", purpose = "exp", test = "", route = "", submitter = "J. Owusu", count = 1, tags = "", details = {}, collected = "", recvAt = "", wit = "", why = "", handed, badge }){
+async function fillForm(page, tabName, { section, type = "core", purpose = "exp", test = "", route = "", submitter = "J. Owusu", count = 1, tags = "", details = {}, collected = "", recvAt = "", wit = "", why = "", handed, badge, subBadge = "" }){
   // v16: Submit a sample needs a sign-in; people who are not signed in register walk-in samples at the lab, which wait for receipt the same way.
   // v17: signed in, there is only Submit; lab staff receive on it ("Received now at the lab, by me"), so "register" means that box ticked
   // and "submit" means it cleared (a submission received later, the same document as a public one).
@@ -109,6 +109,7 @@ async function fillForm(page, tabName, { section, type = "core", purpose = "exp"
     await page.fill("#rHandTo", handed ?? (walk ? "Lab Technician A" : ""));
     await page.fill("#rHandBadge", badge ?? (walk ? "B-101" : ""));
   }
+  if (subBadge) await page.fill("#rSubBadge", subBadge);   // v18: the submitter's badge number (the old "tag number" is the site sample code)
   await page.selectOption("#rSection", section);
   await page.selectOption("#rType", type);
   await page.selectOption("#rPurpose", purpose);

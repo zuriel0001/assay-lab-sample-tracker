@@ -49,7 +49,7 @@ function splitHead(h){
 }
 /* The register's current ID for a reference material named in a report (an old ID still counts). */
 const crmFromFile = id => { const k = normKey(id); const c = (cfg.crms || []).find(x => normKey(x.id) === k || (x.was || []).some(w => normKey(w) === k)); return c ? c.id : ""; };
-/* Known samples by every name a report may use: the tracker ID, each tag number and the site reference. */
+/* Known samples by every name a report may use: the tracker ID, each site sample code (tags) and the site reference. */
 function sampleIndex(){
   const idx = new Map(), add = s => { if (!s || !s.id) return; [s.id, ...(s.tags || []), s.siteRef].filter(Boolean).forEach(k => { const n = normKey(k); if (n && !idx.has(n)) idx.set(n, s.id); }); };
   samples.forEach(add); batchSamps.forEach(add); if (current?.body) add(current.body);
@@ -102,16 +102,13 @@ function parseReport(grid, idx){
     seen[key] = (seen[key] || 0) + 1;
     cols.push({ i: j, name: sp.name, unit: unit === "-" ? "" : unit, method: methods ? methods[j] || "" : "", rep: reps && /^[1-9]$/.test(reps[j] || "") ? +reps[j] : seen[key], concept: colConcept(sp.name) });
   }
-  /* A screen analysis in mesh fractions (+40 … +200 … −325, % retained): % passing 75 µm (200 mesh) is 100 less everything retained on
-     200 mesh and coarser, read only when the fractions add up to 100. */
-  const mesh = cols.filter(c => /^[+-]\d{2,3}$/.test(c.name) && (!c.unit || c.unit === "%")), coarse = mesh.filter(c => c.name[0] === "+" && +c.name.slice(1) <= 200);
-  if (mesh.some(c => c.name === "+200") && mesh.some(c => c.name[0] === "-")){
+  /* A screen analysis in mesh fractions (+40 … +200 … −325, % retained) is kept as the report states it, as one line ("+40 0.03 · +70 1.26 ·
+     …"): the site does not work out a grind from it. */
+  const mesh = cols.filter(c => /^[+-]\d{2,3}$/.test(c.name) && (!c.unit || c.unit === "%"));
+  if (mesh.length >= 2){
     mesh.forEach(c => { c.used = true; });
-    cols.push({ i: -1, name: "Passing 75 µm (from the screen fractions)", unit: "%", method: mesh[0].method, rep: 1, concept: "p75", calc: cells => {
-      const v = mesh.map(c => (cells[c.i] || "").trim()); if (v.some(x => !/^\d+(\.\d+)?$/.test(x))) return "";
-      const sum = v.reduce((a, x) => a + +x, 0); if (Math.abs(sum - 100) > 1) return "";
-      return (100 - coarse.reduce((a, c) => a + +(cells[c.i] || 0), 0)).toFixed(2);
-    } });
+    cols.push({ i: -1, name: "Screen analysis (% retained)", unit: "", method: mesh[0].method, rep: 1, concept: "scr", text: true,
+      calc: cells => mesh.map(c => [c.name, (cells[c.i] || "").trim()]).filter(x => x[1]).map(x => x.join(" ")).join(" · ") });
   }
   const rows = [];
   let end = grid.length;
@@ -144,7 +141,7 @@ function rowValues(rep, cells, defs, r = 1, clash){
   for (const c of rep.cols){
     if ((c.rep || 1) !== r) continue;
     const raw = c.calc ? c.calc(cells) : (cells[c.i] || "").trim(); if (!raw) continue;
-    const ok = defs.filter(a => !a.calc && !a.t);
+    const ok = defs.filter(a => !a.calc && (c.text ? a.t === "text" : !a.t));
     const exact = ok.filter(a => nameIs(c.name, a) && unitScore(c.unit, a.u) > 0);
     let pick = exact.length === 1 ? exact[0] : null;
     if (!pick && c.concept){
@@ -205,7 +202,8 @@ function planUpload(rep, scope){
       }
       vals[x.p] = {};
       for (const ch of ans){
-        const v = got[ch.k], optional = left.has(x.sid) || (x.t === "pd" || x.t === "cd") && left.has(x.of) || x.t === "crm" && !crmRow(crms[x.p] || x.crm, ch);
+        // QC positions the file has no reading for are not judged (the lab's QA/QC is a sample set of its own), so they are never missing.
+        const v = got[ch.k], optional = x.t !== "s" || left.has(x.sid);
         if (v){
           const r = parseRes(v.raw, ch);
           if (r && !r.bad && !r.amb){ vals[x.p][ch.k] = v.raw; n++; continue; }
@@ -236,7 +234,7 @@ function planUpload(rep, scope){
       else { const key = g.p + "|" + sigOf(ans); (fresh.get(key) || fresh.set(key, { p: g.p, ans, sids: [] }).get(key)).sids.push(sid); }
     }
     if (!scope.batch){
-      const bk = batchKeys(s), others = anOf(s).filter(a => !bk.has(a.k) && !a.calc && !a.t);
+      const bk = batchKeys(s), others = anOf(s).filter(a => !bk.has(a.k) && !a.calc && a.t !== "pick");
       const got = rowValues(rep, row.cells, others, 1, P.clash);
       if (Object.keys(got).length){
         if (!ready) needs = true;
@@ -324,9 +322,9 @@ function renderUpload(){
     if (P.already.length) check.push(li("warn", `Batch results already saved: ${ids(P.already, 4)}`));
     if (P.bad.length) check.push(li("bad", `Not a result: ${esc(P.bad.slice(0, 4).join("; "))}${P.bad.length > 4 ? ` +${P.bad.length - 4} more` : ""}`));
     if (P.clash.length) check.push(li("bad", `Two columns for one result: ${esc(P.clash.slice(0, 3).join("; "))}`));
-    if (P.notFound.length) unused.push(li("", `Not in the lab (no sample with this ID, tag number or site reference): ${ids(P.notFound)}`));
+    if (P.notFound.length) unused.push(li("", `Not in the lab (no sample with this ID, site sample code or site reference): ${ids(P.notFound)}`));
     if (P.unread.length) unused.push(li("", `Columns not read: ${esc(P.unread.slice(0, 10).join(", "))}${P.unread.length > 10 ? "…" : ""}${isAdmin() ? ` <button type="button" class="btn ghost small" id="upCols">Settings › Results files</button>` : ""}`));
-    if (P.unknownCrm.length) unused.push(li("", `Reference materials not in the register: ${ids(P.unknownCrm)}`));
+    if (P.unknownCrm.length) unused.push(li("", `Reference materials not in the register: ${ids(P.unknownCrm)}${isAdmin() ? ` <button type="button" class="btn ghost small" id="upCrms">Settings › Reference materials</button>` : ""}`));
   }
   const rowsRead = P ? [
     ...P.batches.concat(P.fresh).flatMap(t => t.b.pos.filter(x => Object.keys(t.vals[x.p] || {}).length).map(x => [x.t === "s" ? x.sid : x.t === "crm" ? t.crms[x.p] || x.crm : `${posLabel(QC_PROFILES[t.b.qcp] || {}, x)}${x.of ? " of " + x.of : ""}`, t.b.id || "New batch", Object.entries(t.vals[x.p]).map(([k, v]) => `${anShort(bAns(t.b).find(a => a.k === k) || { k, n: k })} ${v}`).join(", ")])),
@@ -348,6 +346,7 @@ function renderUpload(){
   $("#upMove", box)?.addEventListener("click", moveToAnalysis);
   $("#upBatches", box)?.addEventListener("click", () => { closeUpload(); setTab("batches"); });
   $("#upCols", box)?.addEventListener("click", () => { closeUpload(); cfgTab = "files"; setTab("stages"); });
+  $("#upCrms", box)?.addEventListener("click", () => { closeUpload(); cfgTab = "crms"; setTab("stages"); });
   box.onclick = e => { if (e.target === box) closeUpload(); };
 }
 /* Samples still in preparation when their results arrive move to their first analysis step, one step at a time, each step recorded. */

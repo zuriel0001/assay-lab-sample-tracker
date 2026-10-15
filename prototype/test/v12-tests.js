@@ -137,8 +137,10 @@ function certCode(sid, c){
   check(doc(am).certs.length === 1 && doc(am).amend.by === "tech1" && doc(am).amend.rows.Au.v === 0.86, "a technician proposes the amendment; the certificate is not replaced yet");
   await open(Tc, am);
   check(!(await Tc.$("#amApprove")) && /Amendment proposed/.test(await Tc.textContent("#amPend")), "the technician can't approve it");
+  const fromFile = doc(am).results.rows.Au.src;
   await open(Sv, am); await Sv.click("#amApprove"); await waitFor(() => doc(am).certs.length === 2);
   const r2 = doc(am).certs[1];
+  check(fromFile === "file" && doc(am).results.rows.Au.v === 0.86 && doc(am).results.rows.Au.by === "tech1" && !doc(am).results.rows.Au.src, "v18: the approved value, read from a file before, is saved as typed by the technician who proposed it");
   check(r2.amends === am + "-R1" && r2.amendBy.by === "tech1" && r2.by === "super" && r2.rows.Au.v === 0.86 && r2.code !== doc(am).certs[0].code && !doc(am).amend, "a supervisor approves: R2 records who proposed and who approved, with a new check code");
   // The lab manager approving their own proposal gives a reason.
   await open(Ad, ax); await Ad.click("#amBox summary"); await Ad.fill("#am_Au", "2.25"); await Ad.fill("#amWhy", "Weighing transcription"); await Ad.click("#amBtn"); await waitFor(() => doc(ax).amend);

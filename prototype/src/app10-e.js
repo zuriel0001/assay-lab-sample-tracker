@@ -165,7 +165,7 @@ function renderStages(){
 
     <h2 style="margin-top:12px">Results and certificates</h2>
     <p class="small muted" style="margin:0">A lab supervisor releases results with a numbered certificate of analysis. Corrections issue an amended certificate; earlier versions stay on record.</p>
-    <label class="f" style="max-width:520px"><span>Who can see results on a sample record</span><select class="inp" id="cfgResPub"><option value="0" ${draft.resultsPublic ? "" : "selected"}>Signed-in staff only (recommended)</option><option value="1" ${draft.resultsPublic ? "selected" : ""}>Anyone with the sample ID or tag</option></select></label>
+    <label class="f" style="max-width:520px"><span>Who can see results on a sample record</span><select class="inp" id="cfgResPub"><option value="0" ${draft.resultsPublic ? "" : "selected"}>Signed-in staff only (recommended)</option><option value="1" ${draft.resultsPublic ? "selected" : ""}>Anyone with the sample ID or site sample code</option></select></label>
 
     <h2 style="margin-top:12px">Reference materials (CRMs and check standards)</h2>
     <div class="mock"><b>Example values.</b><span>The certified values and standard deviations below are placeholders for the prototype. Replace them with the values on your own CRM certificates before relying on the QC checks.</span></div>
@@ -183,7 +183,7 @@ function renderStages(){
     <h2 style="margin-top:12px">Results files</h2>
     <div class="tbl-wrap"><table><thead><tr><th>Column name in the report</th><th>Read as</th><th></th></tr></thead><tbody>${colRows}</tbody></table></div>
     <div class="row"><button class="btn" id="colAdd">Add column name</button></div>
-    <div class="small muted">Built in: element symbols (Au, Ag, Cu…), symbols with a method code (AuFA, AuSX, AgSX), pH, NaCN (free cyanide), CNWAD, CNTOT, NaOH, %Solids, Moisture. Samples are found by tracker ID, tag number or site reference.</div>
+    <div class="small muted">Built in: element symbols (Au, Ag, Cu…), symbols with a method code (AuFA, AuSX, AgSX), pH, NaCN (free cyanide), CNWAD, CNTOT, NaOH, %Solids, Moisture. Samples are found by tracker ID, site sample code or site reference.</div>
 
     <h2 style="margin-top:12px" id="rtEdit">Workflow routes</h2>
     <p class="small muted" style="margin:0">A sample's route is chosen from its sample type, test and purpose when it is submitted. Changes apply to samples submitted after you save; samples already in the lab keep the steps they started with. Steps 1 and 2 (Submitted, Received &amp; logged) and the closing steps (Results released, storage, return or disposal) are shared by every route.</p>

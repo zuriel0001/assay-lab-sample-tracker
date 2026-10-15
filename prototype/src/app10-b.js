@@ -57,7 +57,7 @@ function renderLogin(){
       <label class="f"><span>Username</span><input id="lgUser" autocomplete="username" autocapitalize="none" spellcheck="false"></label>
       <label class="f"><span>Password</span><input id="lgPass" type="password" autocomplete="current-password"></label>
       <div class="row"><button class="btn primary big" type="submit">Sign in</button><span class="small" id="lgErr" style="color:var(--bad)"></span></div>
-      <p class="small muted" style="margin:0">No account is needed to register a sample or follow one: use <button type="button" class="btn ghost small" data-goto="register">Register at lab</button> or type an ID or tag number in the box above.</p>
+      <p class="small muted" style="margin:0">No account is needed to register a sample or follow one: use <button type="button" class="btn ghost small" data-goto="register">Register at lab</button> or type an ID or site sample code in the box above.</p>
     </form>
     <div class="panel stack">
       <div class="mock"><b>Design prototype.</b><span>These demo accounts and passwords are stored in the page and visible to anyone who opens it. The real system needs proper sign-in on its own server.</span></div>
@@ -85,7 +85,7 @@ function signIn(u, pw){
   setTab(current ? "track" : homeTab());
 }
 
-/* ---------- lookup: by ID, tag number, site reference or a scanned tracking link ---------- */
+/* ---------- lookup: by ID, site sample code (stored as tags), site reference or a scanned tracking link ---------- */
 $("#lookupForm").addEventListener("submit", e => { e.preventDefault(); openSample($("#lookupInput").value); });
 document.addEventListener("click", e => { const b = e.target.closest("[data-open]"); if (b){ e.preventDefault(); openSample(b.dataset.open); } });
 /* Re-assay from the Ledger or Storage: the sample's record opens at its re-assay box. */

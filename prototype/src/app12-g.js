@@ -24,10 +24,12 @@ function anOf(s){
 }
 const aAn = t => (/^[aeiou]/i.test(t) ? "an " : "a ") + t;
 const anShort = a => /^[A-Z][a-z]?$/.test(a.k) ? a.k : a.n;
-/* The database merges an update into the stored record, so a result or a batch membership that goes away is written as null (patch) and
-   read as absent (live). */
+/* The database merges an update into the stored record, map by map, so a result, a batch membership or a field of one that goes away is
+   written as null (patch: each new value replaces the old one whole, so a value typed over one read from a file loses src) and read as
+   absent (live). */
 const live = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => v != null));
-const patch = (old, now) => ({ ...Object.fromEntries(Object.keys(old || {}).map(k => [k, null])), ...now });
+const isMap = o => !!o && typeof o === "object" && !Array.isArray(o);
+const patch = (old, now) => ({ ...Object.fromEntries(Object.keys(old || {}).map(k => [k, null])), ...Object.fromEntries(Object.entries(now).map(([k, v]) => [k, isMap(v) && isMap(old?.[k]) ? patch(old[k], v) : v])) });
 const rowsOf = s => live(s?.results?.rows);
 /* Lab batch membership by batch type: { [p]: { b: batch ID, q: QC status, n: note } }. Records from version 11 kept one batch in labBatch. */
 function labsOf(s){
@@ -35,7 +37,7 @@ function labsOf(s){
   if (s.labs) return live(s.labs);
   return s.labBatch ? { [qcpOf(s)]: { b: s.labBatch, q: s.labQc || "", n: s.labQcNote || "" } } : {};
 }
-const QC_RANK = { fail: 0, warn: 1, "": 2, pending: 3, accepted: 4, pass: 5 };
+const QC_RANK = { fail: 0, warn: 1, "": 2, pending: 3, none: 4, accepted: 4, pass: 5 };
 /* The new membership, kept to the batch types the sample still needs, with the summary the board and lists read: the first batch, every batch
    (lbs, for lookups), the weakest QC state and the notes. */
 function labsUpd(s, labs, extra = {}){
@@ -184,7 +186,7 @@ function releaseBlock(s){
     if (!l) return "Results must come from a lab batch with its QC.";
     if (l.q === "fail") return `Lab batch ${l.b} failed QC. Re-run the batch.`;
     if (l.q === "warn") return `Lab batch ${l.b} has QC warnings. A supervisor accepts them on the batch first.`;
-    if (!["pass", "accepted"].includes(l.q)) return `Lab batch ${l.b} QC is not complete.`;
+    if (!["pass", "accepted", "none"].includes(l.q)) return `Lab batch ${l.b} QC is not complete.`;
   }
   const al = openAlerts(s);
   if (al.length) return `${al.map(h => alertLine(s, h)).join("; ")}. Record what was done and who was told first.`;
@@ -246,8 +248,10 @@ function resTable(ans, rows, cov){
     ${list.map(a => `<tr><td>${esc(a.n)}</td><td class="mono">${resCell(rows[a.k], a)}</td><td>${esc(a.u || "")}</td><td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>${cov ? `<td class="small">${covText(cov[a.k])}</td>` : ""}</tr>`).join("")}</tbody></table></div>`;
 }
 const covText = c => c === "calc" ? "Calculated" : c ? `Lab batch <span class="mono">${esc(c)}</span>` : "Not in a lab batch";
-const qcLabel = q => ({ pass: "QC passed", warn: "QC warnings to accept", fail: "QC failed", accepted: "QC accepted by supervisor", pending: "waiting for batch results" })[q] || "";
-const qcCls = q => ({ pass: "ok", accepted: "ok", warn: "warn", fail: "bad", pending: "info" })[q] || "";
+/* none: results from a file with no QC readings in it; QC is judged on the lab's QA/QC sample set, so release is not held. */
+const qcLabel = q => ({ pass: "QC passed", warn: "QC warnings to accept", fail: "QC failed", accepted: "QC accepted by supervisor", none: "No QC in this run", pending: "waiting for batch results" })[q] || "";
+const qcCls = q => ({ pass: "ok", accepted: "ok", none: "info", warn: "warn", fail: "bad", pending: "info" })[q] || "";
+const qcClear = q => q === "pass" || q === "none";
 const certLine = c => `<button type="button" class="linkish" data-cert="${c.v}">${esc(c.no)}</button> (${fmtDate(c.at)}${c.code ? `, check code <span class="mono">${esc(c.code)}</span>` : ""})`;
 function resultsPanel(s){
   const ci = curIdx(s), ti = targetIdx(s), ph = stage(s, s.stageKey)?.phase, certs = s.certs || [], last = certs.at(-1);
@@ -462,8 +466,8 @@ function certHtml(s, c){
       <div class="cert-no"><div class="mono">${esc(c.no)}</div><div>Version ${c.v} · ${esc(fmtFull(c.at))}</div>${c.code ? `<div>Check code <span class="mono">${esc(c.code)}</span></div>` : ""}</div></div>
     ${c.amends ? `<div class="cert-amend">Amended certificate. Replaces ${esc(c.amends)}. Reason: ${esc(c.why || "")}</div>` : ""}
     <table class="cert-facts">
-      ${fact("Sample ID", `<b class="mono">${esc(s.id)}</b>`)}${fact("Tag number", esc(tagText(s)) || "—")}${fact("Sample type", esc(s.type))}
-      ${fact("Submitted by", `${esc(s.submitter)}${s.section ? ` · ${esc(s.section)} ${esc(sectionName(s.section))}` : ""}`)}
+      ${fact("Sample ID", `<b class="mono">${esc(s.id)}</b>`)}${fact("Site sample code", esc(tagText(s)) || "—")}${fact("Sample type", esc(s.type))}
+      ${fact("Submitted by", `${esc(s.submitter)}${s.subBadge ? ` (badge ${esc(s.subBadge)})` : ""}${s.section ? ` · ${esc(s.section)} ${esc(sectionName(s.section))}` : ""}`)}
       ${fact("Collected", fmtFull(s.collectedAt))}${fact("Received", `${fmtFull(s.recvAt || s.receivedAt)}${rv.mass ? ` · ${esc(rv.mass)} ${esc(rv.unit || "kg")}` : ""}`)}
       ${fact("Test", esc(c.testName || ""))}${fact("Method", `${c.route ? `<span class="mono">${esc(c.route)}</span> ` : ""}${esc(c.routeName || "")}`)}
       ${c.batch ? fact(c.batch.includes(",") ? "Lab batches" : "Lab batch", `<span class="mono">${esc(c.batch)}</span> · ${esc(qcLabel(c.qc) || "")}`) : ""}
@@ -573,12 +577,15 @@ function layoutBatch(p, sids, ans){
 const posLabel = (p, x) => x.t === "s" ? "Sample" : x.t === "crm" ? cap(qcName(p, "crm")) : x.t === "pd" ? (p.all ? "Repeat" : cap(qcName(p, "pd"))) : x.t === "cd" ? cap(qcName(p, "cd")) : x.t === "pb" ? cap(qcName(p, "pb")) : cap(qcName(p, "bl"));
 const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
 /* The QC verdict for a batch, from the same numbers as the rule text: every QC position is judged on each result the batch checks. */
-function evalBatch(b, p){
+/* file: the results came from a lab file. QC positions the file has no reading for are not judged and the batch need not hold a certified
+   reference material: the lab submits its QA/QC as a sample set of its own. A file with no QC readings at all is "none". */
+function evalBatch(b, p, file){
   const ans = bAns(b), one = ans.length === 1, checks = [];
   const orig = sid => b.pos.find(y => y.t === "s" && y.sid === sid);
   for (const x of b.pos){
     if (x.t === "s") continue;
     const label = posLabel(p, x), rs = posRs(b, x);
+    if (file && !ans.some(ch => rs[ch.k])){ checks.push({ p: x.p, t: x.t, label, verdict: "info", msg: "not in the file" }); continue; }
     if (x.t === "crm" && !crmById(x.crm)){ checks.push({ p: x.p, t: x.t, label, verdict: "fail", msg: "no reference material chosen" }); continue; }
     for (const ch of ans){
       const r = rs[ch.k], v = resNum(r), base = { p: x.p, t: x.t, label, k: ch.k, ...(one ? {} : { kn: anShort(ch) }) };
@@ -614,9 +621,9 @@ function evalBatch(b, p){
       }
     }
   }
-  if ((p.ins || {}).crm) for (const ch of ans) if (!b.pos.some(x => x.t === "crm" && crmRow(x.crm, ch)))
+  if ((p.ins || {}).crm && !file) for (const ch of ans) if (!b.pos.some(x => x.t === "crm" && crmRow(x.crm, ch)))
     checks.push({ p: 0, t: "crm", label: "Reference materials", k: ch.k, ...(one ? {} : { kn: anShort(ch) }), verdict: "fail", msg: `no reference material in this batch is certified for ${anShort(ch)}` });
-  const status = checks.some(c => c.verdict === "fail") ? "fail" : checks.some(c => c.verdict === "warn") ? "warn" : "pass";
+  const status = checks.some(c => c.verdict === "fail") ? "fail" : checks.some(c => c.verdict === "warn") ? "warn" : file && checks.every(c => c.verdict === "info") ? "none" : "pass";
   return { status, checks };
 }
 /* Trends across batches for each reference material judged in SD: two results in a row beyond 2 SD on the same side is a warning on this batch
@@ -737,18 +744,21 @@ async function doBatchMove(fromKey){
 }
 const goneFrom = (b, x) => x.t === "s" && (!inBatch(bs(x.sid), b.id) || released(bs(x.sid)));
 const posInput = (x, i, ch) => i === 0 ? "bp_" + x.p : `bp_${x.p}_${ch.k}`;
+/* The results file a batch's values come from: its draft's or, opened again for correction, the last one attached when saved values came from it. */
+const batchFile = b => b.draft?.file || (b.files?.length && (b.pos || []).some(x => Object.values(x.rs || {}).some(r => r?.src === "file")) ? b.files.at(-1) : null);
 function readBatchInputs(b){
-  const ans = bAns(b), vals = {}, crms = {}, left = new Set(b.pos.filter(x => goneFrom(b, x)).map(x => x.sid));
+  const ans = bAns(b), vals = {}, crms = {}, left = new Set(b.pos.filter(x => goneFrom(b, x)).map(x => x.sid)), fromFile = !!batchFile(b);
   for (const x of b.pos){
     if (x.t === "crm"){ crms[x.p] = $("#bc_" + x.p)?.value || b.draft?.crms?.[x.p] || x.crm || ""; if (!crms[x.p]){ toast(`Position ${x.p}: choose the reference material.`); $("#bc_" + x.p)?.focus(); return null; } }
     const rs = {};
     for (const [i, ch] of ans.entries()){
       const el = $("#" + posInput(x, i, ch)), r = parseRes(el?.value, ch), where = `Position ${x.p}${ans.length > 1 ? ` ${anShort(ch)}` : ""}`;
-      const optional = left.has(x.sid) || (x.t === "pd" || x.t === "cd") && left.has(x.of) || x.t === "crm" && !crmRow(crms[x.p], ch);
+      const optional = left.has(x.sid) || (x.t === "pd" || x.t === "cd") && left.has(x.of) || x.t === "crm" && !crmRow(crms[x.p], ch) || fromFile && x.t !== "s";
       if (!r){ if (optional) continue; toast(`${where}: enter a result (type <DL if below detection).`); el?.focus(); return null; }
       if (r.bad || r.amb){ toast(resWrong(r, ch, where)); el?.focus(); return null; }
-      const dv = b.draft?.vals?.[x.p]?.[ch.k];
-      rs[ch.k] = { ...r, by: session.u, ...(dv != null && dv === r.raw ? { src: "file" } : {}) };
+      // From the file: the draft's value, or (results opened again for correction) the saved one that came from the file, left as it was.
+      const dv = b.draft?.vals?.[x.p]?.[ch.k], pr = x.rs?.[ch.k];
+      rs[ch.k] = { ...r, by: session.u, ...((dv != null ? dv === r.raw : pr?.src === "file" && pr.raw === r.raw) ? { src: "file" } : {}) };
     }
     if (Object.keys(rs).length) vals[x.p] = rs;
   }
@@ -760,12 +770,13 @@ async function doBatchSave(){
   const notYet = b.sids.filter(id => { const s = bs(id); if (!s || !inBatch(s, b.id) || released(s)) return false; const ph = stage(s, s.stageKey)?.phase; return !(curIdx(s) < targetIdx(s) && (ph === "test" || ph === "qc")); });
   if (notYet.length){ toast(`${notYet.length} sample(s) have not reached analysis yet (${notYet.slice(0, 3).join(", ")}${notYet.length > 3 ? "…" : ""}). Move them on first.`); return; }
   const all = Object.values(got.vals).flatMap(o => Object.values(o)), typed = all.filter(r => r.src !== "file").length;
-  await storeBatchResults(b, got, val("#bInst") || b.draft?.file?.name || "", b.draft?.file || null, b.draft ? typed : 0);
+  const file = batchFile(b);
+  await storeBatchResults(b, got, val("#bInst") || b.draft?.file?.name || "", file, file ? typed : 0);
 }
 /* Saves a batch's results (typed, or read from a results file), checks its QC and writes each sample's results. Returns the QC status. */
 async function storeBatchResults(b, got, inst, file, typed){
   const p = QC_PROFILES[b.qcp], ans = bAns(b), pos = b.pos.map(x => { const { r, ...y } = x; return { ...y, ...(x.t === "crm" ? { crm: got.crms[x.p] } : {}), rs: got.vals[x.p] || null, ...(goneFrom(b, x) ? { gone: true } : {}) }; });
-  const qc = { ...evalBatch({ ...b, pos }, p), at: Date.now(), by: session.u, tech: session.name, ...(file ? { file: { id: file.id, name: file.name } } : {}) };
+  const qc = { ...evalBatch({ ...b, pos }, p, !!file), at: Date.now(), by: session.u, tech: session.name, ...(file ? { file: { id: file.id, name: file.name } } : {}) };
   setBatchBusy(true, "Saving results and checking QC…");
   try {
     const trend = await batchTrends({ ...b, pos }, qc, p);
@@ -903,7 +914,7 @@ function batchNext(b){
   if (b.status === "rerun" || b.status === "done" || !b.open) return "";
   if (b.status === "creating") return "Being created";
   if (!b.qc) return b.draft ? "Complete the results (technician)" : "Attach results (technician)";
-  if (!(b.qc.status === "pass" || b.qc.accepted)) return "QC decision (supervisor)";
+  if (!(qcClear(b.qc.status) || b.qc.accepted)) return "QC decision (supervisor)";
   return "Release (supervisor)";
 }
 function batchStatus(b){
@@ -992,13 +1003,13 @@ function batchDetail(b){
   const relDone = releasedFrom(b).length;
   const lab = c => `${esc(c.label)}${c.p ? ` at #${c.p}` : ""}${c.kn ? ` (${esc(c.kn)})` : ""}`;
   const inB = ss.filter(s => inBatch(s, b.id)), atAn = inB.filter(s => readyForResults(s) || released(s)).length;
-  const qcOk = !!b.qc && (b.qc.status === "pass" || !!b.qc.accepted);
+  const qcOk = !!b.qc && (qcClear(b.qc.status) || !!b.qc.accepted);
   const st = [true, !!b.qc || (inB.length > 0 && atAn === inB.length), !!b.qc, qcOk, b.status === "done"].map(Boolean), nowAt = st.indexOf(false);
   const qcCount = ["crm", "bl", "pb", "pd", "cd"].map(t => [t, (b.pos || []).filter(x => x.t === t).length]).filter(x => x[1]).map(([t, n]) => `${n} ${qcName(p, t, n)}`);
   const step = (i, title, who, body) => `<li class="bstep ${st[i] ? "done" : i === nowAt ? "now" : "todo"}"><span class="dot">${st[i] ? "✓" : i + 1}</span><div class="stack" style="gap:6px;min-width:0">
       <div class="row" style="gap:8px"><b>${title}</b>${i === nowAt && b.open ? `<span class="pill gold">Next</span>` : ""}<span class="small muted">${who}</span></div>${body || ""}</div></li>`;
   const files = (b.files || []).length ? `<div class="small">File${b.files.length > 1 ? "s" : ""}: ${b.files.map(f => `<button type="button" class="linkish mono" data-rfile="${esc(f.id)}">${esc(f.name)}</button>`).join(", ")}</div>` : "";
-  const draftMiss = b.draft ? (b.pos || []).reduce((n, x) => n + ans.filter(ch => !b.draft.vals?.[x.p]?.[ch.k] && !(x.t === "crm" && !crmRow(b.draft.crms?.[x.p] || x.crm, ch)) && !goneFrom(b, x)).length, 0) : 0;
+  const draftMiss = b.draft ? (b.pos || []).filter(x => x.t === "s" && !goneFrom(b, x)).reduce((n, x) => n + ans.filter(ch => !b.draft.vals?.[x.p]?.[ch.k]).length, 0) : 0;   // QC positions a file leaves empty are not judged
   const table = `<div class="tbl-wrap"><table class="bpos${one ? "" : " multi"}"><thead><tr>${one ? "<th>#</th><th>Position</th><th>Sample or material</th><th>Expected</th>" : "<th>Position</th>"}${ans.map(ch => `<th>${one ? "Result" : esc(anShort(ch))} (${esc(ch.u || "")})</th>`).join("")}<th>Check</th></tr></thead><tbody>${posRows}</tbody></table></div>`;
   const moves = Object.keys(groups).length && b.open ? `<div class="stack" style="gap:6px">${Object.entries(groups).map(([k, list]) => { const s0 = list[0], pl = planOf(s0), ci = curIdx(s0), nx = pl[ci + 1];
       return `<div class="row" style="gap:8px"><span><b>${list.length}</b> at ${esc(stage(s0, k)?.name || k)}</span>${canEdit() && b.open ? (nx && !nx.target ? `<button type="button" class="btn small" data-bmove="${esc(k)}">Move ${list.length === 1 ? "it" : "all " + list.length} to: ${esc(nx.name)}</button>` : "") : ""}</div>`; }).join("")}</div>` : "";
@@ -1013,7 +1024,7 @@ function batchDetail(b){
         ${(b.qc.trend || []).some(t => t.rule === "9side") ? `<div class="small">Bias: ${esc(b.qc.trend.filter(t => t.rule === "9side").map(t => `${t.crm}${t.k ? " " + t.k : ""}, ${t.msg}`).join("; "))}.</div>` : ""}
         ${b.qc.accepted ? `<div class="small">${b.qc.accepted.exception ? "Accepted as an exception" : "Accepted"} by ${esc(b.qc.accepted.tech)}, ${fmt(b.qc.accepted.at)}: ${esc(b.qc.accepted.why)}</div>` : ""}</div>
     ${b.open && canApprove() && !b.qc.accepted ? `<div class="stack" style="gap:8px"><label class="f"><span>Reason (required for any decision below)</span><input id="bWhy" data-clear placeholder="${b.qc.status === "fail" ? "e.g. CRM STD-AU-MED at +3.4 SD: re-fuse the batch" : "e.g. CRM at +2.3 SD, other checks in control"}"></label>
-        ${b.qc.by === session?.u && b.qc.status !== "pass" ? `<p class="small muted" style="margin:0">You saved these results, so ${isAdmin() ? "accepting them yourself is recorded as such" : "another lab supervisor or the lab manager accepts their warnings"}.</p>` : ""}
+        ${b.qc.by === session?.u && !qcClear(b.qc.status) ? `<p class="small muted" style="margin:0">You saved these results, so ${isAdmin() ? "accepting them yourself is recorded as such" : "another lab supervisor or the lab manager accepts their warnings"}.</p>` : ""}
         <div class="row">${b.qc.status === "warn" && (b.qc.by !== session?.u || isAdmin()) ? `<button type="button" class="btn primary" data-bdec="accept">Accept the warnings</button>` : ""}
           <button type="button" class="btn${b.qc.status === "fail" ? " primary" : ""}" data-bdec="rerun">Re-run the batch</button>${relDone ? "" : `<button type="button" class="btn ghost" data-bdec="reopen">Correct an entry</button>`}
           ${b.qc.status === "fail" && isAdmin() ? `<button type="button" class="btn ghost danger" data-bdec="override">Accept the failure as an exception</button>` : ""}</div>

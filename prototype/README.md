@@ -1,10 +1,11 @@
 # Assay Lab Sample Tracker: source and tests
 
-> **In the GitHub repository** this folder is `prototype/`. Left out: the old version folders (`v9/` to `v17/`; git history keeps versions from now on), and `test/v18-tests.js` and `test/shot18.js`, which read the lab's two real reports and quote their sample codes and values. Those two run only in the project folder, with the private reports present.
+> **In the GitHub repository** this folder is `prototype/`. Left out: the old version folders (`v9/`, `v10/` and so on; git history keeps versions from now on), and `test/v18-tests.js` and `test/shot18.js`, which read the lab's two real reports and quote their sample codes and values. Those two run only in the project folder, with the private reports present.
 
-This folder holds the **v18** source of the published prototype (Version 20 of the artifact)
+This folder holds the **v19** source of the published prototype (Version 21 of the artifact)
 (https://claude.ai/artifact/5JgoyE2wokT67u8TCtYDop). The build thread owns all edits;
-reviewers should read and run, not change these files. Earlier versions: `v17/` (Version 19, before results files, batch
+reviewers should read and run, not change these files. Earlier versions: `v18/` (Version 20, before Zuriel's answers on QC,
+grind and the site sample code, and the `patch()` fix; to rebuild it, copy `src/v9-backup.html` next to `v18/src/build18.py`), `v17/` (Version 19, before results files, batch
 steps, re-assay from the lists and the shorter form; to rebuild it, copy `src/v9-backup.html` next to `v17/src/build17.py`), `v16/` (Version 18, before the single entry tab and
 the hand-over fields; to rebuild it, copy `src/v9-backup.html` next to `v16/src/build16.py`), `v15/` (Version 17, the design refresh, before
 walk-in registration and the earlier board look; to rebuild it, copy `src/v9-backup.html` next to `v15/src/build15.py`), `v14/` (Version 16, before the design refresh; to
@@ -23,7 +24,7 @@ and lab batches, the version the second review was done against; to rebuild it, 
 | `checkroutes.js` | Validates the route data and prints turnaround per route. |
 | `genmd.js` | Regenerates `workflow-routes.md`: what each route reports (picked and calculated results marked), the batches it joins and its action limits. Run it from `src/`'s parent with `src/app10-a.js` present. |
 | `test/harness.js` | Shared mock of the db capability: several browser pages on one store, with `where` filters (including `array-contains`), `orderBy`, `limit`, recursive `update` merge, update-requires-existence, leases, frozen snapshots and deletes. Batch helpers (`createBatch`, `fillBatch` for one or many results per position, `saveBatch`). |
-| `test/v18-tests.js` | New: results files with the lab's two real SGS reports (old Excel): reading, matching by tag number, moving samples on, new batches from the report with their repeats and the foot-table CRMs, QC, the kept file and its download, attaching twice, the uploader as result entrant, a draft completed by typing, Settings › Results files; batch steps and Next step; re-assay from Storage and the Ledger; the shorter form. The two reports hold real assay data, so they are not in this folder (it goes to GitHub): they are in `/mnt/project-files/sample-tracking-private/lab-reports/` (or set `LAB_REPORTS`); without them the parts that need them print SKIP. Last run: **59 PASS**, no console errors. |
+| `test/v18-tests.js` | New: results files with the lab's two real SGS reports (old Excel): reading, matching by site sample code, moving samples on, new batches from the report with their repeats and the foot-table CRMs, QC, the kept file and its download, attaching twice, the uploader as result entrant, a draft completed by typing, Settings › Results files; batch steps and Next step; re-assay from Storage and the Ledger; the shorter form. The two reports hold real assay data, so they are not in this folder (it goes to GitHub): they are in `/mnt/project-files/sample-tracking-private/lab-reports/` (or set `LAB_REPORTS`); without them the parts that need them print SKIP. Since v19 also: Site sample code and the submitter's badge, No QC in this run (the elution report, a CSV with no QC rows, release and certificate), the screen line, values typed over file values. Last run: **71 PASS**, no console errors. |
 | `test/v17-tests.js` | One entry tab per sign-in state, Received now at the lab for staff, the hand-over name and badge (required on walk-ins, the Azure server rule run against them, record, custody log, receipt, board, both names after receipt). Last run: **25 PASS**, no console errors. |
 | `test/v16-tests.js` | Walk-in registration for everyone (and the Azure server's public-submission rule run against it), Submit after sign-in, the Other reason, the receiver on the workflow line, 80% grind (also for routes saved with 85%), reference materials renamed and edited with a change history and the control chart following a renamed material, the board tiles and scrolling lanes, ZIJIN. Last run: **43 PASS** (one check moved to v17), no console errors. |
 | `test/v15-tests.js` | The design refresh (navigation and More menu at computer, tablet and phone widths, header, theme, board summary and filters (tiles and grid lanes since v16), time left, wall screen, record progress, Today strip, company logo, touch sizes, sticky bars, zebra tables, print). Last run: **46 PASS**, no console errors. |
@@ -31,8 +32,8 @@ and lab batches, the version the second review was done against; to rebuild it, 
 | `test/run.js` | End-to-end tests of the workflow. Last run: **107 PASS**, no console errors. |
 | `test/v14-tests.js` | New: Settings tabs, lab working hours (due times, overdue, round-the-clock steps), the trimmed defaults, bag labels (QR decoded with jsQR), tracking-link scans. Needs `jsqr` (`npm i jsqr@1.4.0`; set `NODE_PATH` to include it). Last run: **27 PASS**, no console errors. |
 | `test/work-hours-unit.js` | New: the working-time arithmetic, run in Node on the built page's own code (weekends, closed days, night shifts, overlapping shifts, site time zone, a 1,763-hour route). Last run: **14 PASS**. |
-| `test/results-tests.js` | Results, certificates and lab batches (the paste check is a results file since v18). Last run: **91 PASS**, no console errors. |
-| `test/v12-tests.js` | New: every v12 change (numbers, batches per method, multi-element QC, limits, four eyes, amendments, paste, trends, prep blanks, plant routing, check codes, section accounts, upgrade of v11 records and settings). Last run: **70 PASS**, no console errors. |
+| `test/results-tests.js` | Results, certificates and lab batches (the paste check is a results file since v18; an approved amendment of a file value drops its file mark; a batch saved again after Correct an entry keeps the mark only on values left as the file gave them). Last run: **93 PASS**, no console errors. |
+| `test/v12-tests.js` | New: every v12 change (numbers, batches per method, multi-element QC, limits, four eyes, amendments, paste, trends, prep blanks, plant routing, check codes, section accounts, upgrade of v11 records and settings; since v18 an amended file value is saved as typed). Last run: **71 PASS**, no console errors. |
 | `test/v13-tests.js` | New: stock records through a sample's life, a lab batch whose released sample is already in storage, repair of an unwritten stock record, Settings counts, the month check, and a register with 3,000 stored samples (board load, Storage paging and search, phone width). Last run: **26 PASS**, no console errors. |
 | `test/review-tests-v11.js` | The first reviewer's scenarios A–R plus bugs 8, 9, 14–17; scenario 8 adapted for v13 (see below). Last run: **41 OK, 0 BUG**. |
 | `test/review-v11-scenarios.js` | The second reviewer's five scenarios (`review/review-v11-scenarios.js`), adapted only where v12 now refuses the step (see its header). Last run: **5 OK, 0 BUG**. |
@@ -64,6 +65,53 @@ NODE_PATH=$(npm root -g):/path/to/jsqr/node_modules timeout 400 node v14-tests.j
 The tests write screenshots next to themselves. The Chromium path is in `harness.js`. Run the suites one
 at a time: scenario R in `review-tests-v11.js` times ID claims, and the batch tests wait on several writes per
 step, so they can miss their time budgets when several browsers share the CPU.
+
+## What v19 changes: Zuriel's answers on QC, grind and sample codes, and a fix (2026-10-15)
+
+Zuriel, 19:33Z, on the five questions from v18: will enter the real CRM SDs; solution runs with no QC rows are allowed; grind
+is not measured on the site; QA/QC is a sample set of its own, so a results file need not do the QC; the codes on the reports
+are the site's sample codes, and the "tag number" is the submitter's badge number.
+
+- **No QC in this run.** Results from a file are judged only on the QC readings the file holds: a QC position it has no
+  reading for is "not in the file" (not judged), and the batch need not hold a certified reference material. A file with no
+  QC readings at all gives the new QC status `none`, shown as **No QC in this run** on the batch, the samples, the board and
+  the certificate. It does not hold release (still four eyes). A file that fills every sample but no QC position is complete
+  and saved at once; a draft counts only missing sample values; completing a file draft by typing leaves QC boxes optional.
+  Typed batches (no file) are unchanged: every QC position needs a value.
+- **Grind as reported.** The screen fractions (+40 … −325 mesh, % retained) are kept as one line, as the report states them
+  (`+40 … · +70 … · … · -325 …`), in a new optional text result **Screen analysis, % retained** on plant samples.
+  The site no longer works out % passing 75 µm; "Grind, passing 75 µm" is optional (read when a report states it).
+- **Site sample code and badge.** "Tag number" is now **Site sample code** everywhere (form, record, certificate, ledger,
+  storage, labels, lookup, CSV exports, upload messages). It is still stored in `tags` (one per sample, unique among open
+  samples, indexed in `tagidx/`, looked up without sign-in, matched in results files), so **existing tag values carry over
+  as site sample codes**: that is what people typed there (Zuriel: "yes"). New field **Submitter's badge number**
+  (`subBadge`, optional, up to 20 characters, one per submission) next to "Submitted by"; the record and certificate show
+  it. Old records have none.
+- **CRM SDs.** Already editable inline under Settings › Reference materials; an upload naming reference materials that are
+  not in the register now has a button there for the lab manager.
+- **Fix (found by the Azure build).** `patch()`, which every results write goes through, nulled the results that went but
+  wrote each remaining row as an update, and an update merges maps. So a value typed over one read from a file (an approved
+  amendment, Correct results, a lab batch typed over an earlier row) kept `src: "file"`, and on Azure the server refused to
+  approve an amendment of a file value. `patch()` now replaces each row whole (old fields not in the new row are written as
+  null, map by map). A batch saved again after **Correct an entry** keeps the file mark on values left as the file gave them
+  and names the batch's last attached file in its log and QC.
+
+For the Azure build:
+- `build.py` (`../sample-tracking-handoffs/v19-azure/build.py.diff`, patched copy beside it): delete section 13 (its `patch()`
+  replacement; the prototype's `patch()` now does the same, recursively), and two help-text strips now name the site sample
+  code instead of the tag number. With that, `build.py` builds this page with every patch found and the script passes
+  `node --check`.
+- Server: no new collection or rule. New values the server stores as they come: sample `subBadge` (also on public and
+  walk-in submissions; `checkSubmission` has no field list, so nothing to add), QC status `none` (in `batches.qc.status`,
+  the sample's `labs.*.q` / `labQc` and `certs[].qc`; `batchRule` and `sampleRule` do not look at it), QC checks with
+  verdict `info` and message "not in the file", and the text result `scr` (up to a few hundred characters) on plant samples.
+- Source: same chunks and `build18.py`; changed `app10-b/c/d/e.js`, `app12-g.js`, `app13-h.js`, `app14-i.js`, `app18-m.js`,
+  `routes-data.js` (plant_solids), `workflow-routes.md`.
+
+Tests: `v18-tests.js` (now 71): the form's Site sample code and badge, the record; the elution report saved as No QC in this
+run with release next; a CSV with no QC rows saved at once, released by a supervisor, the certificate printing No QC in this
+run; the screen line on the mill samples; Correct results and a lab batch typed over file values. `results-tests.js` (93) and
+`v12-tests.js` (71): amendments of file values and the corrected batch. `harness.js`: `fillForm()` takes `subBadge`.
 
 ## What v18 changes: results by file, batches as steps, re-assay from the lists, a shorter form (2026-10-15)
 

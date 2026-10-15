@@ -830,7 +830,7 @@ const RESULTS = {
   mineral:  { an: [A("sum", "Mineralogy summary", "", null, 0, { t: "text" }), A("Au_free", "Free and liberated gold", "% of gold", null, 0, { opt: true }), A("Au_calc", "Gold calculated from mineralogy", "g/t", 0.01, 2, { opt: true }),
                    A("Au_chem", "Gold by chemical assay", "g/t", 0.01, 2, { opt: true })],
               chk: [{ t: "pair", a: "Au_calc", b: "Au_chem", tol: 10, msg: "gold from mineralogy and chemical assay differ by more than 10%" }] },
-  plant_solids: { an: [A("Au", "Head grade", "g/t", 0.01, 2, { ul: 50 }), A("p75", "Grind, passing 75 µm", "%", null, 1), A("h2o", "Moisture", "%", null, 1, { opt: true })], over: "fa_grav" },
+  plant_solids: { an: [A("Au", "Head grade", "g/t", 0.01, 2, { ul: 50 }), A("p75", "Grind, passing 75 µm", "%", null, 1, { opt: true }), A("scr", "Screen analysis, % retained", "", null, 0, { t: "text", opt: true }), A("h2o", "Moisture", "%", null, 1, { opt: true })], over: "fa_grav" },
   ccd:      { an: [A("pt", "Sampling point", "", null, 0, { t: "pick", opts: ["Thickener feed", "Intermediate thickener", "Final underflow"] }), A("Au_s", "Solution gold", "mg/L", 0.005, 3), A("Au", "Solids gold", "g/t", 0.01, 2),
                    A("cn", "Free cyanide", "mg/L", null, 0, { opt: true }), A("wash", "Wash efficiency (from the survey sheet)", "%", null, 1, { opt: true })], qc: "Au_s" },
   residue:  { an: [A("Au", "Solid tails gold", "g/t", 0.01, 3), A("Au_s", "Solution tails gold", "mg/L", 0.005, 3)] },

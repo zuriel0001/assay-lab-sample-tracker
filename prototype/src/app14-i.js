@@ -259,7 +259,7 @@ function labelHtml(x){
     <div class="bl-main">
       <div class="bl-org">Assay Lab</div>
       <div class="bl-id">${esc(x.id)}</div>
-      ${x.tag ? `<div class="bl-line"><span>Tag</span><b>${esc(x.tag)}</b></div>` : ""}
+      ${x.tag ? `<div class="bl-line"><span>Code</span><b>${esc(x.tag)}</b></div>` : ""}
       <div class="bl-line"><span>Type</span><b>${esc(x.type)}</b></div>
       <div class="bl-line"><span>Section</span><b>${esc(x.sec)}</b></div>
       <div class="bl-line"><span>Submitted</span><b>${esc(fmtDate(x.at))}</b></div>

@@ -56,7 +56,7 @@ function renderTrack(){
     ] : [];
     v.innerHTML = `<div class="stack">
       <div class="panel hero"><h2>Find a sample</h2>
-        <form id="heroForm" autocomplete="off" role="search"><input id="heroInput" placeholder="Sample ID or tag number" aria-label="Sample ID or tag number"><button class="btn primary big" type="submit">Track</button></form>
+        <form id="heroForm" autocomplete="off" role="search"><input id="heroInput" placeholder="Sample ID or site sample code" aria-label="Sample ID or site sample code"><button class="btn primary big" type="submit">Track</button></form>
         <div class="row">
           ${!session ? `<button class="btn" data-goto="login">Staff sign in</button>` : allowedTabs().includes("board") ? `<button class="btn" data-goto="board">Open workflow board</button>` : allowedTabs().includes("results") ? `<button class="btn" data-goto="results">See your section's results</button>` : ""}
           ${session ? `<button class="btn" data-goto="submit">Submit a sample</button>` : `<button class="btn" data-goto="register">Register at lab</button>`}
@@ -70,7 +70,7 @@ function renderTrack(){
   }
   if (current.matches){
     v.dataset.ctx = "";
-    v.innerHTML = `<div class="panel stack"><h2>${current.matches.length} samples match “${esc(current.id)}”</h2><p class="small muted" style="margin:0">The tag number or site reference is on more than one sample. Pick the one you want.</p>
+    v.innerHTML = `<div class="panel stack"><h2>${current.matches.length} samples match “${esc(current.id)}”</h2><p class="small muted" style="margin:0">The site sample code or site reference is on more than one sample. Pick the one you want.</p>
       <div class="row">${current.matches.map(id => `<button class="btn" data-open="${esc(id)}"><span class="mono">${esc(id)}</span></button>`).join("")}</div></div>`;
     return;
   }
@@ -78,7 +78,7 @@ function renderTrack(){
   if (!current.body){
     v.dataset.ctx = "";
     v.innerHTML = `<div class="panel empty"><strong>No sample found for ${esc(current.id)}</strong>
-      Check the ID on the bag or submission form. IDs look like <span class="mono">${esc(exampleId())}</span>: section code, submission date, running number. Tag numbers and site references are searched too.
+      Check the ID on the bag or submission form. IDs look like <span class="mono">${esc(exampleId())}</span>: section code, submission date, running number. Site sample codes and site references are searched too.
       ${db ? "" : "<br>The shared register is not connected in this view, so lookups cannot run."}</div>`;
     return;
   }
@@ -142,10 +142,10 @@ function buildTrack(v, s){
   const factList = [
     ["Sample type", esc(s.type)],
     ...(det ? [["Type details", det]] : []),
-    ["Tag number", tagText(s) ? `<span class="mono">${esc(tagText(s))}</span>` : "—"],
+    ["Site sample code", tagText(s) ? `<span class="mono">${esc(tagText(s))}</span>` : "—"],
     ["Site reference", s.siteRef ? `<span class="mono">${esc(s.siteRef)}</span>` : "—"],
     ["Section", s.section ? `<span class="mono">${esc(s.section)}</span> ${esc(sectionName(s.section))}` : esc(s.department) || "—"],
-    ["Submitted by", esc(s.submitter)],
+    ["Submitted by", `${esc(s.submitter)}${s.subBadge ? ` · badge <span class="mono">${esc(s.subBadge)}</span>` : ""}`],
     ...(s.handedTo || s.handedBadge ? [["Handed to", `${esc(s.handedTo || "—")}${s.handedBadge ? ` · badge <span class="mono">${esc(s.handedBadge)}</span>` : ""}`]] : []),
     ["Collected", fmt(s.collectedAt)],
     [s.createdBy === "public" && s.via !== "walkin" ? "Submitted" : "Registered", `${fmt(s.createdAt)}${s.via === "walkin" ? (awaiting(s) ? " at the lab, waiting for receipt by a technician" : " at the lab (walk-in)") : s.createdBy === "public" ? " through the submission form" : ` by ${s.createdByName ? esc(s.createdByName) : who(s.createdBy)}`}`],
@@ -256,7 +256,7 @@ function receiptForm(s){
       <label class="f"><span>Test requested</span><select id="rcTest">${testOptions(s.typeKey, s.test)}</select></label>
       <label class="f"><span>Workflow route</span><select id="rcRoute"></select></label>
       <div class="full small" id="rcInfo"></div>
-      <label class="f full"><span>Note <span style="font-weight:400">(needed to flag or reject, when the test changes, or when a receipt check fails)</span></span><input id="mvNote" data-clear placeholder="e.g. Tag reads T-10422, not T-10421; bag torn"></label>
+      <label class="f full"><span>Note <span style="font-weight:400">(needed to flag or reject, when the test changes, or when a receipt check fails)</span></span><input id="mvNote" data-clear placeholder="e.g. Bag code reads T-10422, not T-10421; bag torn"></label>
     </div>
     <div class="row">
       <button type="button" class="btn primary" data-receipt="confirm">Confirm receipt</button>

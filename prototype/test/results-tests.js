@@ -96,6 +96,8 @@ const posOf = (b, sid) => batchDoc(b).pos.find(x => x.t === "s" && x.sid === sid
   await fillBatch(Tc, b1, sid => vals[sid], { [crmA.p]: (eA.v + 2.4 * eA.sd).toFixed(3) });
   const q2 = await saveBatch(Tc, b1);
   check(q2.status === "warn" && q2.checks.find(c => c.p === crmA.p).verdict === "warn" && ex.every(id => doc(id).labQc === "warn"), "a CRM at +2.4 SD is a warning");
+  check(doc(ex[1]).results.rows.Au.src === "file" && !doc(ex[0]).results.rows.Au.src && batchDoc(b1).log.some(l => /^Results from file aas-run\.csv; \d+ values typed; QC warn/.test(l.note)) && batchDoc(b1).qc.file?.name === "aas-run.csv",
+    "v18: saved again after the correction, the value left as the file gave it is still from the file, the typed ones are not, and the batch log says so" + DBG({ r1: doc(ex[1]).results.rows.Au, log: batchDoc(b1).log.map(l => l.note) }));
   await showBatch(Tc, b1);
   check(await groupMove(Tc, ex, "qc"), "samples with batch results move on to QA/QC review");
   await showBatch(Sv, b1);
@@ -134,9 +136,11 @@ const posOf = (b, sid) => batchDoc(b).pos.find(x => x.t === "s" && x.sid === sid
   await Sv.fill("#amWhy", "Dilution factor applied twice in the worksheet"); await Sv.click("#amBtn");
   await waitFor(() => doc(ex[1]).amend); await Sv.waitForTimeout(400);
   check(doc(ex[1]).certs.length === 1 && doc(ex[1]).amend.rows.Au.v === 2.05 && !(await Sv.$("#amApprove")) && /Another lab supervisor or the lab manager approves/.test(await Sv.textContent("#amPend")), "the amendment is proposed; the person who proposed it can't approve it");
+  const fromFile = doc(ex[1]).results.rows.Au.src;
   await rec(Ad, ex[1]); await Ad.click("#amApprove");
   await waitFor(() => doc(ex[1]).certs.length === 2); await Sv.waitForTimeout(400);
   check(doc(ex[1]).certs[1].amendBy?.tech && doc(ex[1]).certs[1].by === "admin" && !doc(ex[1]).amend, "a second person (the lab manager) approves it and R2 records both");
+  check(fromFile === "file" && doc(ex[1]).results.rows.Au.v === 2.05 && !doc(ex[1]).results.rows.Au.src, "v18: the amended value replaces the one read from the file whole: it is no longer marked as from the file" + DBG({ fromFile, row: doc(ex[1]).results.rows.Au }));
   const am = doc(ex[1]).certs;
   check(am[1].no === ex[1] + "-R2" && am[1].amends === ex[1] + "-R1" && /Dilution/.test(am[1].why) && am[1].rows.Au.v === 2.05 && am[0].rows.Au.v === 2.5, "R2 amends R1 with the reason; R1 stays unchanged on record");
   check(/Amended/.test(await Sv.textContent("#resPanel")) && /Earlier versions/.test(await Sv.textContent("#resPanel")), "record marks the amendment and lists the earlier version");
