@@ -2,7 +2,7 @@
 // The suites are copied from ../sample-tracking/test into a scratch folder next to an Azure harness (unchanged, except
 // the ADJUST list below);
 // azure-extra.js (this folder) checks what is new in the Azure build.
-//   node test/run-suites.js run.js results-tests.js     (default: all six, then azure-extra.js)
+//   node test/run-suites.js run.js results-tests.js     (default: all seven, then azure-extra.js)
 const fs = require("fs"), path = require("path"), os = require("os"), { spawnSync } = require("child_process");
 const AZ = path.resolve(__dirname, ".."), PROTO = path.resolve(AZ, "..", "sample-tracking", "test");
 const work = process.env.WORK_DIR || fs.mkdtempSync(path.join(os.tmpdir(), "az-suites-"));
@@ -12,7 +12,7 @@ const a = tail.indexOf("async function signIn("), b = tail.indexOf("async functi
 if (a < 0 || b < 0) throw new Error("harness layout changed");
 tail = tail.slice(0, a) + tail.slice(b);
 fs.writeFileSync(path.join(work, "harness.js"), fs.readFileSync(path.join(__dirname, "harness-head.js"), "utf8") + "\n" + tail);
-const suites = process.argv.slice(2).length ? process.argv.slice(2) : ["run.js", "results-tests.js", "v12-tests.js", "v13-tests.js", "review-tests-v11.js", "review-v11-scenarios.js", "azure-extra.js"];
+const suites = process.argv.slice(2).length ? process.argv.slice(2) : ["run.js", "results-tests.js", "v12-tests.js", "v13-tests.js", "review-tests-v11.js", "review-v11-scenarios.js", "hours-shortcut-tests.js", "azure-extra.js"];
 /* Checks that read a sentence this build takes out of the page (build.py section 10) check the same fact another way.
    None at present: since v13 the prototype's own suites no longer read such sentences. */
 const ADJUST = {};

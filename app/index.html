@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 27cc00979013) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 2cb68716388f) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -3062,6 +3062,8 @@ async function exportCsv(rows){
 let routesFocus = "", routesType = "", routesQ = "";
 const openRoutes = new Set();
 document.addEventListener("click", e => { const b = e.target.closest("[data-route]"); if (b){ routesFocus = b.dataset.route; setTab("routes"); } });
+let routeEditGo = "";
+document.addEventListener("click", e => { const b = e.target.closest("[data-edit-route]"); if (b){ routeEditGo = b.dataset.editRoute; setTab("stages"); } });
 function renderRoutes(){
   const v = $("#view-routes");
   if (routesFocus){ openRoutes.add(routesFocus); routesType = ""; routesQ = ""; }
@@ -3125,6 +3127,7 @@ function renderRouteList(){
           <b>Sample types:</b> ${types.length ? esc(types.join(", ")) : ""}${(r.types || []).includes("*") ? (types.length ? ", and any other type" : "Any type") : ""}${purp.length ? `<br><b>Chosen first when the purpose is:</b> ${esc(purp.join(", "))}` : ""}</div>
         ${routeResultsLine(r)}
         <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Step</th><th>Phase</th><th>Time allowed</th><th>Method and checks</th></tr></thead><tbody>${routeRows(r)}</tbody></table></div>
+        ${isAdmin() ? `<div class="row"><button class="btn" type="button" data-edit-route="${esc(r.code)}">Edit steps and hours</button></div>` : ""}
         ${r.qc ? `<div class="small"><b>QA/QC:</b> ${esc(r.qc)}</div>` : ""}
         ${(r.triggers || []).length ? `<div class="small"><b>Re-assay triggers</b><ul class="tight">${r.triggers.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
         ${(r.retention || []).length ? `<div class="small"><b>Retention and disposal</b><ul class="tight">${r.retention.map(x => `<li>${esc(retentionLine(x))}</li>`).join("")}</ul></div>` : ""}
@@ -3170,6 +3173,8 @@ function renderStages(){
     <td><input class="inp" data-si="${i}" data-sf="name" value="${esc(x.name)}"></td>
     <td class="mono">${secCount(x.code)}</td>
     <td><button class="btn ghost danger" data-srm="${i}" aria-label="Remove section">✕</button></td></tr>`).join("");
+  const goEdit = routeEditGo; routeEditGo = "";
+  if (goEdit){ const j = draft.routes.findIndex(r => r.code === goEdit); if (j >= 0) routeIdx = j; }
   if (routeIdx >= draft.routes.length) routeIdx = 0;
   const R = draft.routes[routeIdx];
   R.stages = R.stages || []; R.tests = R.tests || []; R.types = R.types || []; R.purposes = R.purposes || []; R.triggers = R.triggers || []; R.retention = R.retention || [];
@@ -3223,7 +3228,7 @@ function renderStages(){
     <div class="tbl-wrap"><table><thead><tr><th>Route</th><th>Result</th><th></th><th>Limit</th><th>Only when</th><th>Permit</th><th>Action</th><th></th></tr></thead><tbody>${limitRows()}</tbody></table></div>
     <div class="row"><button class="btn" id="limAdd">Add limit</button></div>
 
-    <h2 style="margin-top:12px">Workflow routes</h2>
+    <h2 style="margin-top:12px" id="rtEdit">Workflow routes</h2>
     <div class="row"><select class="inp" id="rtPick" style="width:auto;max-width:100%" aria-label="Route to edit">${draft.routes.map((r, i) => `<option value="${i}" ${i === routeIdx ? "selected" : ""}>${esc(r.code)} · ${esc(r.name)}</option>`).join("")}</select>
       <button class="btn" id="rtCopy">Copy as new route</button><button class="btn ghost danger" id="rtDel">Remove route</button></div>
     <div class="panel stack">
@@ -3249,6 +3254,7 @@ function renderStages(){
     </div>
     <div class="row" style="border-top:1px solid var(--line);padding-top:14px"><button class="btn ghost" id="cfgBackup">Download backup</button><span style="flex:1"></span><button class="btn ghost" id="cfgReset">Restore default sections and routes</button><button class="btn ghost" id="cfgCancel">Discard changes</button><button class="btn primary big" id="cfgSave">Save settings</button></div>
   </div>`;
+  if (goEdit) $("#rtEdit").scrollIntoView({ block: "start" });
   const dirty = () => { draftDirty = true; renderStages(); };
   $("#cfgBackup").addEventListener("click", async e => {
     const b = e.currentTarget; b.disabled = true; b.textContent = "Preparing backup…";

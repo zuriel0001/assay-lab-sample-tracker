@@ -1,6 +1,6 @@
 # Assay Lab Sample Tracker on Azure (free test deployment)
 
-This folder is the v14 Assay Lab Sample Tracker made to run outside Claude, on Microsoft Azure free tiers.
+This folder is the v15 Assay Lab Sample Tracker made to run outside Claude, on Microsoft Azure free tiers.
 It keeps the prototype's workflow exactly: routes, lab batches and QC, action limits, the second-person release,
 amendments, certificates, the in/out ledger, public submission and lookup without sign-in, and the roles.
 What changes is where data lives (Azure Cosmos DB), how staff sign in (their Microsoft account) and a server that
@@ -157,7 +157,7 @@ can't make a signed-in person's browser change records.
 
 | Path | What it is |
 |---|---|
-| `app/index.html` | The page. Built by `build.py` from `../sample-tracking/assay-lab-sample-tracker.html` (v14), which it never edits. Every patch must match exactly once, so a changed prototype fails the build loudly. |
+| `app/index.html` | The page. Built by `build.py` from `../sample-tracking/assay-lab-sample-tracker.html` (v15), which it never edits. Every patch must match exactly once, so a changed prototype fails the build loudly. |
 | `app/azure-shim.js` | Gives the page the shared-database interface it was written for, over `/api/db`: documents, where-filters, live snapshots (by polling for changes), short leases; plus the signed-in person (`/api/me`) and downloads. |
 | `app/staticwebapp.config.json` | Node 22 API, Microsoft sign-in only (GitHub sign-in turned off), `/login` and `/logout`. |
 | `api/db`, `api/me`, `api/auth` | Azure Functions (HTTP) behind `/api`. |
@@ -170,7 +170,7 @@ can't make a signed-in person's browser change records.
 | `test/api-tests.js` | 121 checks of the read/write rules, the record-keeping rules, stock records, access requests, the backup export and the Functions entry points. |
 | `test/auth-tests.js` | 51 checks of email sign-in: sign-up, forged and expired sessions, password guessing, resets, an email login not taking a Microsoft account's access, the Functions entry point. |
 | `test/store-tests.js` | 27 checks on each store; Cosmos runs against `@vercel/cosmosdb-server` (a local Cosmos imitation) or a real account. |
-| `test/run-suites.js` | Runs the prototype's own six browser suites against this build (real page, real API over HTTP), unchanged, then `azure-extra.js`. |
+| `test/run-suites.js` | Runs the prototype's own seven browser suites against this build (real page, real API over HTTP), unchanged, then `azure-extra.js`. |
 | `test/azure-extra.js` | 55 browser checks of what is new: Microsoft sign-in, email sign-up and sign-in, password change and reset, first admin, accounts by email, requesting and approving access, upgrade on staff sign-in, what the public sees, the backup download, the server refusing a tampered page's changes. |
 
 Patches `build.py` makes to the page: start after `/api/me` answers; tracking links use this site's address; the
@@ -193,6 +193,7 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 | Prototype `v13-tests.js` | 26 / 26 (including 3,000 stored samples) |
 | Prototype `review-tests-v11.js` | 41 / 41 |
 | Prototype `review-v11-scenarios.js` | 5 / 5 |
+| Prototype `hours-shortcut-tests.js` | 7 / 7 |
 
 No console errors in any suite. The 10 prototype checks that don't pass all expect a page **nobody is signed in to** to
 upgrade older records (9) or finish a lab batch a crashed device left half-made (1). On Azure the public can't
