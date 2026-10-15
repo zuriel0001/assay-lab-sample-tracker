@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 2300e0827064) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 5c829acc32b1) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1446,7 +1446,7 @@ const RESULTS = {
   mineral:  { an: [A("sum", "Mineralogy summary", "", null, 0, { t: "text" }), A("Au_free", "Free and liberated gold", "% of gold", null, 0, { opt: true }), A("Au_calc", "Gold calculated from mineralogy", "g/t", 0.01, 2, { opt: true }),
                    A("Au_chem", "Gold by chemical assay", "g/t", 0.01, 2, { opt: true })],
               chk: [{ t: "pair", a: "Au_calc", b: "Au_chem", tol: 10, msg: "gold from mineralogy and chemical assay differ by more than 10%" }] },
-  plant_solids: { an: [A("Au", "Head grade", "g/t", 0.01, 2, { ul: 50 }), A("p75", "Grind, passing 75 µm", "%", null, 1), A("h2o", "Moisture", "%", null, 1, { opt: true })], over: "fa_grav" },
+  plant_solids: { an: [A("Au", "Head grade", "g/t", 0.01, 2, { ul: 50 }), A("p75", "Grind, passing 75 µm", "%", null, 1, { opt: true }), A("scr", "Screen analysis, % retained", "", null, 0, { t: "text", opt: true }), A("h2o", "Moisture", "%", null, 1, { opt: true })], over: "fa_grav" },
   ccd:      { an: [A("pt", "Sampling point", "", null, 0, { t: "pick", opts: ["Thickener feed", "Intermediate thickener", "Final underflow"] }), A("Au_s", "Solution gold", "mg/L", 0.005, 3), A("Au", "Solids gold", "g/t", 0.01, 2),
                    A("cn", "Free cyanide", "mg/L", null, 0, { opt: true }), A("wash", "Wash efficiency (from the survey sheet)", "%", null, 1, { opt: true })], qc: "Au_s" },
   residue:  { an: [A("Au", "Solid tails gold", "g/t", 0.01, 3), A("Au_s", "Solution tails gold", "mg/L", 0.005, 3)] },
@@ -2246,7 +2246,7 @@ function markAccessGiven(users){
   }
 }
 
-/* ---------- lookup: by ID, tag number, site reference or a scanned tracking link ---------- */
+/* ---------- lookup: by ID, site sample code (stored as tags), site reference or a scanned tracking link ---------- */
 $("#lookupForm").addEventListener("submit", e => { e.preventDefault(); openSample($("#lookupInput").value); });
 document.addEventListener("click", e => { const b = e.target.closest("[data-open]"); if (b){ e.preventDefault(); openSample(b.dataset.open); } });
 /* Re-assay from the Ledger or Storage: the sample's record opens at its re-assay box. */
@@ -2360,7 +2360,7 @@ function renderTrack(){
     ] : [];
     v.innerHTML = `<div class="stack">
       <div class="panel hero"><h2>Find a sample</h2>
-        <form id="heroForm" autocomplete="off" role="search"><input id="heroInput" placeholder="Sample ID or tag number" aria-label="Sample ID or tag number"><button class="btn primary big" type="submit">Track</button></form>
+        <form id="heroForm" autocomplete="off" role="search"><input id="heroInput" placeholder="Sample ID or site sample code" aria-label="Sample ID or site sample code"><button class="btn primary big" type="submit">Track</button></form>
         <div class="row">
           ${!session ? `<button class="btn" data-goto="login">Staff sign in</button>` : allowedTabs().includes("board") ? `<button class="btn" data-goto="board">Open workflow board</button>` : allowedTabs().includes("results") ? `<button class="btn" data-goto="results">See your section's results</button>` : ""}
           ${session ? `<button class="btn" data-goto="submit">Submit a sample</button>` : `<button class="btn" data-goto="register">Register at lab</button>`}
@@ -2446,10 +2446,10 @@ function buildTrack(v, s){
   const factList = [
     ["Sample type", esc(s.type)],
     ...(det ? [["Type details", det]] : []),
-    ["Tag number", tagText(s) ? `<span class="mono">${esc(tagText(s))}</span>` : "—"],
+    ["Site sample code", tagText(s) ? `<span class="mono">${esc(tagText(s))}</span>` : "—"],
     ["Site reference", s.siteRef ? `<span class="mono">${esc(s.siteRef)}</span>` : "—"],
     ["Section", s.section ? `<span class="mono">${esc(s.section)}</span> ${esc(sectionName(s.section))}` : esc(s.department) || "—"],
-    ["Submitted by", esc(s.submitter)],
+    ["Submitted by", `${esc(s.submitter)}${s.subBadge ? ` · badge <span class="mono">${esc(s.subBadge)}</span>` : ""}`],
     ...(s.handedTo || s.handedBadge ? [["Handed to", `${esc(s.handedTo || "—")}${s.handedBadge ? ` · badge <span class="mono">${esc(s.handedBadge)}</span>` : ""}`]] : []),
     ["Collected", fmt(s.collectedAt)],
     [s.createdBy === "public" && s.via !== "walkin" ? "Submitted" : "Registered", `${fmt(s.createdAt)}${s.via === "walkin" ? (awaiting(s) ? " at the lab, waiting for receipt by a technician" : " at the lab (walk-in)") : s.createdBy === "public" ? " through the submission form" : ` by ${s.createdByName ? esc(s.createdByName) : who(s.createdBy)}`}`],
@@ -2560,7 +2560,7 @@ function receiptForm(s){
       <label class="f"><span>Test requested</span><select id="rcTest">${testOptions(s.typeKey, s.test)}</select></label>
       <label class="f"><span>Workflow route</span><select id="rcRoute"></select></label>
       <div class="full small" id="rcInfo"></div>
-      <label class="f full"><span>Note <span style="font-weight:400">(needed to flag or reject, when the test changes, or when a receipt check fails)</span></span><input id="mvNote" data-clear placeholder="e.g. Tag reads T-10422, not T-10421; bag torn"></label>
+      <label class="f full"><span>Note <span style="font-weight:400">(needed to flag or reject, when the test changes, or when a receipt check fails)</span></span><input id="mvNote" data-clear placeholder="e.g. Bag code reads T-10422, not T-10421; bag torn"></label>
     </div>
     <div class="row">
       <button type="button" class="btn primary" data-receipt="confirm">Confirm receipt</button>
@@ -3159,12 +3159,13 @@ function renderSampleForm(mode){
       ${staff ? `<label class="f full" data-lab><span>Workflow route (only routes that perform the test)</span><select id="rRouteSel"><option value="">Automatic</option></select></label>` : ""}
       <div class="full" id="rRoute"></div>
       <label class="f"><span>Submitted by (name) <span class="req">*</span></span><input id="rSubmitter" required placeholder="Person who sent the sample"></label>
+      <label class="f"><span>Submitter's badge number</span><input id="rSubBadge" maxlength="20" autocomplete="off"></label>
       <label class="f"><span>Submitting section <span class="req">*</span></span><select id="rSection" required><option value="">Choose…</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select></label>
+      <label class="f">Number of samples<input id="rCount" type="number" min="1" max="100" step="1" value="1"></label>
+      <label class="f full">Site sample code<input id="rTag" placeholder="e.g. MLNSCLF120261014 (one per sample, separated by commas)"></label>
       <label class="f" data-hand><span>Handed to (lab technician)${walk ? req : ""}</span><input id="rHandTo" maxlength="60" list="rTechList" autocomplete="off"></label>
       <label class="f" data-hand><span>Technician's badge number${walk ? req : ""}</span><input id="rHandBadge" maxlength="20" autocomplete="off"></label>
       <datalist id="rTechList">${techs.map(n => `<option value="${esc(n)}">`).join("")}</datalist>
-      <label class="f">Tag number<input id="rTag" placeholder="e.g. T-10421 (a batch counts up)"></label>
-      <label class="f">Number of samples<input id="rCount" type="number" min="1" max="100" step="1" value="1"></label>
       ${staff ? `${meBox("Received by (lab staff)").replace('<label class="f">', '<label class="f" data-lab>')}
       <label class="f" data-lab><span>Date &amp; time received <span class="req">*</span></span><input id="rRecvAt" type="datetime-local" required value="${localInput(now)}"></label>
       <div id="rWitBox" data-lab hidden>${witnessField("rWit")}</div>` : ""}
@@ -3260,7 +3261,7 @@ async function register(){
   if (!teK) return fail("Choose the test requested.", "#rTest");
   if (!submitter) return fail("Type the name of the person submitting.", "#rSubmitter");
   if (!code) return fail("Choose the submitting section.", "#rSection");
-  const handTo = lab ? "" : val("#rHandTo").slice(0, 60), handBadge = lab ? "" : val("#rHandBadge").slice(0, 20);
+  const handTo = lab ? "" : val("#rHandTo").slice(0, 60), handBadge = lab ? "" : val("#rHandBadge").slice(0, 20), subBadge = val("#rSubBadge").slice(0, 20);
   if (walk && !handTo) return fail("Type the name of the technician you handed it to.", "#rHandTo");
   if (walk && !handBadge) return fail("Type the technician's badge number.", "#rHandBadge");
   const r = formRoute();
@@ -3278,10 +3279,10 @@ async function register(){
     if (!$("#rWitBox").hidden && !(wit = val("#rWit"))) return fail("Two-person custody: choose the witness.", "#rWit");
   }
   const tagsIn = splitTags($("#rTag").value).map(normTag);
-  if (n > 1 && tagsIn.length > 1 && tagsIn.length !== n) return fail(`You entered ${tagsIn.length} tag numbers for ${n} samples. Enter one per sample, or a single starting tag.`, "#rTag");
+  if (n > 1 && tagsIn.length > 1 && tagsIn.length !== n) return fail(`You entered ${tagsIn.length} site sample codes for ${n} samples. Enter one per sample, or a single starting code.`, "#rTag");
   const tagSets = batchTags(tagsIn, n), allTags = tagSets.flat();
-  if (new Set(allTags).size !== allTags.length) return fail("The same tag number appears twice in this batch.", "#rTag");
-  btn.disabled = true; msg.textContent = allTags.length ? "Checking tag numbers…" : "Issuing IDs…";
+  if (new Set(allTags).size !== allTags.length) return fail("The same site sample code appears twice in this batch.", "#rTag");
+  btn.disabled = true; msg.textContent = allTags.length ? "Checking site sample codes…" : "Issuing IDs…";
   try {
     for (const t of allTags){ const used = await tagOwner(t); if (used) throw { code: "tagused", tag: t, id: used }; }
     msg.textContent = "Issuing IDs…";
@@ -3293,7 +3294,7 @@ async function register(){
     const recv = lab ? { bags: containers, mass: massKg, unit: "kg", seal: seal ? "ok" : "none", cond: "Good", temp: "", holdH, warn: holdH != null && holdH > t.hold ? [`holding time for ${t.holdWhat} exceeded: received ${hoursLabel(holdH)} after collection, limit ${hoursLabel(t.hold)}`] : [], ...(wit ? { wit } : {}) } : null;
     const base = {
       v: 13, type: t?.name || tyK, typeKey: tyK, purpose: why ? `Other: ${why}` : purposeOf(puK)?.name || puK, purposeKey: puK, ...(why ? { purposeWhy: why } : {}), ...(handTo ? { handedTo: handTo } : {}), ...(handBadge ? { handedBadge: handBadge } : {}), ...rf, details, reassays: 0,
-      submitter, section: code, receivedBy: lab ? session.name : "", receivedAt: recvAt, recvAt, recv,
+      submitter, ...(subBadge ? { subBadge } : {}), section: code, receivedBy: lab ? session.name : "", receivedAt: recvAt, recvAt, recv,
       source: val("#rSource"), collectedAt: collected, containers, massKg, seal, priority: $("#rPriority").value,
       hazards: HAZARDS.filter(h => $("#rHz_" + h.k)?.checked).map(h => h.k),
       analyses: ADDONS.filter((_, i) => $("#rAn" + i)?.checked), notes: val("#rNotes"),
@@ -3323,7 +3324,7 @@ async function register(){
     btn.disabled = true;
   } catch (e) {
     btn.disabled = false; msg.textContent = "";
-    if (e && e.code === "tagused") toast(`Tag ${e.tag} is already on open sample ${e.id}. Use another tag number, or leave it blank.`);
+    if (e && e.code === "tagused") toast(`Site sample code ${e.tag} is already on open sample ${e.id}. Use another code, or leave it blank.`);
     else if (e && e.code === "busy") toast("Could not issue an ID. Try again in a moment.");
     else writeFailed(e);
   }
@@ -3409,7 +3410,7 @@ function renderLedger(){
       </div>
       ${rc ? `<div class="recon"><b>Month check:</b> ${rc.opening} on hand at the start + ${rc.ins} received − ${rc.outs} fully out = <b>${rc.closing}</b> on hand at the end${rc.now != null ? (rc.now === rc.closing ? ` <span class="pill ok">matches the ${rc.now} on hand now</span>` : ` <span class="pill bad">${rc.now} on hand now: check for missing movements</span>`) : ""}.</div>` : ""}
       <p class="small muted" style="margin:0">${inN} inbound and ${outN} outbound movement${outN === 1 ? "" : "s"}${revN ? `, ${revN} reversal${revN === 1 ? "" : "s"}` : ""} in ${esc(f.month)}.</p>
-      ${!ledgerReady && db ? `<div class="panel empty"><strong>Loading ${esc(f.month)}…</strong></div>` : rows.length ? `<div class="tbl-wrap"><table><thead><tr><th>Date &amp; time</th><th>Dir.</th><th>Sample ID</th><th>Tag no.</th><th>Type</th><th>Material</th><th>Section</th><th>From / to</th><th>Reference</th><th>Submitted by</th><th>Lab staff</th><th>Note</th></tr></thead><tbody>${body}</tbody></table></div>`
+      ${!ledgerReady && db ? `<div class="panel empty"><strong>Loading ${esc(f.month)}…</strong></div>` : rows.length ? `<div class="tbl-wrap"><table><thead><tr><th>Date &amp; time</th><th>Dir.</th><th>Sample ID</th><th>Site code</th><th>Type</th><th>Material</th><th>Section</th><th>From / to</th><th>Reference</th><th>Submitted by</th><th>Lab staff</th><th>Note</th></tr></thead><tbody>${body}</tbody></table></div>`
         : `<div class="panel empty"><strong>No ledger entries${f.dir !== "all" || f.q || f.sec ? " match these filters" : ` in ${esc(f.month)}`}</strong></div>`}
     </div>`;
   });
@@ -3431,7 +3432,7 @@ async function exportCsv(rows){
   const dl = window.claude?.use ? await claude.use("downloads") : null;
   if (!dl){ toast("Downloads are not available in this view."); return; }
   const q = x => `"${String(x ?? "").replace(/"/g, '""')}"`;
-  const head = ["Date time (site)", "Direction", "Reversed", "Sample ID", "Tag number", "Section", "Type", "Route", "Material", "Quantity", "From / to", "Reference", "Submitted by", "Lab staff", "Witness", "Note", "Movement ID"];
+  const head = ["Date time (site)", "Direction", "Reversed", "Sample ID", "Site sample code", "Section", "Type", "Route", "Material", "Quantity", "From / to", "Reference", "Submitted by", "Lab staff", "Witness", "Note", "Movement ID"];
   const lines = rows.map(r => [fmtFull(r.at), r.dir.toUpperCase(), r.reversed ? "yes" : "", r.sid, r.tag, r.sec, r.type, r.route, r.item, r.qty,
     r.dir === "in" ? r.from : r.dir === "rev" ? "Reversal" : DISPO[r.kind] || r.kind, r.ref, r.dir === "in" ? r.sub : "", r.tech, r.wit, r.note, r.mid].map(q).join(","));
   try { await dl.save({ filename: `sample-ledger-${ledgerFilter.month}.csv`, data: [head.map(q).join(","), ...lines].join("\n") }); }
@@ -3603,7 +3604,7 @@ function renderStages(){
     ${logoHtml()}
 
     <h2 style="margin-top:12px">Results and certificates</h2>
-    <label class="f" style="max-width:520px"><span>Who can see results on a sample record</span><select class="inp" id="cfgResPub"><option value="0" ${draft.resultsPublic ? "" : "selected"}>Signed-in staff only (recommended)</option><option value="1" ${draft.resultsPublic ? "selected" : ""}>Anyone with the sample ID or tag</option></select></label>
+    <label class="f" style="max-width:520px"><span>Who can see results on a sample record</span><select class="inp" id="cfgResPub"><option value="0" ${draft.resultsPublic ? "" : "selected"}>Signed-in staff only (recommended)</option><option value="1" ${draft.resultsPublic ? "selected" : ""}>Anyone with the sample ID or site sample code</option></select></label>
 
     <h2 style="margin-top:12px">Reference materials (CRMs and check standards)</h2>
     <div class="mock"><b>Example values.</b><span>Replace them with the values on your CRM certificates.</span></div>
@@ -3619,7 +3620,7 @@ function renderStages(){
     <h2 style="margin-top:12px">Results files</h2>
     <div class="tbl-wrap"><table><thead><tr><th>Column name in the report</th><th>Read as</th><th></th></tr></thead><tbody>${colRows}</tbody></table></div>
     <div class="row"><button class="btn" id="colAdd">Add column name</button></div>
-    <div class="small muted">Built in: element symbols (Au, Ag, Cu…), symbols with a method code (AuFA, AuSX, AgSX), pH, NaCN (free cyanide), CNWAD, CNTOT, NaOH, %Solids, Moisture. Samples are found by tracker ID, tag number or site reference.</div>
+    <div class="small muted">Built in: element symbols (Au, Ag, Cu…), symbols with a method code (AuFA, AuSX, AgSX), pH, NaCN (free cyanide), CNWAD, CNTOT, NaOH, %Solids, Moisture. Samples are found by tracker ID, site sample code or site reference.</div>
 
     <h2 style="margin-top:12px" id="rtEdit">Workflow routes</h2>
     <div class="row"><select class="inp" id="rtPick" style="width:auto;max-width:100%" aria-label="Route to edit">${draft.routes.map((r, i) => `<option value="${i}" ${i === routeIdx ? "selected" : ""}>${esc(r.code)} · ${esc(r.name)}</option>`).join("")}</select>
@@ -3969,10 +3970,12 @@ function anOf(s){
 }
 const aAn = t => (/^[aeiou]/i.test(t) ? "an " : "a ") + t;
 const anShort = a => /^[A-Z][a-z]?$/.test(a.k) ? a.k : a.n;
-/* The database merges an update into the stored record, so a result or a batch membership that goes away is written as null (patch) and
-   read as absent (live). */
+/* The database merges an update into the stored record, map by map, so a result, a batch membership or a field of one that goes away is
+   written as null (patch: each new value replaces the old one whole, so a value typed over one read from a file loses src) and read as
+   absent (live). */
 const live = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => v != null));
-const patch = (old, now) => ({ ...Object.fromEntries(Object.keys(old || {}).map(k => [k, null])), ...Object.fromEntries(Object.entries(now).map(([k, v]) => [k, v && typeof v === "object" && !Array.isArray(v) && old?.[k] && typeof old[k] === "object" ? { ...Object.fromEntries(Object.keys(old[k]).map(j => [j, null])), ...v } : v])) });
+const isMap = o => !!o && typeof o === "object" && !Array.isArray(o);
+const patch = (old, now) => ({ ...Object.fromEntries(Object.keys(old || {}).map(k => [k, null])), ...Object.fromEntries(Object.entries(now).map(([k, v]) => [k, isMap(v) && isMap(old?.[k]) ? patch(old[k], v) : v])) });
 const rowsOf = s => live(s?.results?.rows);
 /* Lab batch membership by batch type: { [p]: { b: batch ID, q: QC status, n: note } }. Records from version 11 kept one batch in labBatch. */
 function labsOf(s){
@@ -3980,7 +3983,7 @@ function labsOf(s){
   if (s.labs) return live(s.labs);
   return s.labBatch ? { [qcpOf(s)]: { b: s.labBatch, q: s.labQc || "", n: s.labQcNote || "" } } : {};
 }
-const QC_RANK = { fail: 0, warn: 1, "": 2, pending: 3, accepted: 4, pass: 5 };
+const QC_RANK = { fail: 0, warn: 1, "": 2, pending: 3, none: 4, accepted: 4, pass: 5 };
 /* The new membership, kept to the batch types the sample still needs, with the summary the board and lists read: the first batch, every batch
    (lbs, for lookups), the weakest QC state and the notes. */
 function labsUpd(s, labs, extra = {}){
@@ -4129,7 +4132,7 @@ function releaseBlock(s){
     if (!l) return "Results must come from a lab batch with its QC.";
     if (l.q === "fail") return `Lab batch ${l.b} failed QC. Re-run the batch.`;
     if (l.q === "warn") return `Lab batch ${l.b} has QC warnings. A supervisor accepts them on the batch first.`;
-    if (!["pass", "accepted"].includes(l.q)) return `Lab batch ${l.b} QC is not complete.`;
+    if (!["pass", "accepted", "none"].includes(l.q)) return `Lab batch ${l.b} QC is not complete.`;
   }
   const al = openAlerts(s);
   if (al.length) return `${al.map(h => alertLine(s, h)).join("; ")}. Record what was done and who was told first.`;
@@ -4191,8 +4194,10 @@ function resTable(ans, rows, cov){
     ${list.map(a => `<tr><td>${esc(a.n)}</td><td class="mono">${resCell(rows[a.k], a)}</td><td>${esc(a.u || "")}</td><td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>${cov ? `<td class="small">${covText(cov[a.k])}</td>` : ""}</tr>`).join("")}</tbody></table></div>`;
 }
 const covText = c => c === "calc" ? "Calculated" : c ? `Lab batch <span class="mono">${esc(c)}</span>` : "Not in a lab batch";
-const qcLabel = q => ({ pass: "QC passed", warn: "QC warnings to accept", fail: "QC failed", accepted: "QC accepted by supervisor", pending: "waiting for batch results" })[q] || "";
-const qcCls = q => ({ pass: "ok", accepted: "ok", warn: "warn", fail: "bad", pending: "info" })[q] || "";
+/* none: results from a file with no QC readings in it; QC is judged on the lab's QA/QC sample set, so release is not held. */
+const qcLabel = q => ({ pass: "QC passed", warn: "QC warnings to accept", fail: "QC failed", accepted: "QC accepted by supervisor", none: "No QC in this run", pending: "waiting for batch results" })[q] || "";
+const qcCls = q => ({ pass: "ok", accepted: "ok", none: "info", warn: "warn", fail: "bad", pending: "info" })[q] || "";
+const qcClear = q => q === "pass" || q === "none";
 const certLine = c => `<button type="button" class="linkish" data-cert="${c.v}">${esc(c.no)}</button> (${fmtDate(c.at)}${c.code ? `, check code <span class="mono">${esc(c.code)}</span>` : ""})`;
 function resultsPanel(s){
   const ci = curIdx(s), ti = targetIdx(s), ph = stage(s, s.stageKey)?.phase, certs = s.certs || [], last = certs.at(-1);
@@ -4407,8 +4412,8 @@ function certHtml(s, c){
       <div class="cert-no"><div class="mono">${esc(c.no)}</div><div>Version ${c.v} · ${esc(fmtFull(c.at))}</div>${c.code ? `<div>Check code <span class="mono">${esc(c.code)}</span></div>` : ""}</div></div>
     ${c.amends ? `<div class="cert-amend">Amended certificate. Replaces ${esc(c.amends)}. Reason: ${esc(c.why || "")}</div>` : ""}
     <table class="cert-facts">
-      ${fact("Sample ID", `<b class="mono">${esc(s.id)}</b>`)}${fact("Tag number", esc(tagText(s)) || "—")}${fact("Sample type", esc(s.type))}
-      ${fact("Submitted by", `${esc(s.submitter)}${s.section ? ` · ${esc(s.section)} ${esc(sectionName(s.section))}` : ""}`)}
+      ${fact("Sample ID", `<b class="mono">${esc(s.id)}</b>`)}${fact("Site sample code", esc(tagText(s)) || "—")}${fact("Sample type", esc(s.type))}
+      ${fact("Submitted by", `${esc(s.submitter)}${s.subBadge ? ` (badge ${esc(s.subBadge)})` : ""}${s.section ? ` · ${esc(s.section)} ${esc(sectionName(s.section))}` : ""}`)}
       ${fact("Collected", fmtFull(s.collectedAt))}${fact("Received", `${fmtFull(s.recvAt || s.receivedAt)}${rv.mass ? ` · ${esc(rv.mass)} ${esc(rv.unit || "kg")}` : ""}`)}
       ${fact("Test", esc(c.testName || ""))}${fact("Method", `${c.route ? `<span class="mono">${esc(c.route)}</span> ` : ""}${esc(c.routeName || "")}`)}
       ${c.batch ? fact(c.batch.includes(",") ? "Lab batches" : "Lab batch", `<span class="mono">${esc(c.batch)}</span> · ${esc(qcLabel(c.qc) || "")}`) : ""}
@@ -4518,12 +4523,15 @@ function layoutBatch(p, sids, ans){
 const posLabel = (p, x) => x.t === "s" ? "Sample" : x.t === "crm" ? cap(qcName(p, "crm")) : x.t === "pd" ? (p.all ? "Repeat" : cap(qcName(p, "pd"))) : x.t === "cd" ? cap(qcName(p, "cd")) : x.t === "pb" ? cap(qcName(p, "pb")) : cap(qcName(p, "bl"));
 const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
 /* The QC verdict for a batch, from the same numbers as the rule text: every QC position is judged on each result the batch checks. */
-function evalBatch(b, p){
+/* file: the results came from a lab file. QC positions the file has no reading for are not judged and the batch need not hold a certified
+   reference material: the lab submits its QA/QC as a sample set of its own. A file with no QC readings at all is "none". */
+function evalBatch(b, p, file){
   const ans = bAns(b), one = ans.length === 1, checks = [];
   const orig = sid => b.pos.find(y => y.t === "s" && y.sid === sid);
   for (const x of b.pos){
     if (x.t === "s") continue;
     const label = posLabel(p, x), rs = posRs(b, x);
+    if (file && !ans.some(ch => rs[ch.k])){ checks.push({ p: x.p, t: x.t, label, verdict: "info", msg: "not in the file" }); continue; }
     if (x.t === "crm" && !crmById(x.crm)){ checks.push({ p: x.p, t: x.t, label, verdict: "fail", msg: "no reference material chosen" }); continue; }
     for (const ch of ans){
       const r = rs[ch.k], v = resNum(r), base = { p: x.p, t: x.t, label, k: ch.k, ...(one ? {} : { kn: anShort(ch) }) };
@@ -4559,9 +4567,9 @@ function evalBatch(b, p){
       }
     }
   }
-  if ((p.ins || {}).crm) for (const ch of ans) if (!b.pos.some(x => x.t === "crm" && crmRow(x.crm, ch)))
+  if ((p.ins || {}).crm && !file) for (const ch of ans) if (!b.pos.some(x => x.t === "crm" && crmRow(x.crm, ch)))
     checks.push({ p: 0, t: "crm", label: "Reference materials", k: ch.k, ...(one ? {} : { kn: anShort(ch) }), verdict: "fail", msg: `no reference material in this batch is certified for ${anShort(ch)}` });
-  const status = checks.some(c => c.verdict === "fail") ? "fail" : checks.some(c => c.verdict === "warn") ? "warn" : "pass";
+  const status = checks.some(c => c.verdict === "fail") ? "fail" : checks.some(c => c.verdict === "warn") ? "warn" : file && checks.every(c => c.verdict === "info") ? "none" : "pass";
   return { status, checks };
 }
 /* Trends across batches for each reference material judged in SD: two results in a row beyond 2 SD on the same side is a warning on this batch
@@ -4682,18 +4690,21 @@ async function doBatchMove(fromKey){
 }
 const goneFrom = (b, x) => x.t === "s" && (!inBatch(bs(x.sid), b.id) || released(bs(x.sid)));
 const posInput = (x, i, ch) => i === 0 ? "bp_" + x.p : `bp_${x.p}_${ch.k}`;
+/* The results file a batch's values come from: its draft's or, opened again for correction, the last one attached when saved values came from it. */
+const batchFile = b => b.draft?.file || (b.files?.length && (b.pos || []).some(x => Object.values(x.rs || {}).some(r => r?.src === "file")) ? b.files.at(-1) : null);
 function readBatchInputs(b){
-  const ans = bAns(b), vals = {}, crms = {}, left = new Set(b.pos.filter(x => goneFrom(b, x)).map(x => x.sid));
+  const ans = bAns(b), vals = {}, crms = {}, left = new Set(b.pos.filter(x => goneFrom(b, x)).map(x => x.sid)), fromFile = !!batchFile(b);
   for (const x of b.pos){
     if (x.t === "crm"){ crms[x.p] = $("#bc_" + x.p)?.value || b.draft?.crms?.[x.p] || x.crm || ""; if (!crms[x.p]){ toast(`Position ${x.p}: choose the reference material.`); $("#bc_" + x.p)?.focus(); return null; } }
     const rs = {};
     for (const [i, ch] of ans.entries()){
       const el = $("#" + posInput(x, i, ch)), r = parseRes(el?.value, ch), where = `Position ${x.p}${ans.length > 1 ? ` ${anShort(ch)}` : ""}`;
-      const optional = left.has(x.sid) || (x.t === "pd" || x.t === "cd") && left.has(x.of) || x.t === "crm" && !crmRow(crms[x.p], ch);
+      const optional = left.has(x.sid) || (x.t === "pd" || x.t === "cd") && left.has(x.of) || x.t === "crm" && !crmRow(crms[x.p], ch) || fromFile && x.t !== "s";
       if (!r){ if (optional) continue; toast(`${where}: enter a result (type <DL if below detection).`); el?.focus(); return null; }
       if (r.bad || r.amb){ toast(resWrong(r, ch, where)); el?.focus(); return null; }
-      const dv = b.draft?.vals?.[x.p]?.[ch.k];
-      rs[ch.k] = { ...r, by: session.u, ...(dv != null && dv === r.raw ? { src: "file" } : {}) };
+      // From the file: the draft's value, or (results opened again for correction) the saved one that came from the file, left as it was.
+      const dv = b.draft?.vals?.[x.p]?.[ch.k], pr = x.rs?.[ch.k];
+      rs[ch.k] = { ...r, by: session.u, ...((dv != null ? dv === r.raw : pr?.src === "file" && pr.raw === r.raw) ? { src: "file" } : {}) };
     }
     if (Object.keys(rs).length) vals[x.p] = rs;
   }
@@ -4705,12 +4716,13 @@ async function doBatchSave(){
   const notYet = b.sids.filter(id => { const s = bs(id); if (!s || !inBatch(s, b.id) || released(s)) return false; const ph = stage(s, s.stageKey)?.phase; return !(curIdx(s) < targetIdx(s) && (ph === "test" || ph === "qc")); });
   if (notYet.length){ toast(`${notYet.length} sample(s) have not reached analysis yet (${notYet.slice(0, 3).join(", ")}${notYet.length > 3 ? "…" : ""}). Move them on first.`); return; }
   const all = Object.values(got.vals).flatMap(o => Object.values(o)), typed = all.filter(r => r.src !== "file").length;
-  await storeBatchResults(b, got, val("#bInst") || b.draft?.file?.name || "", b.draft?.file || null, b.draft ? typed : 0);
+  const file = batchFile(b);
+  await storeBatchResults(b, got, val("#bInst") || b.draft?.file?.name || "", file, file ? typed : 0);
 }
 /* Saves a batch's results (typed, or read from a results file), checks its QC and writes each sample's results. Returns the QC status. */
 async function storeBatchResults(b, got, inst, file, typed){
   const p = QC_PROFILES[b.qcp], ans = bAns(b), pos = b.pos.map(x => { const { r, ...y } = x; return { ...y, ...(x.t === "crm" ? { crm: got.crms[x.p] } : {}), rs: got.vals[x.p] || null, ...(goneFrom(b, x) ? { gone: true } : {}) }; });
-  const qc = { ...evalBatch({ ...b, pos }, p), at: Date.now(), by: session.u, tech: session.name, ...(file ? { file: { id: file.id, name: file.name } } : {}) };
+  const qc = { ...evalBatch({ ...b, pos }, p, !!file), at: Date.now(), by: session.u, tech: session.name, ...(file ? { file: { id: file.id, name: file.name } } : {}) };
   setBatchBusy(true, "Saving results and checking QC…");
   try {
     const trend = await batchTrends({ ...b, pos }, qc, p);
@@ -4848,7 +4860,7 @@ function batchNext(b){
   if (b.status === "rerun" || b.status === "done" || !b.open) return "";
   if (b.status === "creating") return "Being created";
   if (!b.qc) return b.draft ? "Complete the results (technician)" : "Attach results (technician)";
-  if (!(b.qc.status === "pass" || b.qc.accepted)) return "QC decision (supervisor)";
+  if (!(qcClear(b.qc.status) || b.qc.accepted)) return "QC decision (supervisor)";
   return "Release (supervisor)";
 }
 function batchStatus(b){
@@ -4937,13 +4949,13 @@ function batchDetail(b){
   const relDone = releasedFrom(b).length;
   const lab = c => `${esc(c.label)}${c.p ? ` at #${c.p}` : ""}${c.kn ? ` (${esc(c.kn)})` : ""}`;
   const inB = ss.filter(s => inBatch(s, b.id)), atAn = inB.filter(s => readyForResults(s) || released(s)).length;
-  const qcOk = !!b.qc && (b.qc.status === "pass" || !!b.qc.accepted);
+  const qcOk = !!b.qc && (qcClear(b.qc.status) || !!b.qc.accepted);
   const st = [true, !!b.qc || (inB.length > 0 && atAn === inB.length), !!b.qc, qcOk, b.status === "done"].map(Boolean), nowAt = st.indexOf(false);
   const qcCount = ["crm", "bl", "pb", "pd", "cd"].map(t => [t, (b.pos || []).filter(x => x.t === t).length]).filter(x => x[1]).map(([t, n]) => `${n} ${qcName(p, t, n)}`);
   const step = (i, title, who, body) => `<li class="bstep ${st[i] ? "done" : i === nowAt ? "now" : "todo"}"><span class="dot">${st[i] ? "✓" : i + 1}</span><div class="stack" style="gap:6px;min-width:0">
       <div class="row" style="gap:8px"><b>${title}</b>${i === nowAt && b.open ? `<span class="pill gold">Next</span>` : ""}<span class="small muted">${who}</span></div>${body || ""}</div></li>`;
   const files = (b.files || []).length ? `<div class="small">File${b.files.length > 1 ? "s" : ""}: ${b.files.map(f => `<button type="button" class="linkish mono" data-rfile="${esc(f.id)}">${esc(f.name)}</button>`).join(", ")}</div>` : "";
-  const draftMiss = b.draft ? (b.pos || []).reduce((n, x) => n + ans.filter(ch => !b.draft.vals?.[x.p]?.[ch.k] && !(x.t === "crm" && !crmRow(b.draft.crms?.[x.p] || x.crm, ch)) && !goneFrom(b, x)).length, 0) : 0;
+  const draftMiss = b.draft ? (b.pos || []).filter(x => x.t === "s" && !goneFrom(b, x)).reduce((n, x) => n + ans.filter(ch => !b.draft.vals?.[x.p]?.[ch.k]).length, 0) : 0;   // QC positions a file leaves empty are not judged
   const table = `<div class="tbl-wrap"><table class="bpos${one ? "" : " multi"}"><thead><tr>${one ? "<th>#</th><th>Position</th><th>Sample or material</th><th>Expected</th>" : "<th>Position</th>"}${ans.map(ch => `<th>${one ? "Result" : esc(anShort(ch))} (${esc(ch.u || "")})</th>`).join("")}<th>Check</th></tr></thead><tbody>${posRows}</tbody></table></div>`;
   const moves = Object.keys(groups).length && b.open ? `<div class="stack" style="gap:6px">${Object.entries(groups).map(([k, list]) => { const s0 = list[0], pl = planOf(s0), ci = curIdx(s0), nx = pl[ci + 1];
       return `<div class="row" style="gap:8px"><span><b>${list.length}</b> at ${esc(stage(s0, k)?.name || k)}</span>${canEdit() && b.open ? (nx && !nx.target ? `<button type="button" class="btn small" data-bmove="${esc(k)}">Move ${list.length === 1 ? "it" : "all " + list.length} to: ${esc(nx.name)}</button>` : "") : ""}</div>`; }).join("")}</div>` : "";
@@ -4958,7 +4970,7 @@ function batchDetail(b){
         ${(b.qc.trend || []).some(t => t.rule === "9side") ? `<div class="small">Bias: ${esc(b.qc.trend.filter(t => t.rule === "9side").map(t => `${t.crm}${t.k ? " " + t.k : ""}, ${t.msg}`).join("; "))}.</div>` : ""}
         ${b.qc.accepted ? `<div class="small">${b.qc.accepted.exception ? "Accepted as an exception" : "Accepted"} by ${esc(b.qc.accepted.tech)}, ${fmt(b.qc.accepted.at)}: ${esc(b.qc.accepted.why)}</div>` : ""}</div>
     ${b.open && canApprove() && !b.qc.accepted ? `<div class="stack" style="gap:8px"><label class="f"><span>Reason (required for any decision below)</span><input id="bWhy" data-clear placeholder="${b.qc.status === "fail" ? "e.g. CRM STD-AU-MED at +3.4 SD: re-fuse the batch" : "e.g. CRM at +2.3 SD, other checks in control"}"></label>
-        ${b.qc.by === session?.u && b.qc.status !== "pass" ? `<p class="small muted" style="margin:0">You saved these results, so ${isAdmin() ? "accepting them yourself is recorded as such" : "another lab supervisor or the lab manager accepts their warnings"}.</p>` : ""}
+        ${b.qc.by === session?.u && !qcClear(b.qc.status) ? `<p class="small muted" style="margin:0">You saved these results, so ${isAdmin() ? "accepting them yourself is recorded as such" : "another lab supervisor or the lab manager accepts their warnings"}.</p>` : ""}
         <div class="row">${b.qc.status === "warn" && (b.qc.by !== session?.u || isAdmin()) ? `<button type="button" class="btn primary" data-bdec="accept">Accept the warnings</button>` : ""}
           <button type="button" class="btn${b.qc.status === "fail" ? " primary" : ""}" data-bdec="rerun">Re-run the batch</button>${relDone ? "" : `<button type="button" class="btn ghost" data-bdec="reopen">Correct an entry</button>`}
           ${b.qc.status === "fail" && isAdmin() ? `<button type="button" class="btn ghost danger" data-bdec="override">Accept the failure as an exception</button>` : ""}</div>
@@ -5157,7 +5169,7 @@ async function exportStorageCsv(rows){
   const dl = window.claude?.use ? await claude.use("downloads") : null;
   if (!dl){ toast("Downloads are not available in this view."); return; }
   const q = x => `"${String(x ?? "").replace(/"/g, '""')}"`, now = Date.now();
-  const head = ["Sample ID", "Tag number", "Section", "Type", "Route", "Material", "Location", "Keep until", "Then", "Past retention"];
+  const head = ["Sample ID", "Site sample code", "Section", "Type", "Route", "Material", "Location", "Keep until", "Then", "Past retention"];
   const lines = rows.map(r => [r.id, r.tag, r.sec, r.type, r.route, r.item, r.loc, fmtDate(r.dueAt), r.then, r.dueAt && now > r.dueAt ? "yes" : ""].map(q).join(","));
   try { await dl.save({ filename: `storage-${dayKey(now)}.csv`, data: [head.map(q).join(","), ...lines].join("\n") }); }
   catch { toast("Download was not saved."); }
@@ -5442,7 +5454,7 @@ function labelHtml(x){
     <div class="bl-main">
       <div class="bl-org">Assay Lab</div>
       <div class="bl-id">${esc(x.id)}</div>
-      ${x.tag ? `<div class="bl-line"><span>Tag</span><b>${esc(x.tag)}</b></div>` : ""}
+      ${x.tag ? `<div class="bl-line"><span>Code</span><b>${esc(x.tag)}</b></div>` : ""}
       <div class="bl-line"><span>Type</span><b>${esc(x.type)}</b></div>
       <div class="bl-line"><span>Section</span><b>${esc(x.sec)}</b></div>
       <div class="bl-line"><span>Submitted</span><b>${esc(fmtDate(x.at))}</b></div>
@@ -5949,7 +5961,7 @@ function splitHead(h){
 }
 /* The register's current ID for a reference material named in a report (an old ID still counts). */
 const crmFromFile = id => { const k = normKey(id); const c = (cfg.crms || []).find(x => normKey(x.id) === k || (x.was || []).some(w => normKey(w) === k)); return c ? c.id : ""; };
-/* Known samples by every name a report may use: the tracker ID, each tag number and the site reference. */
+/* Known samples by every name a report may use: the tracker ID, each site sample code (tags) and the site reference. */
 function sampleIndex(){
   const idx = new Map(), add = s => { if (!s || !s.id) return; [s.id, ...(s.tags || []), s.siteRef].filter(Boolean).forEach(k => { const n = normKey(k); if (n && !idx.has(n)) idx.set(n, s.id); }); };
   samples.forEach(add); batchSamps.forEach(add); if (current?.body) add(current.body);
@@ -6002,16 +6014,13 @@ function parseReport(grid, idx){
     seen[key] = (seen[key] || 0) + 1;
     cols.push({ i: j, name: sp.name, unit: unit === "-" ? "" : unit, method: methods ? methods[j] || "" : "", rep: reps && /^[1-9]$/.test(reps[j] || "") ? +reps[j] : seen[key], concept: colConcept(sp.name) });
   }
-  /* A screen analysis in mesh fractions (+40 … +200 … −325, % retained): % passing 75 µm (200 mesh) is 100 less everything retained on
-     200 mesh and coarser, read only when the fractions add up to 100. */
-  const mesh = cols.filter(c => /^[+-]\d{2,3}$/.test(c.name) && (!c.unit || c.unit === "%")), coarse = mesh.filter(c => c.name[0] === "+" && +c.name.slice(1) <= 200);
-  if (mesh.some(c => c.name === "+200") && mesh.some(c => c.name[0] === "-")){
+  /* A screen analysis in mesh fractions (+40 … +200 … −325, % retained) is kept as the report states it, as one line ("+40 0.03 · +70 1.26 ·
+     …"): the site does not work out a grind from it. */
+  const mesh = cols.filter(c => /^[+-]\d{2,3}$/.test(c.name) && (!c.unit || c.unit === "%"));
+  if (mesh.length >= 2){
     mesh.forEach(c => { c.used = true; });
-    cols.push({ i: -1, name: "Passing 75 µm (from the screen fractions)", unit: "%", method: mesh[0].method, rep: 1, concept: "p75", calc: cells => {
-      const v = mesh.map(c => (cells[c.i] || "").trim()); if (v.some(x => !/^\d+(\.\d+)?$/.test(x))) return "";
-      const sum = v.reduce((a, x) => a + +x, 0); if (Math.abs(sum - 100) > 1) return "";
-      return (100 - coarse.reduce((a, c) => a + +(cells[c.i] || 0), 0)).toFixed(2);
-    } });
+    cols.push({ i: -1, name: "Screen analysis (% retained)", unit: "", method: mesh[0].method, rep: 1, concept: "scr", text: true,
+      calc: cells => mesh.map(c => [c.name, (cells[c.i] || "").trim()]).filter(x => x[1]).map(x => x.join(" ")).join(" · ") });
   }
   const rows = [];
   let end = grid.length;
@@ -6044,7 +6053,7 @@ function rowValues(rep, cells, defs, r = 1, clash){
   for (const c of rep.cols){
     if ((c.rep || 1) !== r) continue;
     const raw = c.calc ? c.calc(cells) : (cells[c.i] || "").trim(); if (!raw) continue;
-    const ok = defs.filter(a => !a.calc && !a.t);
+    const ok = defs.filter(a => !a.calc && (c.text ? a.t === "text" : !a.t));
     const exact = ok.filter(a => nameIs(c.name, a) && unitScore(c.unit, a.u) > 0);
     let pick = exact.length === 1 ? exact[0] : null;
     if (!pick && c.concept){
@@ -6105,7 +6114,8 @@ function planUpload(rep, scope){
       }
       vals[x.p] = {};
       for (const ch of ans){
-        const v = got[ch.k], optional = left.has(x.sid) || (x.t === "pd" || x.t === "cd") && left.has(x.of) || x.t === "crm" && !crmRow(crms[x.p] || x.crm, ch);
+        // QC positions the file has no reading for are not judged (the lab's QA/QC is a sample set of its own), so they are never missing.
+        const v = got[ch.k], optional = x.t !== "s" || left.has(x.sid);
         if (v){
           const r = parseRes(v.raw, ch);
           if (r && !r.bad && !r.amb){ vals[x.p][ch.k] = v.raw; n++; continue; }
@@ -6136,7 +6146,7 @@ function planUpload(rep, scope){
       else { const key = g.p + "|" + sigOf(ans); (fresh.get(key) || fresh.set(key, { p: g.p, ans, sids: [] }).get(key)).sids.push(sid); }
     }
     if (!scope.batch){
-      const bk = batchKeys(s), others = anOf(s).filter(a => !bk.has(a.k) && !a.calc && !a.t);
+      const bk = batchKeys(s), others = anOf(s).filter(a => !bk.has(a.k) && !a.calc && a.t !== "pick");
       const got = rowValues(rep, row.cells, others, 1, P.clash);
       if (Object.keys(got).length){
         if (!ready) needs = true;
@@ -6224,9 +6234,9 @@ function renderUpload(){
     if (P.already.length) check.push(li("warn", `Batch results already saved: ${ids(P.already, 4)}`));
     if (P.bad.length) check.push(li("bad", `Not a result: ${esc(P.bad.slice(0, 4).join("; "))}${P.bad.length > 4 ? ` +${P.bad.length - 4} more` : ""}`));
     if (P.clash.length) check.push(li("bad", `Two columns for one result: ${esc(P.clash.slice(0, 3).join("; "))}`));
-    if (P.notFound.length) unused.push(li("", `Not in the lab (no sample with this ID, tag number or site reference): ${ids(P.notFound)}`));
+    if (P.notFound.length) unused.push(li("", `Not in the lab (no sample with this ID, site sample code or site reference): ${ids(P.notFound)}`));
     if (P.unread.length) unused.push(li("", `Columns not read: ${esc(P.unread.slice(0, 10).join(", "))}${P.unread.length > 10 ? "…" : ""}${isAdmin() ? ` <button type="button" class="btn ghost small" id="upCols">Settings › Results files</button>` : ""}`));
-    if (P.unknownCrm.length) unused.push(li("", `Reference materials not in the register: ${ids(P.unknownCrm)}`));
+    if (P.unknownCrm.length) unused.push(li("", `Reference materials not in the register: ${ids(P.unknownCrm)}${isAdmin() ? ` <button type="button" class="btn ghost small" id="upCrms">Settings › Reference materials</button>` : ""}`));
   }
   const rowsRead = P ? [
     ...P.batches.concat(P.fresh).flatMap(t => t.b.pos.filter(x => Object.keys(t.vals[x.p] || {}).length).map(x => [x.t === "s" ? x.sid : x.t === "crm" ? t.crms[x.p] || x.crm : `${posLabel(QC_PROFILES[t.b.qcp] || {}, x)}${x.of ? " of " + x.of : ""}`, t.b.id || "New batch", Object.entries(t.vals[x.p]).map(([k, v]) => `${anShort(bAns(t.b).find(a => a.k === k) || { k, n: k })} ${v}`).join(", ")])),
@@ -6248,6 +6258,7 @@ function renderUpload(){
   $("#upMove", box)?.addEventListener("click", moveToAnalysis);
   $("#upBatches", box)?.addEventListener("click", () => { closeUpload(); setTab("batches"); });
   $("#upCols", box)?.addEventListener("click", () => { closeUpload(); cfgTab = "files"; setTab("stages"); });
+  $("#upCrms", box)?.addEventListener("click", () => { closeUpload(); cfgTab = "crms"; setTab("stages"); });
   box.onclick = e => { if (e.target === box) closeUpload(); };
 }
 /* Samples still in preparation when their results arrive move to their first analysis step, one step at a time, each step recorded. */

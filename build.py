@@ -297,7 +297,7 @@ def drop(s):
     else: put(s, "")
 
 # Sample record
-drop('''<p class="small muted" style="margin:0">The tag number or site reference is on more than one sample. Pick the one you want.</p>''')
+drop('''<p class="small muted" style="margin:0">The site sample code or site reference is on more than one sample. Pick the one you want.</p>''')
 put('''${session ? "You can view this sample. Only lab staff can update it." : "Only lab staff update samples. <button class='btn ghost small' data-goto='login'>Staff sign in</button>"}''',
     '''${session ? "View only." : "<button class='btn ghost small' data-goto='login'>Staff sign in</button>"}''')
 put('''.${(s.materials || []).length ? " A lab supervisor can reverse a material movement recorded by mistake, under Retained material." : ""}</p>''', '''.</p>''')
@@ -319,7 +319,7 @@ put('''For a transcription or calculation error only. A result that needs re-tes
 
 # Empty screens: the heading says it; the sentence under it went.
 put('''
-      Check the ID on the bag or submission form. IDs look like <span class="mono">${esc(exampleId())}</span>: section code, submission date, running number. Tag numbers and site references are searched too.''', '''
+      Check the ID on the bag or submission form. IDs look like <span class="mono">${esc(exampleId())}</span>: section code, submission date, running number. Site sample codes and site references are searched too.''', '''
       Check the ID on the bag.''')
 put('''</strong>Entries appear when samples are received at the lab or leave it.</div>''', '''</strong></div>''')
 put('''<strong>No released results yet</strong>Certificates for ${esc(session.sec)} samples appear here as soon as the lab releases them.</div>''', '''<strong>No released results yet</strong></div>''')
@@ -367,12 +367,6 @@ put(''' : "Nothing new since you last looked."} In the production system this no
 
 # On Azure "quota_exceeded" means one record grew past what Cosmos DB holds (samples are never deleted).
 put('toast("The register is full. Archive or delete old samples before adding more.");', 'toast("This record is too large to save. Tell the lab manager.");')
-
-# 13. A result row (or lab batch entry) that is rewritten replaces the old one whole. An update merges maps, so without this a
-#     value typed over one read from a results file kept src: "file", and an approved amendment of such a value was refused by
-#     the server (the row no longer matched the proposal). Remove once the prototype's own patch() does the same.
-put('const patch = (old, now) => ({ ...Object.fromEntries(Object.keys(old || {}).map(k => [k, null])), ...now });',
-    'const patch = (old, now) => ({ ...Object.fromEntries(Object.keys(old || {}).map(k => [k, null])), ...Object.fromEntries(Object.entries(now).map(([k, v]) => [k, v && typeof v === "object" && !Array.isArray(v) && old?.[k] && typeof old[k] === "object" ? { ...Object.fromEntries(Object.keys(old[k]).map(j => [j, null])), ...v } : v])) });')
 
 # 11. Settings: the lab manager can download a backup of every record (one JSON file), next to Save settings.
 put('<span style="flex:1"></span><button class="btn ghost" id="cfgReset">',

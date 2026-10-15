@@ -262,6 +262,15 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
     const bp = "batches/FA-B1", draft = { at: now, by: "t1", tech: "Tech One", file: { id: fid, name: rec.name }, vals: {}, crms: {} };
     check((await one("t1@site.com", { op: "set", path: bp, data: { id: "FA-B1", status: "results", draft, files: [{ id: fid, name: rec.name, at: now, tech: "Tech One" }] } })).ok, "a batch keeps a results draft under the uploader's name");
     check(!(await one("t1@site.com", { op: "update", path: bp, data: { draft: { ...draft, by: "s1", tech: "Super One" } } })).ok && (await one("t1@site.com", { op: "update", path: bp, data: { draft: null } })).ok, "a draft can't be saved in someone else's name; saving the results clears it"); }
+  { const nid = `PLT-${day}-0007`, np = "samples/" + nid, S = { by: "s1", tech: "Super One" }, MG = { by: "mgr", tech: "Manager" };   // v19 No QC in this run, badge, screen line
+    await mem.set(np, { id: nid, section: "PLT", stageKey: "qc", history: [{ key: "qc", at: now, ...S }], labs: { PL: { b: "PL-B1", q: "none" } }, labQc: "none",
+      results: { by: "s1", tech: "Super One", file: { id: "RF-ABCDEF0123456789", name: "run.csv" }, rows: { Au: { v: 1.2, raw: "1.2", by: "s1", src: "file" }, scr: { raw: "+40 0.1 · -325 70", t: "+40 0.1 · -325 70", by: "s1", src: "file" } } } });
+    const c1 = x => ({ no: nid + "-R1", v: 1, at: now, qc: "none", ...x });
+    check(!(await one("s1@site.com", { op: "update", path: np, data: { certs: [c1({ ...S, role: "super" })] } })).ok, "No QC in this run doesn't skip four eyes: the supervisor who attached the file can't release it");
+    check(!(await one("t1@site.com", { op: "update", path: np, data: { certs: [c1({ by: "t1", tech: "Tech One", role: "tech" })] } })).ok && (await one("boss@site.com", { op: "update", path: np, data: { certs: [c1({ ...MG, role: "admin" })] } })).ok, "a technician can't release it; the lab manager, who didn't attach it, can");
+    const bid = `GC-${day}-0008`;
+    check((await one(null, { op: "set", path: "samples/" + bid, data: sub(bid, { subBadge: "B-2231", tags: ["MS-0042"] }) })).ok && (await one(null, { op: "get", path: "samples/" + bid })).data.subBadge === "B-2231", "a submission carries the submitter's badge number and its site sample code");
+    check((await one("t1@site.com", { op: "update", path: np, data: { results: { rows: { scr: { raw: "+40 0.2", t: "+40 0.2", by: "t1" } } } } })).ok, "a technician corrects the screen analysis line under their own name"); }
 
   console.log(`\n${pass} PASS, ${fail} FAIL`);
   process.exit(fail ? 1 : 0);
