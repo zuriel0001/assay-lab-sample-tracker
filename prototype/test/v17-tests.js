@@ -68,9 +68,9 @@ if (fs.existsSync(CORE)){
 
   log("Submit when signed in");
   await H.tab(T, "submit"); await T.waitForSelector("#rRecvNow");
-  check(await T.$eval("#rRecvNow", c => c.checked) && await shown(T, "#rRouteSel") && await shown(T, "#rRecvAt") && !(await shown(T, "#rHandTo")) && (await T.textContent("#rSubmit")) === "Register and issue IDs", "lab staff: Received now at the lab, by me is ticked; route and time received show");
+  check(await T.$eval("#rRecvNow", c => c.checked) && await shown(T, "#rRouteSel") && await shown(T, "#rRecvAt") && !(await shown(T, "#rHandTo")) && (await T.textContent("#rSubmit")) === "Register and issue ID", "lab staff: Received now at the lab, by me is ticked; route and time received show");
   await T.setChecked("#rRecvNow", false); await T.waitForTimeout(100);
-  check(!(await shown(T, "#rRouteSel")) && !(await shown(T, "#rRecvAt")) && await shown(T, "#rHandTo") && (await T.textContent("#rSubmit")) === "Submit and get sample IDs" && !/\*/.test(await T.textContent('label:has(#rHandTo)')), "cleared: a submission for later, with optional hand-over fields");
+  check(!(await shown(T, "#rRouteSel")) && !(await shown(T, "#rRecvAt")) && await shown(T, "#rHandTo") && (await T.textContent("#rSubmit")) === "Submit and get sample ID" && !/\*/.test(await T.textContent('label:has(#rHandTo)')), "cleared: a submission for later, with optional hand-over fields");
   await fillForm(T, "submit", { section: "EXP", type: "core", purpose: "exp", submitter: "Ama" }); const [s1] = await ids(T);
   check(doc(s1).createdBy === "public" && doc(s1).stageKey === "submitted" && !doc(s1).handedTo && !doc(s1).receivedBy, "submitted without a hand-over: waits for receipt");
   await fillForm(T, "submit", { section: "EXP", type: "core", purpose: "exp", submitter: "Ama", handed: "Esi Owusu", badge: "LT-0102" }); const [s2] = await ids(T);

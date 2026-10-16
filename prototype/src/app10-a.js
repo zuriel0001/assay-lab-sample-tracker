@@ -161,6 +161,8 @@ const DEFAULT_CONFIG = {
   ],
   /* Results are shown to signed-in staff only, unless an admin opens them to anyone with the sample ID. */
   resultsPublic: false,
+  /* A sample needs a lab batch with its QC before QA/QC review and release (off: results may be typed or attached on the record). */
+  batchReq: false,
   routes: DEFAULT_ROUTES
 };
 
@@ -424,7 +426,8 @@ function routePreview(r){
 }
 const hazTags = s => (s.hazards || []).map(k => HAZARDS.find(h => h.k === k)).filter(Boolean);
 const hazPills = s => hazTags(s).map(h => `<span class="haz" title="${esc(h.l)}">${esc(h.tag)}</span>`).join("");
-const qtyText = (bags, mass, unit) => [bags ? `${bags} bag(s)` : "", mass ? `${mass} ${unit}` : ""].filter(Boolean).join(", ");
+const bagsText = n => `${n} bag${+n === 1 ? "" : "s"}`;
+const qtyText = (bags, mass, unit) => [bags ? bagsText(bags) : "", mass ? `${mass} ${unit}` : ""].filter(Boolean).join(", ");
 
 /* ---------- names (store ids only, resolve at render) ---------- */
 function who(id){ return id ? `<span data-uid="${esc(id)}">a team member</span>` : "an unsigned user"; }

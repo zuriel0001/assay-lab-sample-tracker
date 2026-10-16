@@ -31,7 +31,7 @@ if (fs.existsSync(CORE)){
   log("Register at lab for everyone");
   check((await visible(P)).join() === "register,track,routes,login", "signed out: Register, Sample, Routes, Sign in (no Submit)");
   check(await P.$eval("#view-register", v => !v.hidden) && /Register at lab/.test(await P.textContent("#view-register h2")), "the page opens on Register at lab");
-  check(!(await P.$("#rRouteSel")) && !(await P.$("#rRecvAt")) && /Waits for receipt/.test(await P.textContent("#view-register .form-h")) && (await P.textContent("#rSubmit")) === "Register and get sample IDs", "walk-in form: no route choice or receipt fields, marked as waiting for receipt");
+  check(!(await P.$("#rRouteSel")) && !(await P.$("#rRecvAt")) && /Waits for receipt/.test(await P.textContent("#view-register .form-h")) && (await P.textContent("#rSubmit")) === "Register and get sample ID", "walk-in form: no route choice or receipt fields, marked as waiting for receipt");
   check(!(await P.$$eval("#view-register p", ps => ps.length)), "no explanatory paragraph on the form");
   await fillForm(P, "register", { section: "GC", type: "rc", purpose: "gc", submitter: "Yaw Boateng", count: 2 }); const wk = await ids(P);
   const w0 = doc(wk[0]);

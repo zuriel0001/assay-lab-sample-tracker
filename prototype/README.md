@@ -2,9 +2,10 @@
 
 > **In the GitHub repository** this folder is `prototype/`. Left out: the old version folders (`v9/`, `v10/` and so on; git history keeps versions from now on), and `test/v18-tests.js` and `test/shot18.js`, which read the lab's two real reports and quote their sample codes and values. Those two run only in the project folder, with the private reports present.
 
-This folder holds the **v20** source of the published prototype (Version 22 of the artifact)
+This folder holds the **v21** source of the published prototype (Version 23 of the artifact)
 (https://claude.ai/artifact/5JgoyE2wokT67u8TCtYDop). The build thread owns all edits;
-reviewers should read and run, not change these files. Earlier versions: `v19/` (Version 21, before blind QA/QC, batch
+reviewers should read and run, not change these files. Earlier versions: `v20/` (Version 22, before the polish pass: search
+suggestions, recently opened, the same details again, tables as cards on a phone; to rebuild it, copy `src/v9-backup.html` next to `v20/src/build19.py`), `v19/` (Version 21, before blind QA/QC, batch
 submission and the custody scroll; to rebuild it, copy `src/v9-backup.html` next to `v19/src/build18.py`), `v18/` (Version 20, before Zuriel's answers on QC,
 grind and the site sample code, and the `patch()` fix; to rebuild it, copy `src/v9-backup.html` next to `v18/src/build18.py`), `v17/` (Version 19, before results files, batch
 steps, re-assay from the lists and the shorter form; to rebuild it, copy `src/v9-backup.html` next to `v17/src/build17.py`), `v16/` (Version 18, before the single entry tab and
@@ -20,12 +21,13 @@ and lab batches, the version the second review was done against; to rebuild it, 
 |---|---|
 | `assay-lab-sample-tracker.html` | The whole page (HTML, CSS, JS in one file), exactly as published (called `met-lab-sample-tracker.html` before the rename). Uses the Artifact runtime `window.claude` db, user and downloads capabilities. |
 | `routes-data.js` | Tests, sample types, the 42 workflow routes, `RESULTS` (what each test reports, including picked and calculated results), `QC_PROFILES` (lab batch rules), `ROUTE_QC` and `ROUTE_GROUPS` (the batches each route's samples join, one per analytical method), `qcRuleText` / `routeQcText` (write each route's QA/QC text from the same numbers the batches enforce). |
-| `src/` | The page is built from these: `app10-a.js` … `app10-f.js`, `app12-g.js` (results, limits, four eyes, amendments, certificates, lab batches, section results), `app13-h.js` (stock records, Storage tab, the selected batch's samples), `app14-i.js` (lab working hours, Settings tabs, QR codes and bag labels), `app15-j.js` (navigation, theme, logo, wall screen, time left), `app16-k.js` (reference material change history and renames, board lanes that scroll), `app18-l.js` (reads a results file in the page: old Excel .xls, .xlsx, CSV and text; SHA-256; base64), `app18-m.js` (recognises a lab report, matches it to samples, batches and QC, the preview, saving and the kept file), `app19-n.js` (blind QA/QC re-assay, a batch or a single sample on the form, the batch page and its receipt, the custody scroll), `css10.css`, `css11.css`, `css12.css`, `css14.css`, `css15.css` (design refresh; its icon block is written by `tools/icons.py`), `css16.css`, `css18.css`, `css19.css`, `v9-backup.html` (markup and base CSS). `cd src && python3 build19.py` writes the page into `src/`; it is byte for byte the published one. |
+| `src/` | The page is built from these: `app10-a.js` … `app10-f.js`, `app12-g.js` (results, limits, four eyes, amendments, certificates, lab batches, section results), `app13-h.js` (stock records, Storage tab, the selected batch's samples), `app14-i.js` (lab working hours, Settings tabs, QR codes and bag labels), `app15-j.js` (navigation, theme, logo, wall screen, time left), `app16-k.js` (reference material change history and renames, board lanes that scroll), `app18-l.js` (reads a results file in the page: old Excel .xls, .xlsx, CSV and text; SHA-256; base64), `app18-m.js` (recognises a lab report, matches it to samples, batches and QC, the preview, saving and the kept file), `app19-n.js` (blind QA/QC re-assay, a batch or a single sample on the form, the batch page and its receipt, the custody scroll), `app20-o.js` (search suggestions, recently opened, the same details again, tables as cards on a phone, the tab title), `css10.css`, `css11.css`, `css12.css`, `css14.css`, `css15.css` (design refresh; its icon block is written by `tools/icons.py`), `css16.css`, `css18.css`, `css19.css`, `css20.css`, `v9-backup.html` (markup and base CSS). `cd src && python3 build20.py` writes the page into `src/`; it is byte for byte the published one. |
 | `tools/icons.py` | Prints the icon definitions at the top of `css15.css` (24 px stroke icons drawn as CSS masks). |
 | `checkroutes.js` | Validates the route data and prints turnaround per route. |
 | `genmd.js` | Regenerates `workflow-routes.md`: what each route reports (picked and calculated results marked), the batches it joins and its action limits. Run it from `src/`'s parent with `src/app10-a.js` present. |
 | `test/harness.js` | Shared mock of the db capability: several browser pages on one store, with `where` filters (including `array-contains`), `orderBy`, `limit`, recursive `update` merge, update-requires-existence, leases, frozen snapshots and deletes. Batch helpers (`createBatch`, `fillBatch` for one or many results per position, `saveBatch`). |
-| `test/v20-tests.js` | New: blind QA/QC re-assay (technicians can't pick; a supervisor picks from Storage and the Ledger, issues blind QC IDs, prints blind labels; the blind record holds nothing of the original; technicians see no link; receipt, batch and results of the blind samples; the comparison on both records, recorded in the link; admins see it; release; sign-out drops the link), the custody scroll (five entries, full in print and on the public lookup), a batch or a single sample (walk-in batch with paste from a spreadsheet, Enter, remove, duplicate codes; batch reference, IDs in row order; the batch page, Receive the whole batch, batch tracking link; a single sample; staff batch received at once), phone widths. Last run: **71 PASS**, no console errors. |
+| `test/v21-tests.js` | New: the polish pass. One sample, one ID on the button; Same details again after a submission and Same as last on a fresh form (staff batch and walk-in single; codes never copied); the site sample code on board cards; the receipt check without “tag none given”; 1 bag, not 1 bag(s); the browser tab named after the open sample or batch; the ledger search says site code; suggestions under the header search (site code, ID, batch reference, submitter; marked match; arrow keys, Enter, Escape, click; a whole ID with Enter still just opens it; / jumps to the search; signed out only your own recent samples); recently opened on the Sample tab (newest first, live status, one click, Clear, each person their own list, a walk-in's registered samples); the Sample tab pressed again goes back to its start page; the batch page's progress, expected finish and no empty Source column; on a phone the ledger and the batch page read as cards with no sideways scroll, IDs on one line; on a computer the ledger is still a table. Lab batches optional: Not required by default; an exploration fire assay sample goes through its steps, has its gold typed on the record, enters QA/QC review and is released with no batch; a results file attached on a record in no batch saves onto the record and makes no batch; Required brings back the batch rule. Last run: **60 PASS**, no console errors. |
+| `test/v20-tests.js` | Blind QA/QC re-assay (technicians can't pick; a supervisor picks from Storage and the Ledger, issues blind QC IDs, prints blind labels; the blind record holds nothing of the original; technicians see no link; receipt, batch and results of the blind samples; the comparison on both records, recorded in the link; admins see it; release; sign-out drops the link), the custody scroll (five entries, full in print and on the public lookup), a batch or a single sample (walk-in batch with paste from a spreadsheet, Enter, remove, duplicate codes; batch reference, IDs in row order; the batch page, Receive the whole batch, batch tracking link; a single sample; staff batch received at once), phone widths. Last run: **71 PASS**, no console errors. |
 | `test/v18-tests.js` | New: results files with the lab's two real SGS reports (old Excel): reading, matching by site sample code, moving samples on, new batches from the report with their repeats and the foot-table CRMs, QC, the kept file and its download, attaching twice, the uploader as result entrant, a draft completed by typing, Settings › Results files; batch steps and Next step; re-assay from Storage and the Ledger; the shorter form. The two reports hold real assay data, so they are not in this folder (it goes to GitHub): they are in `/mnt/project-files/sample-tracking-private/lab-reports/` (or set `LAB_REPORTS`); without them the parts that need them print SKIP. Since v19 also: Site sample code and the submitter's badge, No QC in this run (the elution report, a CSV with no QC rows, release and certificate), the screen line, values typed over file values. Last run: **71 PASS**, no console errors. |
 | `test/v17-tests.js` | One entry tab per sign-in state, Received now at the lab for staff, the hand-over name and badge (required on walk-ins, the Azure server rule run against them, record, custody log, receipt, board, both names after receipt). Last run: **25 PASS**, no console errors. |
 | `test/v16-tests.js` | Walk-in registration for everyone (and the Azure server's public-submission rule run against it), Submit after sign-in, the Other reason, the receiver on the workflow line, 80% grind (also for routes saved with 85%), reference materials renamed and edited with a change history and the control chart following a renamed material, the board tiles and scrolling lanes, ZIJIN. Last run: **43 PASS** (one check moved to v17), no console errors. |
@@ -61,6 +63,7 @@ NODE_PATH=$(npm root -g) timeout 400 node v16-tests.js
 NODE_PATH=$(npm root -g) timeout 400 node v17-tests.js
 NODE_PATH=$(npm root -g) timeout 590 node v18-tests.js
 NODE_PATH=$(npm root -g) timeout 590 node v20-tests.js
+NODE_PATH=$(npm root -g) timeout 590 node v21-tests.js
 node work-hours-unit.js
 NODE_PATH=$(npm root -g):/path/to/jsqr/node_modules timeout 400 node v14-tests.js
 ```
@@ -68,6 +71,60 @@ NODE_PATH=$(npm root -g):/path/to/jsqr/node_modules timeout 400 node v14-tests.j
 The tests write screenshots next to themselves. The Chromium path is in `harness.js`. Run the suites one
 at a time: scenario R in `review-tests-v11.js` times ID claims, and the batch tests wait on several writes per
 step, so they can miss their time budgets when several browsers share the CPU.
+
+## What v21 changes: a polish pass over the whole site, and lab batches optional (2026-10-16)
+
+**Lab batches are optional (Zuriel, 2026-10-16 03:25Z: "taken off any workflow for now").** A sample no longer needs a lab
+batch to enter QA/QC review or to be released. A sample in no batch has all its results typed or attached on its own record
+(they are still needed before QA/QC review, and for the certificate); a sample that is in a batch still takes its batch's
+results and QC (failed, warning or incomplete QC still holds the release). A results file attached on the record of a
+sample in no batch saves onto that record; attached on Lab batches, a report still becomes a lab batch with its own QC
+readings, as before. Settings › Accounts, under Results and
+certificates: "Lab batch before QA/QC review", Not required (the default) or Required, which brings back the old rule. Four
+eyes, missing results, range checks and limit alerts are unchanged.
+
+Zuriel asked for a site people enjoy using and come back to. Every tab was walked as each role (signed out, viewer,
+technician, supervisor, admin, section account) at computer and phone widths, on the page as the live site shows it (help
+text taken out), and these came out of it:
+
+- **Suggestions under the header search.** Staff see matching samples as they type: site sample code, ID, batch reference,
+  site reference or submitter, the matching part marked, with status, type and code. Arrow keys and Enter, or a click, open
+  one; Escape closes the list. A whole ID with Enter opens it as before. `/` jumps to the search from anywhere. Signed out,
+  the register is not searched as you type; only that person's own recent samples are listed.
+- **Recently opened** on the Sample tab: the last 8 samples and batches this person opened, submitted or registered on this
+  computer, newest first, with the status (live when the page holds the sample), one click to open, Clear. Each person
+  signed in on a shared computer has their own list, so a supervisor's blind and original never sit side by side for a
+  technician. The Sample tab pressed again while a sample is open goes back to this start page.
+- **The same details again.** After a submission, "Same details again" opens a new form with the type, purpose, test, route,
+  section, submitter and badges, hand-over, priority, bags, hazards, add-ons, and Single or Batch with the same count; the
+  site sample codes stay empty and the cursor waits in the first one (a test that is the usual one for its type is not
+  held when the type is changed). A fresh form shows "Same as last: Mill sample · MET"
+  when this person has submitted on this computer before.
+- **Phone tables read as cards** (ledger, Storage, open and closed lab batches, a batch's samples, blind QA/QC checks, a
+  section's results): each value carries its column name, empty values are left out, nothing scrolls sideways. On a
+  computer they stay tables. Sample IDs and site codes in tables no longer break across lines.
+- **The batch page** shows "N of M results released" with a bar and when all are expected; the Source column shows only
+  when a sample has a source.
+- **Board cards** show the site sample code next to the sample type.
+- **Wording:** one sample says ID on the button ("Register and issue ID", "Register and get sample ID", "Submit and get
+  sample ID"); "1 bag" / "3 bags" instead of "bag(s)"; the receipt check names the site sample code, or leaves it out
+  instead of "tag none given"; search boxes say site code, not tag; the section results table says Site code.
+- **The browser tab** is named after the open sample or batch ("MET-20261016-0001 · …"), and goes back to the site name on
+  other tabs.
+
+For the Azure build:
+- Source: `build20.py` replaces `build19.py` (adds `app20-o.js` before `app10-f.js`, and `css20.css`). Changed: `app10-a.js`
+  (`bagsText`, `batchReq: false`), `app10-b.js` (one line in `setTab`, after the lines `build.py` patches), `app10-c.js`,
+  `app10-d.js`, `app10-e.js` and `app10-f.js` (the `batchReq` setting), `app12-g.js` (`batchesRequired`), `app13-h.js`,
+  `app18-m.js` (a file on a record in no batch), `app19-n.js`. None of the strings `build.py` patches or takes out changed: the current `build.py` applied to
+  this page with no misses and its output passes `node --check`.
+- **No server change.** Recently opened and the last details are kept in the browser's own storage, per person
+  (`recent:<user>`, `lastForm:<user>`); suggestions use only the samples the page has already loaded for a staff member;
+  nothing new is written to the database. The lab batch switch is one more Settings field, `batchReq` (true or false,
+  absent = not required), saved by the admin like the others; the server does not check lab batches, so nothing there changes.
+
+Tests: new `v21-tests.js`; `v16-tests.js` and `v17-tests.js` expect the button to say ID for one sample; `run.js` expects
+QA/QC review to wait for the results, not a lab batch.
 
 ## What v20 changes: blind QA/QC re-assay, and a batch or a single sample on Submit / Register (2026-10-15)
 

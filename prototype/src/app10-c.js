@@ -56,16 +56,18 @@ function renderTrack(){
     ] : [];
     v.innerHTML = `<div class="stack">
       <div class="panel hero"><h2>Find a sample</h2>
-        <form id="heroForm" autocomplete="off" role="search"><input id="heroInput" placeholder="Sample ID or site sample code" aria-label="Sample ID or site sample code"><button class="btn primary big" type="submit">Track</button></form>
+        <form id="heroForm" autocomplete="off" role="search"><input id="heroInput" placeholder="Sample ID or site code" aria-label="Sample ID or site sample code"><button class="btn primary big" type="submit">Track</button></form>
         <div class="row">
           ${!session ? `<button class="btn" data-goto="login">Staff sign in</button>` : allowedTabs().includes("board") ? `<button class="btn" data-goto="board">Open workflow board</button>` : allowedTabs().includes("results") ? `<button class="btn" data-goto="results">See your section's results</button>` : ""}
           ${session ? `<button class="btn" data-goto="submit">Submit a sample</button>` : `<button class="btn" data-goto="register">Register at lab</button>`}
         </div></div>
       ${staff ? `<div class="today-h"><h3>Today</h3><span class="small muted">${esc(fmtDate(Date.now()))}</span></div>
         <div class="today">${today.map(([c, k, n, l]) => `<button type="button" class="t-${c}" data-today="${k}"><span class="n">${n}</span><span class="l">${l}</span></button>`).join("")}</div>` : ""}
+      ${recentPanel()}
     </div>`;
     $("#heroForm", v).onsubmit = e => { e.preventDefault(); openSample($("#heroInput", v).value); };
     v.querySelectorAll("[data-today]").forEach(b => b.onclick = () => { boardPick = b.dataset.today === "rel" ? "" : b.dataset.today; setTab("board"); });
+    bindRecent(v); pageTitle("");
     return;
   }
   if (current.batch) return renderBatchView(v);
@@ -87,6 +89,7 @@ function renderTrack(){
   const histTop = (v.dataset.ctx || "").split("|")[0] === s.id ? $(".hist", v)?.scrollTop || 0 : 0;
   const moved = keepUi(v, `${s.id}|${s.stageKey}`, () => buildTrack(v, s));
   fitHist(v, histTop);
+  noteRecent(s); pageTitle(s.id);
   if (reassayAsk && reassayAsk === s.id){
     reassayAsk = "";
     const box = $("#redoBox", v);
@@ -244,7 +247,7 @@ function syncRoutes(testSel, routeSel, s, infoEl){
 function receiptForm(s){
   const t = typeOf(s.typeKey), unit = massUnit(s);
   return `<div class="stack" id="moveForm" style="gap:10px">
-    <p class="small" style="margin:0">Check the bag against the submission: tag <b class="mono">${esc(tagText(s) || "none given")}</b>, ${esc(s.type)}, ${esc(s.containers || 1)} bag(s)${s.massKg ? `, ${esc(s.massKg)} kg` : ""}${s.seal ? `, seal <span class="mono">${esc(s.seal)}</span>` : ""}.</p>
+    <p class="small" style="margin:0">Check the bag against the submission: ${tagText(s) ? `site sample code <b class="mono">${esc(tagText(s))}</b>, ` : ""}${esc(s.type)}, ${esc(bagsText(s.containers || 1))}${s.massKg ? `, ${esc(s.massKg)} kg` : ""}${s.seal ? `, seal <span class="mono">${esc(s.seal)}</span>` : ""}.</p>
     ${t?.check ? `<p class="small" style="margin:0"><b>Also check:</b> ${esc(t.check)}</p>` : ""}
     ${s.handedTo || s.handedBadge ? `<div class="small"><b>Handed to:</b> ${esc(s.handedTo || "—")}${s.handedBadge ? `, badge <span class="mono">${esc(s.handedBadge)}</span>` : ""}</div>` : ""}
     ${hazTags(s).length ? `<p class="small" style="margin:0"><b>Hazards declared:</b> ${hazTags(s).map(h => esc(h.l)).join(", ")}. Handle with the matching PPE.</p>` : ""}
@@ -277,7 +280,7 @@ function receiptForm(s){
 function receiptChecks(s){
   const t = typeOf(s.typeKey), at = fromInput($("#rcAt")?.value), warn = [];
   const bags = +($("#rcBags")?.value || 0), mass = $("#rcMass")?.value || "", seal = val("#rcSeal"), cond = val("#rcCond") || "Good", temp = $("#rcTemp") ? $("#rcTemp").value : "";
-  if (s.containers && $("#rcBags")?.value !== "" && bags !== +s.containers) warn.push(`${bags} bag(s) received, ${s.containers} submitted`);
+  if (s.containers && $("#rcBags")?.value !== "" && bags !== +s.containers) warn.push(`${bagsText(bags)} received, ${s.containers} submitted`);
   if (seal === "bad") warn.push("seal number does not match the submission");
   if (seal === "broken") warn.push("seal broken or missing");
   if (cond !== "Good") warn.push(`condition: ${lcFirst(cond)}`);

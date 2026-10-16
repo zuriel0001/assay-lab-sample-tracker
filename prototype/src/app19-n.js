@@ -280,7 +280,7 @@ function qaListPanel(){
       <td style="white-space:nowrap">${fmtDate(x.at)}<div class="small muted">${esc(x.tech || "")}</div></td><td>${b ? esc(stage(b, b.stageKey)?.name || "") : "—"}</td>
       <td>${last ? `<span class="pill ${worst}">Recorded ${esc(fmtDate(last.at))}</span>` : `<span class="muted">Not recorded</span>`}</td></tr>`; };
   return `<details class="more panel" id="qaList" ${qaListOpen ? "open" : ""}><summary>Blind QA/QC checks <span class="pill">${blinds.size}</span></summary>
-    <div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>Blind ID</th><th>Original</th><th>Issued</th><th>Blind sample</th><th>Comparison</th></tr></thead><tbody>${list.map(row).join("")}</tbody></table></div>
+    <div class="tbl-wrap" style="margin-top:8px"><table class="cardy"><thead><tr><th>Blind ID</th><th>Original</th><th>Issued</th><th>Blind sample</th><th>Comparison</th></tr></thead><tbody>${list.map(row).join("")}</tbody></table></div>
     ${all.length > list.length ? `<div class="row" style="margin-top:8px"><span class="small muted">${list.length} of ${all.length}</span><button type="button" class="btn ghost small" id="qaAll">Show all</button></div>` : ""}</details>`;
 }
 /* The blind sample's record for the list, read only while the list is open. */
@@ -342,7 +342,7 @@ function setRowCount(n){
 function submitLabel(){
   const b = $("#rSubmit"), f = $("#regForm"); if (!b || !f) return;
   const walk = f.dataset.mode === "register", lab = !!$("#rRecvNow")?.checked, n = formKind() === "batch" ? bRows.length : 1;
-  b.textContent = lab ? (n > 1 ? `Register ${n} samples and issue IDs` : "Register and issue IDs") : walk ? (n > 1 ? `Register ${n} samples` : "Register and get sample IDs") : (n > 1 ? `Submit ${n} samples` : "Submit and get sample IDs");
+  b.textContent = lab ? (n > 1 ? `Register ${n} samples and issue IDs` : "Register and issue ID") : walk ? (n > 1 ? `Register ${n} samples` : "Register and get sample ID") : (n > 1 ? `Submit ${n} samples` : "Submit and get sample ID");
 }
 function showKind(v){
   const batch = formKind() === "batch";
@@ -406,8 +406,11 @@ function renderBatchView(v){
   v.dataset.ctx = "batch|" + c.batch;
   const cool = waiting.filter(s => typeOf(s.typeKey)?.cool != null), quick = waiting.filter(s => typeOf(s.typeKey)?.cool == null), two = quick.some(twoPerson);
   const tally = {}; docs.forEach(s => { const st = status(s); tally[st.label] = (tally[st.label] || 0) + 1; });
+  const done = docs.filter(s => curIdx(s) >= targetIdx(s)).length, etas = docs.filter(s => curIdx(s) < targetIdx(s) && !status(s).closed).map(s => projection(s).eta).filter(Boolean);
+  const eta = etas.length ? Math.max(...etas) : 0, srcCol = docs.some(s => s.source);
+  noteRecentBatch(c.batch, docs); pageTitle(c.batch);
   const row = s => { const st = status(s), last = (s.certs || []).at(-1);
-    return `<tr><td class="mono muted">${esc(s.batchIndex || "")}</td><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button></td><td class="mono">${esc(tagText(s)) || "—"}</td><td>${esc(s.source || "")}</td>
+    return `<tr><td class="mono muted">${esc(s.batchIndex || "")}</td><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button></td><td class="mono">${esc(tagText(s)) || "—"}</td>${srcCol ? `<td>${esc(s.source || "")}</td>` : ""}
       <td><span class="pill ${st.cls}">${esc(st.label)}</span></td><td class="small">${last ? `Released ${esc(fmtDate(last.at))}` : ""}</td></tr>`; };
   const keepAt = $("#bvAt", v)?.value, keepWit = $("#bvWit", v)?.value, keepOk = $("#bvOk", v)?.checked;
   v.innerHTML = `<div class="stack">
@@ -415,6 +418,7 @@ function renderBatchView(v){
       <div class="row" style="gap:10px"><div class="sid">${esc(c.batch)}</div><span class="pill info">${docs.length} samples</span><button type="button" class="btn ghost small" data-link="${esc(c.batch)}">Copy batch link</button></div>
       ${s0.batchName ? `<div><b>${esc(s0.batchName)}</b></div>` : ""}
       <div class="small muted">${esc(s0.type || "")} · ${esc(s0.testName || s0.purpose || "")} · <span class="mono">${esc(s0.section || "")}</span> · ${esc(s0.submitter || "")} · ${fmt(s0.createdAt)}</div>
+      <div class="bv-prog"><div class="bv-bar"><i style="width:${docs.length ? Math.round(done / docs.length * 100) : 0}%"></i></div><span class="small"><b>${done} of ${docs.length}</b> results released${eta ? ` · all expected by <b>${esc(fmt(eta))}</b>` : ""}</span></div>
       <div class="row" style="gap:6px">${Object.entries(tally).map(([l, n]) => `<span class="pill">${n} ${esc(l)}</span>`).join("")}</div>
       <div class="row"><button type="button" class="btn primary" id="bvLabels">Print ${docs.length} labels</button><button type="button" class="btn" id="bvCopy">Copy IDs</button></div>
     </div>
@@ -425,7 +429,7 @@ function renderBatchView(v){
         <label class="recv-toggle full"><input type="checkbox" id="bvOk" ${keepOk ? "checked" : ""}> All ${quick.length} bags match, seals intact, good condition</label></div>
       <div class="row"><button type="button" class="btn primary" id="bvRecvBtn" ${batchRecvBusy ? "disabled" : ""}>Confirm receipt of ${quick.length}</button>${cool.length ? `<span class="small">One by one (cooler temperature): ${cool.map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>`).join(", ")}</span>` : ""}</div>
     </div>` : ""}
-    <div class="panel"><div class="tbl-wrap"><table><thead><tr><th>#</th><th>Sample ID</th><th>Site sample code</th><th>Source</th><th>Status</th><th></th></tr></thead><tbody>${docs.map(row).join("")}</tbody></table></div></div>
+    <div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>#</th><th>Sample ID</th><th>Site sample code</th>${srcCol ? "<th>Source</th>" : ""}<th>Status</th><th></th></tr></thead><tbody>${docs.map(row).join("")}</tbody></table></div></div>
   </div>`;
   if (keepWit && $("#bvWit", v)) $("#bvWit", v).value = keepWit;
   fillNames(v);

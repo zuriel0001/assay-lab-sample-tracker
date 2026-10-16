@@ -15,7 +15,9 @@ function groupsOf(s){
 }
 const qcpOf = s => groupsOf(s)[0]?.p || "";
 const profOf = s => QC_PROFILES[qcpOf(s)] || null;
-const batchKeys = s => new Set(groupsOf(s).flatMap(g => g.k));
+/* Lab batches are optional unless Settings require them: a sample in no batch then has all its results typed or attached on its record. */
+const batchesRequired = () => !!cfg.batchReq;
+const batchKeys = s => { const labs = labsOf(s); return new Set(groupsOf(s).filter(g => batchesRequired() || labs[g.p]).flatMap(g => g.k)); };
 /* The results this sample reports. One repeated by gravimetric finish takes that method's limits; one repeated by dilution has no upper limit. */
 function anOf(s){
   const res = resOf(s), g = RESULTS.fa_grav.an[0], dil = s?.dil || [];
@@ -165,6 +167,7 @@ function qcEntryBlock(s){
   const gs = groupsOf(s), labs = labsOf(s);
   for (const g of gs){
     const l = labs[g.p];
+    if (!l && !batchesRequired()) continue;
     if (!l) return gs.length > 1 ? `Put ${s.id} in ${aAn(lcName(QC_PROFILES[g.p].name))} for ${listAnd(groupAns(g, { an: anOf(s) }).map(a => lcName(a.n)))} and enter its results first (Lab batches tab).` : `Put ${s.id} in a lab batch and enter the batch results first (Lab batches tab).`;
     if (!l.q || l.q === "pending") return `Enter the results for lab batch ${l.b} first.`;
   }
@@ -183,6 +186,7 @@ function releaseBlock(s){
   const labs = labsOf(s);
   for (const g of groupsOf(s)){
     const l = labs[g.p];
+    if (!l && !batchesRequired()) continue;
     if (!l) return "Results must come from a lab batch with its QC.";
     if (l.q === "fail") return `Lab batch ${l.b} failed QC. Re-run the batch.`;
     if (l.q === "warn") return `Lab batch ${l.b} has QC warnings. A supervisor accepts them on the batch first.`;
@@ -282,7 +286,7 @@ function resultsPanel(s){
   if (s.amend) parts.push(amendPending(s, last));
   parts.push(alertsBox(s));
   const gs = groupsOf(s), labs = labsOf(s);
-  if (gs.length) parts.push(`<div class="small stack" style="gap:2px">${gs.map(g => { const l = labs[g.p], what = gs.length > 1 ? ` (${esc(listAnd(groupAns(g, { an: ans }).map(a => lcName(a.n))))})` : "";
+  if (gs.length && (batchesRequired() || Object.keys(labs).length)) parts.push(`<div class="small stack" style="gap:2px">${gs.map(g => { const l = labs[g.p], what = gs.length > 1 ? ` (${esc(listAnd(groupAns(g, { an: ans }).map(a => lcName(a.n))))})` : "";
     return `<div>Lab batch${what}: ${l ? `<button type="button" class="linkish mono" data-batch="${esc(l.b)}">${esc(l.b)}</button> <span class="pill ${qcCls(l.q)}">${esc(qcLabel(l.q) || "no results yet")}</span>${l.n ? `<div class="small muted">${esc(l.n)}</div>` : ""}` : `<span class="muted">not in ${esc(aAn(lcName(QC_PROFILES[g.p]?.name || "batch")))} yet. ${canEdit() ? `Add it on the <button type="button" class="linkish" data-goto="batches">Lab batches</button> tab.` : ""}</span>`}</div>`; }).join("")}</div>`);
   if (entering) parts.push(resultsForm(s));
   if (last && canEdit() && !draft && !entering && !s.amend) parts.push(amendForm(s, last));
@@ -960,13 +964,13 @@ function buildBatches(v){
         <div class="row"><button type="button" class="btn primary" id="nbCreate">Create batch</button><span class="small muted">Up to ${np.size} samples. QC positions are added automatically.</span></div>` : ""}
     </div>` : ""}
     <div class="panel stack" style="gap:8px"><h3>Open batches</h3>
-      ${open.length ? `<div class="tbl-wrap"><table><thead><tr><th>Batch</th><th>Type</th><th>Samples</th><th>Status</th><th>Next step</th><th>Created</th><th>By</th></tr></thead><tbody>${open.map(row).join("")}</tbody></table></div>` : `<p class="small muted" style="margin:0">No open batches.</p>`}
+      ${open.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>Batch</th><th>Type</th><th>Samples</th><th>Status</th><th>Next step</th><th>Created</th><th>By</th></tr></thead><tbody>${open.map(row).join("")}</tbody></table></div>` : `<p class="small muted" style="margin:0">No open batches.</p>`}
     </div>
     ${batchLive ? batchDetail(batchLive) : batchSel ? `<div class="panel empty"><strong>Loading ${esc(batchSel)}…</strong></div>` : ""}
     <div class="panel stack" style="gap:8px"><h3>QC control chart</h3>
       <div class="row"><select class="inp" id="chCrm" style="width:auto;max-width:100%"><option value="">Choose a reference material…</option>${crmOpts}</select></div>
       <div id="chBox"></div></div>
-    ${closed.length ? `<div class="panel stack" style="gap:8px"><h3>Closed this month</h3><div class="tbl-wrap"><table><thead><tr><th>Batch</th><th>Type</th><th>Samples</th><th>Status</th><th>Next step</th><th>Created</th><th>By</th></tr></thead><tbody>${closed.map(row).join("")}</tbody></table></div></div>` : ""}
+    ${closed.length ? `<div class="panel stack" style="gap:8px"><h3>Closed this month</h3><div class="tbl-wrap"><table class="cardy"><thead><tr><th>Batch</th><th>Type</th><th>Samples</th><th>Status</th><th>Next step</th><th>Created</th><th>By</th></tr></thead><tbody>${closed.map(row).join("")}</tbody></table></div></div>` : ""}
     <div class="small muted" id="bMsg"></div>
   </div>`;
   $("#nbProf", v)?.addEventListener("change", e => { batchNewProf = e.target.value; renderBatches(); });
@@ -1106,7 +1110,7 @@ function renderResultsTab(){
   v.innerHTML = `<div class="stack"><div class="panel stack" style="gap:8px"><h2>Results for ${esc(session.sec)} · ${esc(sectionName(session.sec))}</h2>
       <p class="small muted" style="margin:0">Certificates of analysis for samples your section submitted, newest first. ${fresh ? `<b>${fresh} new since you last marked them as seen.</b>` : "Nothing new since you last looked."} In the production system this notice also goes to the section by email.</p>
       ${fresh ? `<div class="row"><button type="button" class="btn" id="secSeen">Mark all as seen</button></div>` : ""}</div>
-    ${list.length ? `<div class="panel"><div class="tbl-wrap"><table><thead><tr><th>Sample</th><th>Type</th><th>Tag</th><th>Test</th><th>Certificate</th><th>Released</th></tr></thead><tbody>
+    ${list.length ? `<div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>Sample</th><th>Type</th><th>Site code</th><th>Test</th><th>Certificate</th><th>Released</th></tr></thead><tbody>
       ${list.map(s => { const c = s.certs.at(-1); return `<tr><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>${c.at > seen ? ` <span class="pill gold">New</span>` : ""}</td><td>${esc(s.type || "")}</td><td>${esc(tagText(s))}</td><td>${esc(c.testName || "")}</td><td class="mono">${esc(c.no)}${c.amends ? ` <span class="pill warn">Amended</span>` : ""}</td><td style="white-space:nowrap">${fmt(c.at)}</td></tr>`; }).join("")}</tbody></table></div></div>`
       : `<div class="panel empty"><strong>No released results yet</strong>Certificates for ${esc(session.sec)} samples appear here as soon as the lab releases them.</div>`}</div>`;
   $("#secSeen", v)?.addEventListener("click", () => { lsSet(seenKey(), String(Date.now())); resultsBadge(); renderResultsTab(); });

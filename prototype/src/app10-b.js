@@ -35,6 +35,7 @@ function setTab(t){
   tab = t;
   document.querySelectorAll("#tabs button[data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
   document.querySelectorAll("section.view").forEach(v => v.hidden = v.id !== "view-" + t);
+  if (t !== "track") pageTitle("");
   if (t === "ledger") ledgerWatch();
   renderTab();
   tabCue();

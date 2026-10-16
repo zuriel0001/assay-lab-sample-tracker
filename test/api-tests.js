@@ -338,6 +338,21 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
       "only a batch reference opens a batch");
     const recv = { stageKey: "received", recvAt: now, history: [...mem.docs["samples/" + T1].history, { key: "received", at: now, by: "t1", tech: "Tech One", note: "Received with batch " + ref }] };
     check((await one("t1@site.com", { op: "update", path: "samples/" + T1, data: recv })).ok, "a technician receives a batch sample under their own name"); }
+  { // v21 lab batches optional: a sample in no lab batch takes its results on its own record (typed, or from an attached
+    // file kept under the uploader's name), goes to QA/QC review and is released by someone else, with nothing about batches checked.
+    const nid = `MIN-${day}-0040`, np = "samples/" + nid, T = { by: "t1", tech: "Tech One" }, S = { by: "s1", tech: "Super One" };
+    await mem.set(np, { id: nid, section: "MIN", stageKey: "weigh", open: true, lab: true, onHand: true, history: [{ key: "received", at: now, ...T }] });
+    const fid = "RF-0123456789ABCDEF";
+    check((await one("t1@site.com", { op: "set", path: `files/${fid}~1`, data: { id: `${fid}~1`, of: fid, n: 1, data: "QUJD" } })).ok &&
+      (await one("t1@site.com", { op: "set", path: "files/" + fid, data: { id: fid, name: "run.csv", kind: "csv", size: 3, parts: 1, at: now, ...T } })).ok &&
+      (await one("t1@site.com", { op: "update", path: np, data: { results: { by: "t1", tech: "Tech One", at: now, file: { id: fid, name: "run.csv" }, rows: { Au: { v: 1.4, raw: "1.4", by: "t1", src: "file" } } } } })).ok,
+      "a results file attached on the record of a sample in no lab batch saves onto that record");
+    check((await one("t1@site.com", { op: "update", path: np, data: { stageKey: "qc", history: [...mem.docs[np].history, { key: "qc", at: now, ...T }] } })).ok, "it goes to QA/QC review with no lab batch");
+    check(!(await one("t1@site.com", { op: "update", path: np, data: { certs: [{ no: nid + "-R1", v: 1, at: now, ...T, role: "tech" }] } })).ok &&
+      (await one("s1@site.com", { op: "update", path: np, data: { stageKey: "released", certs: [{ no: nid + "-R1", v: 1, at: now, ...S, role: "super" }], history: [...mem.docs[np].history, { key: "released", at: now, ...S }] } })).ok,
+      "and is released by a supervisor (four eyes as before), no lab batch needed");
+    check((await one("boss@site.com", { op: "update", path: "settings/stages", data: { batchReq: true } })).ok && mem.docs["settings/stages"].batchReq === true &&
+      !(await one("s1@site.com", { op: "update", path: "settings/stages", data: { batchReq: false } })).ok, "only the lab manager changes the lab batch setting"); }
   { // Restore: a backup loads into a copy with no samples, by its lab manager only, and comes back as it was.
     const backup = {};
     for (const coll of ["settings", "access", "meta", "tagidx", "samples", "blind", "batches", "stock", "ledger", "files"])

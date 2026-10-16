@@ -223,18 +223,19 @@ function planUpload(rep, scope){
     if (awaiting(s)){ P.awaiting.push(sid); continue; }
     const ready = readyForResults(s);
     let needs = false;
+    const viaB = new Set();   // readings going into a new lab batch made from this file, so not onto the record as well
     for (const g of groupsOf(s)){
       const ans = batchAns(g.p, s); if (!ans.length || !Object.keys(rowValues(rep, row.cells, ans, 1)).length) continue;
       const l = labsOf(s)[g.p], ob = l ? openBatches.get(l.b) || (batchLive && batchLive.id === l.b ? batchLive : null) : null;
       if (scope.batch && (!l || l.b !== scope.batch)) continue;
-      if (scope.sample){ ans.forEach(a => { if (!P.viaBatch.includes(anShort(a))) P.viaBatch.push(anShort(a)); }); continue; }
+      if (scope.sample){ if (l || batchesRequired()) ans.forEach(a => { if (!P.viaBatch.includes(anShort(a))) P.viaBatch.push(anShort(a)); }); continue; }
       if (ob && !ob.qc && ob.status !== "creating"){ touched.set(ob.id, ob); if (!ready) needs = true; }
       else if (l) P.already.push(`${sid} (${l.b})`);
       else if (!ready) needs = true;
-      else { const key = g.p + "|" + sigOf(ans); (fresh.get(key) || fresh.set(key, { p: g.p, ans, sids: [] }).get(key)).sids.push(sid); }
+      else { const key = g.p + "|" + sigOf(ans); (fresh.get(key) || fresh.set(key, { p: g.p, ans, sids: [] }).get(key)).sids.push(sid); g.k.forEach(k => viaB.add(k)); }
     }
     if (!scope.batch){
-      const bk = batchKeys(s), others = anOf(s).filter(a => !bk.has(a.k) && !a.calc && a.t !== "pick");
+      const bk = batchKeys(s), others = anOf(s).filter(a => !bk.has(a.k) && !viaB.has(a.k) && !a.calc && a.t !== "pick");
       const got = rowValues(rep, row.cells, others, 1, P.clash);
       if (Object.keys(got).length){
         if (!ready) needs = true;

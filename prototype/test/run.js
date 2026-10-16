@@ -140,7 +140,8 @@ const moves = id => ledger().filter(m => m.sid === id);
   check(moves(s1).length === 1, "a note at Received adds no ledger movement");
   const plan1 = doc(s1).plan, qcI = plan1.findIndex(x => x.key === "qc");
   await sNext(A, qcI - 2);
-  check(await A.$eval('[data-step="next"]', b => b.disabled) && /lab batch/.test(await A.textContent("#holdNote")), "QA/QC review is held until the sample has batch results");
+  { const h = (await A.textContent("#holdNote")).replace(/\s+/g, " ");   // v21: lab batches optional by default, so it asks for the results only
+    check(await A.$eval('[data-step="next"]', b => b.disabled) && /results/i.test(h) && !/lab batch/i.test(h), "QA/QC review is held until the sample has results (no lab batch needed): " + h); }
   const fb1 = await H.runBatch(A, "sfa", [s1], () => "3.41");
   check(doc(s1).labBatch === fb1 && doc(s1).labQc === "pass" && doc(s1).results.rows.Au_f.v === 3.41 && !doc(s1).results.rows.Au, "screen fire assay batch passes QC and writes the fine-fraction gold to the sample (the total waits for the other fractions)");
   await open(A, s1);

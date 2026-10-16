@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 7ef9c4651427) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 6bdb1046a985) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -600,6 +600,53 @@ details.route-mini .route-box{margin:0}
 .hist.scrolls{overflow-y:auto;overscroll-behavior:contain;padding-right:6px;scrollbar-width:thin;-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 22px),transparent)}
 .hist.scrolls.at-end{-webkit-mask-image:none;mask-image:none}
 @media print{.hist.scrolls{max-height:none!important;overflow:visible!important;-webkit-mask-image:none!important;mask-image:none!important}}
+/* v21 (polish): search suggestions, recently opened, the same details again, batch progress, tables as cards on a phone. */
+.sug{position:fixed;z-index:60;max-height:min(60vh,420px);overflow:auto;padding:6px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--lift)}
+.sug-h{padding:6px 10px 4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.sug-i{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"id pill" "m m";align-items:center;gap:2px 10px;width:100%;min-height:44px;padding:8px 10px;border:0;border-radius:calc(var(--r) - 2px);background:none;color:var(--ink);text-align:left;cursor:pointer;font:inherit}
+.sug-i:hover,.sug-i[aria-selected="true"]{background:var(--soft)}
+.sug-i[aria-selected="true"]{box-shadow:inset 3px 0 0 var(--accent)}
+.sug-id{grid-area:id;font-size:15px;font-weight:600;white-space:nowrap}
+.sug-i .pill{grid-area:pill;justify-self:start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sug-m{grid-area:m;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sug mark{background:var(--accent-soft);color:inherit;border-radius:3px;padding:0 1px}
+/* Recently opened on this device */
+.recent{padding-bottom:10px}
+.recent-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.recent-h h3{margin:0}
+.recent-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.rec{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"id at" "pill pill" "m m";gap:4px 8px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r);background:var(--panel);color:var(--ink);text-align:left;cursor:pointer;font:inherit;min-height:var(--tap)}
+.rec:hover{background:var(--soft)}
+.rec-id{grid-area:id;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec .pill{grid-area:pill;justify-self:start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rec-m{grid-area:m;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rec-at{grid-area:at;white-space:nowrap}
+/* Same as last */
+.form-h .last-chip{margin-left:auto;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Batch page progress */
+.bv-prog{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.bv-bar{flex:1 1 220px;max-width:420px;height:8px;border-radius:99px;background:var(--soft);overflow:hidden}
+.bv-bar i{display:block;height:100%;background:var(--ok);border-radius:99px;transition:width .4s ease}
+/* IDs in lists stay on one line */
+.tbl-wrap td .linkish[data-open],.tbl-wrap td>a.mono,.tbl-wrap td>.mono:first-child,.tbl-wrap td.mono{white-space:nowrap}
+/* Phone: wide tables read as cards */
+@media (max-width:640px){
+  .tbl-wrap.has-cards{border:0;background:transparent;overflow:visible;max-height:none}
+  table.cardy{display:block;width:100%;min-width:0!important;border:0}
+  table.cardy thead{display:none}
+  table.cardy tbody{display:flex;flex-direction:column;gap:8px}
+  table.cardy tr{display:block;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
+  table.cardy td{display:block;position:relative;padding:3px 0 3px calc(40% + 10px);border:0;min-height:22px;background:transparent!important;text-align:left;white-space:normal}
+  table.cardy td::before{content:attr(data-label);position:absolute;left:0;top:5px;width:40%;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  table.cardy td:not([data-label]){padding-left:0}
+  table.cardy td:not([data-label])::before{display:none}
+  table.cardy td.nil{display:none}
+  table.cardy td.mono{white-space:normal;overflow-wrap:anywhere}
+  table.cardy td .pill{white-space:normal;max-width:100%}
+  .recent-list{grid-template-columns:minmax(0,1fr)}
+  .form-h .last-chip{margin-left:0}
+}
+@media print{.sug,.recent{display:none!important}}
 </style>
 
 <div class="wrap">
@@ -1804,6 +1851,8 @@ const DEFAULT_CONFIG = {
   ],
   /* Results are shown to signed-in staff only, unless an admin opens them to anyone with the sample ID. */
   resultsPublic: false,
+  /* A sample needs a lab batch with its QC before QA/QC review and release (off: results may be typed or attached on the record). */
+  batchReq: false,
   routes: DEFAULT_ROUTES
 };
 
@@ -2067,7 +2116,8 @@ function routePreview(r){
 }
 const hazTags = s => (s.hazards || []).map(k => HAZARDS.find(h => h.k === k)).filter(Boolean);
 const hazPills = s => hazTags(s).map(h => `<span class="haz" title="${esc(h.l)}">${esc(h.tag)}</span>`).join("");
-const qtyText = (bags, mass, unit) => [bags ? `${bags} bag(s)` : "", mass ? `${mass} ${unit}` : ""].filter(Boolean).join(", ");
+const bagsText = n => `${n} bag${+n === 1 ? "" : "s"}`;
+const qtyText = (bags, mass, unit) => [bags ? bagsText(bags) : "", mass ? `${mass} ${unit}` : ""].filter(Boolean).join(", ");
 
 /* ---------- names (store ids only, resolve at render) ---------- */
 function who(id){ return id ? `<span data-uid="${esc(id)}">a team member</span>` : "an unsigned user"; }
@@ -2128,6 +2178,7 @@ function setTab(t){
   tab = t; shownFor = JSON.stringify(session);
   document.querySelectorAll("#tabs button[data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
   document.querySelectorAll("section.view").forEach(v => v.hidden = v.id !== "view-" + t);
+  if (t !== "track") pageTitle("");
   if (t === "ledger") ledgerWatch();
   renderTab();
   tabCue();
@@ -2408,16 +2459,18 @@ function renderTrack(){
     ] : [];
     v.innerHTML = `<div class="stack">
       <div class="panel hero"><h2>Find a sample</h2>
-        <form id="heroForm" autocomplete="off" role="search"><input id="heroInput" placeholder="Sample ID or site sample code" aria-label="Sample ID or site sample code"><button class="btn primary big" type="submit">Track</button></form>
+        <form id="heroForm" autocomplete="off" role="search"><input id="heroInput" placeholder="Sample ID or site code" aria-label="Sample ID or site sample code"><button class="btn primary big" type="submit">Track</button></form>
         <div class="row">
           ${!session ? `<button class="btn" data-goto="login">Staff sign in</button>` : allowedTabs().includes("board") ? `<button class="btn" data-goto="board">Open workflow board</button>` : allowedTabs().includes("results") ? `<button class="btn" data-goto="results">See your section's results</button>` : ""}
           ${session ? `<button class="btn" data-goto="submit">Submit a sample</button>` : `<button class="btn" data-goto="register">Register at lab</button>`}
         </div></div>
       ${staff ? `<div class="today-h"><h3>Today</h3><span class="small muted">${esc(fmtDate(Date.now()))}</span></div>
         <div class="today">${today.map(([c, k, n, l]) => `<button type="button" class="t-${c}" data-today="${k}"><span class="n">${n}</span><span class="l">${l}</span></button>`).join("")}</div>` : ""}
+      ${recentPanel()}
     </div>`;
     $("#heroForm", v).onsubmit = e => { e.preventDefault(); openSample($("#heroInput", v).value); };
     v.querySelectorAll("[data-today]").forEach(b => b.onclick = () => { boardPick = b.dataset.today === "rel" ? "" : b.dataset.today; setTab("board"); });
+    bindRecent(v); pageTitle("");
     return;
   }
   if (current.batch) return renderBatchView(v);
@@ -2439,6 +2492,7 @@ function renderTrack(){
   const histTop = (v.dataset.ctx || "").split("|")[0] === s.id ? $(".hist", v)?.scrollTop || 0 : 0;
   const moved = keepUi(v, `${s.id}|${s.stageKey}`, () => buildTrack(v, s));
   fitHist(v, histTop);
+  noteRecent(s); pageTitle(s.id);
   if (reassayAsk && reassayAsk === s.id){
     reassayAsk = "";
     const box = $("#redoBox", v);
@@ -2596,7 +2650,7 @@ function syncRoutes(testSel, routeSel, s, infoEl){
 function receiptForm(s){
   const t = typeOf(s.typeKey), unit = massUnit(s);
   return `<div class="stack" id="moveForm" style="gap:10px">
-    <p class="small" style="margin:0">Check the bag against the submission: tag <b class="mono">${esc(tagText(s) || "none given")}</b>, ${esc(s.type)}, ${esc(s.containers || 1)} bag(s)${s.massKg ? `, ${esc(s.massKg)} kg` : ""}${s.seal ? `, seal <span class="mono">${esc(s.seal)}</span>` : ""}.</p>
+    <p class="small" style="margin:0">Check the bag against the submission: ${tagText(s) ? `site sample code <b class="mono">${esc(tagText(s))}</b>, ` : ""}${esc(s.type)}, ${esc(bagsText(s.containers || 1))}${s.massKg ? `, ${esc(s.massKg)} kg` : ""}${s.seal ? `, seal <span class="mono">${esc(s.seal)}</span>` : ""}.</p>
     ${t?.check ? `<p class="small" style="margin:0"><b>Also check:</b> ${esc(t.check)}</p>` : ""}
     ${s.handedTo || s.handedBadge ? `<div class="small"><b>Handed to:</b> ${esc(s.handedTo || "—")}${s.handedBadge ? `, badge <span class="mono">${esc(s.handedBadge)}</span>` : ""}</div>` : ""}
     ${hazTags(s).length ? `<p class="small" style="margin:0"><b>Hazards declared:</b> ${hazTags(s).map(h => esc(h.l)).join(", ")}. Handle with the matching PPE.</p>` : ""}
@@ -2628,7 +2682,7 @@ function receiptForm(s){
 function receiptChecks(s){
   const t = typeOf(s.typeKey), at = fromInput($("#rcAt")?.value), warn = [];
   const bags = +($("#rcBags")?.value || 0), mass = $("#rcMass")?.value || "", seal = val("#rcSeal"), cond = val("#rcCond") || "Good", temp = $("#rcTemp") ? $("#rcTemp").value : "";
-  if (s.containers && $("#rcBags")?.value !== "" && bags !== +s.containers) warn.push(`${bags} bag(s) received, ${s.containers} submitted`);
+  if (s.containers && $("#rcBags")?.value !== "" && bags !== +s.containers) warn.push(`${bagsText(bags)} received, ${s.containers} submitted`);
   if (seal === "bad") warn.push("seal number does not match the submission");
   if (seal === "broken") warn.push("seal broken or missing");
   if (cond !== "Good") warn.push(`condition: ${lcFirst(cond)}`);
@@ -3140,7 +3194,7 @@ function renderBoard(){
           ${curIdx(s) < targetIdx(s) ? Object.values(labsOf(s)).map(l => `<div class="cmeta">Batch <span class="mono">${esc(l.b)}</span>${l.q && l.q !== "pending" ? ` · <b style="color:var(--${{ ok: "ok", bad: "bad" }[qcCls(l.q)] || "warn"})">${esc(qcLabel(l.q))}</b>` : ""}</div>`).join("") : ""}
           ${alerts.includes(s) ? `<div class="cmeta"><b style="color:var(--bad)">Result past a limit</b></div>` : ""}
           ${awaiting(s) && s.handedTo ? `<div class="cmeta">Handed to ${esc(s.handedTo)}</div>` : ""}
-          <div class="cmeta">${esc(s.type)}${s.priority === "Urgent" ? ` · <span class="urg">Urgent</span>` : ""}${s.flag && awaiting(s) ? ` · <b style="color:var(--warn)">Flagged</b>` : ""}</div>
+          <div class="cmeta">${esc(s.type)}${tagText(s) ? ` · <span class="mono">${esc(tagText(s))}</span>` : ""}${s.priority === "Urgent" ? ` · <span class="urg">Urgent</span>` : ""}${s.flag && awaiting(s) ? ` · <b style="color:var(--warn)">Flagged</b>` : ""}</div>
           ${hazTags(s).length || twoPerson(s) ? `<div class="cmeta">${hazPills(s)}${twoPerson(s) ? `<span class="haz two" title="Two-person custody">2P</span>` : ""}</div>` : ""}
           ${od.length ? `<div class="cmeta"><b style="color:var(--bad)">${esc(od.map(m => m.item).join(", "))} past retention</b></div>` : x.key === "report" && stt.late ? `<div class="cmeta"><b style="color:var(--warn)">Not yet put in storage</b></div>` : ""}
           ${tm.left && !od.length && x.key !== "report" ? `<div class="cmeta left">${esc(tm.left)}</div>` : ""}</button>`; }).join("")}</div>
@@ -3237,7 +3291,7 @@ function renderSampleForm(mode){
         <label class="f full">Notes<textarea id="rNotes"></textarea></label>
       </div></details>
     </div>
-    <div class="row sticky-bar bar"><span class="small muted" id="rMsg"></span><button class="btn primary big" type="submit" id="rSubmit">${staff ? "Register and issue IDs" : walk ? "Register and get sample IDs" : "Submit and get sample IDs"}</button></div>
+    <div class="row sticky-bar bar"><span class="small muted" id="rMsg"></span><button class="btn primary big" type="submit" id="rSubmit">${staff ? "Register and issue ID" : walk ? "Register and get sample ID" : "Submit and get sample ID"}</button></div>
     <div id="rResult"></div>
   </form>`;
   const ty = $("#rType", v), pu = $("#rPurpose", v), te = $("#rTest", v), hz = $("#rHaz", v);
@@ -3264,6 +3318,7 @@ function renderSampleForm(mode){
   };
   bindKind(v);
   refreshFormRoute();
+  lastChip(v);
   $("#regForm", v).addEventListener("submit", e => { e.preventDefault(); register(); });
 }
 /* A tag belongs to one open sample at a time. Returns the open sample already using it, if any. */
@@ -3375,12 +3430,15 @@ async function register(){
     $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? (mode === "register" ? "Sample registered." : "Sample submitted.") : `${n} samples ${mode === "register" ? "registered" : "submitted"}.`}</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>${batchName ? ` · ${esc(batchName)}` : ""}.` : ""} Write ${n === 1 ? "this ID" : "these IDs"} on the bag${n === 1 ? "" : "s"} or print the label${n === 1 ? "" : "s"}:
       <div class="label-strip" style="margin-top:8px">${ids.map((id, i) => `<code>${esc(id)}${tagSets[i].length ? ` · ${esc(tagSets[i].join(", "))}` : ""}</code>`).join("")}</div>
       <div class="small" style="margin-top:8px">Workflow: <span class="code">${esc(r.code)}</span> ${esc(r.name)}. Results about ${hoursLabel(routeTat(r))} after receipt.</div>
-      <div class="row" style="margin-top:10px"><button type="button" class="btn primary" id="rLabels">Print ${n === 1 ? "label" : n + " labels"}</button><button type="button" class="btn" id="rCopy">Copy IDs</button>${n === 1 ? `<button type="button" class="btn" data-link="${esc(ids[0])}">Copy tracking link</button><button type="button" class="btn" data-open="${esc(ids[0])}">Track ${esc(ids[0])}</button>` : `<button type="button" class="btn" data-open="${esc(ref)}">Open the batch</button><button type="button" class="btn" data-link="${esc(ref)}">Copy batch link</button>`}<button type="button" class="btn ghost" id="rAgain">${mode === "register" ? "Register more" : "Submit another"}</button></div></div>`;
+      <div class="row" style="margin-top:10px"><button type="button" class="btn primary" id="rLabels">Print ${n === 1 ? "label" : n + " labels"}</button><button type="button" class="btn" id="rCopy">Copy IDs</button>${n === 1 ? `<button type="button" class="btn" data-link="${esc(ids[0])}">Copy tracking link</button><button type="button" class="btn" data-open="${esc(ids[0])}">Track ${esc(ids[0])}</button>` : `<button type="button" class="btn" data-open="${esc(ref)}">Open the batch</button><button type="button" class="btn" data-link="${esc(ref)}">Copy batch link</button>`}<button type="button" class="btn" id="rSame">Same details again</button><button type="button" class="btn ghost" id="rAgain">${mode === "register" ? "Register more" : "Submit another"}</button></div></div>`;
+    const same = formSnap();
+    noteIssued(ids, ref, base, tagSets);
     const labels = ids.map((id, i) => labelOf({ ...base, id, tags: tagSets[i] }));
     if (batch){ bRows = bRows.map(() => ({ code: "", src: "" })); }
     $("#rLabels").onclick = () => showLabels(labels);
     $("#rCopy").onclick = () => navigator.clipboard.writeText(ids.join("\n")).then(() => toast("IDs copied"), () => toast("Copy blocked here. Select the IDs and copy them."));
     $("#rAgain").onclick = () => { $(mode === "register" ? "#view-register" : "#view-submit").innerHTML = ""; renderSampleForm(mode); };
+    $("#rSame").onclick = () => { $(mode === "register" ? "#view-register" : "#view-submit").innerHTML = ""; renderSampleForm(mode); applySnap(same); };
     btn.disabled = true;
   } catch (e) {
     btn.disabled = false; msg.textContent = "";
@@ -3466,12 +3524,12 @@ function renderLedger(){
         <input class="inp" id="lgMonth" type="month" style="width:auto" value="${esc(f.month)}" aria-label="Month">
         <select class="inp" id="lgDir" style="width:auto"><option value="all">In and out</option><option value="in">Inbound only</option><option value="out">Outbound only</option></select>
         <select class="inp" id="lgSec" style="width:auto"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${f.sec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
-        <input class="inp" id="lgQ" placeholder="Search ID, tag, type, submitter, technician" style="flex:1 1 220px;width:auto" value="${esc(f.q)}">
+        <input class="inp" id="lgQ" placeholder="Search ID, site code, type, submitter, technician" style="flex:1 1 220px;width:auto" value="${esc(f.q)}">
         <button class="btn" id="lgCsv">Export CSV</button>
       </div>
       ${rc ? `<div class="recon"><b>Month check:</b> ${rc.opening} on hand at the start + ${rc.ins} received − ${rc.outs} fully out = <b>${rc.closing}</b> on hand at the end${rc.now != null ? (rc.now === rc.closing ? ` <span class="pill ok">matches the ${rc.now} on hand now</span>` : ` <span class="pill bad">${rc.now} on hand now: check for missing movements</span>`) : ""}.</div>` : ""}
       <p class="small muted" style="margin:0">${inN} inbound and ${outN} outbound movement${outN === 1 ? "" : "s"}${revN ? `, ${revN} reversal${revN === 1 ? "" : "s"}` : ""} in ${esc(f.month)}.</p>
-      ${!ledgerReady && db ? `<div class="panel empty"><strong>Loading ${esc(f.month)}…</strong></div>` : rows.length ? `<div class="tbl-wrap"><table><thead><tr><th>Date &amp; time</th><th>Dir.</th><th>Sample ID</th><th>Site code</th><th>Type</th><th>Material</th><th>Section</th><th>From / to</th><th>Reference</th><th>Submitted by</th><th>Lab staff</th><th>Note</th></tr></thead><tbody>${body}</tbody></table></div>`
+      ${!ledgerReady && db ? `<div class="panel empty"><strong>Loading ${esc(f.month)}…</strong></div>` : rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>Date &amp; time</th><th>Dir.</th><th>Sample ID</th><th>Site code</th><th>Type</th><th>Material</th><th>Section</th><th>From / to</th><th>Reference</th><th>Submitted by</th><th>Lab staff</th><th>Note</th></tr></thead><tbody>${body}</tbody></table></div>`
         : `<div class="panel empty"><strong>No ledger entries${f.dir !== "all" || f.q || f.sec ? " match these filters" : ` in ${esc(f.month)}`}</strong></div>`}
     </div>`;
   });
@@ -3589,6 +3647,7 @@ function renderStages(){
   draft.tz = draft.tz || DEFAULT_CONFIG.tz;
   draft.crms = Array.isArray(draft.crms) ? draft.crms : clone(DEFAULT_CONFIG.crms);
   draft.resultsPublic = !!draft.resultsPublic;
+  draft.batchReq = !!draft.batchReq;
   draft.limits = Array.isArray(draft.limits) ? draft.limits : clone(DEFAULT_CONFIG.limits);
   draft.users = draft.users || [];
   const viaMe = window.__me?.via === "email";
@@ -3666,6 +3725,7 @@ function renderStages(){
 
     <h2 style="margin-top:12px">Results and certificates</h2>
     <label class="f" style="max-width:520px"><span>Who can see results on a sample record</span><select class="inp" id="cfgResPub"><option value="0" ${draft.resultsPublic ? "" : "selected"}>Signed-in staff only (recommended)</option><option value="1" ${draft.resultsPublic ? "selected" : ""}>Anyone with the sample ID or site sample code</option></select></label>
+    <label class="f" style="max-width:520px"><span>Lab batch before QA/QC review</span><select class="inp" id="cfgBatchReq"><option value="0" ${draft.batchReq ? "" : "selected"}>Not required</option><option value="1" ${draft.batchReq ? "selected" : ""}>Required</option></select></label>
 
     <h2 style="margin-top:12px">Reference materials (CRMs and check standards)</h2>
     <div class="mock"><b>Example values.</b><span>Replace them with the values on your CRM certificates.</span></div>
@@ -3742,6 +3802,7 @@ function renderStages(){
     };
   });
   $("#cfgResPub").addEventListener("change", e => { draft.resultsPublic = e.target.value === "1"; dirty(); });
+  $("#cfgBatchReq").addEventListener("change", e => { draft.batchReq = e.target.value === "1"; dirty(); });
   $("#rtQcp").addEventListener("change", e => { R.qcp = e.target.value; regenQc(R); dirty(); });
   v.querySelectorAll("[data-cf]").forEach(el => el.addEventListener("change", () => {
     const i = +el.dataset.ci, f = el.dataset.cf, c = draft.crms[i];
@@ -3952,7 +4013,7 @@ function renderStages(){
     const mine = draft, crmLog = [...crmChanges(clone(cfg.crms || []), draft.crms), ...(cfg.crmLog || [])].slice(0, CRM_LOG_MAX);
     draftDirty = false;                      // our own save coming back is not "someone else's"
     try {
-      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users), crms: clone(draft.crms), crmLog, limits: clone(draft.limits), cols: (draft.cols || []).filter(x => x.n).map(x => ({ n: x.n, c: x.c || "" })), resultsPublic: !!draft.resultsPublic, work: workOf(draft.work), logo: logoOf(draft.logo), routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
+      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users), crms: clone(draft.crms), crmLog, limits: clone(draft.limits), cols: (draft.cols || []).filter(x => x.n).map(x => ({ n: x.n, c: x.c || "" })), resultsPublic: !!draft.resultsPublic, batchReq: !!draft.batchReq, work: workOf(draft.work), logo: logoOf(draft.logo), routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
       draftDirty = false; draft = null; renderStages(); markAccessGiven(mine.users);
       toast(uncovered.length ? `Saved. No route performs: ${uncovered.slice(0, 3).join(", ")}${uncovered.length > 3 ? "…" : ""}` : "Settings saved for everyone.");
     }
@@ -4045,7 +4106,9 @@ function groupsOf(s){
 }
 const qcpOf = s => groupsOf(s)[0]?.p || "";
 const profOf = s => QC_PROFILES[qcpOf(s)] || null;
-const batchKeys = s => new Set(groupsOf(s).flatMap(g => g.k));
+/* Lab batches are optional unless Settings require them: a sample in no batch then has all its results typed or attached on its record. */
+const batchesRequired = () => !!cfg.batchReq;
+const batchKeys = s => { const labs = labsOf(s); return new Set(groupsOf(s).filter(g => batchesRequired() || labs[g.p]).flatMap(g => g.k)); };
 /* The results this sample reports. One repeated by gravimetric finish takes that method's limits; one repeated by dilution has no upper limit. */
 function anOf(s){
   const res = resOf(s), g = RESULTS.fa_grav.an[0], dil = s?.dil || [];
@@ -4195,6 +4258,7 @@ function qcEntryBlock(s){
   const gs = groupsOf(s), labs = labsOf(s);
   for (const g of gs){
     const l = labs[g.p];
+    if (!l && !batchesRequired()) continue;
     if (!l) return gs.length > 1 ? `Put ${s.id} in ${aAn(lcName(QC_PROFILES[g.p].name))} for ${listAnd(groupAns(g, { an: anOf(s) }).map(a => lcName(a.n)))} and enter its results first (Lab batches tab).` : `Put ${s.id} in a lab batch and enter the batch results first (Lab batches tab).`;
     if (!l.q || l.q === "pending") return `Enter the results for lab batch ${l.b} first.`;
   }
@@ -4213,6 +4277,7 @@ function releaseBlock(s){
   const labs = labsOf(s);
   for (const g of groupsOf(s)){
     const l = labs[g.p];
+    if (!l && !batchesRequired()) continue;
     if (!l) return "Results must come from a lab batch with its QC.";
     if (l.q === "fail") return `Lab batch ${l.b} failed QC. Re-run the batch.`;
     if (l.q === "warn") return `Lab batch ${l.b} has QC warnings. A supervisor accepts them on the batch first.`;
@@ -4312,7 +4377,7 @@ function resultsPanel(s){
   if (s.amend) parts.push(amendPending(s, last));
   parts.push(alertsBox(s));
   const gs = groupsOf(s), labs = labsOf(s);
-  if (gs.length) parts.push(`<div class="small stack" style="gap:2px">${gs.map(g => { const l = labs[g.p], what = gs.length > 1 ? ` (${esc(listAnd(groupAns(g, { an: ans }).map(a => lcName(a.n))))})` : "";
+  if (gs.length && (batchesRequired() || Object.keys(labs).length)) parts.push(`<div class="small stack" style="gap:2px">${gs.map(g => { const l = labs[g.p], what = gs.length > 1 ? ` (${esc(listAnd(groupAns(g, { an: ans }).map(a => lcName(a.n))))})` : "";
     return `<div>Lab batch${what}: ${l ? `<button type="button" class="linkish mono" data-batch="${esc(l.b)}">${esc(l.b)}</button> <span class="pill ${qcCls(l.q)}">${esc(qcLabel(l.q) || "no results yet")}</span>${l.n ? `<div class="small muted">${esc(l.n)}</div>` : ""}` : `<span class="muted">not in ${esc(aAn(lcName(QC_PROFILES[g.p]?.name || "batch")))} yet. ${canEdit() ? `Add it on the <button type="button" class="linkish" data-goto="batches">Lab batches</button> tab.` : ""}</span>`}</div>`; }).join("")}</div>`);
   if (entering) parts.push(resultsForm(s));
   if (last && canEdit() && !draft && !entering && !s.amend) parts.push(amendForm(s, last));
@@ -4990,13 +5055,13 @@ function buildBatches(v){
         <div class="row"><button type="button" class="btn primary" id="nbCreate">Create batch</button><span class="small muted">Up to ${np.size} samples.</span></div>` : ""}
     </div>` : ""}
     <div class="panel stack" style="gap:8px"><h3>Open batches</h3>
-      ${open.length ? `<div class="tbl-wrap"><table><thead><tr><th>Batch</th><th>Type</th><th>Samples</th><th>Status</th><th>Next step</th><th>Created</th><th>By</th></tr></thead><tbody>${open.map(row).join("")}</tbody></table></div>` : `<p class="small muted" style="margin:0">No open batches.</p>`}
+      ${open.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>Batch</th><th>Type</th><th>Samples</th><th>Status</th><th>Next step</th><th>Created</th><th>By</th></tr></thead><tbody>${open.map(row).join("")}</tbody></table></div>` : `<p class="small muted" style="margin:0">No open batches.</p>`}
     </div>
     ${batchLive ? batchDetail(batchLive) : batchSel ? `<div class="panel empty"><strong>Loading ${esc(batchSel)}…</strong></div>` : ""}
     <div class="panel stack" style="gap:8px"><h3>QC control chart</h3>
       <div class="row"><select class="inp" id="chCrm" style="width:auto;max-width:100%"><option value="">Choose a reference material…</option>${crmOpts}</select></div>
       <div id="chBox"></div></div>
-    ${closed.length ? `<div class="panel stack" style="gap:8px"><h3>Closed this month</h3><div class="tbl-wrap"><table><thead><tr><th>Batch</th><th>Type</th><th>Samples</th><th>Status</th><th>Next step</th><th>Created</th><th>By</th></tr></thead><tbody>${closed.map(row).join("")}</tbody></table></div></div>` : ""}
+    ${closed.length ? `<div class="panel stack" style="gap:8px"><h3>Closed this month</h3><div class="tbl-wrap"><table class="cardy"><thead><tr><th>Batch</th><th>Type</th><th>Samples</th><th>Status</th><th>Next step</th><th>Created</th><th>By</th></tr></thead><tbody>${closed.map(row).join("")}</tbody></table></div></div>` : ""}
     <div class="small muted" id="bMsg"></div>
   </div>`;
   $("#nbProf", v)?.addEventListener("change", e => { batchNewProf = e.target.value; renderBatches(); });
@@ -5136,7 +5201,7 @@ function renderResultsTab(){
   v.innerHTML = `<div class="stack"><div class="panel stack" style="gap:8px"><h2>Results for ${esc(session.sec)} · ${esc(sectionName(session.sec))}</h2>
       <p class="small muted" style="margin:0">${fresh ? `<b>${fresh} new since you last marked them as seen.</b>` : "Nothing new since you last looked."}</p>
       ${fresh ? `<div class="row"><button type="button" class="btn" id="secSeen">Mark all as seen</button></div>` : ""}</div>
-    ${list.length ? `<div class="panel"><div class="tbl-wrap"><table><thead><tr><th>Sample</th><th>Type</th><th>Tag</th><th>Test</th><th>Certificate</th><th>Released</th></tr></thead><tbody>
+    ${list.length ? `<div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>Sample</th><th>Type</th><th>Site code</th><th>Test</th><th>Certificate</th><th>Released</th></tr></thead><tbody>
       ${list.map(s => { const c = s.certs.at(-1); return `<tr><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>${c.at > seen ? ` <span class="pill gold">New</span>` : ""}</td><td>${esc(s.type || "")}</td><td>${esc(tagText(s))}</td><td>${esc(c.testName || "")}</td><td class="mono">${esc(c.no)}${c.amends ? ` <span class="pill warn">Amended</span>` : ""}</td><td style="white-space:nowrap">${fmt(c.at)}</td></tr>`; }).join("")}</tbody></table></div></div>`
       : `<div class="panel empty"><strong>No released results yet</strong></div>`}</div>`;
   $("#secSeen", v)?.addEventListener("click", () => { lsSet(seenKey(), String(Date.now())); resultsBadge(); renderResultsTab(); });
@@ -5232,13 +5297,13 @@ function renderStorage(){
         ${noLoc ? `<div class="stat"><div class="n" style="color:var(--warn)">${noLoc}</div><div class="l">No location</div></div>` : ""}
       </div>
       <div class="row">
-        <input class="inp" id="stQ" placeholder="Search ID, tag, location or material" style="flex:1 1 220px;width:auto" value="${esc(storeQ)}">
+        <input class="inp" id="stQ" placeholder="Search ID, site code, location or material" style="flex:1 1 220px;width:auto" value="${esc(storeQ)}">
         <select class="inp" id="stSec" style="width:auto;max-width:100%" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${storeSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
         <select class="inp" id="stShow" style="width:auto" aria-label="Show"><option value="all">All material</option><option value="past">Past retention</option><option value="soon">Due within 30 days</option><option value="noloc">No location</option></select>
         <button class="btn" id="stCsv">Export CSV</button>
       </div>
       ${!storeReady ? `<div class="panel empty"><strong>Loading storage…</strong></div>`
-        : shown.length ? `<div class="panel"><div class="tbl-wrap"><table><thead><tr><th>Sample</th><th>Material</th><th>Location</th><th>Keep until</th><th>Then</th><th>Section</th><th>Type</th></tr></thead><tbody>${shown.map(row).join("")}</tbody></table></div>
+        : shown.length ? `<div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>Sample</th><th>Material</th><th>Location</th><th>Keep until</th><th>Then</th><th>Section</th><th>Type</th></tr></thead><tbody>${shown.map(row).join("")}</tbody></table></div>
           ${list.length > shown.length ? `<div class="row" style="margin-top:10px"><span class="small muted">${shown.length} of ${list.length}</span><button type="button" class="btn ghost small" id="stMore">Show more</button></div>` : ""}</div>`
         : `<div class="panel empty"><strong>${all.length ? "No stored material matches these filters" : "Nothing in storage"}</strong></div>`}
       ${qaListPanel()}
@@ -6222,18 +6287,19 @@ function planUpload(rep, scope){
     if (awaiting(s)){ P.awaiting.push(sid); continue; }
     const ready = readyForResults(s);
     let needs = false;
+    const viaB = new Set();   // readings going into a new lab batch made from this file, so not onto the record as well
     for (const g of groupsOf(s)){
       const ans = batchAns(g.p, s); if (!ans.length || !Object.keys(rowValues(rep, row.cells, ans, 1)).length) continue;
       const l = labsOf(s)[g.p], ob = l ? openBatches.get(l.b) || (batchLive && batchLive.id === l.b ? batchLive : null) : null;
       if (scope.batch && (!l || l.b !== scope.batch)) continue;
-      if (scope.sample){ ans.forEach(a => { if (!P.viaBatch.includes(anShort(a))) P.viaBatch.push(anShort(a)); }); continue; }
+      if (scope.sample){ if (l || batchesRequired()) ans.forEach(a => { if (!P.viaBatch.includes(anShort(a))) P.viaBatch.push(anShort(a)); }); continue; }
       if (ob && !ob.qc && ob.status !== "creating"){ touched.set(ob.id, ob); if (!ready) needs = true; }
       else if (l) P.already.push(`${sid} (${l.b})`);
       else if (!ready) needs = true;
-      else { const key = g.p + "|" + sigOf(ans); (fresh.get(key) || fresh.set(key, { p: g.p, ans, sids: [] }).get(key)).sids.push(sid); }
+      else { const key = g.p + "|" + sigOf(ans); (fresh.get(key) || fresh.set(key, { p: g.p, ans, sids: [] }).get(key)).sids.push(sid); g.k.forEach(k => viaB.add(k)); }
     }
     if (!scope.batch){
-      const bk = batchKeys(s), others = anOf(s).filter(a => !bk.has(a.k) && !a.calc && a.t !== "pick");
+      const bk = batchKeys(s), others = anOf(s).filter(a => !bk.has(a.k) && !viaB.has(a.k) && !a.calc && a.t !== "pick");
       const got = rowValues(rep, row.cells, others, 1, P.clash);
       if (Object.keys(got).length){
         if (!ready) needs = true;
@@ -6748,7 +6814,7 @@ function qaListPanel(){
       <td style="white-space:nowrap">${fmtDate(x.at)}<div class="small muted">${esc(x.tech || "")}</div></td><td>${b ? esc(stage(b, b.stageKey)?.name || "") : "—"}</td>
       <td>${last ? `<span class="pill ${worst}">Recorded ${esc(fmtDate(last.at))}</span>` : `<span class="muted">Not recorded</span>`}</td></tr>`; };
   return `<details class="more panel" id="qaList" ${qaListOpen ? "open" : ""}><summary>Blind QA/QC checks <span class="pill">${blinds.size}</span></summary>
-    <div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>Blind ID</th><th>Original</th><th>Issued</th><th>Blind sample</th><th>Comparison</th></tr></thead><tbody>${list.map(row).join("")}</tbody></table></div>
+    <div class="tbl-wrap" style="margin-top:8px"><table class="cardy"><thead><tr><th>Blind ID</th><th>Original</th><th>Issued</th><th>Blind sample</th><th>Comparison</th></tr></thead><tbody>${list.map(row).join("")}</tbody></table></div>
     ${all.length > list.length ? `<div class="row" style="margin-top:8px"><span class="small muted">${list.length} of ${all.length}</span><button type="button" class="btn ghost small" id="qaAll">Show all</button></div>` : ""}</details>`;
 }
 /* The blind sample's record for the list, read only while the list is open. */
@@ -6810,7 +6876,7 @@ function setRowCount(n){
 function submitLabel(){
   const b = $("#rSubmit"), f = $("#regForm"); if (!b || !f) return;
   const walk = f.dataset.mode === "register", lab = !!$("#rRecvNow")?.checked, n = formKind() === "batch" ? bRows.length : 1;
-  b.textContent = lab ? (n > 1 ? `Register ${n} samples and issue IDs` : "Register and issue IDs") : walk ? (n > 1 ? `Register ${n} samples` : "Register and get sample IDs") : (n > 1 ? `Submit ${n} samples` : "Submit and get sample IDs");
+  b.textContent = lab ? (n > 1 ? `Register ${n} samples and issue IDs` : "Register and issue ID") : walk ? (n > 1 ? `Register ${n} samples` : "Register and get sample ID") : (n > 1 ? `Submit ${n} samples` : "Submit and get sample ID");
 }
 function showKind(v){
   const batch = formKind() === "batch";
@@ -6874,8 +6940,11 @@ function renderBatchView(v){
   v.dataset.ctx = "batch|" + c.batch;
   const cool = waiting.filter(s => typeOf(s.typeKey)?.cool != null), quick = waiting.filter(s => typeOf(s.typeKey)?.cool == null), two = quick.some(twoPerson);
   const tally = {}; docs.forEach(s => { const st = status(s); tally[st.label] = (tally[st.label] || 0) + 1; });
+  const done = docs.filter(s => curIdx(s) >= targetIdx(s)).length, etas = docs.filter(s => curIdx(s) < targetIdx(s) && !status(s).closed).map(s => projection(s).eta).filter(Boolean);
+  const eta = etas.length ? Math.max(...etas) : 0, srcCol = docs.some(s => s.source);
+  noteRecentBatch(c.batch, docs); pageTitle(c.batch);
   const row = s => { const st = status(s), last = (s.certs || []).at(-1);
-    return `<tr><td class="mono muted">${esc(s.batchIndex || "")}</td><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button></td><td class="mono">${esc(tagText(s)) || "—"}</td><td>${esc(s.source || "")}</td>
+    return `<tr><td class="mono muted">${esc(s.batchIndex || "")}</td><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button></td><td class="mono">${esc(tagText(s)) || "—"}</td>${srcCol ? `<td>${esc(s.source || "")}</td>` : ""}
       <td><span class="pill ${st.cls}">${esc(st.label)}</span></td><td class="small">${last ? `Released ${esc(fmtDate(last.at))}` : ""}</td></tr>`; };
   const keepAt = $("#bvAt", v)?.value, keepWit = $("#bvWit", v)?.value, keepOk = $("#bvOk", v)?.checked;
   v.innerHTML = `<div class="stack">
@@ -6883,6 +6952,7 @@ function renderBatchView(v){
       <div class="row" style="gap:10px"><div class="sid">${esc(c.batch)}</div><span class="pill info">${docs.length} samples</span><button type="button" class="btn ghost small" data-link="${esc(c.batch)}">Copy batch link</button></div>
       ${s0.batchName ? `<div><b>${esc(s0.batchName)}</b></div>` : ""}
       <div class="small muted">${esc(s0.type || "")} · ${esc(s0.testName || s0.purpose || "")} · <span class="mono">${esc(s0.section || "")}</span> · ${esc(s0.submitter || "")} · ${fmt(s0.createdAt)}</div>
+      <div class="bv-prog"><div class="bv-bar"><i style="width:${docs.length ? Math.round(done / docs.length * 100) : 0}%"></i></div><span class="small"><b>${done} of ${docs.length}</b> results released${eta ? ` · all expected by <b>${esc(fmt(eta))}</b>` : ""}</span></div>
       <div class="row" style="gap:6px">${Object.entries(tally).map(([l, n]) => `<span class="pill">${n} ${esc(l)}</span>`).join("")}</div>
       <div class="row"><button type="button" class="btn primary" id="bvLabels">Print ${docs.length} labels</button><button type="button" class="btn" id="bvCopy">Copy IDs</button></div>
     </div>
@@ -6893,7 +6963,7 @@ function renderBatchView(v){
         <label class="recv-toggle full"><input type="checkbox" id="bvOk" ${keepOk ? "checked" : ""}> All ${quick.length} bags match, seals intact, good condition</label></div>
       <div class="row"><button type="button" class="btn primary" id="bvRecvBtn" ${batchRecvBusy ? "disabled" : ""}>Confirm receipt of ${quick.length}</button>${cool.length ? `<span class="small">One by one (cooler temperature): ${cool.map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>`).join(", ")}</span>` : ""}</div>
     </div>` : ""}
-    <div class="panel"><div class="tbl-wrap"><table><thead><tr><th>#</th><th>Sample ID</th><th>Site sample code</th><th>Source</th><th>Status</th><th></th></tr></thead><tbody>${docs.map(row).join("")}</tbody></table></div></div>
+    <div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>#</th><th>Sample ID</th><th>Site sample code</th>${srcCol ? "<th>Source</th>" : ""}<th>Status</th><th></th></tr></thead><tbody>${docs.map(row).join("")}</tbody></table></div></div>
   </div>`;
   if (keepWit && $("#bvWit", v)) $("#bvWit", v).value = keepWit;
   fillNames(v);
@@ -6938,6 +7008,205 @@ function fitHist(v, top){
   h.onscroll = end; end();
 }
 addEventListener("resize", () => { clearTimeout(fitHist.t); fitHist.t = setTimeout(() => { if (tab === "track") fitHist($("#view-track"), $("#view-track .hist")?.scrollTop || 0); }, 150); });
+/* v21 (polish): samples recently opened on this device, suggestions under the header search, the same details again on
+   Submit / Register, tables that read as cards on a phone, and the browser tab named after the open sample. */
+const RECENT_MAX = 8, BASE_TITLE = document.title || "Assay Lab Sample Tracker";
+/* Each person on a shared computer has their own list (a blind sample and its original never show side by side for someone else). */
+const recentKey = () => "recent:" + (session?.u || "public");
+function recentList(){
+  try { const a = JSON.parse(lsGet(recentKey()) || "[]"); return Array.isArray(a) ? a.filter(x => x && typeof x.id === "string" && x.id).slice(0, RECENT_MAX) : []; } catch { return []; }
+}
+function recentPut(e){
+  const a = recentList(), old = a[0];
+  if (old && old.id === e.id && ["t", "c", "l", "k", "n"].every(k => (old[k] ?? "") === (e[k] ?? ""))) return;   // unchanged: no write
+  lsSet(recentKey(), JSON.stringify([{ ...e, at: Date.now() }, ...a.filter(x => x.id !== e.id)].slice(0, RECENT_MAX)));
+}
+function noteRecent(s){
+  if (!s?.id) return;
+  let st = {}; try { st = status(s); } catch {}
+  recentPut({ id: s.id, t: s.type || "", c: tagText(s) || "", l: st.label || "", k: st.cls || "" });
+}
+function noteRecentBatch(ref, docs){
+  if (!ref || !docs?.length) return;
+  const done = docs.filter(s => curIdx(s) >= targetIdx(s)).length;
+  recentPut({ id: ref, b: 1, n: docs.length, t: docs[0].type || "", c: "", l: `${done} of ${docs.length} released`, k: done === docs.length ? "ok" : "" });
+}
+/* What was just issued goes on the list too, so the person who registered it finds it again on the Sample tab. */
+function noteIssued(ids, ref, base, tagSets){
+  if (ref) return recentPut({ id: ref, b: 1, n: ids.length, t: base.type || "", c: "", l: `0 of ${ids.length} released`, k: "" });
+  let st = {}; try { st = status({ ...base, id: ids[0], tags: tagSets[0] }); } catch {}
+  recentPut({ id: ids[0], t: base.type || "", c: (tagSets[0] || []).join(", "), l: st.label || "", k: st.cls || "" });
+}
+function agoText(t){
+  const m = Math.round((Date.now() - t) / 60000);
+  if (!(m >= 1)) return "just now";
+  if (m < 60) return m + " min ago";
+  if (m < 24 * 60) return Math.round(m / 60) + " h ago";
+  return fmtDate(t);
+}
+/* The live status when this page holds the sample, else the status when it was last opened here. */
+function recentLive(x){
+  const s = !x.b && samples.get(x.id);
+  if (!s) return { l: x.l, k: x.k };
+  try { const st = status(s); return { l: st.label, k: st.cls }; } catch { return { l: x.l, k: x.k }; }
+}
+function recentPanel(){
+  const a = recentList(); if (!a.length) return "";
+  return `<div class="panel recent" id="recent"><div class="recent-h"><h3>Recently opened</h3><button type="button" class="btn ghost small" id="recentClear">Clear</button></div>
+    <div class="recent-list">${a.map(x => { const lv = recentLive(x);
+      return `<button type="button" class="rec" data-open="${esc(x.id)}"><span class="rec-id mono">${esc(x.id)}</span>${lv.l ? `<span class="pill ${esc(lv.k || "")}">${esc(lv.l)}</span>` : ""}
+        <span class="rec-m small muted">${esc([x.b ? `Batch of ${x.n}` : "", x.t, x.c].filter(Boolean).join(" · "))}</span><span class="rec-at small muted">${esc(agoText(x.at))}</span></button>`; }).join("")}</div></div>`;
+}
+function bindRecent(v){ $("#recentClear", v)?.addEventListener("click", () => { lsSet(recentKey(), ""); renderTrack(); }); }
+function pageTitle(x){ const t = x ? `${x} · ${BASE_TITLE}` : BASE_TITLE; if (document.title !== t) document.title = t; }
+
+/* Suggestions under the header search: staff see matching samples in the register as they type (ID, site sample code,
+   site reference, batch, submitter); everyone sees what they opened recently. Arrow keys and Enter pick one. */
+const sug = { box: null, items: [], on: -1, quiet: false, t: 0 };
+function sugHl(text, Q){
+  const t = String(text || ""), i = Q ? t.toUpperCase().indexOf(Q) : -1;
+  return i < 0 ? esc(t) : esc(t.slice(0, i)) + "<mark>" + esc(t.slice(i, i + Q.length)) + "</mark>" + esc(t.slice(i + Q.length));
+}
+function sugFind(q){
+  const Q = q.trim().toUpperCase(), out = [], seen = new Set();
+  const add = (id, html) => { if (out.length < 8 && !seen.has(id)){ seen.add(id); out.push({ id, html }); } };
+  const recRow = x => { const lv = recentLive(x);
+    return `<span class="sug-id mono">${sugHl(x.id, Q)}</span>${lv.l ? `<span class="pill ${esc(lv.k || "")}">${esc(lv.l)}</span>` : ""}<span class="sug-m small muted">${sugHl([x.b ? `Batch of ${x.n}` : "", x.t, x.c].filter(Boolean).join(" · "), Q)}</span>`; };
+  if (!Q){ recentList().forEach(x => add(x.id, recRow(x))); return out; }
+  if (Q.length >= 2 && isStaff()){
+    const hits = [], batches = new Map();
+    for (const s of samples.values()){
+      if (!s?.id) continue;
+      const id = s.id.toUpperCase(), codes = (s.tags || []).map(t => String(t).toUpperCase());
+      const sc = id === Q ? 0 : codes.includes(Q) ? 0.5 : id.startsWith(Q) ? 1 : codes.some(c => c.startsWith(Q)) ? 2 : id.includes(Q) ? 3 : codes.some(c => c.includes(Q)) ? 4
+        : String(s.siteRef || "").toUpperCase().includes(Q) ? 5 : String(s.submitter || "").toUpperCase().includes(Q) ? 6 : -1;
+      if (sc >= 0) hits.push([sc, s]);
+      if (s.batchId && s.batchId.toUpperCase().includes(Q)) (batches.get(s.batchId) || batches.set(s.batchId, []).get(s.batchId)).push(s);
+    }
+    [...batches].slice(0, 3).forEach(([b, list]) => add(b, `<span class="sug-id mono">${sugHl(b, Q)}</span><span class="pill info">Batch of ${list[0].batchSize || list.length}</span><span class="sug-m small muted">${esc(list[0].type || "")}</span>`));
+    hits.sort((a, b) => a[0] - b[0] || (b[1].stageAt || 0) - (a[1].stageAt || 0));
+    for (const [, s] of hits){
+      let st = {}; try { st = status(s); } catch {}
+      add(s.id, `<span class="sug-id mono">${sugHl(s.id, Q)}</span>${st.label ? `<span class="pill ${esc(st.cls || "")}">${esc(st.label)}</span>` : ""}<span class="sug-m small muted">${sugHl([s.type, tagText(s), s.submitter].filter(Boolean).join(" · "), Q)}</span>`);
+    }
+  }
+  recentList().filter(x => (x.id + " " + (x.c || "")).toUpperCase().includes(Q)).forEach(x => add(x.id, recRow(x)));
+  return out;
+}
+function sugShow(){
+  const inp = $("#lookupInput"); if (!sug.box || !inp || sug.quiet || document.activeElement !== inp) return sugHide();
+  sug.items = sugFind(inp.value); sug.on = -1;
+  if (!sug.items.length) return sugHide();
+  sug.box.innerHTML = (inp.value.trim() ? "" : `<div class="sug-h">Recently opened</div>`) + sug.items.map((x, i) => `<button type="button" class="sug-i" role="option" id="sug-${i}" data-sug="${esc(x.id)}" aria-selected="false">${x.html}</button>`).join("");
+  sug.box.hidden = false; sugPlace(); inp.setAttribute("aria-expanded", "true");
+}
+/* The header clips what hangs below it, so the list lives on the page body, placed under the search box. */
+function sugPlace(){
+  if (!sug.box || sug.box.hidden) return;
+  const r = $("#lookupForm").getBoundingClientRect();
+  Object.assign(sug.box.style, { left: Math.round(r.left) + "px", top: Math.round(r.bottom + 6) + "px", width: Math.round(r.width) + "px" });
+}
+function sugHide(){ if (!sug.box) return; sug.box.hidden = true; sug.on = -1; $("#lookupInput")?.setAttribute("aria-expanded", "false"); }
+function sugMove(d){
+  if (sug.box.hidden || !sug.items.length) return false;
+  const n = sug.items.length;
+  sug.on += d; if (sug.on >= n) sug.on = -1; else if (sug.on < -1) sug.on = n - 1;
+  sug.box.querySelectorAll(".sug-i").forEach((b, i) => b.setAttribute("aria-selected", String(i === sug.on)));
+  const a = sug.box.querySelector(`#sug-${sug.on}`); a?.scrollIntoView({ block: "nearest" });
+  $("#lookupInput").setAttribute("aria-activedescendant", sug.on >= 0 ? "sug-" + sug.on : "");
+  return true;
+}
+function sugPick(id){ sugQuiet(); $("#lookupInput").blur(); openSample(id); }
+/* After a search is sent, suggestions stay away until the person types again. */
+function sugQuiet(){ sug.quiet = true; clearTimeout(sug.t); sugHide(); }
+(function sugInit(){
+  const f = $("#lookupForm"), inp = $("#lookupInput"); if (!f || !inp) return;
+  sug.box = document.createElement("div"); sug.box.id = "sugBox"; sug.box.className = "sug"; sug.box.hidden = true; sug.box.setAttribute("role", "listbox");
+  document.body.append(sug.box);
+  addEventListener("resize", sugPlace); addEventListener("scroll", sugPlace, { passive: true });
+  inp.setAttribute("role", "combobox"); inp.setAttribute("aria-controls", "sugBox"); inp.setAttribute("aria-expanded", "false"); inp.setAttribute("aria-autocomplete", "list");
+  inp.addEventListener("input", () => { sug.quiet = false; clearTimeout(sug.t); sug.t = setTimeout(sugShow, 60); });
+  inp.addEventListener("focus", () => { sug.quiet = false; sugShow(); });
+  inp.addEventListener("blur", () => setTimeout(sugHide, 150));
+  inp.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp"){ if (sug.box.hidden) sugShow(); if (sugMove(e.key === "ArrowDown" ? 1 : -1)) e.preventDefault(); }
+    else if (e.key === "Enter" && !sug.box.hidden && sug.on >= 0){ e.preventDefault(); e.stopPropagation(); sugPick(sug.items[sug.on].id); }
+    else if (e.key === "Escape" && !sug.box.hidden){ e.preventDefault(); sugHide(); }
+  });
+  sug.box.addEventListener("mousedown", e => e.preventDefault());   // keep the focus in the search while a suggestion is clicked
+  sug.box.addEventListener("click", e => { const b = e.target.closest("[data-sug]"); if (b) sugPick(b.dataset.sug); });
+  f.addEventListener("submit", sugQuiet, true);
+  // "/" jumps to the search from anywhere that isn't a text box
+  document.addEventListener("keydown", e => {
+    if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+    const a = document.activeElement;
+    if (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable)) return;
+    if (document.querySelector(".modal:not([hidden])")) return;
+    e.preventDefault(); inp.focus(); inp.select();
+  });
+})();
+
+/* The same details again: what was submitted last on this device by this person, refilled in one click (not the codes). */
+const SNAP_IDS = ["rType", "rPurpose", "rWhy", "rTest", "rRouteSel", "rSubmitter", "rSubBadge", "rSection", "rHandTo", "rHandBadge", "rPriority", "rContainers"];
+const lastKey = () => "lastForm:" + (session?.u || "public");
+function formSnap(){
+  const o = { kind: formKind() };
+  SNAP_IDS.forEach(k => { const e = $("#" + k); if (e && e.value !== "") o[k] = e.value; });
+  o.hz = HAZARDS.filter(h => $("#rHz_" + h.k)?.checked).map(h => h.k);
+  o.an = ADDONS.map((_, i) => i).filter(i => $("#rAn" + i)?.checked);
+  if (o.kind === "batch") o.n = bRows.length;
+  lsSet(lastKey(), JSON.stringify(o));
+  return o;
+}
+function lastSnap(){ try { const o = JSON.parse(lsGet(lastKey()) || "null"); return o && typeof o === "object" && o.rType ? o : null; } catch { return null; } }
+function applySnap(o){
+  const v = $("#regForm"); if (!o || !v) return;
+  const set = (k, ev) => { const e = $("#" + k, v); if (!e || o[k] == null) return; e.value = o[k]; if (e.value === String(o[k]) && ev) e.dispatchEvent(new Event(ev, { bubbles: true })); };
+  set("rType", "change"); set("rPurpose", "change"); set("rWhy");
+  const te = $("#rTest", v);
+  if (o.rTest && te){ te.value = o.rTest; if (te.value === o.rTest) te.dispatchEvent(new Event("change", { bubbles: true })); }
+  if (te && te.value === defaultTest(o.rType, o.rPurpose)) delete te.dataset.touched;   // the usual test for that type: a new type picks its own
+  set("rRouteSel", "change"); set("rSubmitter"); set("rSubBadge"); set("rSection", "change"); set("rHandTo"); set("rHandBadge"); set("rPriority"); set("rContainers");
+  if (Array.isArray(o.hz)){ HAZARDS.forEach(h => { const c = $("#rHz_" + h.k, v); if (c) c.checked = o.hz.includes(h.k); }); if ($("#rHaz", v)) $("#rHaz", v).dataset.touched = "1"; }
+  if (Array.isArray(o.an)) ADDONS.forEach((_, i) => { const c = $("#rAn" + i, v); if (c) c.checked = o.an.includes(i); });
+  const kind = $(`input[name="rKind"][value="${o.kind === "batch" ? "batch" : "single"}"]`, v);
+  if (kind && !kind.checked){ kind.checked = true; kind.dispatchEvent(new Event("change", { bubbles: true })); }
+  if (o.kind === "batch" && o.n >= 2 && $("#rCount", v)){ $("#rCount", v).value = o.n; $("#rCount", v).dispatchEvent(new Event("change", { bubbles: true })); }
+  $("#rLast", v)?.remove();
+  refreshFormRoute(); submitLabel();
+  (o.kind === "batch" ? $("#rRows .r-code", v) : $("#rTag", v))?.focus();
+  toast("Same details as last time");
+}
+function lastChip(v){
+  const o = lastSnap(), h = $(".form-h", v); if (!o || !h) return;
+  const what = [typeOf(o.rType)?.name, o.rSection].filter(Boolean).join(" · ");
+  h.insertAdjacentHTML("beforeend", `<button type="button" class="btn ghost small last-chip" id="rLast" title="${esc(what)}">Same as last${what ? `: ${esc(what)}` : ""}</button>`);
+  $("#rLast", v).onclick = () => applySnap(o);
+}
+
+/* On a phone, wide tables (ledger, storage, batches, a batch's samples, blind checks, section results) read as cards: each
+   cell carries its column name, and empty cells are left out. The markup stays a table everywhere else. */
+function cardify(){
+  document.querySelectorAll("table.cardy").forEach(t => {
+    const rows = t.querySelectorAll("tbody tr:not([data-l])"); if (!rows.length) return;
+    const hs = [...t.querySelectorAll("thead th")].map(th => th.textContent.trim());
+    rows.forEach(tr => { tr.dataset.l = "1"; [...tr.children].forEach((td, i) => {
+      if (hs[i]) td.dataset.label = hs[i];
+      const x = td.textContent.trim();
+      if ((!x || x === "—") && !td.querySelector("input,button,select,img,svg,a")) td.classList.add("nil");
+    }); });
+    t.closest(".tbl-wrap")?.classList.add("has-cards");
+  });
+}
+new MutationObserver(cardify).observe(document.body, { childList: true, subtree: true });
+/* The Sample tab pressed again while a sample is open goes back to its start page (search, recently opened, today). */
+document.addEventListener("click", e => {
+  const b = e.target.closest('#tabs button[data-tab="track"]');
+  if (!b || tab !== "track" || !current) return;
+  if (unsubCurrent){ unsubCurrent(); unsubCurrent = null; }
+  openSeq++; current = null; $("#lookupInput").value = "";
+  try { history.replaceState(null, "", location.pathname + location.search); } catch {}
+}, true);
 
 /* ---------- upgrade of records written by earlier versions (runs once, under a lease) ---------- */
 function upgradeSample(s){
@@ -7076,7 +7345,7 @@ setTab(tab);
         routes: mergeRoutes(d.routes, d.removed), removed: Array.isArray(d.removed) ? d.removed.slice() : [],
         sections: Array.isArray(d.sections) && d.sections.length ? clone(d.sections) : clone(DEFAULT_CONFIG.sections),
         users, tz: d.tz && tzOk(d.tz) ? d.tz : DEFAULT_CONFIG.tz,
-        crms: Array.isArray(d.crms) && d.schema >= 12 ? clone(d.crms) : mergeCrms(d.crms), limits: Array.isArray(d.limits) ? clone(d.limits) : clone(DEFAULT_CONFIG.limits), resultsPublic: !!d.resultsPublic, work: workOf(d.work), logo: logoOf(d.logo),
+        crms: Array.isArray(d.crms) && d.schema >= 12 ? clone(d.crms) : mergeCrms(d.crms), limits: Array.isArray(d.limits) ? clone(d.limits) : clone(DEFAULT_CONFIG.limits), resultsPublic: !!d.resultsPublic, batchReq: !!d.batchReq, work: workOf(d.work), logo: logoOf(d.logo),
         crmLog: Array.isArray(d.crmLog) ? d.crmLog.slice(0, CRM_LOG_MAX) : [], cols: Array.isArray(d.cols) ? clone(d.cols) : []
       };
     }

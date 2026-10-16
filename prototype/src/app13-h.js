@@ -89,13 +89,13 @@ function renderStorage(){
         ${noLoc ? `<div class="stat"><div class="n" style="color:var(--warn)">${noLoc}</div><div class="l">No location</div></div>` : ""}
       </div>
       <div class="row">
-        <input class="inp" id="stQ" placeholder="Search ID, tag, location or material" style="flex:1 1 220px;width:auto" value="${esc(storeQ)}">
+        <input class="inp" id="stQ" placeholder="Search ID, site code, location or material" style="flex:1 1 220px;width:auto" value="${esc(storeQ)}">
         <select class="inp" id="stSec" style="width:auto;max-width:100%" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${storeSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
         <select class="inp" id="stShow" style="width:auto" aria-label="Show"><option value="all">All material</option><option value="past">Past retention</option><option value="soon">Due within 30 days</option><option value="noloc">No location</option></select>
         <button class="btn" id="stCsv">Export CSV</button>
       </div>
       ${!storeReady ? `<div class="panel empty"><strong>Loading storage…</strong></div>`
-        : shown.length ? `<div class="panel"><div class="tbl-wrap"><table><thead><tr><th>Sample</th><th>Material</th><th>Location</th><th>Keep until</th><th>Then</th><th>Section</th><th>Type</th></tr></thead><tbody>${shown.map(row).join("")}</tbody></table></div>
+        : shown.length ? `<div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>Sample</th><th>Material</th><th>Location</th><th>Keep until</th><th>Then</th><th>Section</th><th>Type</th></tr></thead><tbody>${shown.map(row).join("")}</tbody></table></div>
           ${list.length > shown.length ? `<div class="row" style="margin-top:10px"><span class="small muted">${shown.length} of ${list.length}</span><button type="button" class="btn ghost small" id="stMore">Show more</button></div>` : ""}</div>`
         : `<div class="panel empty"><strong>${all.length ? "No stored material matches these filters" : "Nothing in storage"}</strong></div>`}
       ${qaListPanel()}

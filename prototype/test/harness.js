@@ -2,7 +2,7 @@
 // (where filters, orderBy, limit, recursive update merge, update-requires-existence, cooperative leases, live snapshots).
 const { chromium } = require("playwright");
 const path = require("path");
-const FILE = "file://" + path.resolve(__dirname, "../assay-lab-sample-tracker.html");
+const FILE = "file://" + path.resolve(__dirname, process.env.PAGE || "../assay-lab-sample-tracker.html");
 const store = {}, leases = {}, pages = [], errors = [], toasts = [];
 const stats = { writes: 0 };
 function clone(o){ return o == null ? o : JSON.parse(JSON.stringify(o)); }
