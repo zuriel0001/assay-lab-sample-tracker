@@ -206,5 +206,13 @@ async function attachFile(page, scope, name, data){
   await page.waitForSelector("#upBox .modal-card", { timeout: 5000 }); await page.waitForTimeout(300);
   return (await page.textContent("#upBox")).replace(/\s+/g, " ");
 }
+/* v22: routes' QA/QC review step is off by default. Suites written around it turn it on first, as a lab manager would in Settings. */
+async function useQcStep(browser, on = true){
+  const p = await newUser(browser, { uid: "u_settings", name: "Settings", canEdit: true, names: {} });
+  await signIn(p, "admin"); await tab(p, "stages"); await p.waitForSelector("#cfgQcStep"); await cfgTab(p, "accounts").catch(() => {});
+  await p.selectOption("#cfgQcStep", on ? "1" : "0"); await p.click("#cfgSave");
+  if (!await waitFor(() => store["settings/stages"]?.qcStep === on, 6000)) throw new Error("could not set the QA/QC review step");
+  pages.splice(pages.indexOf(p), 1); await p.context().close();
+}
 async function saveAttach(page){ await page.click("#upSave"); await page.waitForSelector("#upBox", { state: "detached", timeout: 15000 }); await page.waitForTimeout(600); }
-module.exports = { attachFile, saveAttach, openTyping, tab, cfgTab, batchDoc, waitFor, createBatch, fillBatch, saveBatch, runBatch, toasts, FILE, store, leases, pages, errors, stats, clone, broadcast, newUser, launch, T, visibleTabs, signIn, fillForm, ids, open, doc, ledger, toastText, localStr };
+module.exports = { useQcStep, attachFile, saveAttach, openTyping, tab, cfgTab, batchDoc, waitFor, createBatch, fillBatch, saveBatch, runBatch, toasts, FILE, store, leases, pages, errors, stats, clone, broadcast, newUser, launch, T, visibleTabs, signIn, fillForm, ids, open, doc, ledger, toastText, localStr };

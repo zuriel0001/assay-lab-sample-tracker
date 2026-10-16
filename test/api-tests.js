@@ -353,6 +353,18 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
       "and is released by a supervisor (four eyes as before), no lab batch needed");
     check((await one("boss@site.com", { op: "update", path: "settings/stages", data: { batchReq: true } })).ok && mem.docs["settings/stages"].batchReq === true &&
       !(await one("s1@site.com", { op: "update", path: "settings/stages", data: { batchReq: false } })).ok, "only the lab manager changes the lab batch setting"); }
+  { // v22 no QA/QC review step unless Settings use it: a sample is released straight from its last analysis step, still by
+    // someone other than the person who entered its results; only the lab manager changes the setting.
+    const nid = `MIN-${day}-0041`, np = "samples/" + nid, T = { by: "t1", tech: "Tech One" }, S = { by: "s1", tech: "Super One" };
+    await mem.set(np, { id: nid, section: "MIN", stageKey: "finish", open: true, lab: true, onHand: true, history: [{ key: "received", at: now, ...T }, { key: "finish", at: now, ...T }],
+      results: { by: "t1", tech: "Tech One", at: now, rows: { Au: { v: 0.8, raw: "0.8", by: "t1" } } } });
+    const rel = who => ({ stageKey: "released", certs: [{ no: nid + "-R1", v: 1, at: now, ...who, role: who.by === "t1" ? "tech" : "super" }], history: [...mem.docs[np].history, { key: "released", at: now, ...who }] });
+    check(!(await one("t1@site.com", { op: "update", path: np, data: rel(T) })).ok, "the technician who entered the results can't release from the last analysis step");
+    check((await one("s1@site.com", { op: "update", path: np, data: rel(S) })).ok && mem.docs[np].stageKey === "released" && !mem.docs[np].history.some(e => e.key === "qc"),
+      "a supervisor releases straight from the last analysis step, with no QA/QC review stage");
+    check((await one("boss@site.com", { op: "update", path: "settings/stages", data: { qcStep: true } })).ok && mem.docs["settings/stages"].qcStep === true &&
+      !(await one("s1@site.com", { op: "update", path: "settings/stages", data: { qcStep: false } })).ok && !(await one("t1@site.com", { op: "update", path: "settings/stages", data: { qcStep: false } })).ok,
+      "only the lab manager turns the QA/QC review step on or off"); }
   { // Restore: a backup loads into a copy with no samples, by its lab manager only, and comes back as it was.
     const backup = {};
     for (const coll of ["settings", "access", "meta", "tagidx", "samples", "blind", "batches", "stock", "ledger", "files"])

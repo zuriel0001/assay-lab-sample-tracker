@@ -163,6 +163,8 @@ const DEFAULT_CONFIG = {
   resultsPublic: false,
   /* A sample needs a lab batch with its QC before QA/QC review and release (off: results may be typed or attached on the record). */
   batchReq: false,
+  /* Routes' QA/QC review step (off: the release follows the last analysis step; QA/QC is judged on the QA/QC sample sets and lab batches). */
+  qcStep: false,
   routes: DEFAULT_ROUTES
 };
 
@@ -335,7 +337,21 @@ function groupsFor(r, test){
   if (r.qcp && QC_PROFILES[r.qcp] && !out.some(g => g.p === r.qcp)) out.unshift({ p: r.qcp, k: [qcAnalyte(res).k] });
   return out;
 }
-const planOf = s => (s && Array.isArray(s.plan) && s.plan.length) ? s.plan : LEGACY_PLAN;
+/* A QA/QC review step counts only while Settings use it. A sample keeps one it is at or has been through, and one it passed while the
+   step was not used stays out when it is used again. Samples keep their stored steps, so the setting can be changed back. */
+const qcStepOn = () => !!cfg.qcStep;
+const stepsUsed = stages => qcStepOn() ? stages : stages.filter(x => x.phase !== "qc");
+const planMemo = new WeakMap();
+const planOf = s => {
+  const p = (s && Array.isArray(s.plan) && s.plan.length) ? s.plan : LEGACY_PLAN;
+  if (!p.some(x => x.phase === "qc")) return p;
+  const on = qcStepOn(), h = s?.history || [], m = s && typeof s === "object" ? planMemo.get(s) : null;
+  if (m && m.on === on && m.p === p && m.k === s.stageKey && m.n === h.length) return m.out;
+  const ci = p.findIndex(x => x.key === s?.stageKey), seen = new Set(h.map(x => x.key));
+  const out = p.filter((x, i) => x.phase !== "qc" || x.key === s?.stageKey || seen.has(x.key) || (on && (ci < 0 || ci < i)));
+  if (s && typeof s === "object") planMemo.set(s, { on, p, k: s.stageKey, n: h.length, out });
+  return out;
+};
 const allOf = s => [...planOf(s), ...FINALS];
 const stage = (s, key) => allOf(s).find(x => x.key === key) || null;
 const stageIdx = (s, key) => allOf(s).findIndex(x => x.key === key);
@@ -421,7 +437,7 @@ function routePreview(r){
   return `<div class="route-box">
     <div class="row" style="gap:8px"><span class="code">${esc(r.code)}</span><b>${esc(r.name)}</b>${r.two ? `<span class="pill warn">Two-person custody</span>` : ""}</div>
     ${r.desc ? `<div class="small muted">${esc(r.desc)}</div>` : ""}
-    <ol class="steps">${[HEAD[1], ...r.stages].map(x => `<li class="ph-${esc(x.phase)}">${esc(x.name)}<span>${hoursLabel(x.hours)}</span></li>`).join("")}<li class="ph-report">Results released</li></ol>
+    <ol class="steps">${[HEAD[1], ...stepsUsed(r.stages)].map(x => `<li class="ph-${esc(x.phase)}">${esc(x.name)}<span>${hoursLabel(x.hours)}</span></li>`).join("")}<li class="ph-report">Results released</li></ol>
     <div class="small">Results about <b>${hoursLabel(routeTat(r))}</b> after the lab receives the sample (an estimate from the step times). ${(r.retention || []).length ? `Retention: ${esc(r.retention.map(retentionLine).join("; "))}.` : ""}</div></div>`;
 }
 const hazTags = s => (s.hazards || []).map(k => HAZARDS.find(h => h.k === k)).filter(Boolean);

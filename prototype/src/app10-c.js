@@ -326,7 +326,7 @@ function moveForm(s){
       ${self === "admin" && !hold ? `<label class="f full"><span>You entered results on this sample: reason for releasing them yourself (printed on the certificate) <span class="req">*</span></span><input id="selfWhy" data-clear></label>` : ""}
     </div>
     <div class="row">
-      ${release ? (canApprove() ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Release results and issue certificate</button>` : `<span class="small muted">A lab supervisor releases the results after the QA/QC review.</span>`)
+      ${release ? (canApprove() ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Release results and issue certificate</button>` : `<span class="small muted">A lab supervisor releases the results${qcStepOn() ? " after the QA/QC review" : ""}.</span>`)
         : next ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Move to: ${esc(next.name)}</button>` : ""}
       <button type="button" class="btn" data-step="note">Save note only</button>
     </div>

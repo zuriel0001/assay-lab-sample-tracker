@@ -83,7 +83,8 @@ const noScroll = page => page.evaluate(() => document.documentElement.scrollWidt
   log("Sample record");
   await open(A, ex[0]);
   const prog = await A.$eval(".prog", p => ({ t: p.textContent.replace(/\s+/g, " "), v: +p.querySelector("[role=progressbar]").getAttribute("aria-valuenow") }));
-  check(/Step 2 of 12/.test(prog.t) && prog.v > 0 && prog.v < 20 && /left on this step/.test(prog.t), `progress bar: ${prog.t.trim()} (${prog.v}%)`);
+  // v22: 11 steps, the QA/QC review step not used
+  check(/Step 2 of 11/.test(prog.t) && prog.v > 0 && prog.v < 20 && /left on this step/.test(prog.t), `progress bar: ${prog.t.trim()} (${prog.v}%)`);
   check(/^\d+[dhm]/.test((await A.textContent(".eta .cd")).trim()) && /Results expected in/.test(await A.textContent(".eta")), "the results card counts down");
   const facts = await A.evaluate(() => ({ main: [...document.querySelectorAll(".panel > dl.facts dd")].map(d => d.textContent.trim()), more: [...document.querySelectorAll("details.facts-more dt")].map(d => d.textContent), open: document.querySelector("details.facts-more")?.open }));
   check(!facts.main.includes("—") && facts.more.includes("Site reference") && facts.more.includes("Notes") && facts.open === false, "empty details are folded under Show all details");

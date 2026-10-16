@@ -2,9 +2,10 @@
 
 > **In the GitHub repository** this folder is `prototype/`. Left out: the old version folders (`v9/`, `v10/` and so on; git history keeps versions from now on), and `test/v18-tests.js` and `test/shot18.js`, which read the lab's two real reports and quote their sample codes and values. Those two run only in the project folder, with the private reports present.
 
-This folder holds the **v21** source of the published prototype (Version 23 of the artifact)
+This folder holds the **v22** source of the published prototype (Version 24 of the artifact)
 (https://claude.ai/artifact/5JgoyE2wokT67u8TCtYDop). The build thread owns all edits;
-reviewers should read and run, not change these files. Earlier versions: `v20/` (Version 22, before the polish pass: search
+reviewers should read and run, not change these files. Earlier versions: `v21/` (Version 23, before the QA/QC review step
+became a Settings switch; to rebuild it, copy `src/v9-backup.html` next to `v21/src/build20.py`), `v20/` (Version 22, before the polish pass: search
 suggestions, recently opened, the same details again, tables as cards on a phone; to rebuild it, copy `src/v9-backup.html` next to `v20/src/build19.py`), `v19/` (Version 21, before blind QA/QC, batch
 submission and the custody scroll; to rebuild it, copy `src/v9-backup.html` next to `v19/src/build18.py`), `v18/` (Version 20, before Zuriel's answers on QC,
 grind and the site sample code, and the `patch()` fix; to rebuild it, copy `src/v9-backup.html` next to `v18/src/build18.py`), `v17/` (Version 19, before results files, batch
@@ -26,6 +27,7 @@ and lab batches, the version the second review was done against; to rebuild it, 
 | `checkroutes.js` | Validates the route data and prints turnaround per route. |
 | `genmd.js` | Regenerates `workflow-routes.md`: what each route reports (picked and calculated results marked), the batches it joins and its action limits. Run it from `src/`'s parent with `src/app10-a.js` present. |
 | `test/harness.js` | Shared mock of the db capability: several browser pages on one store, with `where` filters (including `array-contains`), `orderBy`, `limit`, recursive `update` merge, update-requires-existence, leases, frozen snapshots and deletes. Batch helpers (`createBatch`, `fillBatch` for one or many results per position, `saveBatch`). |
+| `test/v22-tests.js` | New: no QA/QC review step by default. Settings shows QA/QC review step: Not used and Lab batch before release; the route preview and the record have no QA/QC review; a CCD sample moves through every step to Wash efficiency unstopped; the technician sees "A lab supervisor releases the results."; the note asks only for solution and solids gold (not the sampling point); typed results lift it; the board's Ready for release tile and lane hold the sample; a supervisor releases it from Wash efficiency with no QA/QC review in its history; solution gold over the Final underflow limit with no sampling point holds the release, Thickener feed lifts it, Final underflow keeps it; a fire assay lab batch releases its samples from their last step; Before release brings the step back for unreleased samples only (entering it needs the results, not the sampling point; the board lane is QA/QC review again); turned off again, a sample already at QA/QC review is released from there. Last run: **29 PASS**, no console errors. |
 | `test/v21-tests.js` | New: the polish pass. One sample, one ID on the button; Same details again after a submission and Same as last on a fresh form (staff batch and walk-in single; codes never copied); the site sample code on board cards; the receipt check without “tag none given”; 1 bag, not 1 bag(s); the browser tab named after the open sample or batch; the ledger search says site code; suggestions under the header search (site code, ID, batch reference, submitter; marked match; arrow keys, Enter, Escape, click; a whole ID with Enter still just opens it; / jumps to the search; signed out only your own recent samples); recently opened on the Sample tab (newest first, live status, one click, Clear, each person their own list, a walk-in's registered samples); the Sample tab pressed again goes back to its start page; the batch page's progress, expected finish and no empty Source column; on a phone the ledger and the batch page read as cards with no sideways scroll, IDs on one line; on a computer the ledger is still a table. Lab batches optional: Not required by default; an exploration fire assay sample goes through its steps, has its gold typed on the record, enters QA/QC review and is released with no batch; a results file attached on a record in no batch saves onto the record and makes no batch; Required brings back the batch rule. Last run: **60 PASS**, no console errors. |
 | `test/v20-tests.js` | Blind QA/QC re-assay (technicians can't pick; a supervisor picks from Storage and the Ledger, issues blind QC IDs, prints blind labels; the blind record holds nothing of the original; technicians see no link; receipt, batch and results of the blind samples; the comparison on both records, recorded in the link; admins see it; release; sign-out drops the link), the custody scroll (five entries, full in print and on the public lookup), a batch or a single sample (walk-in batch with paste from a spreadsheet, Enter, remove, duplicate codes; batch reference, IDs in row order; the batch page, Receive the whole batch, batch tracking link; a single sample; staff batch received at once), phone widths. Last run: **71 PASS**, no console errors. |
 | `test/v18-tests.js` | New: results files with the lab's two real SGS reports (old Excel): reading, matching by site sample code, moving samples on, new batches from the report with their repeats and the foot-table CRMs, QC, the kept file and its download, attaching twice, the uploader as result entrant, a draft completed by typing, Settings › Results files; batch steps and Next step; re-assay from Storage and the Ledger; the shorter form. The two reports hold real assay data, so they are not in this folder (it goes to GitHub): they are in `/mnt/project-files/sample-tracking-private/lab-reports/` (or set `LAB_REPORTS`); without them the parts that need them print SKIP. Since v19 also: Site sample code and the submitter's badge, No QC in this run (the elution report, a CSV with no QC rows, release and certificate), the screen line, values typed over file values. Last run: **71 PASS**, no console errors. |
@@ -64,6 +66,7 @@ NODE_PATH=$(npm root -g) timeout 400 node v17-tests.js
 NODE_PATH=$(npm root -g) timeout 590 node v18-tests.js
 NODE_PATH=$(npm root -g) timeout 590 node v20-tests.js
 NODE_PATH=$(npm root -g) timeout 590 node v21-tests.js
+NODE_PATH=$(npm root -g) timeout 590 node v22-tests.js
 node work-hours-unit.js
 NODE_PATH=$(npm root -g):/path/to/jsqr/node_modules timeout 400 node v14-tests.js
 ```
@@ -71,6 +74,48 @@ NODE_PATH=$(npm root -g):/path/to/jsqr/node_modules timeout 400 node v14-tests.j
 The tests write screenshots next to themselves. The Chromium path is in `harness.js`. Run the suites one
 at a time: scenario R in `review-tests-v11.js` times ID claims, and the batch tests wait on several writes per
 step, so they can miss their time budgets when several browsers share the CPU.
+
+## What v22 changes: no QA/QC review step unless Settings use it (2026-10-16)
+
+Zuriel, 04:29Z, on a CCD sample held at "Wash efficiency" with "Before QA/QC review: Enter the results before QA/QC review.
+Missing: Sampling point, Solution gold, Solids gold": "the flow get stacked here, it shouldnt. 'QA/QC review Expected' should be
+taken off".
+
+- **The QA/QC review step is off on every route** (Settings › Accounts, under Results and certificates: "QA/QC review step",
+  Not used by default, or Before release). QA/QC is judged on the QA/QC sample sets and on lab batches. The release follows
+  the last analysis step: a technician moves the sample through its steps without being stopped, and a lab supervisor releases
+  it from the last one. Results are needed only for the release (and the certificate); four eyes, range checks, failed checks,
+  limit alerts and batch QC still hold the release as before. Batches release their samples from the last step ("Release
+  results for 2 samples").
+- Samples keep their route's steps as stored, so the switch can go back: `planOf()` leaves the QA/QC review step out while it
+  is not used, unless the sample is at it or has been through it. With the step used again, samples not yet past it get it
+  back; a sample released without it does not. Route previews, the Workflow routes tab and the turnaround estimates leave the
+  step out the same way. The route editor in Settings still shows it.
+- **The board** turns the QA/QC review lane into **Ready for release** (samples whose next step is the release, with nothing
+  holding it but who releases), and the "Waiting for a lab batch" tile becomes "Ready for release" while lab batches are
+  optional. With the step used, both are as before.
+- **The sampling point was counted as a missing result** because the CCD survey, CIL survey, eluate, solution and carbon results
+  list it as a picked result with no "optional" mark, and a results file never holds it. Picked results now never count as
+  missing; the technician can still choose one with the results. Action limits that apply to one sampling point (for example
+  solution gold above 0.05 mg/L in the final underflow) now apply when no sampling point is chosen, so leaving it out cannot hide
+  an alert; choosing another point lifts it.
+- The lab batch switch is now labelled "Lab batch before release" (same setting, `batchReq`).
+
+For the Azure build:
+- Source: still `build20.py`, no new chunk. Changed: `app10-a.js` (`qcStep: false`, `planOf`, `qcStepOn`, `stepsUsed`, route
+  preview), `app10-c.js` (the technician's release line), `app10-d.js` (board), `app10-e.js` (the switch, the routes table),
+  `app10-f.js` (loading `qcStep`), `app12-g.js` (`missingRes`, `limitHits`, `readyRel`, the batch release button), `app14-i.js`
+  (`routeSpan`). None of the strings `build.py` patches or takes out changed: the current `build.py` applied to this page with
+  no misses and its output parses.
+- **No server change.** `qcStep` is one more Settings field (true or false, absent = not used) saved by an admin like the others;
+  the server never checked the QA/QC review step.
+
+Tests: new `v22-tests.js`. `harness.js` has `useQcStep(browser)`, which turns the step on through Settings as a lab manager
+would. `run.js`, `results-tests.js`, `v13-tests.js`, `v18-tests.js`, `v20-tests.js`, `review-tests-v11.js` and
+`review-v11-scenarios.js` are written around the step and call it first, so they also cover the switch turned on; `v12-tests.js`
+and `v18-tests.js` also put `qcStep: true` in the settings they seed. `v21-tests.js` turns it on for its lab batch checks.
+`v14`–`v17` and the hours tests run with the default; `v15-tests.js` now counts 11 steps on its record. `run.js` waits for
+the move into QA/QC review instead of a fixed pause.
 
 ## What v21 changes: a polish pass over the whole site, and lab batches optional (2026-10-16)
 

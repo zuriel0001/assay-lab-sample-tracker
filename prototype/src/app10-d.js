@@ -13,6 +13,7 @@ function renderBoard(){
   const late = inProc.filter(s => status(s).late);
   const redo = inProc.filter(s => s.reassays > 0);
   const noBatch = inProc.filter(s => { const labs = labsOf(s); return groupsOf(s).some(g => !labs[g.p]); });
+  const relReady = qcStepOn() ? [] : inProc.filter(readyRel);
   const qcAct = inProc.filter(s => Object.values(labsOf(s)).some(l => l.q === "fail" || l.q === "warn"));
   const alerts = isStaff() ? list.filter(s => (s.results || s.amend) && openAlerts(s).length) : [], trends = isStaff() ? crmTrendFlags() : [];
   const relN = [...releasedToday.values()].filter(pass).length;
@@ -28,7 +29,7 @@ function renderBoard(){
     { k: "lab", n: inProc.length, l: "In the lab, before results", tone: "", pick: inProc },
     { k: "late", n: late.length, l: "Running late", tone: "bad", pick: late },
     { k: "redo", n: redo.length, l: "Being re-assayed", tone: "warn", pick: redo },
-    ...(canEdit() ? [{ k: "nobatch", n: noBatch.length, l: "Waiting for a lab batch", tone: "", pick: noBatch },
+    ...(canEdit() ? [batchesRequired() ? { k: "nobatch", n: noBatch.length, l: "Waiting for a lab batch", tone: "", pick: noBatch } : { k: "relready", n: relReady.length, l: "Ready for release", tone: relReady.length ? "info" : "", pick: relReady },
       { k: "qc", n: qcAct.length, l: "In a batch with QC to act on", tone: "warn", pick: qcAct }] : []),
     ...(isStaff() ? [{ k: "alerts", n: alerts.length, l: "Results past an action or permit limit, not yet recorded", tone: "bad", pick: alerts },
       { k: "trends", n: trends.length, l: "Reference material trends", tone: "warn", go: "batches" }] : []),
@@ -65,11 +66,13 @@ function renderBoard(){
       <div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-goto="submit">Submit a sample</button>${allowedTabs().includes("storage") ? `<button class="btn" data-goto="storage">Storage</button>` : ""}</div></div>`;
     bind(); return;
   }
-  const laneDefs = PHASES.filter(x => x.key !== "store");
+  // With no QA/QC review step, its lane holds the samples ready for release (and any still at a QA/QC review step).
+  const laneDefs = PHASES.filter(x => x.key !== "store").map(x => x.key === "qc" && !qcStepOn() ? { ...x, name: "Ready for release" } : x);
+  const relSet = new Set(relReady);
   if (list.some(s => !stage(s, s.stageKey))) laneDefs.push({ key: "__unknown", name: "Stage removed (move these)" });
   const showStep = { intake: 1, prep: 1, test: 1, qc: 1 };
   const lanes = laneDefs.map(x => {
-    const items = list.filter(s => { const st = stage(s, s.stageKey); return (!shown || shown.has(s)) && (x.key === "__unknown" ? !st : st && st.phase === x.key); })
+    const items = list.filter(s => { const st = stage(s, s.stageKey); return (!shown || shown.has(s)) && (x.key === "__unknown" ? !st : relSet.has(s) ? x.key === "qc" : st && st.phase === x.key); })
       .sort((a, b) => (status(b).late - status(a).late) || (b.priority === "Urgent") - (a.priority === "Urgent") || a.stageAt - b.stageAt);
     return `<div class="lane ph-${x.key}"><h4>${esc(x.name)} <span>${items.length}</span></h4>
       <div class="cards">${items.slice(0, 40).map(s => { const stt = status(s), stp = stage(s, s.stageKey), od = overdueMaterials(s), tm = cardTime(s);

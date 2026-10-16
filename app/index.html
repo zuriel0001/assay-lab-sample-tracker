@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 6bdb1046a985) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 c9ccc9a9d516) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1853,6 +1853,8 @@ const DEFAULT_CONFIG = {
   resultsPublic: false,
   /* A sample needs a lab batch with its QC before QA/QC review and release (off: results may be typed or attached on the record). */
   batchReq: false,
+  /* Routes' QA/QC review step (off: the release follows the last analysis step; QA/QC is judged on the QA/QC sample sets and lab batches). */
+  qcStep: false,
   routes: DEFAULT_ROUTES
 };
 
@@ -2025,7 +2027,21 @@ function groupsFor(r, test){
   if (r.qcp && QC_PROFILES[r.qcp] && !out.some(g => g.p === r.qcp)) out.unshift({ p: r.qcp, k: [qcAnalyte(res).k] });
   return out;
 }
-const planOf = s => (s && Array.isArray(s.plan) && s.plan.length) ? s.plan : LEGACY_PLAN;
+/* A QA/QC review step counts only while Settings use it. A sample keeps one it is at or has been through, and one it passed while the
+   step was not used stays out when it is used again. Samples keep their stored steps, so the setting can be changed back. */
+const qcStepOn = () => !!cfg.qcStep;
+const stepsUsed = stages => qcStepOn() ? stages : stages.filter(x => x.phase !== "qc");
+const planMemo = new WeakMap();
+const planOf = s => {
+  const p = (s && Array.isArray(s.plan) && s.plan.length) ? s.plan : LEGACY_PLAN;
+  if (!p.some(x => x.phase === "qc")) return p;
+  const on = qcStepOn(), h = s?.history || [], m = s && typeof s === "object" ? planMemo.get(s) : null;
+  if (m && m.on === on && m.p === p && m.k === s.stageKey && m.n === h.length) return m.out;
+  const ci = p.findIndex(x => x.key === s?.stageKey), seen = new Set(h.map(x => x.key));
+  const out = p.filter((x, i) => x.phase !== "qc" || x.key === s?.stageKey || seen.has(x.key) || (on && (ci < 0 || ci < i)));
+  if (s && typeof s === "object") planMemo.set(s, { on, p, k: s.stageKey, n: h.length, out });
+  return out;
+};
 const allOf = s => [...planOf(s), ...FINALS];
 const stage = (s, key) => allOf(s).find(x => x.key === key) || null;
 const stageIdx = (s, key) => allOf(s).findIndex(x => x.key === key);
@@ -2111,7 +2127,7 @@ function routePreview(r){
   return `<div class="route-box">
     <div class="row" style="gap:8px"><span class="code">${esc(r.code)}</span><b>${esc(r.name)}</b>${r.two ? `<span class="pill warn">Two-person custody</span>` : ""}</div>
     ${r.desc ? `<div class="small muted">${esc(r.desc)}</div>` : ""}
-    <ol class="steps">${[HEAD[1], ...r.stages].map(x => `<li class="ph-${esc(x.phase)}">${esc(x.name)}<span>${hoursLabel(x.hours)}</span></li>`).join("")}<li class="ph-report">Results released</li></ol>
+    <ol class="steps">${[HEAD[1], ...stepsUsed(r.stages)].map(x => `<li class="ph-${esc(x.phase)}">${esc(x.name)}<span>${hoursLabel(x.hours)}</span></li>`).join("")}<li class="ph-report">Results released</li></ol>
     <div class="small">Results about <b>${hoursLabel(routeTat(r))}</b> after receipt. ${(r.retention || []).length ? `Retention: ${esc(r.retention.map(retentionLine).join("; "))}.` : ""}</div></div>`;
 }
 const hazTags = s => (s.hazards || []).map(k => HAZARDS.find(h => h.k === k)).filter(Boolean);
@@ -2728,7 +2744,7 @@ function moveForm(s){
       ${self === "admin" && !hold ? `<label class="f full"><span>You entered results on this sample: reason for releasing them yourself (printed on the certificate) <span class="req">*</span></span><input id="selfWhy" data-clear></label>` : ""}
     </div>
     <div class="row">
-      ${release ? (canApprove() ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Release results and issue certificate</button>` : `<span class="small muted">A lab supervisor releases the results after the QA/QC review.</span>`)
+      ${release ? (canApprove() ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Release results and issue certificate</button>` : `<span class="small muted">A lab supervisor releases the results${qcStepOn() ? " after the QA/QC review" : ""}.</span>`)
         : next ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Move to: ${esc(next.name)}</button>` : ""}
       <button type="button" class="btn" data-step="note">Save note only</button>
     </div>
@@ -3128,6 +3144,7 @@ function renderBoard(){
   const late = inProc.filter(s => status(s).late);
   const redo = inProc.filter(s => s.reassays > 0);
   const noBatch = inProc.filter(s => { const labs = labsOf(s); return groupsOf(s).some(g => !labs[g.p]); });
+  const relReady = qcStepOn() ? [] : inProc.filter(readyRel);
   const qcAct = inProc.filter(s => Object.values(labsOf(s)).some(l => l.q === "fail" || l.q === "warn"));
   const alerts = isStaff() ? list.filter(s => (s.results || s.amend) && openAlerts(s).length) : [], trends = isStaff() ? crmTrendFlags() : [];
   const relN = [...releasedToday.values()].filter(pass).length;
@@ -3143,7 +3160,7 @@ function renderBoard(){
     { k: "lab", n: inProc.length, l: "In the lab, before results", tone: "", pick: inProc },
     { k: "late", n: late.length, l: "Running late", tone: "bad", pick: late },
     { k: "redo", n: redo.length, l: "Being re-assayed", tone: "warn", pick: redo },
-    ...(canEdit() ? [{ k: "nobatch", n: noBatch.length, l: "Waiting for a lab batch", tone: "", pick: noBatch },
+    ...(canEdit() ? [batchesRequired() ? { k: "nobatch", n: noBatch.length, l: "Waiting for a lab batch", tone: "", pick: noBatch } : { k: "relready", n: relReady.length, l: "Ready for release", tone: relReady.length ? "info" : "", pick: relReady },
       { k: "qc", n: qcAct.length, l: "In a batch with QC to act on", tone: "warn", pick: qcAct }] : []),
     ...(isStaff() ? [{ k: "alerts", n: alerts.length, l: "Results past an action or permit limit, not yet recorded", tone: "bad", pick: alerts },
       { k: "trends", n: trends.length, l: "Reference material trends", tone: "warn", go: "batches" }] : []),
@@ -3180,11 +3197,13 @@ function renderBoard(){
       <div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-goto="submit">Submit a sample</button>${allowedTabs().includes("storage") ? `<button class="btn" data-goto="storage">Storage</button>` : ""}</div></div>`;
     bind(); return;
   }
-  const laneDefs = PHASES.filter(x => x.key !== "store");
+  // With no QA/QC review step, its lane holds the samples ready for release (and any still at a QA/QC review step).
+  const laneDefs = PHASES.filter(x => x.key !== "store").map(x => x.key === "qc" && !qcStepOn() ? { ...x, name: "Ready for release" } : x);
+  const relSet = new Set(relReady);
   if (list.some(s => !stage(s, s.stageKey))) laneDefs.push({ key: "__unknown", name: "Stage removed (move these)" });
   const showStep = { intake: 1, prep: 1, test: 1, qc: 1 };
   const lanes = laneDefs.map(x => {
-    const items = list.filter(s => { const st = stage(s, s.stageKey); return (!shown || shown.has(s)) && (x.key === "__unknown" ? !st : st && st.phase === x.key); })
+    const items = list.filter(s => { const st = stage(s, s.stageKey); return (!shown || shown.has(s)) && (x.key === "__unknown" ? !st : relSet.has(s) ? x.key === "qc" : st && st.phase === x.key); })
       .sort((a, b) => (status(b).late - status(a).late) || (b.priority === "Urgent") - (a.priority === "Urgent") || a.stageAt - b.stageAt);
     return `<div class="lane ph-${x.key}"><h4>${esc(x.name)} <span>${items.length}</span></h4>
       <div class="cards">${items.slice(0, 40).map(s => { const stt = status(s), stp = stage(s, s.stageKey), od = overdueMaterials(s), tm = cardTime(s);
@@ -3598,7 +3617,7 @@ function routeRows(r){
   const rows = [
     { name: HEAD[0].name, phase: "await", hours: transitOf(r), note: "Submitted online; time allowed for the sample to reach the lab." },
     { name: HEAD[1].name, phase: "intake", hours: HEAD[1].hours, note: "Bag, seal, mass and condition checked against the submission by a lab technician; written to the inbound ledger." },
-    ...r.stages,
+    ...stepsUsed(r.stages),
     { name: "Results released", phase: "report", hours: 24, note: "Released by a lab supervisor once QA/QC passes; material put into storage within 24 h." },
     { name: "Retained in storage", phase: "store", hours: Math.max(1, keepDays(r)) * 24, note: "Each material on its own clock, then returned, sent to an external lab or disposed (outbound ledger)." }
   ];
@@ -3648,6 +3667,7 @@ function renderStages(){
   draft.crms = Array.isArray(draft.crms) ? draft.crms : clone(DEFAULT_CONFIG.crms);
   draft.resultsPublic = !!draft.resultsPublic;
   draft.batchReq = !!draft.batchReq;
+  draft.qcStep = !!draft.qcStep;
   draft.limits = Array.isArray(draft.limits) ? draft.limits : clone(DEFAULT_CONFIG.limits);
   draft.users = draft.users || [];
   const viaMe = window.__me?.via === "email";
@@ -3725,7 +3745,8 @@ function renderStages(){
 
     <h2 style="margin-top:12px">Results and certificates</h2>
     <label class="f" style="max-width:520px"><span>Who can see results on a sample record</span><select class="inp" id="cfgResPub"><option value="0" ${draft.resultsPublic ? "" : "selected"}>Signed-in staff only (recommended)</option><option value="1" ${draft.resultsPublic ? "selected" : ""}>Anyone with the sample ID or site sample code</option></select></label>
-    <label class="f" style="max-width:520px"><span>Lab batch before QA/QC review</span><select class="inp" id="cfgBatchReq"><option value="0" ${draft.batchReq ? "" : "selected"}>Not required</option><option value="1" ${draft.batchReq ? "selected" : ""}>Required</option></select></label>
+    <label class="f" style="max-width:520px"><span>Lab batch before release</span><select class="inp" id="cfgBatchReq"><option value="0" ${draft.batchReq ? "" : "selected"}>Not required</option><option value="1" ${draft.batchReq ? "selected" : ""}>Required</option></select></label>
+    <label class="f" style="max-width:520px"><span>QA/QC review step</span><select class="inp" id="cfgQcStep"><option value="0" ${draft.qcStep ? "" : "selected"}>Not used</option><option value="1" ${draft.qcStep ? "selected" : ""}>Before release</option></select></label>
 
     <h2 style="margin-top:12px">Reference materials (CRMs and check standards)</h2>
     <div class="mock"><b>Example values.</b><span>Replace them with the values on your CRM certificates.</span></div>
@@ -3803,6 +3824,7 @@ function renderStages(){
   });
   $("#cfgResPub").addEventListener("change", e => { draft.resultsPublic = e.target.value === "1"; dirty(); });
   $("#cfgBatchReq").addEventListener("change", e => { draft.batchReq = e.target.value === "1"; dirty(); });
+  $("#cfgQcStep").addEventListener("change", e => { draft.qcStep = e.target.value === "1"; dirty(); });
   $("#rtQcp").addEventListener("change", e => { R.qcp = e.target.value; regenQc(R); dirty(); });
   v.querySelectorAll("[data-cf]").forEach(el => el.addEventListener("change", () => {
     const i = +el.dataset.ci, f = el.dataset.cf, c = draft.crms[i];
@@ -4013,7 +4035,7 @@ function renderStages(){
     const mine = draft, crmLog = [...crmChanges(clone(cfg.crms || []), draft.crms), ...(cfg.crmLog || [])].slice(0, CRM_LOG_MAX);
     draftDirty = false;                      // our own save coming back is not "someone else's"
     try {
-      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users), crms: clone(draft.crms), crmLog, limits: clone(draft.limits), cols: (draft.cols || []).filter(x => x.n).map(x => ({ n: x.n, c: x.c || "" })), resultsPublic: !!draft.resultsPublic, batchReq: !!draft.batchReq, work: workOf(draft.work), logo: logoOf(draft.logo), routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
+      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users), crms: clone(draft.crms), crmLog, limits: clone(draft.limits), cols: (draft.cols || []).filter(x => x.n).map(x => ({ n: x.n, c: x.c || "" })), resultsPublic: !!draft.resultsPublic, batchReq: !!draft.batchReq, qcStep: !!draft.qcStep, work: workOf(draft.work), logo: logoOf(draft.logo), routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
       draftDirty = false; draft = null; renderStages(); markAccessGiven(mine.users);
       toast(uncovered.length ? `Saved. No route performs: ${uncovered.slice(0, 3).join(", ")}${uncovered.length > 3 ? "…" : ""}` : "Settings saved for everyone.");
     }
@@ -4197,7 +4219,8 @@ function resCell(r, a){
   return t;
 }
 const resSummary = (ans, rows) => ans.filter(a => rows[a.k]).slice(0, 4).map(a => `${anShort(a)} ${resText(rows[a.k], a)}${a.u ? " " + a.u : ""}`).join("; ") + (ans.filter(a => rows[a.k]).length > 4 ? "; …" : "");
-const missingRes = (s, rows = s.results?.rows || {}) => anOf(s).filter(a => !a.opt && !a.calc && !rows[a.k]);
+/* A pick (such as the sampling point) describes the sample; it is never a missing result. */
+const missingRes = (s, rows = s.results?.rows || {}) => anOf(s).filter(a => !a.opt && !a.calc && a.t !== "pick" && !rows[a.k]);
 const overRes = (s, rows = s.results?.rows || {}) => anOf(s).filter(a => rows[a.k]?.f === "over");
 /* Results worked out from others are never typed: they are set, or cleared, from their inputs whenever results are saved ("<DL" counts as 0). */
 function withCalc(s, rows){
@@ -4241,7 +4264,7 @@ function limitHits(s, rows = effRows(s)){
   const out = [];
   for (const l of cfg.limits || []){
     if (l.route !== s.route || !rows[l.k]) continue;
-    if (l.when && rows.pt?.raw !== l.when) continue;
+    if (l.when && rows.pt?.raw && rows.pt.raw !== l.when) continue;   // no sampling point chosen: the limit applies
     const x = resNum(rows[l.k]); if (x == null) continue;
     if (l.op === "<" ? x < +l.val : x > +l.val) out.push({ ...l, raw: rows[l.k].raw, v: x, key: `${l.id}|${l.k}|${rows[l.k].raw}` });
   }
@@ -4266,6 +4289,8 @@ function qcEntryBlock(s){
   if (miss.length) return `Enter the results before QA/QC review. Missing: ${miss.map(a => a.n).join(", ")}.`;
   return "";
 }
+/* Next step the release, and nothing in the way of it but who releases. */
+const readyRel = s => { const i = curIdx(s); return i >= 1 && !!planOf(s)[i + 1]?.target && !awaiting(s) && !releaseBlock(s); };
 /* What still stops a supervisor releasing the results (who may release is checked separately: selfCheck). */
 function releaseBlock(s){
   const miss = missingRes(s);
@@ -5125,7 +5150,7 @@ function batchDetail(b){
           ${b.qc.status === "fail" && isAdmin() ? `<button type="button" class="btn ghost danger" data-bdec="override">Accept the failure as an exception</button>` : ""}</div>
         ${relDone ? `<p class="small muted" style="margin:0">${relDone} sample${relDone === 1 ? " was" : "s were"} already released from this batch, so its entries can't be opened again: correct a released result with an amended certificate.</p>` : ""}</div>` : ""}` : "";
   const s5 = b.status === "done" ? `<div class="small">All results released.</div>` : `${b.qc ? moves : ""}${b.open && canApprove() && b.qc ? `<div class="stack" style="gap:6px">${adminSelf ? `<label class="f"><span>Some of these results were entered by you: reason for releasing them yourself (recorded on the certificates)</span><input id="bSelfWhy" data-clear></label>` : ""}
-      <div class="row"><button type="button" class="btn ${releasable ? "primary" : ""}" id="bRelease" ${releasable ? "" : "disabled data-hold"}>Release results for ${releasable} sample${releasable === 1 ? "" : "s"} at QA/QC review</button><span class="small muted">${mineHeld ? `${mineHeld} with results you entered wait for another supervisor.` : ""}</span></div></div>` : relDone ? `<div class="small">${relDone} released.</div>` : ""}`;
+      <div class="row"><button type="button" class="btn ${releasable ? "primary" : ""}" id="bRelease" ${releasable ? "" : "disabled data-hold"}>Release results for ${releasable} sample${releasable === 1 ? "" : "s"}${qcStepOn() ? " at QA/QC review" : ""}</button><span class="small muted">${mineHeld ? `${mineHeld} with results you entered wait for another supervisor.` : ""}</span></div></div>` : relDone ? `<div class="small">${relDone} released.</div>` : ""}`;
   return `<div class="panel stack" id="batchBox" style="gap:12px">
     <div class="row" style="gap:10px"><h3 style="margin:0" class="mono">${esc(b.id)}</h3><span class="pill ${cls}">${esc(txt)}</span><span class="small muted">${esc(p.name)} · ${one ? (an.n ? `${esc(an.n)} in ${esc(an.u)}` : "") : `checks ${esc(listAnd(ans.map(anShort)))}`}${b.rerunOf ? ` · re-run of <button type="button" class="linkish mono" data-batch="${esc(b.rerunOf)}">${esc(b.rerunOf)}</button>` : ""}</span></div>
     ${canEdit() && b.open && anyTwo ? `<div class="form">${witnessField("bWit")}</div>` : ""}
@@ -5410,7 +5435,7 @@ const dueFrom = (t, x) => x.clock || !cfg.work ? t + (+x.hours || 0) * HOUR : ad
 const overBy = (due, now, x) => x.clock || !cfg.work ? now - due : workBetween(due, now);
 /* Hours a route takes from receipt to results: the sum of its steps round the clock, or the elapsed time from the next shift start. */
 function routeSpan(r){
-  const steps = [HEAD[1], ...((r && r.stages) || [])];
+  const steps = [HEAD[1], ...stepsUsed((r && r.stages) || [])];
   if (!cfg.work) return steps.reduce((t, x) => t + (+x.hours || 0), 0);
   const t0 = workStart(Date.now());
   let t = t0;
@@ -7345,7 +7370,7 @@ setTab(tab);
         routes: mergeRoutes(d.routes, d.removed), removed: Array.isArray(d.removed) ? d.removed.slice() : [],
         sections: Array.isArray(d.sections) && d.sections.length ? clone(d.sections) : clone(DEFAULT_CONFIG.sections),
         users, tz: d.tz && tzOk(d.tz) ? d.tz : DEFAULT_CONFIG.tz,
-        crms: Array.isArray(d.crms) && d.schema >= 12 ? clone(d.crms) : mergeCrms(d.crms), limits: Array.isArray(d.limits) ? clone(d.limits) : clone(DEFAULT_CONFIG.limits), resultsPublic: !!d.resultsPublic, batchReq: !!d.batchReq, work: workOf(d.work), logo: logoOf(d.logo),
+        crms: Array.isArray(d.crms) && d.schema >= 12 ? clone(d.crms) : mergeCrms(d.crms), limits: Array.isArray(d.limits) ? clone(d.limits) : clone(DEFAULT_CONFIG.limits), resultsPublic: !!d.resultsPublic, batchReq: !!d.batchReq, qcStep: !!d.qcStep, work: workOf(d.work), logo: logoOf(d.logo),
         crmLog: Array.isArray(d.crmLog) ? d.crmLog.slice(0, CRM_LOG_MAX) : [], cols: Array.isArray(d.cols) ? clone(d.cols) : []
       };
     }

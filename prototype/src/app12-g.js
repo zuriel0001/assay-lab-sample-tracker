@@ -106,7 +106,8 @@ function resCell(r, a){
   return t;
 }
 const resSummary = (ans, rows) => ans.filter(a => rows[a.k]).slice(0, 4).map(a => `${anShort(a)} ${resText(rows[a.k], a)}${a.u ? " " + a.u : ""}`).join("; ") + (ans.filter(a => rows[a.k]).length > 4 ? "; …" : "");
-const missingRes = (s, rows = s.results?.rows || {}) => anOf(s).filter(a => !a.opt && !a.calc && !rows[a.k]);
+/* A pick (such as the sampling point) describes the sample; it is never a missing result. */
+const missingRes = (s, rows = s.results?.rows || {}) => anOf(s).filter(a => !a.opt && !a.calc && a.t !== "pick" && !rows[a.k]);
 const overRes = (s, rows = s.results?.rows || {}) => anOf(s).filter(a => rows[a.k]?.f === "over");
 /* Results worked out from others are never typed: they are set, or cleared, from their inputs whenever results are saved ("<DL" counts as 0). */
 function withCalc(s, rows){
@@ -150,7 +151,7 @@ function limitHits(s, rows = effRows(s)){
   const out = [];
   for (const l of cfg.limits || []){
     if (l.route !== s.route || !rows[l.k]) continue;
-    if (l.when && rows.pt?.raw !== l.when) continue;
+    if (l.when && rows.pt?.raw && rows.pt.raw !== l.when) continue;   // no sampling point chosen: the limit applies
     const x = resNum(rows[l.k]); if (x == null) continue;
     if (l.op === "<" ? x < +l.val : x > +l.val) out.push({ ...l, raw: rows[l.k].raw, v: x, key: `${l.id}|${l.k}|${rows[l.k].raw}` });
   }
@@ -175,6 +176,8 @@ function qcEntryBlock(s){
   if (miss.length) return `Enter the results before QA/QC review. Missing: ${miss.map(a => a.n).join(", ")}.`;
   return "";
 }
+/* Next step the release, and nothing in the way of it but who releases. */
+const readyRel = s => { const i = curIdx(s); return i >= 1 && !!planOf(s)[i + 1]?.target && !awaiting(s) && !releaseBlock(s); };
 /* What still stops a supervisor releasing the results (who may release is checked separately: selfCheck). */
 function releaseBlock(s){
   const miss = missingRes(s);
@@ -1034,7 +1037,7 @@ function batchDetail(b){
           ${b.qc.status === "fail" && isAdmin() ? `<button type="button" class="btn ghost danger" data-bdec="override">Accept the failure as an exception</button>` : ""}</div>
         ${relDone ? `<p class="small muted" style="margin:0">${relDone} sample${relDone === 1 ? " was" : "s were"} already released from this batch, so its entries can't be opened again: correct a released result with an amended certificate.</p>` : ""}</div>` : ""}` : "";
   const s5 = b.status === "done" ? `<div class="small">All results released.</div>` : `${b.qc ? moves : ""}${b.open && canApprove() && b.qc ? `<div class="stack" style="gap:6px">${adminSelf ? `<label class="f"><span>Some of these results were entered by you: reason for releasing them yourself (recorded on the certificates)</span><input id="bSelfWhy" data-clear></label>` : ""}
-      <div class="row"><button type="button" class="btn ${releasable ? "primary" : ""}" id="bRelease" ${releasable ? "" : "disabled data-hold"}>Release results for ${releasable} sample${releasable === 1 ? "" : "s"} at QA/QC review</button><span class="small muted">Each gets its own certificate.${mineHeld ? ` ${mineHeld} with results you entered wait for another supervisor.` : ""}</span></div></div>` : relDone ? `<div class="small">${relDone} released.</div>` : ""}`;
+      <div class="row"><button type="button" class="btn ${releasable ? "primary" : ""}" id="bRelease" ${releasable ? "" : "disabled data-hold"}>Release results for ${releasable} sample${releasable === 1 ? "" : "s"}${qcStepOn() ? " at QA/QC review" : ""}</button><span class="small muted">Each gets its own certificate.${mineHeld ? ` ${mineHeld} with results you entered wait for another supervisor.` : ""}</span></div></div>` : relDone ? `<div class="small">${relDone} released.</div>` : ""}`;
   return `<div class="panel stack" id="batchBox" style="gap:12px">
     <div class="row" style="gap:10px"><h3 style="margin:0" class="mono">${esc(b.id)}</h3><span class="pill ${cls}">${esc(txt)}</span><span class="small muted">${esc(p.name)} · ${one ? (an.n ? `${esc(an.n)} in ${esc(an.u)}` : "") : `checks ${esc(listAnd(ans.map(anShort)))}`}${b.rerunOf ? ` · re-run of <button type="button" class="linkish mono" data-batch="${esc(b.rerunOf)}">${esc(b.rerunOf)}</button>` : ""}</span></div>
     ${canEdit() && b.open && anyTwo ? `<div class="form">${witnessField("bWit")}</div>` : ""}

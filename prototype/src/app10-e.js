@@ -40,7 +40,7 @@ function routeRows(r){
   const rows = [
     { name: HEAD[0].name, phase: "await", hours: transitOf(r), note: "Submitted online; time allowed for the sample to reach the lab." },
     { name: HEAD[1].name, phase: "intake", hours: HEAD[1].hours, note: "Bag, seal, mass and condition checked against the submission by a lab technician; written to the inbound ledger." },
-    ...r.stages,
+    ...stepsUsed(r.stages),
     { name: "Results released", phase: "report", hours: 24, note: "Released by a lab supervisor once QA/QC passes; material put into storage within 24 h." },
     { name: "Retained in storage", phase: "store", hours: Math.max(1, keepDays(r)) * 24, note: "Each material on its own clock, then returned, sent to an external lab or disposed (outbound ledger)." }
   ];
@@ -90,6 +90,7 @@ function renderStages(){
   draft.crms = Array.isArray(draft.crms) ? draft.crms : clone(DEFAULT_CONFIG.crms);
   draft.resultsPublic = !!draft.resultsPublic;
   draft.batchReq = !!draft.batchReq;
+  draft.qcStep = !!draft.qcStep;
   draft.limits = Array.isArray(draft.limits) ? draft.limits : clone(DEFAULT_CONFIG.limits);
   draft.users = draft.users || [];
   draft.routes = draft.routes && draft.routes.length ? draft.routes : clone(DEFAULT_ROUTES);
@@ -167,7 +168,8 @@ function renderStages(){
     <h2 style="margin-top:12px">Results and certificates</h2>
     <p class="small muted" style="margin:0">A lab supervisor releases results with a numbered certificate of analysis. Corrections issue an amended certificate; earlier versions stay on record.</p>
     <label class="f" style="max-width:520px"><span>Who can see results on a sample record</span><select class="inp" id="cfgResPub"><option value="0" ${draft.resultsPublic ? "" : "selected"}>Signed-in staff only (recommended)</option><option value="1" ${draft.resultsPublic ? "selected" : ""}>Anyone with the sample ID or site sample code</option></select></label>
-    <label class="f" style="max-width:520px"><span>Lab batch before QA/QC review</span><select class="inp" id="cfgBatchReq"><option value="0" ${draft.batchReq ? "" : "selected"}>Not required</option><option value="1" ${draft.batchReq ? "selected" : ""}>Required</option></select></label>
+    <label class="f" style="max-width:520px"><span>Lab batch before release</span><select class="inp" id="cfgBatchReq"><option value="0" ${draft.batchReq ? "" : "selected"}>Not required</option><option value="1" ${draft.batchReq ? "selected" : ""}>Required</option></select></label>
+    <label class="f" style="max-width:520px"><span>QA/QC review step</span><select class="inp" id="cfgQcStep"><option value="0" ${draft.qcStep ? "" : "selected"}>Not used</option><option value="1" ${draft.qcStep ? "selected" : ""}>Before release</option></select></label>
 
     <h2 style="margin-top:12px">Reference materials (CRMs and check standards)</h2>
     <div class="mock"><b>Example values.</b><span>The certified values and standard deviations below are placeholders for the prototype. Replace them with the values on your own CRM certificates before relying on the QC checks.</span></div>
@@ -220,6 +222,7 @@ function renderStages(){
   const dirty = () => { draftDirty = true; renderStages(); };
   $("#cfgResPub").addEventListener("change", e => { draft.resultsPublic = e.target.value === "1"; dirty(); });
   $("#cfgBatchReq").addEventListener("change", e => { draft.batchReq = e.target.value === "1"; dirty(); });
+  $("#cfgQcStep").addEventListener("change", e => { draft.qcStep = e.target.value === "1"; dirty(); });
   $("#rtQcp").addEventListener("change", e => { R.qcp = e.target.value; regenQc(R); dirty(); });
   v.querySelectorAll("[data-cf]").forEach(el => el.addEventListener("change", () => {
     const i = +el.dataset.ci, f = el.dataset.cf, c = draft.crms[i];
@@ -392,7 +395,7 @@ function renderStages(){
     const mine = draft, crmLog = [...crmChanges(clone(cfg.crms || []), draft.crms), ...(cfg.crmLog || [])].slice(0, CRM_LOG_MAX);
     draftDirty = false;                      // our own save coming back is not "someone else's"
     try {
-      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users), crms: clone(draft.crms), crmLog, limits: clone(draft.limits), cols: (draft.cols || []).filter(x => x.n).map(x => ({ n: x.n, c: x.c || "" })), resultsPublic: !!draft.resultsPublic, batchReq: !!draft.batchReq, work: workOf(draft.work), logo: logoOf(draft.logo), routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
+      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users), crms: clone(draft.crms), crmLog, limits: clone(draft.limits), cols: (draft.cols || []).filter(x => x.n).map(x => ({ n: x.n, c: x.c || "" })), resultsPublic: !!draft.resultsPublic, batchReq: !!draft.batchReq, qcStep: !!draft.qcStep, work: workOf(draft.work), logo: logoOf(draft.logo), routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
       draftDirty = false; draft = null; renderStages();
       toast(uncovered.length ? `Saved. No route performs: ${uncovered.slice(0, 3).join(", ")}${uncovered.length > 3 ? "…" : ""}` : "Settings saved for everyone.");
     }

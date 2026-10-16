@@ -146,7 +146,10 @@ async function typeSearch(page, q){ await page.click("#lookupInput"); await page
   log("Lab batches are optional unless Settings require them");
   const Ad = await newUser(browser, { uid: "u_a", name: "Admin", canEdit: true, names }); await signIn(Ad, "admin");
   await H.tab(Ad, "stages"); await Ad.waitForSelector("#cfgBatchReq");
-  check(await Ad.$eval("#cfgBatchReq", e => e.value) === "0" && /Not required/.test(await Ad.$eval("#cfgBatchReq", e => e.selectedOptions[0].textContent)), "Settings: Lab batch before QA/QC review is Not required by default");
+  check(await Ad.$eval("#cfgBatchReq", e => e.value) === "0" && /Not required/.test(await Ad.$eval("#cfgBatchReq", e => e.selectedOptions[0].textContent)), "Settings: Lab batch before release is Not required by default");
+  // v22: these checks are about lab batches around a QA/QC review step, which is now off by default (v22-tests covers that), so use it here.
+  await H.cfgTab(Ad, "accounts").catch(() => {}); await Ad.selectOption("#cfgQcStep", "1"); await Ad.click("#cfgSave");
+  await waitFor(() => store["settings/stages"]?.qcStep === true, 5000); await Tc.waitForTimeout(500);
   await fillForm(Tc, "register", { section: "EXP", submitter: "Ama Mensah", count: 2, tags: "DH-201" }); const nb = await ids(Tc);
   const toBeforeQc = async (page, id) => { for (let g = 0; g < 20; g++){ await open(page, id); const p = doc(id).plan, i = p.findIndex(x => x.key === doc(id).stageKey); if (p[i + 1]?.phase === "qc") return true; await page.click('[data-step="next"]'); await waitFor(() => doc(id).stageKey !== p[i].key, 5000); } return false; };
   check(await toBeforeQc(Tc, nb[0]), "an exploration fire assay sample moves through its steps without a lab batch");
@@ -180,6 +183,8 @@ async function typeSearch(page, q){ await page.click("#lookupInput"); await page
   check(Object.values(doc(nb[1]).results?.rows || {}).some(r => r.v === 4.56 && r.src === "file") && !Object.keys(store).some(k => k.startsWith("batches/") && JSON.stringify(store[k].pos || []).includes(nb[1])), "the gold 4.56 is on the record from the file, and no lab batch was made");
   await open(Tc, nb[1]);
   check(!(await Tc.$eval('[data-step="next"]', b => b.disabled)), "and it can go on to QA/QC review");
+  await Ad.selectOption("#cfgQcStep", "0"); await Ad.click("#cfgSave");
+  await waitFor(() => store["settings/stages"]?.qcStep === false, 5000);
 
   console.log("Console errors:", JSON.stringify(errors));
   if (errors.length) process.exitCode = 1;

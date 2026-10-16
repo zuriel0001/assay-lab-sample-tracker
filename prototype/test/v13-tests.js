@@ -28,6 +28,7 @@ const lanes = page => page.textContent(".lanes").catch(() => "");
 
 (async () => {
   const browser = await launch();
+  await H.useQcStep(browser);   // v22: this suite is written around the QA/QC review step, which Settings now turn on
   const P = await newUser(browser, { uid: "u_p", name: "Public", canEdit: true, names });
   const Tc = await newUser(browser, { uid: "u_t", name: "Tech", canEdit: true, names }); await signIn(Tc, "tech1");
   const Sv = await newUser(browser, { uid: "u_s", name: "Super", canEdit: true, names }); await signIn(Sv, "super");

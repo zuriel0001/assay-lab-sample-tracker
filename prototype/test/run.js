@@ -21,6 +21,7 @@ const moves = id => ledger().filter(m => m.sid === id);
   const browser = await launch();
   const P = await newUser(browser, { uid: "u_z", name: "Zuriel", canEdit: true, names });
   await P.waitForTimeout(2200);   // one-off upgrade runs 1.5 s after load
+  await H.useQcStep(browser);   // v22: this suite is written around the QA/QC review step, which Settings now turn on (after the upgrade)
 
   log("Upgrade of earlier records");
   const L1 = doc("MET-2026-00001"), L2 = doc("EXP-20261001-0001"), L3 = doc("EXP-20261001-0002");
@@ -174,7 +175,7 @@ const moves = id => ledger().filter(m => m.sid === id);
   const gb1 = await H.runBatch(A, "grav", [s1], () => "15.6");
   check(doc(s1).labBatch === gb1 && doc(s1).labQc === "pass", "gravimetric batch for the new route");
   await open(S, s1);
-  await sNext(S, 1);
+  await sNext(S, 1); await H.waitFor(() => doc(s1).stageKey === "qc", 3000);
   check(doc(s1).stageKey === "qc", "back at QA/QC");
   await S.click('[data-step="next"]'); await S.waitForTimeout(1100);
   const rel = doc(s1);

@@ -63,7 +63,7 @@ const dueFrom = (t, x) => x.clock || !cfg.work ? t + (+x.hours || 0) * HOUR : ad
 const overBy = (due, now, x) => x.clock || !cfg.work ? now - due : workBetween(due, now);
 /* Hours a route takes from receipt to results: the sum of its steps round the clock, or the elapsed time from the next shift start. */
 function routeSpan(r){
-  const steps = [HEAD[1], ...((r && r.stages) || [])];
+  const steps = [HEAD[1], ...stepsUsed((r && r.stages) || [])];
   if (!cfg.work) return steps.reduce((t, x) => t + (+x.hours || 0), 0);
   const t0 = workStart(Date.now());
   let t = t0;
