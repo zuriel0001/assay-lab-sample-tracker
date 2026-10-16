@@ -103,7 +103,10 @@ async function poll(){
   if (polling) return;
   polling = true; clearTimeout(pollT);
   try {
-    const watch = [...new Set([...docSubs].map(s => s.path))];
+    // Lab staff receive every change. Anyone else receives changes to what they have open: a record, and the samples of a
+    // lookup that lists several (a batch, a site sample code on more than one sample).
+    const staff = ["tech", "super", "admin", "viewer"].includes(window.__me && window.__me.role);
+    const watch = [...new Set([...[...docSubs].map(s => s.path), ...(staff ? [] : [...querySubs].filter(s => s.coll === "samples" && s.ready).flatMap(s => [...s.docs.keys()]))])].slice(0, 500);
     const from = Math.max(0, since != null ? since : serverNow ? serverNow - OVERLAP_MS : Date.now() - 60000);
     const seen = [...recent].filter(([, u]) => u > from).slice(-400);
     const r = await call({ op: "changes", since: from, watch, seen });
@@ -226,7 +229,7 @@ window.claude = { use: async n => n === "db" ? db : n === "user" ? user : n === 
 /* The lab manager's backup: every record of every collection, as one JSON file. Returns how many records it holds. */
 window.__backup = async () => {
   const out = {}; let n = 0;
-  for (const coll of ["settings", "samples", "batches", "ledger", "stock", "tagidx", "meta", "access", "files"]){
+  for (const coll of ["settings", "samples", "batches", "ledger", "stock", "tagidx", "meta", "access", "files", "blind"]){
     out[coll] = {};
     for (let after = ""; after != null; ){
       const r = await call({ op: "export", coll, after, limit: 200 });
@@ -244,7 +247,7 @@ window.__backup = async () => {
    in parts well under 1 MB. Asked once per page load whether this copy can take one. */
 let restoreState = null;
 window.__restoreState = () => restoreState || (restoreState = call({ op: "restore", check: true }).catch(() => ({ empty: false, mine: false })));
-const RESTORE_ORDER = ["settings", "access", "meta", "tagidx", "samples", "batches", "stock", "ledger", "files"];
+const RESTORE_ORDER = ["settings", "access", "meta", "tagidx", "samples", "blind", "batches", "stock", "ledger", "files"];
 window.__restore = async (backup, progress) => {
   const cols = backup && backup.collections;
   if (!cols || typeof cols !== "object") throw { message: "This is not a backup file from this site." };

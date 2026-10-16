@@ -58,7 +58,7 @@ and a budget alert (*Cost Management* → *Budgets*) is a good safety net.
 ## Moving data between copies
 
 1. On the copy that has the data: **Settings → Download backup** (lab manager). The file holds every record: Settings,
-   samples, batches, ledger, stock records, site sample code index, ID counters, access requests and kept results files.
+   samples, batches, ledger, stock records, site sample code index, ID counters, access requests, kept results files and blind QA/QC links.
 2. On the new copy, before anyone registers a sample there: sign in as its lab manager (step 6 above), open
    **Settings** and press **Restore backup** (it shows only while the copy has no samples). Pick the file; the page
    shows how many samples, batches and other records it holds. Press **Load … records**. The page reloads when done.

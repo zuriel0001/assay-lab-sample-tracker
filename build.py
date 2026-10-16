@@ -388,7 +388,7 @@ put('''  const dirty = () => { draftDirty = true; renderStages(); };''',
     let bk = null; try { bk = JSON.parse(await f.text()); } catch {}
     if (!bk || bk.app !== "Assay Lab Sample Tracker" || !bk.collections || typeof bk.collections !== "object"){ toast("That is not a backup file from this site."); return; }
     const n = c => Object.keys(bk.collections[c] || {}).length, total = Object.values(bk.collections).reduce((t, c) => t + Object.keys(c || {}).length, 0);
-    const parts = [["samples", "Samples"], ["batches", "Lab batches"], ["ledger", "Ledger days"], ["stock", "Stock records"], ["files", "Results files"], ["access", "Access requests"], ["settings", "Settings"]];
+    const parts = [["samples", "Samples"], ["batches", "Lab batches"], ["ledger", "Ledger days"], ["stock", "Stock records"], ["files", "Results files"], ["blind", "Blind QA/QC checks"], ["access", "Access requests"], ["settings", "Settings"]];
     $("#cfgRestoreBox")?.remove();
     rb.parentElement.insertAdjacentHTML("afterend", `<div class="notice" id="cfgRestoreBox"><b>${esc(f.name)}</b>${bk.site ? ` · ${esc(bk.site)}` : ""}${Date.parse(bk.exportedAt) ? ` · ${esc(fmt(Date.parse(bk.exportedAt)))}` : ""}
       <div class="small" style="margin:6px 0" id="cfgRestoreCounts">${parts.map(([c, l]) => `${l} ${n(c).toLocaleString()}`).join(" · ")}</div>

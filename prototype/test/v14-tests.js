@@ -85,7 +85,7 @@ const hm = ms => new Date(ms).toISOString().slice(11, 16);
 
   log("Bag labels with a QR code");
   await fillForm(P, "submit", { section: "EXP", submitter: "Ama", count: 2, tags: "T-501, T-502" }); const ex = await ids(P);
-  check(await P.$eval("#rLabels", b => b.textContent) === "Print labels", "the confirmation offers Print labels");
+  check(await P.$eval("#rLabels", b => b.textContent) === "Print 2 labels", "the confirmation offers Print labels (v20: with the count)");
   await P.click("#rLabels"); await P.waitForSelector("#labelBox .bag-label");
   const labels = await P.$$eval("#labelBox .bag-label", ls => ls.map(l => l.textContent.replace(/\s+/g, " ")));
   check(labels.length === 2 && labels[0].includes(ex[0]) && labels[0].includes("T-501") && labels[1].includes(ex[1]) && labels[1].includes("T-502") && /Section ?EXP/.test(labels[0]) && /Submitted/.test(labels[0]) && /Type/.test(labels[0]), "one label per sample with its ID, tag, type, section and date");

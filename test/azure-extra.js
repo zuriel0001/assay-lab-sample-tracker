@@ -202,6 +202,18 @@ const log = t => console.log("• " + t);
   for (let i = errors.length - 1; i >= before; i--) if (/status of 403/.test(errors[i])) errors.splice(i, 1);   // the browser logs the refusal this check expects
   check(plain === 403, "the API only takes JSON from this site's own page");
 
+  log("A batch registered by a visitor");
+  const W = await newUser(browser, { uid: "w2", name: "Walk-in" });
+  await fillForm(W, "register", { section: "MIN", submitter: "Kojo", count: 3, tags: "MNB-1" });
+  const bids = await ids(W), bref = doc(bids[0])?.batchId;
+  check(bids.length === 3 && bref === "B-" + bids[0] && bids.every(x => doc(x)?.batchId === bref && doc(x).createdBy === "public"), "a signed-out visitor registers a batch of 3; each sample carries the batch reference");
+  await open(W, bref);
+  check((await W.$$("#view-track tbody tr")).length === 3, "the visitor opens the batch by its reference");
+  await open(T, bref); await T.setChecked("#bvOk", true); await T.click("#bvRecvBtn");
+  check(!!(await waitFor(() => bids.every(x => doc(x).stageKey === "received"), 8000)), "a technician receives the whole batch");
+  await W.waitForFunction(n => document.querySelectorAll("#view-track tbody tr .pill").length === n && ![...document.querySelectorAll("#view-track tbody tr .pill")].some(p => /awaiting/i.test(p.textContent)), 3, { timeout: 10000 }).catch(() => {});
+  check(!/awaiting/i.test(await W.$eval("#view-track tbody", e => e.textContent).catch(() => "awaiting")), "the visitor's open batch page shows the receipt without reloading");
+
   log("Page errors");
   check(!errors.length, "no console errors" + (errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""));
   console.log(`\n${pass} PASS, ${fail} FAIL`);

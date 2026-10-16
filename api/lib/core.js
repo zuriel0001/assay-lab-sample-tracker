@@ -3,7 +3,7 @@
 const { validWhere, clone, same } = require("./docutil");
 const { createAuth, requestKey, clientIp } = require("./auth");
 
-const COLLS = ["samples", "ledger", "batches", "stock", "tagidx", "meta", "settings", "access", "files"];
+const COLLS = ["samples", "ledger", "batches", "stock", "tagidx", "meta", "settings", "access", "files", "blind"];
 const WRITERS = ["tech", "super", "admin"], STAFF = [...WRITERS, "viewer"], APPROVERS = ["super", "admin"];
 const SEG = /^[^\u0000-\u001f/\\?#]{1,200}$/;
 const MAX_DOC = 1500000;   // Cosmos DB items are limited to 2 MB
@@ -70,6 +70,7 @@ function sampleRule(a, cur, next){
   if (!extends_(h0, h1)) return "A sample's history can only be added to, never changed.";
   const publicForm = !cur && next.createdBy === "public" && h1.length === 1 && h1[0] && h1[0].by === "public";
   if (!publicForm && h1.slice(h0.length).some(e => !who(e))) return "Each new line in a sample's history must name the person signed in.";
+  if (!cur && looksBlind(next) && !APPROVERS.includes(a.role)) return "Only a lab supervisor or the lab manager issues blind QA/QC samples.";
   if (cur && next.stageKey !== cur.stageKey && h1.length === h0.length) return "A sample changes step only with a new line in its history.";
 
   const c0 = (cur && cur.certs) || [], c1 = next.certs || [];
@@ -121,6 +122,38 @@ function ledgerRule(a, cur, next){
   return "";
 }
 const RULES = { samples: sampleRule, batches: batchRule, ledger: ledgerRule };
+/* Blind QA/QC re-assay: blind/<blind ID> links a QC sample to the sample it re-assays. Only lab supervisors and the lab manager
+   read it; the blind sample is written as a QA/QC submission with nothing on it that points back. A supervisor issues the link
+   once in their own name; after that, comparisons are only added to it. */
+const SAMPLE_ID = /^[A-Z0-9]{1,8}-\d{8}-\d{4}$/, BLIND_NOTE = "Submitted for a QA/QC check";
+const qaqc = v => typeof v === "string" && v.replace(/[^A-Za-z]/g, "").toUpperCase() === "QAQC";
+/* A new sample presented the way a blind QA/QC sample is (submitted by "QA/QC", or with its note). */
+const looksBlind = d => !!d && (qaqc(d.submitter) || qaqc(d.createdByName) ||
+  (Array.isArray(d.history) && d.history.some(e => e && (qaqc(e.name) || (typeof e.note === "string" && e.note.trim().toLowerCase() === BLIND_NOTE.toLowerCase())))));
+function blindProblem(a, id, d){
+  if (!SAMPLE_ID.test(id) || d.id !== id || Object.keys(d).some(k => !["id", "of", "set", "at", "by", "tech", "test", "note", "mats", "cmps"].includes(k)) ||
+      typeof d.of !== "string" || !SAMPLE_ID.test(d.of) || d.of === id || !Number.isFinite(d.at) || !short(d.set, 60) || !short(d.test, 60) || !short(d.note, 200) ||
+      !Array.isArray(d.mats) || d.mats.length > 50 || !d.mats.every(m => m && typeof m === "object" && !Array.isArray(m) && Object.keys(m).every(k => k === "item" || k === "loc") && short(m.item, 200) && short(m.loc, 200)))
+    return "Not a valid blind QA/QC check.";
+  if (!Array.isArray(d.cmps) || d.cmps.length) return "A blind QA/QC check starts with no comparison.";
+  return signedBy(a)(d) ? "" : "A blind QA/QC check is issued under the name of the person signed in.";
+}
+/* Beyond the form's shape (checkSubmission): a batch carries B- and its first ID on every sample, a short name, and each
+   sample's own source location; and only a supervisor or the lab manager sends a sample presented as a blind QA/QC sample. */
+function submissionExtras(d){
+  if (d.batchId != null && !(typeof d.batchId === "string" && /^B-[A-Z0-9]{1,8}-\d{8}-\d{4}$/.test(d.batchId))) return "batch";
+  if (!short(d.batchName, 80) || !short(d.source, 1000)) return "batch";
+  return looksBlind(d) ? "qaqc" : "";
+}
+function blindRule(a, cur, next){
+  if (!cur) return "No such blind QA/QC check.";
+  const rest = x => { const o = { ...x }; delete o.cmps; return o; };
+  if (!same(rest(cur), rest(next))) return "A blind QA/QC check stays as issued; only comparisons are added to it.";
+  const c0 = cur.cmps || [], c1 = next.cmps;
+  if (!extends_(c0, c1)) return "A recorded comparison can't be changed or removed.";
+  if (c1.slice(c0.length).some(e => !e || typeof e !== "object" || Array.isArray(e) || !signedBy(a)(e))) return "A comparison must be recorded under the name of the person signed in.";
+  return "";
+}
 /* A results file the lab attached (CSV or Excel), kept as it came: files/RF-<id> describes it and names who attached it,
    files/RF-<id>~1, ~2… hold it in base64 pieces. Written once; never changed or deleted. */
 const FILE_ID = /^RF-(?:[0-9A-F]{16}|\d{8}-[0-9A-Z]{1,10})$/, FILE_PIECE = 180000, FILE_PARTS = 10;
@@ -136,7 +169,7 @@ function fileProblem(a, id, d){
 }
 
 /* Restoring a backup: the collections a backup holds, loaded in this order (Settings first). */
-const RESTORE = ["settings", "access", "meta", "tagidx", "samples", "batches", "stock", "ledger", "files"];
+const RESTORE = ["settings", "access", "meta", "tagidx", "samples", "blind", "batches", "stock", "ledger", "files"];
 const RESTORE_MARK = "_restore/state";   // outside every collection: nobody reads it through the API
 /* The restored staff list keeps the person restoring it as lab manager, so loading a backup never locks them out. */
 function keepRestorer(d, a){
@@ -190,6 +223,7 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
   async function visible(a, path, d){
     const { coll, id } = parsePath(path) || {};
     if (coll === "access") return a.role === "admin" || (a.signedIn && id === requestKey(a.email, a.via)) ? d : undefined;   // the lab manager, and the person asking
+    if (coll === "blind") return APPROVERS.includes(a.role) ? d : undefined;   // which sample a blind one re-assays: supervisors and the lab manager only
     if (!isStaff(a) && !["settings", "samples", "tagidx", "meta"].includes(coll)) return undefined;   // ledger, lab batches, stock records: staff only
     if (d == null) return d;
     if (coll === "settings"){
@@ -205,12 +239,14 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
     if (coll === "tagidx" || coll === "meta") return d;
     return undefined;   // not readable
   }
-  /* People who are not lab staff may look a sample up by its tag or site reference, and a section account may list its own section. */
+  /* People who are not lab staff may look a sample up by its tag or site reference, a batch up by its reference (B- and its first
+     ID), and a section account may list its own section. */
   function queryAllowed(a, coll, where){
     if (coll === "access") return a.role === "admin";
+    if (coll === "blind") return APPROVERS.includes(a.role);
     if (isStaff(a)) return true;
     if (coll !== "samples") return false;
-    if (where.some(([f, op]) => (f === "tags" && op === "array-contains") || (f === "siteRefU" && op === "=="))) return true;
+    if (where.some(([f, op, v]) => (f === "tags" && op === "array-contains") || (f === "siteRefU" && op === "==") || (f === "batchId" && op === "==" && typeof v === "string" && v.startsWith("B-")))) return true;
     return a.role === "section" && where.some(([f, op, v]) => f === "section" && op === "==" && v === a.sec);
   }
 
@@ -255,7 +291,7 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
       const orderBy = Array.isArray(op.orderBy) && /^[A-Za-z_]\w{0,63}$/.test(op.orderBy[0]) ? [op.orderBy[0], op.orderBy[1] === "desc" ? "desc" : "asc"] : null;
       let limit = op.limit ? Math.max(1, Math.min(5000, op.limit | 0)) : 0;
       if (!queryAllowed(a, coll, where)) return { docs: [] };
-      if (!isStaff(a) && a.role !== "section") limit = Math.min(limit || 25, 25);
+      if (!isStaff(a) && a.role !== "section") limit = Math.min(limit || 25, where.some(([f]) => f === "batchId") ? 100 : 25);   // a batch has up to 100 samples
       const rows = await store.query(coll, where, { orderBy, limit });
       const docs = [];
       for (const r of rows){ const d = await visible(a, r.path, r.data); if (d !== undefined) docs.push({ path: r.path, data: d }); }
@@ -306,6 +342,7 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
       const ttl = Math.min(600000, Math.max(1000, +op.ttl || 30000)), holder = String(op.holder || "").slice(0, 100);
       if (!holder) throw fail("bad_request");
       const who = a.u ? a.u + ":" + holder : holder;
+      if (pp.coll === "blind" && !APPROVERS.includes(a.role)) throw fail("permission_denied");
       if (!isWriter(a)){
         // The public form leases a new ID before it writes it, then shortens its own lease; it may not lease an existing record.
         const no = { acquired: false, expiresAt: new Date(Date.now() + 1000).toISOString() };
@@ -347,6 +384,19 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
       cache = null;
       return { ok: true };
     }
+    if (pp.coll === "blind"){
+      if (!APPROVERS.includes(a.role)) throw fail("permission_denied", "Only a lab supervisor or the lab manager handles blind QA/QC checks.");
+      if (t === "delete") throw fail("permission_denied", "A blind QA/QC check is never deleted.");
+      if (t === "set"){
+        const why = blindProblem(a, pp.id, op.data);
+        if (why) throw fail("bad_request", why);
+        const o = await store.get("samples/" + op.data.of);
+        if (!o || !(o.certs || []).length) throw fail("bad_request", "A blind QA/QC check is made of a sample with released results.");
+        if (!(await store.get("samples/" + pp.id))) throw fail("bad_request", "Issue the blind sample before its link.");
+        await store.set(op.path, op.data, { check: (cur, next) => cur ? blindRule(a, cur, next) : "" });
+      } else await store.update(op.path, op.data, { check: (cur, next) => blindRule(a, cur, next) });
+      return { ok: true };
+    }
     if (isWriter(a)){
       if (pp.coll === "files"){
         // Written once. Saving the same piece again (a retry after a lost answer) changes nothing and is allowed.
@@ -369,8 +419,15 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
     // Everyone else: public submissions only.
     if (t !== "set") throw fail("permission_denied", "Only lab staff can change records.");
     if (pp.coll === "samples"){
-      const why = checkSubmission(pp.id, op.data);
+      const why = checkSubmission(pp.id, op.data) || submissionExtras(op.data);
+      if (why === "qaqc") throw fail("permission_denied", "“QA/QC” is kept for the lab's blind checks. Type the submitter's name.");
       if (why) throw fail("permission_denied", "Not a valid new submission (" + why + ").");
+      const b = op.data.batchId;
+      if (b && b !== "B-" + pp.id){   // the rest of a batch join its first sample, sent moments before from the same form
+        const f = await store.get("samples/" + b.slice(2));
+        if (!f || f.batchId !== b || f.createdBy !== "public" || f.section !== op.data.section || !(Date.now() - (+f.createdAt || 0) < 15 * 60000))
+          throw fail("permission_denied", "Not a valid new submission (batch).");
+      }
       await store.set(op.path, op.data, { create: true });
       return { ok: true };
     }

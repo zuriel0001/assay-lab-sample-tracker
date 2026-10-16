@@ -1,6 +1,6 @@
 # Assay Lab Sample Tracker on Azure (free test deployment)
 
-This folder is the v21 Assay Lab Sample Tracker made to run outside Claude, on Microsoft Azure free tiers.
+This folder is the v22 Assay Lab Sample Tracker made to run outside Claude, on Microsoft Azure free tiers.
 It keeps the prototype's workflow exactly: routes, lab batches and QC, action limits, the second-person release,
 amendments, certificates, the in/out ledger, walk-in registration and lookup without sign-in, and the roles.
 What changes is where data lives (Azure Cosmos DB), how staff sign in (their Microsoft account) and a server that
@@ -142,17 +142,21 @@ the tracker already shapes them. Sources: [SQL free offer](https://learn.microso
 
 | Person | Reads | Changes |
 |---|---|---|
-| Not signed in | A sample by ID, tag or site reference, without results (unless Settings says anyone may see results); certificate number and check code | Register new samples at the lab only; they wait for a technician's receipt (checked: new ID, not received, no results, current time) |
+| Not signed in | A sample by ID, tag or site reference, or a batch by its reference (B- and its first ID), without results (unless Settings says anyone may see results); certificate number and check code | Register new samples at the lab only; they wait for a technician's receipt (checked: new ID, not received, no results, current time) |
 | Signed in (Microsoft or email) without an account | As above, plus their own access request | As above, plus one access request at a time, for their own email only (name, section or job; no role) |
 | Section account | A sample as the public sees it, plus its own section's samples with results | Submit new samples only |
-| Viewer | Everything | Submit new samples only |
-| Lab technician, lab supervisor | Everything | Samples, batches, ledger, stock records, tag index; attached results files (kept once under their name, never changed or deleted) |
-| Admin | Everything, including sign-in emails and access requests | All of that, plus Settings (the company logo only as a PNG, JPEG or WebP picture under 90 KB), answering access requests, resetting email passwords, the backup download, and loading a backup into a copy with no samples |
+| Viewer | Everything except blind QA/QC links | Submit new samples only |
+| Lab technician | Everything except blind QA/QC links | Samples, batches, ledger, stock records, tag index; attached results files (kept once under their name, never changed or deleted) |
+| Lab supervisor | Everything | As a technician, plus blind QA/QC checks: the blind sample and its link to the original, issued in their own name, and comparisons added to the link (never changed or deleted) |
+| Admin | Everything, including sign-in emails, access requests and blind QA/QC links | All of that, plus Settings (the company logo only as a PNG, JPEG or WebP picture under 90 KB), answering access requests, resetting email passwords, the backup download, and loading a backup into a copy with no samples |
 
 Staff see each other's names and roles but not their sign-in emails. A request gives no access by itself: a role
 comes only from the staff list in Settings, which only the admin saves; who approved or declined it, and when, stays
 on the request. The ledger, lab batches and stock records (which
-name shelves and tags) are staff only. Nobody deletes a sample, its stock record or a ledger day. The API only answers JSON requests from the site's own page, so another website
+name shelves and tags) are staff only. Nobody deletes a sample, its stock record or a ledger day. Which sample a blind QA/QC sample
+re-assays is kept only in its link, which no one but lab supervisors and the admin can read, list or receive as a live change;
+the blind sample itself is a QA/QC submission with nothing pointing back, and only a supervisor or the admin can send a sample
+presented that way. The API only answers JSON requests from the site's own page, so another website
 can't make a signed-in person's browser change records.
 
 ## How it is built
@@ -160,7 +164,7 @@ can't make a signed-in person's browser change records.
 | Path | What it is |
 |---|---|
 | `prototype/` | In the GitHub repository only: the prototype's source, tests and route tables (the project's `sample-tracking` folder, without its old version archives). `build.py` and `test/run-suites.js` read it from here; the site deploy uses only `app/` and `api/`. |
-| `app/index.html` | The page. Built by `build.py` from the prototype's `assay-lab-sample-tracker.html` (v21), which it never edits. Every patch must match exactly once, so a changed prototype fails the build loudly. |
+| `app/index.html` | The page. Built by `build.py` from the prototype's `assay-lab-sample-tracker.html` (v22), which it never edits. Every patch must match exactly once, so a changed prototype fails the build loudly. |
 | `app/azure-shim.js` | Gives the page the shared-database interface it was written for, over `/api/db`: documents, where-filters, live snapshots (by polling for changes), short leases; plus the signed-in person (`/api/me`) and downloads. |
 | `app/staticwebapp.config.json` | Node 22 API, Microsoft sign-in only (GitHub sign-in turned off), `/login` and `/logout`. |
 | `api/db`, `api/me`, `api/auth` | Azure Functions (HTTP) behind `/api`. |
@@ -170,11 +174,11 @@ can't make a signed-in person's browser change records.
 | `api/lib/store-cosmos.js` | Cosmos DB store: one container `docs` in database `tracker` (created on first use with 1000 RU/s on the container), partitioned by collection; filters, sorting and limits run in the database; ETag checks on every read-modify-write; leases as records; deletes kept as markers so open pages hear about them. |
 | `api/lib/store-memory.js` | The same store in memory, for local runs and tests. |
 | `dev/server.js` | Local stand-in for Static Web Apps: `node dev/server.js` → http://localhost:4280, in-memory data, a local sign-in page (type an email, or an example username such as `tech1`). |
-| `test/api-tests.js` | 169 checks of the read/write rules, the record-keeping rules, stock records, access requests, the company logo, walk-in registration and hand-over, reference material edits, attached results files, the backup export, restoring a backup into an empty copy, and the Functions entry points. |
+| `test/api-tests.js` | 203 checks of the read/write rules, the record-keeping rules, stock records, access requests, the company logo, walk-in registration and hand-over, reference material edits, attached results files, the backup export, restoring a backup into an empty copy, blind QA/QC links, batches, and the Functions entry points. |
 | `test/auth-tests.js` | 51 checks of email sign-in: sign-up, forged and expired sessions, password guessing, resets, an email login not taking a Microsoft account's access, the Functions entry point. |
 | `test/store-tests.js` | 28 checks on each store; Cosmos runs against `@vercel/cosmosdb-server` (a local Cosmos imitation) or a real account. |
-| `test/run-suites.js` | Runs the prototype's own thirteen suites against this build (real page, real API over HTTP), unchanged except where tracking links carry this site's address or a check writes straight to the database (its ADJUST list), then `azure-extra.js`. |
-| `test/azure-extra.js` | 56 browser checks of what is new: Microsoft sign-in, email sign-up and sign-in, password change and reset, first admin, accounts by email, requesting and approving access, upgrade on staff sign-in, what the public sees, the backup download, the server refusing a tampered page's changes. |
+| `test/run-suites.js` | Runs the prototype's own fourteen suites against this build (real page, real API over HTTP), unchanged except where tracking links carry this site's address or a check writes straight to the database (its ADJUST list), then `azure-extra.js`. |
+| `test/azure-extra.js` | 66 browser checks of what is new: Microsoft sign-in, email sign-up and sign-in, password change and reset, first admin, accounts by email, requesting and approving access, upgrade on staff sign-in, what the public sees, the backup download and restore, a batch registered signed out, the server refusing a tampered page's changes. |
 
 Patches `build.py` makes to the page: start after `/api/me` answers; tracking links use this site's address; the
 sign-in tab has *Sign in* and *Sign up*, each with Microsoft or email; accounts have a sign-in email and a *Sign in with* choice instead of a password; the first
@@ -182,14 +186,14 @@ admin is added to the account list on their first visit to Settings; upgrades an
 member signs in; permission errors from the server are shown as such; the header says *Test system*; the prototype's
 explanatory paragraphs are taken out (labels, warnings, status lines and each route's own description stay).
 
-### Test results (2026-10-15)
+### Test results (2026-10-16)
 
 | Suite | Result |
 |---|---|
-| `api-tests.js` | 169 / 169 |
+| `api-tests.js` | 203 / 203 |
 | `store-tests.js` | 56 / 56 (28 in memory, 28 on the local Cosmos DB imitation) |
 | `auth-tests.js` | 51 / 51 |
-| `azure-extra.js` | 62 / 62 (including a backup restored into a second copy of the site) |
+| `azure-extra.js` | 66 / 66 (including a backup restored into a second copy of the site, and a visitor's batch page updating live) |
 | Prototype `run.js` | 101 / 107 |
 | Prototype `results-tests.js` | 92 / 93 |
 | Prototype `v12-tests.js` | 68 / 71 |
@@ -203,6 +207,7 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 | Prototype `v16-tests.js` | 43 / 43 (walk-ins without sign-in, Submit after sign-in, 80% passing 75 µm, reference material edits and history, Other reason, receiver, board tiles and lanes, ZIJIN) |
 | Prototype `v17-tests.js` | 25 / 25 (one entry tab: Register signed out, Submit signed in with Received now for lab staff; handed to and badge number) |
 | Prototype `v18-tests.js` | 71 / 71 (results from the lab's own CSV and Excel reports, kept files, drafts, No QC in this run, batch steps, re-assay from Storage and the Ledger, the shorter form, site sample code and badge). Needs the lab's two real reports, which are not in GitHub; without them it is skipped. |
+| Prototype `v20-tests.js` | 71 / 71 (blind QA/QC re-assay: picks, blind IDs, what technicians see, comparisons on both records; a batch or a single sample on Submit and Register; the batch page and receiving a batch; the custody log scrolling) |
 
 No console errors in any suite. The 10 prototype checks that don't pass all expect a page **nobody is signed in to** to
 upgrade older records (9) or finish a lab batch a crashed device left half-made (1). On Azure the public can't

@@ -102,7 +102,7 @@ function parseReport(grid, idx){
     seen[key] = (seen[key] || 0) + 1;
     cols.push({ i: j, name: sp.name, unit: unit === "-" ? "" : unit, method: methods ? methods[j] || "" : "", rep: reps && /^[1-9]$/.test(reps[j] || "") ? +reps[j] : seen[key], concept: colConcept(sp.name) });
   }
-  /* A screen analysis in mesh fractions (+40 … +200 … −325, % retained) is kept as the report states it, as one line ("+40 0.03 · +70 1.26 ·
+  /* A screen analysis in mesh fractions (+40 … +200 … −325, % retained) is kept as the report states it, as one line ("+40 0.5 · +70 2.1 ·
      …"): the site does not work out a grind from it. */
   const mesh = cols.filter(c => /^[+-]\d{2,3}$/.test(c.name) && (!c.unit || c.unit === "%"));
   if (mesh.length >= 2){

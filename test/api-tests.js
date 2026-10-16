@@ -242,13 +242,13 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
       history: [{ key: "submitted", at: now, by: "public", name: "J", note: "Submitted through the submission form", hand: "Kofi Mensah", badge: "B-1042" }] }) })).ok, "a technician's Submit with Received now cleared waits for receipt like any submission"); }
   { const sha = "ab".repeat(32), fid = "RF-" + sha.slice(0, 16).toUpperCase(), t0 = Date.now() - 1;   // v18 results files
     const piece = n => ({ id: `${fid}~${n}`, of: fid, n, data: Buffer.from("csv line " + n).toString("base64") });
-    const rec = { id: fid, name: "ak041110.xls", kind: "xls", size: 2048, sha, labRef: "AK1", parts: 2, at: now, by: "t1", tech: "Tech One" };
+    const rec = { id: fid, name: "mill-run.xls", kind: "xls", size: 2048, sha, labRef: "AK1", parts: 2, at: now, by: "t1", tech: "Tech One" };
     check((await one("t1@site.com", { op: "set", path: `files/${fid}~1`, data: piece(1) })).ok && (await one("t1@site.com", { op: "set", path: `files/${fid}~2`, data: piece(2) })).ok &&
       (await one("t1@site.com", { op: "set", path: "files/" + fid, data: rec })).ok, "a technician keeps a results file: its pieces, then its record under their name");
     check((await one("t1@site.com", { op: "set", path: `files/${fid}~1`, data: piece(1) })).ok, "saving the same piece again (a retry) is allowed");
     check(!(await one("t1@site.com", { op: "set", path: `files/${fid}~1`, data: { ...piece(1), data: "QUJD" } })).ok, "a kept file can't be overwritten");
     check(!(await one("t1@site.com", { op: "update", path: "files/" + fid, data: { name: "other.xls" } })).ok, "a kept file's record can't be changed");
-    check(!(await one("boss@site.com", { op: "delete", path: "files/" + fid })).ok && (await one("v@site.com", { op: "get", path: "files/" + fid })).data.name === "ak041110.xls", "a kept file is never deleted, even by the lab manager");
+    check(!(await one("boss@site.com", { op: "delete", path: "files/" + fid })).ok && (await one("v@site.com", { op: "get", path: "files/" + fid })).data.name === "mill-run.xls", "a kept file is never deleted, even by the lab manager");
     check(!(await one("t1@site.com", { op: "set", path: "files/RF-1111111111111111", data: { ...rec, id: "RF-1111111111111111", by: "s1", tech: "Super One" } })).ok, "a file can't be kept in someone else's name");
     check(!(await one("v@site.com", { op: "set", path: "files/RF-2222222222222222~1", data: { id: "RF-2222222222222222~1", of: "RF-2222222222222222", n: 1, data: "QUJD" } })).ok, "a viewer can't keep files");
     check(!(await one("t1@site.com", { op: "set", path: "files/RF-3333333333333333~1", data: { id: "RF-3333333333333333~1", of: "RF-3333333333333333", n: 1, data: "A".repeat(180004) } })).ok &&
@@ -271,9 +271,76 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
     const bid = `GC-${day}-0008`;
     check((await one(null, { op: "set", path: "samples/" + bid, data: sub(bid, { subBadge: "B-2231", tags: ["MS-0042"] }) })).ok && (await one(null, { op: "get", path: "samples/" + bid })).data.subBadge === "B-2231", "a submission carries the submitter's badge number and its site sample code");
     check((await one("t1@site.com", { op: "update", path: np, data: { results: { rows: { scr: { raw: "+40 0.2", t: "+40 0.2", by: "t1" } } } } })).ok, "a technician corrects the screen analysis line under their own name"); }
+  { // v20 blind QA/QC re-assay: the link to the original is for supervisors and the lab manager only, and the blind sample is a
+    // QA/QC submission with nothing on it that points back.
+    const qid = `QC-${day}-0001`, qp = "samples/" + qid, bp = "blind/" + qid, t0 = Date.now() - 1, S = { by: "s1", tech: "Super One" };
+    const blindSample = sub(qid, { tags: [], type: "Assay pulp", typeKey: "pulp", submitter: "QA/QC", createdByName: "QA/QC", purposeKey: "qc", source: "", notes: "", siteRef: "",
+      history: [{ key: "submitted", at: now, by: "public", name: "QA/QC", note: "Submitted for a QA/QC check", ref: "" }] });
+    const link = { id: qid, of: id, set: "QA-x1", at: now, ...S, test: "EXP-FA", mats: [{ item: "Pulp", loc: "Shelf 3" }], cmps: [] };
+    check(!(await one(null, { op: "set", path: qp, data: blindSample })).ok, "a signed-out visitor can't send a sample presented as a blind QA/QC sample");
+    check(!(await one(null, { op: "set", path: `samples/QC-${day}-0002`, data: sub(`QC-${day}-0002`, { submitter: "qa / qc" }) })).ok &&
+      !(await one(null, { op: "set", path: `samples/QC-${day}-0002`, data: sub(`QC-${day}-0002`, { history: [{ key: "submitted", at: now, by: "public", name: "J", note: "Submitted for a QA/QC check" }] }) })).ok,
+      "nor one with QA/QC as the submitter, or with the blind sample's note");
+    check(!(await one("t1@site.com", { op: "set", path: qp, data: blindSample })).ok, "a technician can't issue a blind QA/QC sample");
+    check((await one("s1@site.com", { op: "set", path: qp, data: blindSample })).ok, "a supervisor issues the blind sample, written as a QA/QC submission");
+    check(!(await one("t1@site.com", { op: "set", path: bp, data: { ...link, by: "t1", tech: "Tech One" } })).ok && !(await one("v@site.com", { op: "set", path: bp, data: link })).ok &&
+      !(await one(null, { op: "set", path: bp, data: link })).ok, "technicians, viewers and visitors can't write a blind link");
+    check(!(await one("s1@site.com", { op: "set", path: bp, data: { ...link, by: "mgr", tech: "Manager" } })).ok, "a blind link is issued in the supervisor's own name");
+    check(!(await one("s1@site.com", { op: "set", path: bp, data: { ...link, of: `GC-${day}-0008` } })).ok, "only a sample with released results is checked blind");
+    check(!(await one("s1@site.com", { op: "set", path: `blind/QC-${day}-0009`, data: { ...link, id: `QC-${day}-0009` } })).ok, "a link is written after its blind sample");
+    check(!(await one("s1@site.com", { op: "set", path: bp, data: { ...link, cmps: [{ at: now, ...S }] } })).ok && !(await one("s1@site.com", { op: "set", path: bp, data: { ...link, extra: 1 } })).ok,
+      "a link starts with no comparison and holds only its own fields");
+    check((await one("s1@site.com", { op: "set", path: bp, data: link })).ok && (await one("s1@site.com", { op: "set", path: bp, data: link })).ok, "the supervisor issues the link (a retry of the same link is allowed)");
+    check(!(await one("s1@site.com", { op: "set", path: bp, data: { ...link, of: `PLT-${day}-0007` } })).ok && !(await one("boss@site.com", { op: "update", path: bp, data: { of: `PLT-${day}-0007` } })).ok,
+      "a link can't be pointed at another sample");
+    check(!(await one("t1@site.com", { op: "get", path: bp })).ok && !(await one("v@site.com", { op: "get", path: bp })).ok && !(await one("exp@site.com", { op: "get", path: bp })).ok && !(await one(null, { op: "get", path: bp })).ok,
+      "technicians, viewers, section accounts and visitors can't read a blind link");
+    check(!(await one("t1@site.com", { op: "get", path: `blind/QC-${day}-0009` })).ok, "a technician gets the same refusal whether a link exists or not");
+    let leak = 0;
+    for (const who of ["t1@site.com", "v@site.com", "exp@site.com", null]){
+      leak += (await one(who, { op: "query", coll: "blind", where: [] })).docs.length + (await one(who, { op: "query", coll: "blind", where: [["of", "==", id]] })).docs.length;
+      leak += (await one(who, { op: "changes", since: t0, watch: [bp] })).changes.filter(c => c.path.startsWith("blind/")).length;
+    }
+    check(leak === 0, "nor list blind links, or receive them as live changes");
+    check(!(await one("t1@site.com", { op: "acquire", path: bp, holder: "x", ttl: 4000 })).ok, "a technician can't lease a blind link");
+    check((await one("s1@site.com", { op: "get", path: bp })).data.of === id && (await one("boss@site.com", { op: "query", coll: "blind", where: [["of", "==", id]] })).docs.length === 1 &&
+      (await one("s1@site.com", { op: "changes", since: t0 })).changes.some(c => c.path === bp), "supervisors and the lab manager read, list and receive the link");
+    const tview = JSON.stringify([(await one("t1@site.com", { op: "get", path: qp })).data, (await one("t1@site.com", { op: "changes", since: t0 })).changes.filter(c => c.path === qp || !c.path.startsWith("samples/")), (await one("t1@site.com", { op: "query", coll: "samples", where: [["section", "==", "QC"]] })).docs]);
+    check(tview.includes(qid) && !tview.includes(id) && !tview.includes("Super One") && !tview.includes('"s1"') && !tview.includes("QA-x1") && !tview.includes("Shelf 3"),
+      "what a technician can read of the blind sample names neither the original, who issued it, the set nor where its material came from");
+    const cmp = { at: now, ...S, state: "ok", rows: [{ k: "Au", a: 1.2, b: 1.21 }] };
+    check((await one("s1@site.com", { op: "update", path: bp, data: { cmps: [cmp] } })).ok, "a supervisor records a comparison on the link");
+    check(!(await one("t1@site.com", { op: "update", path: bp, data: { cmps: [cmp, { ...cmp, by: "t1", tech: "Tech One" }] } })).ok, "a technician can't record one");
+    check(!(await one("boss@site.com", { op: "update", path: bp, data: { cmps: [cmp, { ...cmp, by: "s1", tech: "Super One" }] } })).ok, "a comparison is recorded in the name of the person signed in");
+    check(!(await one("boss@site.com", { op: "update", path: bp, data: { cmps: [] } })).ok && !(await one("boss@site.com", { op: "update", path: bp, data: { cmps: [{ ...cmp, state: "bad" }] } })).ok,
+      "a recorded comparison can't be removed or changed");
+    check((await one("boss@site.com", { op: "update", path: bp, data: { cmps: [cmp, { ...cmp, by: "mgr", tech: "Manager" }] } })).ok && mem.docs[bp].cmps.length === 2, "comparisons are added to");
+    check(!(await one("boss@site.com", { op: "delete", path: bp })).ok && !(await one("boss@site.com", { op: "update", path: `blind/QC-${day}-0009`, data: { cmps: [cmp] } })).ok, "a link is never deleted, and can't be made by an update");
+    check(!JSON.stringify(mem.docs["samples/" + id]).includes(qid), "nothing is written on the original sample");
+    const ex = await one("boss@site.com", { op: "export", coll: "blind", after: "" });
+    check(ex.docs.length === 1 && ex.docs[0].data.of === id && !(await one("s1@site.com", { op: "export", coll: "blind", after: "" })).ok, "the lab manager's backup includes the blind links"); }
+  { // v20 a batch on Submit / Register: each sample has its own ID and carries B- and the batch's first ID, a batch name and its own source.
+    const T1 = `TSF-${day}-0001`, T2 = `TSF-${day}-0002`, ref = "B-" + T1, bt = (sid, x = {}) => sub(sid, { tags: [], batchId: ref, batchName: "Night shift TSF", batchSize: 2, ...x });
+    check((await one(null, { op: "set", path: "samples/" + T1, data: bt(T1, { batchIndex: 1, source: "Spigot 1" }) })).ok &&
+      (await one(null, { op: "set", path: "samples/" + T2, data: bt(T2, { batchIndex: 2, source: "Spigot 2" }) })).ok, "a visitor registers a batch: the first sample, then the rest carrying its reference");
+    check(!(await one(null, { op: "set", path: `samples/TSF-${day}-0003`, data: bt(`TSF-${day}-0003`, { batchId: `B-TSF-${day}-0099` }) })).ok, "a sample can't join a batch that doesn't exist");
+    check(!(await one(null, { op: "set", path: `samples/MIN-${day}-0001`, data: bt(`MIN-${day}-0001`) })).ok, "nor another section's batch");
+    await mem.set(`samples/TSF-${day}-0050`, { ...bt(`TSF-${day}-0050`, { batchId: `B-TSF-${day}-0050` }), createdAt: now - 3600e3 });
+    check(!(await one(null, { op: "set", path: `samples/TSF-${day}-0004`, data: bt(`TSF-${day}-0004`, { batchId: `B-TSF-${day}-0050` }) })).ok, "nor a batch sent earlier");
+    check(!(await one(null, { op: "set", path: `samples/TSF-${day}-0005`, data: bt(`TSF-${day}-0005`, { batchId: "B-TSF-0001", batchName: undefined }) })).ok &&
+      !(await one(null, { op: "set", path: `samples/TSF-${day}-0006`, data: bt(`TSF-${day}-0006`, { batchId: "B-" + `TSF-${day}-0006`, batchName: "x".repeat(81) }) })).ok, "a malformed batch reference or a batch name over 80 characters is refused");
+    const got = (await one(null, { op: "query", coll: "samples", where: [["batchId", "==", ref]], limit: 100 })).docs;
+    check(got.length === 2 && got.every(x => x.data.batchName === "Night shift TSF" && !x.data.results) && got.some(x => x.data.source === "Spigot 2"), "anyone opens the batch by its reference, without results");
+    for (let i = 0; i < 30; i++){ const k = `GEO-${day}-${String(100 + i).padStart(4, "0")}`; await mem.set("samples/" + k, { ...sub(k, { tags: [] }), batchId: `B-GEO-${day}-0100` }); }
+    check((await one(null, { op: "query", coll: "samples", where: [["batchId", "==", `B-GEO-${day}-0100`]], limit: 100 })).docs.length === 30 &&
+      (await one(null, { op: "query", coll: "samples", where: [["tags", "array-contains", "T-1"]], limit: 100 })).docs.length <= 25, "a batch lookup lists up to 100 samples (other lookups stay at 25)");
+    check(!(await one(null, { op: "query", coll: "samples", where: [["batchId", "!=", "x"]] })).docs.length && !(await one(null, { op: "query", coll: "samples", where: [["batchId", "==", "TSF"]] })).docs.length,
+      "only a batch reference opens a batch");
+    const recv = { stageKey: "received", recvAt: now, history: [...mem.docs["samples/" + T1].history, { key: "received", at: now, by: "t1", tech: "Tech One", note: "Received with batch " + ref }] };
+    check((await one("t1@site.com", { op: "update", path: "samples/" + T1, data: recv })).ok, "a technician receives a batch sample under their own name"); }
   { // Restore: a backup loads into a copy with no samples, by its lab manager only, and comes back as it was.
     const backup = {};
-    for (const coll of ["settings", "access", "meta", "tagidx", "samples", "batches", "stock", "ledger", "files"])
+    for (const coll of ["settings", "access", "meta", "tagidx", "samples", "blind", "batches", "stock", "ledger", "files"])
       for (let after = ""; after != null; ){ const r = await one("boss@site.com", { op: "export", coll, after }); r.docs.forEach(x => { backup[x.path] = x.data; }); after = r.next; }
     const mem2 = createMemoryStore(), core2 = createCore({ store: mem2, adminEmails: ["new@lab.org"] });
     const one2 = async (who, op) => (await core2.handleDb(P(who), { ops: [op] })).body.results[0];
@@ -287,7 +354,7 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
     for (let i = 0; i < settingsFirst.length; i += 40) sent += (await one2("new@lab.org", { op: "restore", docs: settingsFirst.slice(i, i + 40) })).written || 0;
     check(sent === docs.length && (await one2("new@lab.org", { op: "restore", done: true, records: sent })).done, `all ${docs.length} records are loaded, Settings first`);
     const same2 = docs.filter(x => x.path !== "settings/stages").every(x => JSON.stringify(mem2.docs[x.path]) === JSON.stringify(x.data));
-    check(same2, "every record comes back exactly as it was saved, results files included");
+    check(same2 && docs.some(x => x.path.startsWith("blind/")), "every record comes back exactly as it was saved, results files and blind links included");
     const st2 = mem2.docs["settings/stages"];
     check(st2.users.some(x => x.em === "new@lab.org" && x.role === "admin") && st2.users.some(x => x.em === "boss@site.com" && x.role === "admin") && JSON.stringify({ ...st2, users: null }) === JSON.stringify({ ...backup["settings/stages"], users: null }),
       "Settings come back with the person restoring kept as lab manager");

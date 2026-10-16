@@ -118,8 +118,17 @@ async function fillForm(page, tabName, { section, type = "core", purpose = "exp"
   if (route) await page.selectOption("#rRouteSel", route);
   for (const [k, val] of Object.entries(details)) await page.fill("#rD_" + k, val);
   await page.fill("#rSubmitter", submitter);
-  await page.fill("#rCount", String(count));
-  await page.fill("#rTag", tags);
+  // v20: Single sample or Batch. A batch lists its samples one row each; one code on the first row counts up for the rest.
+  if (count > 1){
+    await page.check('input[name="rKind"][value="batch"]');
+    await page.fill("#rCount", String(count)); await page.dispatchEvent("#rCount", "change");
+    const tg = String(tags || "").split(/[,;\n]+/).map(x => x.trim()).filter(Boolean);
+    if (tg.length === count) for (const [i, t] of tg.entries()) await page.fill(`#rRows .r-code[data-i="${i}"]`, t);
+    else if (tg.length) await page.fill('#rRows .r-code[data-i="0"]', tg.join(", "));
+  } else {
+    await page.check('input[name="rKind"][value="single"]');
+    await page.fill("#rTag", tags);
+  }
   await page.fill("#rCollected", collected);   // a refused value stays in the form, so always set it
   if (recvAt) await page.fill("#rRecvAt", recvAt);
   if (wit) await page.selectOption("#rWit", { label: wit });

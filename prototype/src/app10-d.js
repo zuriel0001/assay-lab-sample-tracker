@@ -143,6 +143,7 @@ function renderSampleForm(mode){
   v.innerHTML = `<form class="panel stack${staff ? " recv-now" : ""}" id="regForm" data-mode="${mode}" autocomplete="off" novalidate>
     <div class="form-h"><h2>${walk ? "Register at lab" : "Submit a sample"}</h2>${walk ? `<span class="pill info">Waits for receipt by a lab technician</span>` : ""}
       ${staff ? `<label class="recv-toggle"><input type="checkbox" id="rRecvNow" checked> Received now at the lab, by me</label>` : ""}</div>
+    ${kindPicker()}
     <div class="form">
       <label class="f"><span>Sample type <span class="req">*</span></span><select id="rType" required><option value="">Choose…</option>${typeOptions()}</select></label>
       <label class="f"><span>Assay purpose (why it is tested) <span class="req">*</span></span><select id="rPurpose" required><option value="">Choose…</option>${PURPOSES.map(p => `<option value="${esc(p.key)}">${esc(p.name)}</option>`).join("")}</select></label>
@@ -153,14 +154,14 @@ function renderSampleForm(mode){
       <label class="f"><span>Submitted by (name) <span class="req">*</span></span><input id="rSubmitter" required placeholder="Person who sent the sample"></label>
       <label class="f"><span>Submitter's badge number</span><input id="rSubBadge" maxlength="20" autocomplete="off"></label>
       <label class="f"><span>Submitting section <span class="req">*</span></span><select id="rSection" required><option value="">Choose…</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select></label>
-      <label class="f">Number of samples<input id="rCount" type="number" min="1" max="100" step="1" value="1"></label>
-      <label class="f full">Site sample code<input id="rTag" placeholder="e.g. MLNSCLF120261014 (one per sample, separated by commas)"></label>
+      <label class="f" data-single>Site sample code<input id="rTag" placeholder="e.g. MILL-A-001" autocomplete="off" spellcheck="false"></label>
       <label class="f" data-hand><span>Handed to (lab technician)${walk ? req : ""}</span><input id="rHandTo" maxlength="60" list="rTechList" autocomplete="off"></label>
       <label class="f" data-hand><span>Technician's badge number${walk ? req : ""}</span><input id="rHandBadge" maxlength="20" autocomplete="off"></label>
       <datalist id="rTechList">${techs.map(n => `<option value="${esc(n)}">`).join("")}</datalist>
       ${staff ? `${meBox("Received by (lab staff)").replace('<label class="f">', '<label class="f" data-lab>')}
       <label class="f" data-lab><span>Date &amp; time received <span class="req">*</span></span><input id="rRecvAt" type="datetime-local" required value="${localInput(now)}"></label>
       <div id="rWitBox" data-lab hidden>${witnessField("rWit")}</div>` : ""}
+      ${batchBlock()}
       <details class="form-more" id="rMore"><summary>More details</summary><div class="form">
         <div class="full" id="rDetails"></div>
         <label class="f">Site reference<input id="rSiteRef" placeholder="e.g. GC-PIT2-B340-017"></label>
@@ -197,9 +198,10 @@ function renderSampleForm(mode){
   if (rn) rn.onchange = () => {
     $("#regForm", v).classList.toggle("recv-now", rn.checked);
     if (!rn.checked) $("#rRouteSel", v).value = "";
-    $("#rSubmit", v).textContent = rn.checked ? "Register and issue IDs" : "Submit and get sample IDs";
+    submitLabel();
     refreshFormRoute();
   };
+  bindKind(v);
   refreshFormRoute();
   $("#regForm", v).addEventListener("submit", e => { e.preventDefault(); register(); });
 }
@@ -212,10 +214,10 @@ async function tagOwner(t){
   return "";
 }
 /* Each ID is claimed on its own document under a short lease, so two people submitting at once never wait on each other or get the same number. */
-async function claimIds(code, stamp, n, makeBody, progress){
+async function claimIds(code, stamp, n, makeBody, progress, from = 1){
   const hint = db.doc(`meta/counter-${code}-${stamp}`);
-  let next = 1;
-  try { const h = await hint.get(); next = ((h.exists && +h.data().last) || 0) + 1; } catch {}
+  let next = from;
+  try { const h = await hint.get(); next = Math.max(from, ((h.exists && +h.data().last) || 0) + 1); } catch {}
   const ids = new Array(n); let k = 0, done = 0;
   const worker = async () => {
     while (k < n){
@@ -243,8 +245,8 @@ async function register(){
   if (!db){ toast("The shared register is not connected in this view."); return; }
   const btn = $("#rSubmit"), msg = $("#rMsg");
   const fail = (m, focus) => { toast(m); const el = focus && $(focus); if (el){ const d = el.closest("details"); if (d) d.open = true; el.focus(); } };
-  const n = Number($("#rCount").value);
-  if (!(Number.isInteger(n) && n >= 1 && n <= 100)) return fail("Number of samples must be a whole number from 1 to 100.", "#rCount");
+  const batch = formKind() === "batch", n = batch ? bRows.length : 1;
+  if (batch && !(n >= 2 && n <= 100)) return fail("A batch has 2 to 100 samples. For one sample choose Single sample.", "#rCount");
   const code = val("#rSection"), tyK = val("#rType"), puK = val("#rPurpose"), teK = val("#rTest"), submitter = val("#rSubmitter");
   if (!tyK) return fail("Choose the sample type.", "#rType");
   if (!puK) return fail("Choose the assay purpose.", "#rPurpose");
@@ -270,10 +272,9 @@ async function register(){
     if (collected && recvAt < collected) return fail("The time received can't be before the collection time.", "#rRecvAt");
     if (!$("#rWitBox").hidden && !(wit = val("#rWit"))) return fail("Two-person custody: choose the witness.", "#rWit");
   }
-  const tagsIn = splitTags($("#rTag").value).map(normTag);
-  if (n > 1 && tagsIn.length > 1 && tagsIn.length !== n) return fail(`You entered ${tagsIn.length} site sample codes for ${n} samples. Enter one per sample, or a single starting code.`, "#rTag");
-  const tagSets = batchTags(tagsIn, n), allTags = tagSets.flat();
-  if (new Set(allTags).size !== allTags.length) return fail("The same site sample code appears twice in this batch.", "#rTag");
+  const tagSets = batch ? rowTags() : [splitTags($("#rTag").value).map(normTag)], allTags = tagSets.flat(), srcs = batch ? bRows.map(r => r.src.trim().slice(0, 120)) : [];
+  if (new Set(allTags).size !== allTags.length) return fail("The same site sample code appears twice in this batch.", batch ? "#rRows .r-code.dup" : "#rTag");
+  const batchName = batch ? val("#rBatchName").slice(0, 80) : "";
   btn.disabled = true; msg.textContent = allTags.length ? "Checking site sample codes…" : "Issuing IDs…";
   try {
     for (const t of allTags){ const used = await tagOwner(t); if (used) throw { code: "tagused", tag: t, id: used }; }
@@ -291,25 +292,31 @@ async function register(){
       hazards: HAZARDS.filter(h => $("#rHz_" + h.k)?.checked).map(h => h.k),
       analyses: ADDONS.filter((_, i) => $("#rAn" + i)?.checked), notes: val("#rNotes"),
       createdAt: now, createdBy: lab ? session.u : "public", createdByName: lab ? session.name : submitter, updatedAt: now, stageKey: start, stageAt: lab ? recvAt : now, location: "", flag: "",
-      open: true, onHand: lab, lab: true, ...(lab ? { sx: 1 } : {}), ...(walk ? { via: "walkin" } : {}), batchKey: n > 1 ? `${code}-${now.toString(36)}-${tabId.slice(0, 4)}` : "", batchSize: n
+      open: true, onHand: lab, lab: true, ...(lab ? { sx: 1 } : {}), ...(walk ? { via: "walkin" } : {}), batchKey: n > 1 ? `${code}-${now.toString(36)}-${tabId.slice(0, 4)}` : "", batchSize: n, ...(batchName ? { batchName } : {})
     };
     const stamp = dayStamp(lab ? recvAt : now);
-    const ids = await claimIds(code, stamp, n, (id, i) => {
-      const body = { ...base, id, batchIndex: i + 1, tags: tagSets[i], tagNo: tagSets[i].join(", "),
+    const make = (id, i, batchId) => {
+      const body = { ...base, id, batchIndex: i + 1, tags: tagSets[i], tagNo: tagSets[i].join(", "), ...(batchId ? { batchId } : {}), ...(srcs[i] ? { source: srcs[i] } : {}),
         siteRef: n > 1 && siteRef ? `${siteRef}-${i + 1}` : siteRef, siteRefU: normTag(n > 1 && siteRef ? `${siteRef}-${i + 1}` : siteRef),
         history: [lab ? { key: start, sn: startName, at: recvAt, by: session.u, tech: session.name, note: `Received and registered at the lab; route ${r.code}`, ref: "", ...(wit ? { wit } : {}) }
                       : { key: start, sn: startName, at: now, by: "public", name: submitter, note: walk ? "Registered at the lab (walk-in)" : "Submitted through the submission form", ref: "", ...(handTo ? { hand: handTo } : {}), ...(handBadge ? { badge: handBadge } : {}) }] };
       if (lab){ body.inMid = `${id}~in`; body.ledgerPending = [inMove(body, recvAt, recv, "Registered at the lab", wit)]; body.lp = true; }
       return body;
-    }, d => msg.textContent = `Saved ${d} of ${n}…`);
+    };
+    // A batch's reference is B- and its first ID, so the first sample is claimed on its own, then the rest carry the reference.
+    const [first] = await claimIds(code, stamp, 1, id => make(id, 0, n > 1 ? "B-" + id : ""));
+    const ref = n > 1 ? "B-" + first : "";
+    msg.textContent = n > 1 ? `Saved 1 of ${n}…` : "";
+    const ids = n > 1 ? [first, ...await claimIds(code, stamp, n - 1, (id, i) => make(id, i + 1, ref), d => msg.textContent = `Saved ${d + 1} of ${n}…`, +first.split("-").pop() + 1)] : [first];
     ids.forEach((id, i) => tagSets[i].forEach(tg => db.doc("tagidx/" + tagKey(tg)).set({ sid: id, tag: tg, at: now }).catch(() => {})));
     if (lab) ids.forEach(id => { flushLedger(id); syncStock(id); });
     msg.textContent = "";
-    $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? (mode === "register" ? "Sample registered." : "Sample submitted.") : `${n} samples ${mode === "register" ? "registered" : "submitted"}.`}</b> Write ${n === 1 ? "this ID" : "these IDs"} on the sample bag${n === 1 ? "" : "s"}, or print the label${n === 1 ? "" : "s"}${lab ? "" : walk ? ". It shows “Awaiting receipt” until a lab technician confirms it" : ", then bring or send the sample to the Assay Lab. Its status shows “Awaiting receipt” until a lab technician confirms it has arrived"}:
+    $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? (mode === "register" ? "Sample registered." : "Sample submitted.") : `${n} samples ${mode === "register" ? "registered" : "submitted"}.`}</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>${batchName ? ` · ${esc(batchName)}` : ""}.` : ""} Write ${n === 1 ? "this ID" : "these IDs"} on the sample bag${n === 1 ? "" : "s"}, or print the label${n === 1 ? "" : "s"}${lab ? "" : walk ? ". It shows “Awaiting receipt” until a lab technician confirms it" : ", then bring or send the sample to the Assay Lab. Its status shows “Awaiting receipt” until a lab technician confirms it has arrived"}:
       <div class="label-strip" style="margin-top:8px">${ids.map((id, i) => `<code>${esc(id)}${tagSets[i].length ? ` · ${esc(tagSets[i].join(", "))}` : ""}</code>`).join("")}</div>
       <div class="small" style="margin-top:8px">Workflow: <span class="code">${esc(r.code)}</span> ${esc(r.name)}. Results about ${hoursLabel(routeTat(r))} after the lab receives ${n === 1 ? "it" : "them"} (an estimate).</div>
-      <div class="row" style="margin-top:10px"><button type="button" class="btn primary" id="rLabels">Print label${n === 1 ? "" : "s"}</button><button type="button" class="btn" id="rCopy">Copy IDs</button>${n === 1 ? `<button type="button" class="btn" data-link="${esc(ids[0])}">Copy tracking link</button>` : ""}<button type="button" class="btn" data-open="${esc(ids[0])}">Track ${esc(ids[0])}</button><button type="button" class="btn ghost" id="rAgain">${mode === "register" ? "Register more" : "Submit another"}</button></div></div>`;
+      <div class="row" style="margin-top:10px"><button type="button" class="btn primary" id="rLabels">Print ${n === 1 ? "label" : n + " labels"}</button><button type="button" class="btn" id="rCopy">Copy IDs</button>${n === 1 ? `<button type="button" class="btn" data-link="${esc(ids[0])}">Copy tracking link</button><button type="button" class="btn" data-open="${esc(ids[0])}">Track ${esc(ids[0])}</button>` : `<button type="button" class="btn" data-open="${esc(ref)}">Open the batch</button><button type="button" class="btn" data-link="${esc(ref)}">Copy batch link</button>`}<button type="button" class="btn ghost" id="rAgain">${mode === "register" ? "Register more" : "Submit another"}</button></div></div>`;
     const labels = ids.map((id, i) => labelOf({ ...base, id, tags: tagSets[i] }));
+    if (batch){ bRows = bRows.map(() => ({ code: "", src: "" })); }
     $("#rLabels").onclick = () => showLabels(labels);
     $("#rCopy").onclick = () => navigator.clipboard.writeText(ids.join("\n")).then(() => toast("IDs copied"), () => toast("Copy blocked here. Select the IDs and copy them."));
     $("#rAgain").onclick = () => { $(mode === "register" ? "#view-register" : "#view-submit").innerHTML = ""; renderSampleForm(mode); };
@@ -370,7 +377,7 @@ function renderLedger(){
   const v = $("#view-ledger");
   ledgerWatch(); watchStore();
   const redoFor = sid => canEdit() && (samples.has(sid) ? redoOk(samples.get(sid)) : stored.has(sid));
-  const shownRedo = new Set();
+  const shownRedo = new Set(), shownQa = new Set();
   const f = ledgerFilter;
   let rows = ledgerRows();
   if (f.dir !== "all") rows = rows.filter(r => r.base === f.dir);
@@ -379,7 +386,7 @@ function renderLedger(){
   const body = rows.map(r => `<tr class="${r.reversed ? "reversed" : ""}">
     <td style="white-space:nowrap">${fmtFull(r.at)}</td>
     <td class="${r.dir === "in" ? "dir-in" : r.dir === "rev" ? "dir-rev" : "dir-out"}">${r.dir === "in" ? "IN" : r.dir === "rev" ? "REV" : "OUT"}${r.reversed ? `<div><span class="pill warn">Reversed</span></div>` : ""}</td>
-    <td><button class="linkish" data-open="${esc(r.sid)}">${esc(r.sid)}</button>${!shownRedo.has(r.sid) && redoFor(r.sid) && shownRedo.add(r.sid) ? `<div><button type="button" class="btn ghost small reassay-btn" data-reassay="${esc(r.sid)}">Re-assay</button></div>` : ""}</td>
+    <td><button class="linkish" data-open="${esc(r.sid)}">${esc(r.sid)}</button>${!shownQa.has(r.sid) && shownQa.add(r.sid) ? qaOfNote(r.sid) + qaPickBox(r.sid) : ""}${!shownRedo.has(r.sid) && redoFor(r.sid) && shownRedo.add(r.sid) ? `<div><button type="button" class="btn ghost small reassay-btn" data-reassay="${esc(r.sid)}">Re-assay</button></div>` : ""}</td>
     <td class="mono">${esc(r.tag) || "—"}</td>
     <td>${esc(r.type)}${r.route ? `<div class="small mono" style="color:var(--accent)">${esc(r.route)}</div>` : ""}</td>
     <td>${esc(r.item || "")}${r.qty ? `<div class="small muted">${esc(r.qty)}</div>` : ""}</td>
@@ -393,6 +400,7 @@ function renderLedger(){
   const rc = recon && recon.m === f.month ? recon : null;
   keepUiSimple(v, () => {
     v.innerHTML = `<div class="stack">
+      ${qaSlot()}
       <div class="row">
         <input class="inp" id="lgMonth" type="month" style="width:auto" value="${esc(f.month)}" aria-label="Month">
         <select class="inp" id="lgDir" style="width:auto"><option value="all">In and out</option><option value="in">Inbound only</option><option value="out">Outbound only</option></select>

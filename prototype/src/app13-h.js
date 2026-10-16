@@ -74,12 +74,13 @@ function renderStorage(){
   list.sort((a, b) => (a.dueAt || OPEN_T) - (b.dueAt || OPEN_T) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   const shown = list.slice(0, 200 + storeMore), past = all.filter(isPast).length, due = all.filter(isSoon).length, noLoc = all.filter(r => !r.loc).length;
   const edit = canEdit(), first = new Set();
-  const row = r => `<tr><td style="white-space:nowrap"><button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>${r.tag ? `<div class="small mono muted">${esc(r.tag)}</div>` : ""}${edit && !first.has(r.id) && first.add(r.id) ? `<div><button type="button" class="btn ghost small reassay-btn" data-reassay="${esc(r.id)}">Re-assay</button></div>` : ""}</td>
+  const row = r => { const top = !first.has(r.id) && !!first.add(r.id); return `<tr><td style="white-space:nowrap"><button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>${r.tag ? `<div class="small mono muted">${esc(r.tag)}</div>` : ""}${top ? qaOfNote(r.id) : ""}${edit && top ? `<div><button type="button" class="btn ghost small reassay-btn" data-reassay="${esc(r.id)}">Re-assay</button></div>` : ""}${top ? qaPickBox(r.id) : ""}</td>
     <td>${esc(r.item)}</td><td>${r.loc ? esc(r.loc) : `<span class="pill warn">No location</span>`}</td>
     <td style="white-space:nowrap">${fmtDate(r.dueAt)}${isPast(r) ? ` <span class="pill bad">Past retention</span>` : r.dueAt && r.dueAt - now < 7 * 86400e3 ? ` <span class="pill warn">Due</span>` : ""}</td>
-    <td>${esc(r.then)}</td><td class="mono">${esc(r.sec)}</td><td>${esc(r.type)}${r.route ? `<div class="small mono" style="color:var(--accent)">${esc(r.route)}</div>` : ""}</td></tr>`;
+    <td>${esc(r.then)}</td><td class="mono">${esc(r.sec)}</td><td>${esc(r.type)}${r.route ? `<div class="small mono" style="color:var(--accent)">${esc(r.route)}</div>` : ""}</td></tr>`; };
   keepUiSimple(v, () => {
     v.innerHTML = `<div class="stack">
+      ${qaSlot()}
       <div class="stats">
         <div class="stat"><div class="n">${stored.size}</div><div class="l">Samples in storage</div></div>
         <div class="stat"><div class="n">${all.length}</div><div class="l">Materials kept</div></div>
@@ -97,8 +98,10 @@ function renderStorage(){
         : shown.length ? `<div class="panel"><div class="tbl-wrap"><table><thead><tr><th>Sample</th><th>Material</th><th>Location</th><th>Keep until</th><th>Then</th><th>Section</th><th>Type</th></tr></thead><tbody>${shown.map(row).join("")}</tbody></table></div>
           ${list.length > shown.length ? `<div class="row" style="margin-top:10px"><span class="small muted">${shown.length} of ${list.length}</span><button type="button" class="btn ghost small" id="stMore">Show more</button></div>` : ""}</div>`
         : `<div class="panel empty"><strong>${all.length ? "No stored material matches these filters" : "Nothing in storage"}</strong></div>`}
+      ${qaListPanel()}
     </div>`;
   });
+  bindQa(v);
   $("#stShow").value = storeShow;
   $("#stQ").oninput = e => { storeQ = e.target.value; storeMore = 0; clearTimeout(renderStorage.t); renderStorage.t = setTimeout(renderStorage, 250); };
   $("#stSec").onchange = e => { storeSec = e.target.value; storeMore = 0; renderStorage(); };

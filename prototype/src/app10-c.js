@@ -68,6 +68,7 @@ function renderTrack(){
     v.querySelectorAll("[data-today]").forEach(b => b.onclick = () => { boardPick = b.dataset.today === "rel" ? "" : b.dataset.today; setTab("board"); });
     return;
   }
+  if (current.batch) return renderBatchView(v);
   if (current.matches){
     v.dataset.ctx = "";
     v.innerHTML = `<div class="panel stack"><h2>${current.matches.length} samples match “${esc(current.id)}”</h2><p class="small muted" style="margin:0">The site sample code or site reference is on more than one sample. Pick the one you want.</p>
@@ -83,7 +84,9 @@ function renderTrack(){
     return;
   }
   const s = current.body;
+  const histTop = (v.dataset.ctx || "").split("|")[0] === s.id ? $(".hist", v)?.scrollTop || 0 : 0;
   const moved = keepUi(v, `${s.id}|${s.stageKey}`, () => buildTrack(v, s));
+  fitHist(v, histTop);
   if (reassayAsk && reassayAsk === s.id){
     reassayAsk = "";
     const box = $("#redoBox", v);
@@ -164,7 +167,7 @@ function buildTrack(v, s){
     ["Seal / custody no.", s.seal ? `<span class="mono">${esc(s.seal)}</span>` : "—"],
     ["Priority", s.priority === "Urgent" ? `<span class="pill gold">Urgent</span>` : "Routine"],
     ["Location", esc(s.location) || "—"],
-    ["Batch", s.batchId ? `<span class="mono">${esc(s.batchId)}</span>${s.batchSize > 1 ? ` (${s.batchIndex} of ${s.batchSize})` : ""}` : "—"],
+    ["Batch", s.batchId ? `<button type="button" class="linkish mono" data-open="${esc(s.batchId)}">${esc(s.batchId)}</button>${s.batchSize > 1 ? ` (${s.batchIndex} of ${s.batchSize})` : ""}${s.batchName ? ` · ${esc(s.batchName)}` : ""}` : "—"],
     ["Notes", esc(s.notes) || "—"]
   ];
   const blank = ([, val]) => val === "—" || val === "", row = ([k, val]) => `<dt>${k}</dt><dd>${val}</dd>`;
@@ -208,9 +211,10 @@ function buildTrack(v, s){
         <div class="actions" id="actBox">${actions}</div></div>
       <div class="stack">
         ${resultsPanel(s)}
+        ${qaPanel(s)}
         ${(s.materials || []).length ? materialsPanel(s) : ""}
         <div class="panel stack"><h3>Sample details</h3><dl class="facts">${facts}</dl>${factsMore ? `<details class="facts-more"><summary>Show all details</summary><dl class="facts">${factsMore}</dl></details>` : ""}</div>
-        <div class="panel stack"><h3>Chain of custody</h3><ul class="hist">${hist || "<li class='muted'>No movements recorded.</li>"}</ul></div>
+        <div class="panel stack"><h3>Chain of custody${(s.history || []).length > 5 ? ` <span class="pill">${(s.history || []).length}</span>` : ""}</h3><ul class="hist">${hist || "<li class='muted'>No movements recorded.</li>"}</ul></div>
       </div>
     </div></div>`;
   fillNames(v);
@@ -261,6 +265,7 @@ function receiptForm(s){
     <div class="row">
       <button type="button" class="btn primary" data-receipt="confirm">Confirm receipt</button>
       <button type="button" class="btn" data-receipt="flag">Flag a problem</button>
+      ${s.batchId && s.batchSize > 1 ? `<button type="button" class="btn ghost" data-open="${esc(s.batchId)}">Receive the whole batch (${esc(s.batchSize)})</button>` : ""}
     </div>
     <details class="more" id="rejBox"><summary>Reject the sample</summary>
       <div class="stack" style="gap:8px;margin-top:8px">
