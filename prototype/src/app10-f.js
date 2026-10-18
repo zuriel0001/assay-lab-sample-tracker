@@ -154,7 +154,7 @@ setTab(tab);
     if (before && before !== JSON.stringify(session)){ $("#view-register").innerHTML = ""; if (!session) toast("Your account was changed by an admin. Please sign in again."); setTab(tab); }
     refreshFormRoute();
     if (tab === "routes" && !$("#view-routes").contains(document.activeElement)) renderRoutes();
-    if (tab === "stages" && !draftDirty && !$("#view-stages").contains(document.activeElement)) renderStages();
+    if (tab === "stages" && !draftDirty && !$("#view-stages").contains(document.activeElement) && !document.getElementById("cfgRestoreBox")) renderStages();
     if (tab === "track") renderTrack();
     if (tab === "login") renderLogin();
     rerenderSoon();

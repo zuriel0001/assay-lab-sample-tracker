@@ -24,7 +24,7 @@ function evalFlags(s){
   } catch {}
   return out;
 }
-const flagPills = fl => fl.length ? `<span class="pill ${fl.some(f => f.cls === "bad") ? "bad" : "warn"}">${fl.length} flag${fl.length === 1 ? "" : "s"}</span>` : `<span class="pill ok">No flags</span>`;
+const flagPills = fl => fl.length ? `<span class="pill ${fl.some(f => f.cls === "bad") ? "bad" : "warn"}">${fl.length} flag${fl.length === 1 ? "" : "s"}</span>` : `<span class="pill">No flags</span>`;
 function evalBox(s){
   if (!canEval() || (!lastCert(s) && !s.results)) return "";
   const fl = evalFlags(s), ev = s.evals || [], c = lastCert(s), due = c && !evaluated(s);
@@ -102,7 +102,9 @@ function staffResBadge(){
 /* One line per result on the latest certificate, short names first: "AuFx 0.12 g/t · AuSx 0.004 mg/L". */
 function certSummary(c, s){
   const defs = (() => { try { return anOf(s); } catch { return []; } })(), short = a => a.s || defs.find(x => x.k === a.k)?.s || a.n;
-  return (c.an || []).filter(a => c.rows?.[a.k] && a.t !== "pick" && a.t !== "text").slice(0, 5).map(a => `${short(a)} ${resText(c.rows[a.k], a)}${a.u ? " " + a.u : ""}`).join(" · ");
+  const vals = (c.an || []).filter(a => c.rows?.[a.k] && a.t !== "pick" && a.t !== "text").slice(0, 5).map(a => `${short(a)} ${resText(c.rows[a.k], a)}${a.u ? " " + a.u : ""}`);
+  if (c.att && c.file) vals.push(`${vals.length ? "rest in" : "In"} file ${c.file.name}`);
+  return vals.join(" · ");
 }
 function renderStaffResults(v){
   watchStaffResults();
@@ -113,7 +115,7 @@ function renderStaffResults(v){
   const keepFocus = document.activeElement?.id === "resQ";
   v.innerHTML = `<div class="stack">
     <div class="panel stack res-head" style="gap:10px">
-      <div class="row" style="gap:10px"><h2 style="margin:0">Results</h2><span class="small muted">Released in the last ${resDays} days</span>${ev ? `<span class="grow"></span><span class="pill ${flagged ? "bad" : "ok"}">${flagged} flagged</span><span class="pill gold">${due} to evaluate</span>` : ""}</div>
+      <div class="row" style="gap:10px"><h2 style="margin:0">Results</h2><span class="small muted">Released in the last ${resDays} days</span>${ev ? `<span class="grow"></span><span class="pill${flagged ? " bad" : ""}">${flagged} flagged</span><span class="pill${due ? " gold" : ""}">${due} to evaluate</span>` : ""}</div>
       <div class="row bd-tools" style="gap:8px">
         <input class="inp" id="resQ" placeholder="Search ID, site code, purpose" value="${esc(resQ)}" style="flex:1 1 220px;width:auto">
         <select class="inp" id="resSec" style="width:auto" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${resSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>

@@ -644,21 +644,7 @@ details.route-mini .route-box{margin:0}
   .form-h .last-chip{margin-left:0}
 }
 @media print{.sug,.recent{display:none!important}}
-/* v24: a size larger, a little colour, and the new pieces (departments, evaluation, Results tab, concise routes). */
-:root{
-  --c-ore:#8a5a2b; --c-ore-soft:#f3e7da; --c-plant:#1f6f8b; --c-plant-soft:#dcedf3; --c-met:#6b4fa3; --c-met-soft:#ebe4f6;
-  --c-env:#2f7d4f; --c-env-soft:#e1f1e6; --c-qc:#5e6864; --c-qc-soft:#e8ebe8; --c-gold:#9a6b12; --c-gold-soft:#f5ead2;
-  --c-blue:#2c5d7c; --c-blue-soft:#dfeaf2; --c-teal:#1d7a72; --c-teal-soft:#d9efec; --c-violet:#6b4fa3; --c-violet-soft:#ebe4f6;
-}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --c-ore:#d9a46b; --c-ore-soft:#3a2a1a; --c-plant:#7cc3dc; --c-plant-soft:#16303a; --c-met:#b9a0e8; --c-met-soft:#2c2340;
-  --c-env:#6cc48f; --c-env-soft:#1d3326; --c-qc:#9aa4a0; --c-qc-soft:#252b28; --c-gold:#d6a443; --c-gold-soft:#3a2f17;
-  --c-blue:#7fb4d6; --c-blue-soft:#1c2d38; --c-teal:#6fd0c4; --c-teal-soft:#15312e; --c-violet:#b9a0e8; --c-violet-soft:#2c2340}}
-:root[data-theme="dark"]{
-  --c-ore:#d9a46b; --c-ore-soft:#3a2a1a; --c-plant:#7cc3dc; --c-plant-soft:#16303a; --c-met:#b9a0e8; --c-met-soft:#2c2340;
-  --c-env:#6cc48f; --c-env-soft:#1d3326; --c-qc:#9aa4a0; --c-qc-soft:#252b28; --c-gold:#d6a443; --c-gold-soft:#3a2f17;
-  --c-blue:#7fb4d6; --c-blue-soft:#1c2d38; --c-teal:#6fd0c4; --c-teal-soft:#15312e; --c-violet:#b9a0e8; --c-violet-soft:#2c2340}
-
+/* v24: a size larger, restrained colour, and the new pieces (departments, evaluation, Results tab, concise routes). */
 /* Type a step larger: 16 px body, nothing that carries meaning under 13 px. */
 body{font-size:16px;line-height:1.5}
 .small,.subtle,.st-note,.st-meta,.hist time,.prog-t,.mock,.daychip,td.note{font-size:14px}
@@ -683,92 +669,70 @@ div.stat.tile.zero{background:var(--soft);border-style:dashed;box-shadow:none}
 div.stat.tile.zero .n,div.stat.tile.zero .l{color:var(--muted);opacity:.75}
 button.stat.tile{box-shadow:var(--shadow)}
 
-/* Page heads and coloured summary cards (Storage, Ledger). */
+/* Colour, v24b: surfaces stay neutral. The accent (gold) marks what to press and where you are; green, amber and red appear only
+   when they mean something (done, needs attention, wrong), and only when there is something to count. */
 .page-head{gap:10px;align-items:baseline}
 .cstats{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-.cstats .stat{font:inherit;text-align:left;color:var(--ink);border-left:5px solid var(--line);cursor:default}
+.cstats .stat{font:inherit;text-align:left;color:var(--ink);cursor:default}
 .cstats button.stat{cursor:pointer}
-.cstats button.stat:hover{filter:brightness(.98);border-color:var(--muted)}
-.cstats .stat[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:1px}
-.cstats .stat.zero{opacity:.6}
-.stat.c-blue{border-left-color:var(--c-blue);background:linear-gradient(90deg,var(--c-blue-soft),var(--panel) 70%)}.stat.c-blue .n{color:var(--c-blue)}
-.stat.c-teal{border-left-color:var(--c-teal);background:linear-gradient(90deg,var(--c-teal-soft),var(--panel) 70%)}.stat.c-teal .n{color:var(--c-teal)}
-.stat.c-red{border-left-color:var(--bad);background:linear-gradient(90deg,var(--bad-soft),var(--panel) 70%)}.stat.c-red .n{color:var(--bad)}
-.stat.c-amber{border-left-color:var(--warn);background:linear-gradient(90deg,var(--warn-soft),var(--panel) 70%)}.stat.c-amber .n{color:var(--warn)}
-.stat.c-violet{border-left-color:var(--c-violet);background:linear-gradient(90deg,var(--c-violet-soft),var(--panel) 70%)}.stat.c-violet .n{color:var(--c-violet)}
-.stat.c-green{border-left-color:var(--ok);background:linear-gradient(90deg,var(--ok-soft),var(--panel) 70%)}.stat.c-green .n{color:var(--ok)}
-.stat.c-orange{border-left-color:var(--warn);background:linear-gradient(90deg,var(--warn-soft),var(--panel) 70%)}.stat.c-orange .n{color:var(--warn)}
-.stat.c-grey{border-left-color:var(--muted)}
-#view-storage tr.st-past td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
-#view-storage tr.st-soon td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
-#view-storage tr.st-noloc td:first-child{box-shadow:inset 4px 0 0 var(--c-violet)}
-#view-storage tr.st-ok td:first-child{box-shadow:inset 4px 0 0 var(--ok)}
-.tdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:1px;background:var(--line)}
-.tdot.t-ore{background:var(--c-ore)}.tdot.t-plant{background:var(--c-plant)}.tdot.t-met{background:var(--c-met)}.tdot.t-env{background:var(--c-env)}.tdot.t-qc{background:var(--c-qc)}
-.dirp{display:inline-block;font-family:var(--f-mono);font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em}
-.dirp.dir-in{background:var(--ok-soft);color:var(--ok)}.dirp.dir-out{background:var(--warn-soft);color:var(--warn)}.dirp.dir-rev{background:var(--soft);color:var(--muted)}
+.cstats button.stat:hover{border-color:var(--muted)}
+.cstats .stat[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent)}
+.cstats .stat.zero .n{color:var(--muted)}
+.stat.c-red:not(.zero) .n{color:var(--bad)}
+.stat.c-amber:not(.zero) .n,.stat.c-violet:not(.zero) .n{color:var(--warn)}
+#view-storage tr.st-past td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
+#view-storage tr.st-soon td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+.dirp{display:inline-block;font-family:var(--f-mono);font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em;background:var(--soft);color:var(--ink)}
+.dirp.dir-rev{color:var(--muted)}
 
-/* Submit / Register: three short steps, each with its colour. */
-.sub-form{gap:14px;border-top:5px solid var(--accent)}
+/* Submit / Register: three short steps, plain cards; the step number carries the accent. */
+.sub-form{gap:14px}
 .sub-head h2{margin:0}
-.sub-step{border:1px solid var(--line);border-left:5px solid var(--line);border-radius:10px;padding:12px 14px 14px;background:var(--panel)}
-.sub-step.s1{border-left-color:var(--c-plant);background:linear-gradient(180deg,var(--c-plant-soft),var(--panel) 46px)}
-.sub-step.s2{border-left-color:var(--c-met);background:linear-gradient(180deg,var(--c-met-soft),var(--panel) 46px)}
-.sub-step.s3{border-left-color:var(--c-gold);background:linear-gradient(180deg,var(--c-gold-soft),var(--panel) 46px)}
+.sub-step{border:1px solid var(--line);border-radius:10px;padding:12px 14px 14px;background:var(--panel)}
 .sub-t{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;font-size:18px;margin-bottom:10px}
-.sub-t .num{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;color:#fff;font-size:15px;flex:none}
-.s1 .num{background:var(--c-plant)}.s2 .num{background:var(--c-met)}.s3 .num{background:var(--c-gold)}
-:root[data-theme="dark"] .sub-t .num{color:#111}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .sub-t .num{color:#111}}
+.sub-t .num{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:14px;flex:none}
 .sub-step .form{margin:0}
 .sub-form select,.sub-form input:not([type=checkbox]):not([type=radio]){min-height:46px}
-.typechip{display:inline-block;font-family:var(--f-body);font-weight:600;font-size:13px;margin-left:auto;padding:3px 10px;border-radius:999px;background:var(--c-qc-soft);color:var(--c-qc)}
+.typechip{display:inline-block;font-family:var(--f-body);font-weight:600;font-size:13px;margin-left:auto;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--muted)}
 .typechip:empty{display:none}
-.typechip.t-ore{background:var(--c-ore-soft);color:var(--c-ore)}
-.typechip.t-plant{background:var(--c-plant-soft);color:var(--c-plant)}
-.typechip.t-met{background:var(--c-met-soft);color:var(--c-met)}
-.typechip.t-env{background:var(--c-env-soft);color:var(--c-env)}
 .f.pair{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:10px}
 .f.pair > label.f{min-width:0}
 details.recv-at{align-self:end;min-height:46px;display:flex;flex-direction:column;justify-content:center;font-size:15px}
 details.recv-at > summary{cursor:pointer;color:var(--muted);list-style:none;min-height:46px;display:flex;align-items:center;gap:4px}
 details.recv-at > summary::-webkit-details-marker{display:none}
-details.recv-at > summary b{color:var(--ok)}
+details.recv-at > summary b{color:var(--ink)}
 details.recv-at[open] > summary{min-height:28px}
 .sub-form details.form-more > summary .muted{font-weight:400;margin-left:6px}
 .sub-form .sticky-bar .btn.big{min-width:240px}
 @media (max-width:760px){.sub-form .sticky-bar .btn.big{flex:1 1 auto;min-width:0}.f.pair{grid-template-columns:minmax(0,1fr) 96px}}
 
 /* Batches */
-.batch-hero{display:flex;flex-wrap:wrap;align-items:center;gap:14px;border-left:5px solid var(--c-blue);background:linear-gradient(90deg,var(--c-blue-soft),var(--panel) 60%)}
+.batch-hero{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
 .batch-hero .btn.big{margin-left:auto}
 details.more-panel > summary{cursor:pointer;min-height:var(--tap);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 details.more-panel > summary h3{margin:0}
+.up-pick{display:grid;gap:2px;max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.up-pick label{display:flex;align-items:baseline;gap:8px;min-height:34px;cursor:pointer}
+.cert-file{margin:10px 0;font-size:15px}
 
 /* Evaluation, re-assay requests and the Results tab */
-.evalbox{border:1px solid var(--line);border-left:5px solid var(--c-met);border-radius:10px;padding:12px 14px;background:linear-gradient(90deg,var(--c-met-soft),var(--panel) 50%);gap:10px}
+.evalbox{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel);gap:10px}
 ul.flags{margin:0;padding:0;list-style:none;display:grid;gap:4px}
-ul.flags li{font-size:14px;padding:4px 10px;border-radius:6px;background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn)}
-ul.flags li.bad{background:var(--bad-soft);border-left-color:var(--bad)}
+ul.flags li{font-size:14px;padding:4px 10px;border-radius:6px;background:var(--soft);color:var(--ink);border-left:3px solid var(--warn)}
+ul.flags li.bad{border-left-color:var(--bad)}
 ul.evlist{margin:0;padding:0;list-style:none;display:grid;gap:6px}
 ul.evlist li{font-size:15px}
 .evform{display:grid;gap:8px}
 .evform .seg span{padding:0 14px}
-.seg .ev-ok input:checked+span{color:var(--ok)}.seg .ev-query input:checked+span{color:var(--warn)}.seg .ev-redo input:checked+span{color:var(--bad)}
-.res-head{border-left:5px solid var(--c-met)}
-table.restbl tr.due td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
+table.restbl tr.due td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 
-/* Routes: facts in a few lines, the steps as a coloured row. */
+/* Routes: facts in a few lines, the steps as a plain row (the phase shows as a thin edge, as in the legend). */
 .rt-facts{display:grid;gap:3px}
 ol.flow{list-style:none;margin:6px 0 2px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
-ol.flow li{position:relative;display:inline-flex;align-items:baseline;gap:6px;font-size:14px;padding:4px 10px;border-radius:6px;background:var(--soft);border-left:4px solid var(--line)}
+ol.flow li{position:relative;display:inline-flex;align-items:baseline;gap:6px;font-size:14px;padding:4px 10px;border-radius:6px;background:var(--soft);border-left:3px solid var(--line)}
 ol.flow li i{font-style:normal;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
-ol.flow li.ph-intake{border-left-color:var(--info)}
-ol.flow li.ph-prep{border-left-color:var(--c-ore);background:var(--c-ore-soft)}
-ol.flow li.ph-test{border-left-color:var(--c-plant);background:var(--c-plant-soft)}
-ol.flow li.ph-qc{border-left-color:var(--c-met);background:var(--c-met-soft)}
-ol.flow li.ph-report{border-left-color:var(--ok);background:var(--ok-soft)}
-ol.flow li .redo{color:var(--warn)}
+ol.flow li.ph-intake,ol.flow li.ph-report{color:var(--muted)}
+ol.flow li .redo{color:var(--muted)}
 details.route > summary .subtle{white-space:nowrap}
 </style>
 
@@ -4447,7 +4411,8 @@ function resCell(r, a){
 }
 const resSummary = (ans, rows) => ans.filter(a => rows[a.k]).slice(0, 4).map(a => `${anShort(a)} ${resText(rows[a.k], a)}${a.u ? " " + a.u : ""}`).join("; ") + (ans.filter(a => rows[a.k]).length > 4 ? "; …" : "");
 /* A pick (such as the sampling point) describes the sample; it is never a missing result. */
-const missingRes = (s, rows = s.results?.rows || {}) => anOf(s).filter(a => !a.opt && !a.calc && a.t !== "pick" && !rows[a.k]);
+/* v24: results attached as a file the site can't read (att) are complete as they stand: the file is the results. */
+const missingRes = (s, rows = s.results?.rows || {}) => s?.results?.att && relNow() ? [] : anOf(s).filter(a => !a.opt && !a.calc && a.t !== "pick" && !rows[a.k]);
 const overRes = (s, rows = s.results?.rows || {}) => anOf(s).filter(a => rows[a.k]?.f === "over");
 /* Results worked out from others are never typed: they are set, or cleared, from their inputs whenever results are saved ("<DL" counts as 0). */
 function withCalc(s, rows){
@@ -4565,6 +4530,7 @@ function makeCert(s, at, why, x = {}){
     rows: clone(live(rows)), cov, ents: entrants(s), acc: s.resAcc ? clone(s.resAcc) : null, soft: resultChecks(s).filter(c => !c.ok).map(c => c.msg),
     alerts: limitHits(s, rows).map(h => ({ line: alertLine(s, h), act: h.act, ack: ackOf(s, h) })),
     ...(x.self ? { self: x.self } : {}), ...(x.amendBy ? { amendBy: x.amendBy } : {}),
+    ...(s.results?.file ? { file: clone(s.results.file) } : {}), ...(s.results?.att ? { att: true } : {}),
     ...(prev ? { amends: prev.no, why: why || s.lastRedo || "Results amended" } : {}) };
   c.code = certCode(s.id, c);
   return c;
@@ -4585,7 +4551,7 @@ function withRelease(s, res){
   const upd = res.upd || res, h = upd.history, last = h && h.at(-1);
   if (!upd.results || !last || !last.res || last.redo || h.length <= (s.history || []).length) return res;
   const m = { ...s, ...upd }, p = planOf(m), ci = curIdx(m), ti = targetIdx(m), ph = stage(m, m.stageKey)?.phase;
-  if (awaiting(m) || twoPerson(m) || !(ci >= 1 && ci < ti && (ph === "test" || ph === "qc")) || releaseBlock(m)) return res;
+  if (awaiting(m) || twoPerson(m) || !(ci >= 1 && ci < ti && (ph === "test" || ph === "qc" || upd.results.att)) || releaseBlock(m)) return res;
   let at = Math.max(...h.map(e => +e.at || 0)) + 1000;
   const hist = [...h];
   for (let i = ci + 1; i < ti; i++){ hist.push({ key: p[i].key, sn: p[i].name, at, by: session.u, tech: session.name, note: "Done: results saved" }); at += 1000; }
@@ -4624,7 +4590,8 @@ const certLine = c => `<button type="button" class="linkish" data-cert="${c.v}">
 function resultsPanel(s){
   const ci = curIdx(s), ti = targetIdx(s), ph = stage(s, s.stageKey)?.phase, certs = s.certs || [], last = certs.at(-1);
   const entering = canEdit() && ci >= 0 && ci < ti && (ph === "test" || ph === "qc");
-  if (!s.results && !certs.length && !entering && !Object.keys(labsOf(s)).length) return "";
+  const attachable = relNow() && canEdit() && !entering && canTakeFile(s);   // v24: a results file is taken at any step after receipt
+  if (!s.results && !certs.length && !entering && !attachable && !Object.keys(labsOf(s)).length) return "";
   if (!canSeeResults(s)) return certs.length ? `<div class="panel stack" id="resPanel"><h3>Results</h3><p class="small muted" style="margin:0">Results were released on ${fmtDate(last.at)} on certificate <b class="mono">${esc(last.no)}</b>${last.code ? `, check code <span class="mono">${esc(last.code)}</span>` : ""}. The lab sends them to the submitting section; ask the Assay Lab for the certificate. A copy you hold is genuine if its number and check code match these.</p></div>` : "";
   const rows = s.results?.rows || {}, ans = anOf(s), draft = s.results && (!last || s.results.at > last.at);
   const checks = draft ? resultChecks(s) : [], bad = checks.filter(c => !c.ok);
@@ -4635,7 +4602,8 @@ function resultsPanel(s){
         <button type="button" class="btn small" data-cert="${last.v}">View certificate</button></div>
       ${last.amends ? `<div class="small"><span class="pill warn">Amended</span> Replaces ${esc(last.amends)}: ${esc(last.why || "")}</div>` : ""}
       ${last.qcNote ? `<div class="small muted">${esc(last.qcNote)}</div>` : ""}${last.acc ? `<div class="small muted">Accepted outside a check by ${esc(last.acc.tech)}: ${esc(last.acc.why)}</div>` : ""}
-      ${resTable(last.an, last.rows, last.cov)}
+      ${last.file ? `<div class="small">Results file: <button type="button" class="linkish mono" data-rfile="${esc(last.file.id)}">${esc(last.file.name)}</button>${last.att ? (last.an.length ? " · results not listed here are in the file" : " · the results are in this file") : ""}</div>` : ""}
+      ${last.an.length ? resTable(last.an, last.rows, last.cov) : ""}
       ${certs.length > 1 ? `<div class="small muted">Earlier versions: ${certs.slice(0, -1).reverse().map(certLine).join(", ")}. They stay on record.</div>` : ""}
     </div>`);
   if (draft) parts.push(`<div class="stack" style="gap:6px">
@@ -4653,6 +4621,7 @@ function resultsPanel(s){
   if (gs.length && (batchesRequired() || Object.keys(labs).length)) parts.push(`<div class="small stack" style="gap:2px">${gs.map(g => { const l = labs[g.p], what = gs.length > 1 ? ` (${esc(listAnd(groupAns(g, { an: ans }).map(a => lcName(a.n))))})` : "";
     return `<div>Lab batch${what}: ${l ? `<button type="button" class="linkish mono" data-batch="${esc(l.b)}">${esc(l.b)}</button> ${!relNow() || canEval() ? `<span class="pill ${qcCls(l.q)}">${esc(qcLabel(l.q) || "no results yet")}</span>${l.n ? `<div class="small muted">${esc(l.n)}</div>` : ""}` : !l.q || l.q === "pending" ? `<span class="pill info">no results yet</span>` : ""}` : `<span class="muted">not in ${esc(aAn(lcName(QC_PROFILES[g.p]?.name || "batch")))} yet. ${canEdit() ? `Add it on the <button type="button" class="linkish" data-goto="batches">Lab batches</button> tab.` : ""}</span>`}</div>`; }).join("")}</div>`);
   if (entering) parts.push(resultsForm(s));
+  else if (attachable) parts.push(`<div class="row"><button type="button" class="btn" data-attach="sample:${esc(s.id)}">Attach results file</button></div>`);
   if (last && canEdit() && !draft && !entering && !s.amend) parts.push(amendForm(s, last));
   return `<div class="panel stack" id="resPanel"><h3>Results</h3>${parts.join("")}</div>`;
 }
@@ -4840,8 +4809,9 @@ function certHtml(s, c){
       ${fact("Test", esc(c.testName || ""))}${fact("Method", `${c.route ? `<span class="mono">${esc(c.route)}</span> ` : ""}${esc(c.routeName || "")}`)}
       ${c.batch ? fact(c.batch.includes(",") ? "Lab batches" : "Lab batch", `<span class="mono">${esc(c.batch)}</span> · ${esc(qcLabel(c.qc) || "")}`) : ""}
     </table>
-    <table class="cert-res"><thead><tr><th>Analyte</th><th>Result</th><th>Unit</th><th>Detection limit</th>${c.cov ? "<th>Quality control</th>" : ""}</tr></thead><tbody>
-      ${c.an.map(a => `<tr><td>${esc(a.n)}</td><td class="mono"><b>${esc(resText(c.rows[a.k], a))}</b></td><td>${esc(a.u || "")}</td><td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>${c.cov ? `<td>${covText(c.cov[a.k])}</td>` : ""}</tr>`).join("")}</tbody></table>
+    ${c.file ? `<div class="cert-file">Results file: <b>${esc(c.file.name)}</b>${c.att ? (c.an.length ? ". Results not shown below are in this file." : ". The results are in this file.") : ""}</div>` : ""}
+    ${c.an.length ? `<table class="cert-res"><thead><tr><th>Analyte</th><th>Result</th><th>Unit</th><th>Detection limit</th>${c.cov ? "<th>Quality control</th>" : ""}</tr></thead><tbody>
+      ${c.an.map(a => `<tr><td>${esc(a.n)}</td><td class="mono"><b>${esc(resText(c.rows[a.k], a))}</b></td><td>${esc(a.u || "")}</td><td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>${c.cov ? `<td>${covText(c.cov[a.k])}</td>` : ""}</tr>`).join("")}</tbody></table>` : ""}
     ${exc.length ? `<div class="cert-note">${exc.join("<br>")}</div>` : ""}
     <div class="cert-sign"><div>Released by <b>${esc(c.tech)}</b>, ${esc(ROLE_SIGN[c.role] || "lab supervisor (QA/QC)")}</div><div>${esc(fmtFull(c.at))}${TZ() ? ` (${esc(TZ())})` : ""}</div></div>
     <div class="cert-foot">Results relate only to the sample as received. Values below the detection limit are shown as &lt;DL${calc ? "; calculated results and balance checks count them as 0" : ""}. A result marked "Not in a lab batch" is a field, physical or worksheet measurement that is not run with reference materials. ${c.code ? `Check this copy by looking up the sample ID in the Assay Lab tracker: the certificate number and check code must match. ` : ""}Design prototype: not an official laboratory certificate.</div>
@@ -5161,7 +5131,7 @@ async function storeBatchResults(b, got, inst, file, typed){
       ans.forEach((ch, i) => { const k = g?.k[i], a = defs.find(y => y.k === k), r0 = x.rs[ch.k]; if (!a || !r0) return; const r = parseRes(r0.raw, a); rows[k] = r && !r.bad && !r.amb ? { ...r, by: session.u, ...(r0.src ? { src: r0.src } : {}) } : r0; got.push(a); });
       const all = withCalc(s, rows);
       const results = { v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: patch(s.results?.rows, all), batch: b.id, inst: inst || s.results?.inst || "", ...(file ? { file: { id: file.id, name: file.name } } : s.results?.file ? { file: s.results.file } : {}) };
-      return { results, resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null, ...labsUpd(s, { ...labsOf(s), [b.qcp]: { b: b.id, q: qc.status, n: "" } }),
+      return { results, ...(file ? { fids: [...new Set([...(s.fids || []), file.id])] } : {}), resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null, ...labsUpd(s, { ...labsOf(s), [b.qcp]: { b: b.id, q: qc.status, n: "" } }),
         history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: b.id, res: true, note: `Result${got.length > 1 ? "s" : ""} from lab batch ${b.id}${file ? ` (file ${file.name})` : ""}: ${got.map(a => `${a.n} ${resText(all[a.k], a)} ${a.u}${all[a.k]?.f === "over" ? " (over the method's range)" : ""}`).join("; ")}. ${qcLabel(qc.status)}` }] };
     }));
     if (relNow()){ await closeBatchIfDone(b.id); toast(`Results saved on ${ok} sample(s); complete results are released.`); }
@@ -5321,7 +5291,7 @@ function buildBatches(v){
       <div class="stack" style="gap:6px;min-width:0;flex:1 1 320px">
         <h2 style="margin:0">Lab batches</h2>
         <p class="small" style="margin:0">A batch is one run of samples through the furnace or AAS, with its standards, blanks and duplicates. Attach the run's results file: each sample is found by its ID or site sample code, and complete results are released.</p>
-        <div class="row" style="gap:6px"><span class="pill ${waitRes ? "gold" : ""}">${waitRes} waiting for results</span><span class="pill">${open.length} open</span><span class="pill ok">${closed.length} closed this month</span></div>
+        <div class="row" style="gap:6px"><span class="pill ${waitRes ? "gold" : ""}">${waitRes} waiting for results</span><span class="pill">${open.length} open</span><span class="pill">${closed.length} closed this month</span></div>
       </div>
       ${edit ? `<button type="button" class="btn primary big" data-attach="all">Attach results file</button>` : ""}
     </div>
@@ -5544,7 +5514,8 @@ function watchStore(){
   }, () => { storeReady = true; });
 }
 /* Settings shows open-sample counts; a burst of storage changes redraws it once. */
-function stagesSoon(){ clearTimeout(stagesSoon.t); stagesSoon.t = setTimeout(() => { if (tab === "stages" && !$("#view-stages").contains(document.activeElement)) renderStages(); }, 150); }
+/* A live update redraws Settings, but never under an open restore preview (the Azure build's Restore backup box). */
+function stagesSoon(){ clearTimeout(stagesSoon.t); stagesSoon.t = setTimeout(() => { if (tab === "stages" && !$("#view-stages").contains(document.activeElement) && !document.getElementById("cfgRestoreBox")) renderStages(); }, 150); }
 /* Samples still open (in the lab or in storage) on a route or from a section, for Settings. */
 const openOn = f => [...samples.values()].filter(f).length + [...stored.values()].filter(x => !samples.has(x.id) && f({ route: x.route, section: x.sec })).length;
 
@@ -5568,7 +5539,7 @@ function renderStorage(){
   const row = r => { const top = !first.has(r.id) && !!first.add(r.id); return `<tr class="${isPast(r) ? "st-past" : isSoon(r) ? "st-soon" : !r.loc ? "st-noloc" : "st-ok"}"><td style="white-space:nowrap"><button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>${r.tag ? `<div class="small mono muted">${esc(r.tag)}</div>` : ""}${top ? qaOfNote(r.id) : ""}${edit && top ? `<div><button type="button" class="btn ghost small reassay-btn" data-reassay="${esc(r.id)}">Re-assay</button></div>` : ""}${top ? qaPickBox(r.id) : ""}</td>
     <td>${esc(r.item)}</td><td>${r.loc ? esc(r.loc) : `<span class="pill warn">No location</span>`}</td>
     <td style="white-space:nowrap">${fmtDate(r.dueAt)}${isPast(r) ? ` <span class="pill bad">Past retention</span>` : r.dueAt && r.dueAt - now < 7 * 86400e3 ? ` <span class="pill warn">Due</span>` : ""}</td>
-    <td>${esc(r.then)}</td><td class="mono">${esc(r.sec)}</td><td><span class="tdot t-${typeTone(Object.values(TYPES).find(t => t.name === r.type)?.key)}"></span>${esc(r.type)}${r.route ? `<div class="small mono" style="color:var(--accent)">${esc(r.route)}</div>` : ""}</td></tr>`; };
+    <td>${esc(r.then)}</td><td class="mono">${esc(r.sec)}</td><td>${esc(r.type)}${r.route ? `<div class="small mono" style="color:var(--accent)">${esc(r.route)}</div>` : ""}</td></tr>`; };
   keepUiSimple(v, () => {
     v.innerHTML = `<div class="stack">
       ${qaSlot()}
@@ -6125,7 +6096,7 @@ addEventListener("resize", () => { clearTimeout(fitTimer); fitTimer = setTimeout
 /* ---------- results files: read a lab report (Excel .xls or .xlsx, CSV or text) into a grid of cell texts, in the page ---------- */
 /* Excel 97-2003 (.xls) files are a compound file holding a "Workbook" stream of BIFF records; .xlsx files are a zip of XML parts. Only the
    first worksheet is read. Numbers come out as the report shows them where the cell has a fixed-decimals format (0.900 stays 0.900). */
-const FILE_MAX = 1024 * 1024;
+const FILE_MAX = 5 * 1024 * 1024;   // v24: any file, up to 5 MB
 async function readGrid(file){
   const buf = new Uint8Array(await file.arrayBuffer());
   if (buf.length >= 8 && buf[0] === 0xD0 && buf[1] === 0xCF && buf[2] === 0x11 && buf[3] === 0xE0) return { kind: "xls", grid: xlsGrid(buf), bytes: buf };
@@ -6632,7 +6603,7 @@ let upState = null, upScope = null;
 function attachInput(){
   let el = $("#upFile");
   if (!el){
-    el = document.createElement("input"); el.type = "file"; el.id = "upFile"; el.hidden = true; el.accept = ".xls,.xlsx,.csv,.txt,.tsv";
+    el = document.createElement("input"); el.type = "file"; el.id = "upFile"; el.hidden = true;   // v24: any file; the ones the site can read fill in the values
     el.addEventListener("change", () => { const f = el.files && el.files[0]; el.value = ""; if (f) openUpload(f, upScope || {}); });
     document.body.appendChild(el);
   }
@@ -6645,14 +6616,21 @@ document.addEventListener("click", e => {
   attachInput().click();
 });
 const kb = n => n < 1024 ? `${n} bytes` : n < 1048576 ? `${(n / 1024).toFixed(n < 10240 ? 1 : 0)} KB` : `${(n / 1048576).toFixed(1)} MB`;
-const KIND = { xls: "Excel 97-2003", xlsx: "Excel", csv: "Text (CSV)" };
+const KIND = { xls: "Excel 97-2003", xlsx: "Excel", csv: "Text (CSV)", pdf: "PDF", doc: "Word", docx: "Word", png: "Picture", jpg: "Picture", jpeg: "Picture" };
+const extOf = n => (String(n).match(/\.([A-Za-z0-9]{1,8})$/) || ["", "file"])[1].toLowerCase();
 async function openUpload(file, scope){
   if (file.size > FILE_MAX){ toast(`${file.name} is ${kb(file.size)}. Files up to ${kb(FILE_MAX)} can be attached.`); return; }
   let got;
-  try { got = await readGrid(file); } catch (e) { toast(`${file.name} could not be read: ${e?.message || "not a report this site reads"}. Save it as Excel or CSV and try again.`); return; }
-  const rep = parseReport(got.grid, sampleIndex());
+  try { got = await readGrid(file); }
+  catch (e){
+    // v24, release at once: a file the site can't read is still attached; its samples are released with it.
+    if (!relNow()){ toast(`${file.name} could not be read: ${e?.message || "not a report this site reads"}. Save it as Excel or CSV and try again.`); return; }
+    got = { kind: extOf(file.name), grid: null, bytes: new Uint8Array(await file.arrayBuffer()) };
+  }
+  if (got.kind === "csv" && !["csv", "txt", "tsv"].includes(extOf(file.name)) && relNow()) got = { ...got, kind: extOf(file.name), grid: null };   // a PDF, a picture…: kept, not read
+  const rep = got.grid ? parseReport(got.grid, sampleIndex()) : { error: "This file's values can't be read here.", rows: [], cols: [], crms: [] };
   const sha = await sha256(got.bytes);
-  upState = { file: { name: file.name.slice(0, 120), size: file.size, kind: got.kind, sha }, bytes: got.bytes, grid: got.grid, rep, scope, plan: rep.error ? null : planUpload(rep, scope), prior: [] };
+  upState = { file: { name: file.name.slice(0, 120), size: file.size, kind: got.kind, sha }, bytes: got.bytes, grid: got.grid, rep, scope, plan: rep.error ? null : planUpload(rep, scope), prior: [], pick: new Set(), q: "" };
   renderUpload();
   if (db && sha) try { upState.prior = (await db.collection("files").where("sha", "==", sha).limit(5).get()).docs.map(d => d.data()).filter(Boolean); renderUpload(); } catch {}
 }
@@ -6670,7 +6648,7 @@ function renderUpload(){
     for (const t of P.fresh) save.push(li(t.miss.length ? "warn" : "ok", `New lab batch, ${esc(lcName(QC_PROFILES[t.b.qcp]?.name || t.b.qcp))}: ${t.b.sids.length} sample${t.b.sids.length === 1 ? "" : "s"}${t.b.pos.length > t.b.sids.length ? `, ${t.b.pos.length - t.b.sids.length} QC` : ""}${t.miss.length ? ` · <b>${t.miss.length} missing</b> (${esc(t.miss.slice(0, 3).join("; "))}${t.miss.length > 3 ? "…" : ""}): saved as a draft` : " · QC checked on save"}`));
     if (P.samples.length) save.push(li("ok", `Results on ${P.samples.length} sample record${P.samples.length === 1 ? "" : "s"}: ${esc(listAnd([...new Set(P.samples.flatMap(x => Object.values(x.rows).map(v => v.col.name)))].slice(0, 8)))}`));
     if (P.viaBatch.length) check.push(li("warn", `Saved with the lab batch: ${esc(listAnd(P.viaBatch))} <button type="button" class="btn small" id="upBatches">Lab batches</button>`));
-    if (P.notReady.length) check.push(li("warn", `Not at analysis yet: ${ids(P.notReady)} <button type="button" class="btn small" id="upMove">Move ${P.notReady.length === 1 ? "it" : "them"} to analysis</button>`));
+    if (P.notReady.length) check.push(relNow() ? li("", `Moved on to analysis when saved: ${ids(P.notReady)}`) : li("warn", `Not at analysis yet: ${ids(P.notReady)} <button type="button" class="btn small" id="upMove">Move ${P.notReady.length === 1 ? "it" : "them"} to analysis</button>`));
     if (P.awaiting.length) check.push(li("warn", `Waiting for receipt: ${ids(P.awaiting)}`));
     if (P.done.length) check.push(li("warn", `Results already released: ${ids(P.done)}`));
     if (P.already.length) check.push(li("warn", `Batch results already saved: ${ids(P.already, 4)}`));
@@ -6683,25 +6661,60 @@ function renderUpload(){
   const rowsRead = P ? [
     ...P.batches.concat(P.fresh).flatMap(t => t.b.pos.filter(x => Object.keys(t.vals[x.p] || {}).length).map(x => [x.t === "s" ? x.sid : x.t === "crm" ? t.crms[x.p] || x.crm : `${posLabel(QC_PROFILES[t.b.qcp] || {}, x)}${x.of ? " of " + x.of : ""}`, t.b.id || "New batch", Object.entries(t.vals[x.p]).map(([k, v]) => `${anShort(bAns(t.b).find(a => a.k === k) || { k, n: k })} ${v}`).join(", ")])),
     ...P.samples.map(x => [x.sid, "Sample record", Object.entries(x.rows).map(([k, v]) => `${anShort(anOf(bs(x.sid)).find(a => a.k === k) || { k, n: k })} ${v.raw}`).join(", ")])] : [];
-  const any = P && (P.batches.length || P.fresh.length || P.samples.length);
+  const loose = relNow(), tg = loose ? uploadTargets(u) : [];
+  const any = loose ? tg.length > 0 : P && (P.batches.length || P.fresh.length || P.samples.length);
   box.innerHTML = `<div class="modal-card stack" style="gap:12px">
     <div class="row" style="gap:8px"><h3 id="upTitle" style="margin:0">Results file</h3><span class="pill">${esc(KIND[u.file.kind] || u.file.kind)}</span><span style="flex:1"></span><button type="button" class="btn ghost small" id="upClose" aria-label="Close">✕</button></div>
     <div class="small"><b class="mono">${esc(u.file.name)}</b> · ${kb(u.file.size)}${m.ref ? ` · Lab ref <b class="mono">${esc(m.ref)}</b>` : ""}${m.project ? ` · ${esc(m.project)}` : ""}${r.rows ? ` · ${r.rows.length} row${r.rows.length === 1 ? "" : "s"} read` : ""}</div>
     ${u.prior.length ? `<div class="notice warn"><b>Attached before</b> ${u.prior.map(f => `${fmt(f.at)} by ${esc(f.tech || "")}`).join("; ")}</div>` : ""}
-    ${r.error ? `<div class="notice bad">${esc(r.error)}</div>` : ""}
-    ${save.length ? `<div class="up-sec"><h4>Saves</h4><ul class="up-list">${save.join("")}</ul></div>` : P && !any && !P.notReady.length ? `<div class="notice warn"><b>Nothing to save from this file.</b></div>` : ""}
+    ${r.error && !loose ? `<div class="notice bad">${esc(r.error)}</div>` : ""}
+    ${save.length ? `<div class="up-sec"><h4>Saves</h4><ul class="up-list">${save.join("")}</ul></div>` : P && !any && !P.notReady.length && !loose ? `<div class="notice warn"><b>Nothing to save from this file.</b></div>` : ""}
+    ${loose ? uploadTargetsHtml(u, tg) : ""}
     ${check.length ? `<div class="up-sec"><h4>Check</h4><ul class="up-list">${check.join("")}</ul></div>` : ""}
     ${unused.length ? `<div class="up-sec"><h4>Not used</h4><ul class="up-list">${unused.join("")}</ul></div>` : ""}
     ${rowsRead.length ? `<details class="more" id="upRead"><summary>Values read (${rowsRead.length})</summary><div class="tbl-wrap"><table><thead><tr><th>Sample or QC</th><th>Goes to</th><th>Results</th></tr></thead><tbody>${rowsRead.slice(0, 400).map(x => `<tr><td class="mono">${esc(x[0])}</td><td class="mono">${esc(x[1])}</td><td>${esc(x[2])}</td></tr>`).join("")}</tbody></table></div></details>` : ""}
-    <div class="row"><button type="button" class="btn primary" id="upSave" ${any ? "" : "disabled data-hold"}>Save results</button><button type="button" class="btn ghost" id="upCancel">Cancel</button><span class="small muted" id="upMsg"></span></div>
+    <div class="row"><button type="button" class="btn primary" id="upSave" ${any ? "" : "disabled data-hold"}>${loose ? `Save and release${tg.length ? ` (${tg.length})` : ""}` : "Save results"}</button><button type="button" class="btn ghost" id="upCancel">Cancel</button><span class="small muted" id="upMsg"></span></div>
   </div>`;
   $("#upClose", box).onclick = closeUpload; $("#upCancel", box).onclick = closeUpload;
   $("#upSave", box).onclick = saveUpload;
   $("#upMove", box)?.addEventListener("click", moveToAnalysis);
+  bindUploadTargets(box);
   $("#upBatches", box)?.addEventListener("click", () => { closeUpload(); setTab("batches"); });
   $("#upCols", box)?.addEventListener("click", () => { closeUpload(); cfgTab = "files"; setTab("stages"); });
   $("#upCrms", box)?.addEventListener("click", () => { closeUpload(); cfgTab = "crms"; setTab("stages"); });
   box.onclick = e => { if (e.target === box) closeUpload(); };
+}
+/* v24, release at once: every file attached is accepted. The samples it is for are released with it: those the file names (their values
+   filled in), else the sample or batch it was attached on, else the ones the technician ticks. A file the site can't read (a PDF, a
+   picture, a report laid out another way) is kept as their results; the certificate points to it. */
+const canTakeFile = s => !!s && !awaiting(s) && s.open !== false && curIdx(s) >= 1 && curIdx(s) < targetIdx(s);
+function uploadTargets(u){
+  const sc = u.scope || {}, P = u.plan;
+  if (sc.sample) return canTakeFile(bs(sc.sample)) ? [sc.sample] : [];
+  if (sc.batch){ const b = openBatches.get(sc.batch) || (batchLive && batchLive.id === sc.batch ? batchLive : null); return (b?.sids || []).filter(id => { const s = bs(id); return canTakeFile(s) && inBatch(s, sc.batch); }); }
+  const named = P ? [...new Set([...P.batches.flatMap(t => t.b.pos.filter(x => x.t === "s" && Object.keys(t.vals[x.p] || {}).length).map(x => x.sid)), ...P.fresh.flatMap(t => t.b.sids), ...P.samples.map(x => x.sid), ...P.notReady])] : [];
+  return named.length ? named : [...u.pick].filter(id => canTakeFile(bs(id)));
+}
+function uploadTargetsHtml(u, tg){
+  const sc = u.scope || {}, P = u.plan, named = P && !sc.sample && !sc.batch && (P.batches.length || P.fresh.length || P.samples.length || P.notReady.length);
+  const unread = u.rep.error ? `<div class="notice">${u.grid ? "This file doesn't name its samples in a way the site can read." : "This file's values can't be read here."} It is kept as the results of the samples below, and they are released with it.</div>` : "";
+  if (sc.sample || sc.batch || named) return `${unread}<div class="up-sec"><h4>Released with this file</h4><div class="small">${tg.length ? tg.map(id => `<span class="mono">${esc(id)}</span>`).join(", ") : "No sample here can take results (not received yet, or already released)."}</div></div>`;
+  const q = u.q.trim().toUpperCase().replace(/\s+/g, "");
+  const list = [...samples.values()].filter(canTakeFile).filter(s => !q || [s.id, tagText(s)].some(x => String(x).toUpperCase().replace(/\s+/g, "").includes(q))).sort((a, b) => a.id < b.id ? 1 : -1).slice(0, 150);
+  return `${unread}<div class="up-sec"><h4>Which samples are these results for?</h4>
+    <input class="inp" id="upQ" placeholder="Search ID or site code" value="${esc(u.q)}" style="margin-bottom:6px">
+    <div class="up-pick">${list.length ? list.map(s => `<label><input type="checkbox" data-uppick="${esc(s.id)}" ${u.pick.has(s.id) ? "checked" : ""}> <span class="mono">${esc(s.id)}</span> <span class="small muted">${esc(tagText(s))} · ${esc(s.type || "")} · ${esc(stage(s, s.stageKey)?.name || "")}</span></label>`).join("") : `<div class="small muted">No samples in the lab are waiting for results.</div>`}</div></div>`;
+}
+function bindUploadTargets(box){
+  box.querySelectorAll("[data-uppick]").forEach(c => c.onchange = () => { const u = upState; if (!u) return; c.checked ? u.pick.add(c.dataset.uppick) : u.pick.delete(c.dataset.uppick); renderUpload(); });
+  const q = $("#upQ", box); if (q){ q.oninput = () => { if (upState){ upState.q = q.value; renderUpload(); const n = $("#upQ"); if (n){ n.focus(); n.setSelectionRange(n.value.length, n.value.length); } } }; }
+}
+/* The file as a sample's results: what was read stays, the file is named as where the rest are. */
+function fileResults(s, f, inst){
+  const at = nowAfter(s);
+  return { results: { ...(s.results || {}), v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: s.results?.rows || {}, inst: inst || s.results?.inst || "", file: fileTag(f), att: true },
+    resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), fids: [...new Set([...(s.fids || []), f.id])],
+    history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, note: `Results file ${f.name} attached` }] };
 }
 /* Samples still in preparation when their results arrive move to their first analysis step, one step at a time, each step recorded. */
 async function moveToAnalysis(){
@@ -6742,10 +6755,24 @@ async function downloadFile(id){
 document.addEventListener("click", e => { const b = e.target.closest("[data-rfile]"); if (b){ e.preventDefault(); downloadFile(b.dataset.rfile); } });
 const fileTag = f => f ? { id: f.id, name: f.name } : null;
 async function saveUpload(){
-  const u = upState; if (!u?.plan || u.busy || !canEdit()) return;
-  const P = u.plan;
+  const u = upState; if (!u || u.busy || !canEdit() || (!u.plan && !relNow())) return;
+  const loose = relNow(), targets = loose ? uploadTargets(u) : [];
   u.busy = true; document.querySelectorAll("#upBox button").forEach(b => b.disabled = true);
   const msg = t => { const m = $("#upMsg"); if (m) m.textContent = t; };
+  // Release at once: samples the file names that are still in preparation move on to analysis first, each step recorded.
+  if (loose && u.plan?.notReady.length){
+    msg("Moving samples to analysis…");
+    await pool(u.plan.notReady, 4, sid => sampleWrite(sid, s => {
+      const p = planOf(s), ci = curIdx(s), to = p.findIndex((x, i) => i > ci && (x.phase === "test" || x.phase === "qc"));
+      if (ci < 1 || to < 0 || to >= targetIdx(s) || readyForResults(s)) return null;
+      let at = nowAfter(s); const hist = [...(s.history || [])];
+      for (let i = ci + 1; i <= to; i++){ hist.push({ key: p[i].key, sn: p[i].name, at, by: session.u, tech: session.name, ref: u.file.name, note: `Moved on with results file ${u.file.name}` }); at += 1000; }
+      return { stageKey: p[to].key, stageAt: at - 1000, history: hist };
+    }));
+    await new Promise(r => setTimeout(r, 300));
+    u.rep = parseReport(u.grid, sampleIndex()); u.plan = u.rep.error ? null : planUpload(u.rep, u.scope);
+  }
+  const P = u.plan || { batches: [], fresh: [], samples: [] };
   const done = [];
   // The file's values replace what was typed, unsaved, in the same boxes of the batch on screen.
   const shown = P.batches.find(t => t.b.id === batchSel);
@@ -6773,13 +6800,21 @@ async function saveUpload(){
         const bk = batchKeys(s), defs = anOf(s), rows = { ...rowsOf(s) };
         for (const [k, v] of Object.entries(x.rows)){ const a = defs.find(y => y.k === k); if (!a || bk.has(k)) continue; const r = parseRes(v.raw, a); if (r && !r.bad && !r.amb) rows[k] = { ...r, by: session.u, src: "file" }; }
         const all = withCalc(s, rows), at = nowAfter(s);
-        return { results: { v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: patch(s.results?.rows, all), batch: s.results?.batch || "", inst, file: fileTag(f) },
+        return { results: { v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: patch(s.results?.rows, all), batch: s.results?.batch || "", inst, file: fileTag(f) }, fids: [...new Set([...(s.fids || []), f.id])],
           resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null,
           history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, note: `Results from file ${f.name}: ${resSummary(defs, all)}` }] };
       }));
       done.push(`results on ${n} sample record${n === 1 ? "" : "s"}`);
     }
-    toast(`Saved: ${done.join("; ")}.`);
+    if (loose && targets.length){
+      // Every sample the file is for and not released yet: the file is its results, and it is released (withRelease).
+      msg("Releasing…");
+      const inst = f.labRef || f.name;
+      const rel = await pool(targets, 4, sid => sampleWrite(sid, s => canTakeFile(s) ? fileResults(s, f, inst) : null));
+      if (rel) done.push(`${rel} released with the file`);
+      for (const b of new Set(targets.flatMap(id => Object.values(labsOf(bs(id) || {})).map(l => l.b)))) await closeBatchIfDone(b);
+    }
+    toast(`Saved: ${done.join("; ") || "the file is kept"}.`);
     closeUpload();
   } catch (e) { writeFailed(e); u.busy = false; renderUpload(); return; }
   if (tab === "batches") renderBatches(); else if (tab === "track") renderTrack();
@@ -6788,7 +6823,7 @@ async function saveUpload(){
 async function fileIntoBatch(b, t, f, inst){
   const notYet = b.sids.filter(id => { const s = bs(id); return s && inBatch(s, b.id) && !released(s) && !readyForResults(s); });
   const files = [...(b.files || []).filter(x => x.id !== f.id), { id: f.id, name: f.name, at: Date.now(), tech: session.name }];
-  if (t.miss.length || notYet.length){
+  if (!relNow() && (t.miss.length || notYet.length)){   // release at once: what the file holds is saved; the rest of each sample's results is the file
     const ref = db.doc("batches/" + b.id);
     await ref.update({ draft: { at: Date.now(), by: session.u, tech: session.name, file: fileTag(f), vals: t.vals, crms: t.crms }, files, status: "results",
       log: batchLog(b, `Results file ${f.name} attached; ${t.miss.length ? `${t.miss.length} value(s) still to enter` : `${notYet.length} sample(s) not at analysis yet`}`) });
@@ -7522,7 +7557,7 @@ function evalFlags(s){
   } catch {}
   return out;
 }
-const flagPills = fl => fl.length ? `<span class="pill ${fl.some(f => f.cls === "bad") ? "bad" : "warn"}">${fl.length} flag${fl.length === 1 ? "" : "s"}</span>` : `<span class="pill ok">No flags</span>`;
+const flagPills = fl => fl.length ? `<span class="pill ${fl.some(f => f.cls === "bad") ? "bad" : "warn"}">${fl.length} flag${fl.length === 1 ? "" : "s"}</span>` : `<span class="pill">No flags</span>`;
 function evalBox(s){
   if (!canEval() || (!lastCert(s) && !s.results)) return "";
   const fl = evalFlags(s), ev = s.evals || [], c = lastCert(s), due = c && !evaluated(s);
@@ -7600,7 +7635,9 @@ function staffResBadge(){
 /* One line per result on the latest certificate, short names first: "AuFx 0.12 g/t · AuSx 0.004 mg/L". */
 function certSummary(c, s){
   const defs = (() => { try { return anOf(s); } catch { return []; } })(), short = a => a.s || defs.find(x => x.k === a.k)?.s || a.n;
-  return (c.an || []).filter(a => c.rows?.[a.k] && a.t !== "pick" && a.t !== "text").slice(0, 5).map(a => `${short(a)} ${resText(c.rows[a.k], a)}${a.u ? " " + a.u : ""}`).join(" · ");
+  const vals = (c.an || []).filter(a => c.rows?.[a.k] && a.t !== "pick" && a.t !== "text").slice(0, 5).map(a => `${short(a)} ${resText(c.rows[a.k], a)}${a.u ? " " + a.u : ""}`);
+  if (c.att && c.file) vals.push(`${vals.length ? "rest in" : "In"} file ${c.file.name}`);
+  return vals.join(" · ");
 }
 function renderStaffResults(v){
   watchStaffResults();
@@ -7611,7 +7648,7 @@ function renderStaffResults(v){
   const keepFocus = document.activeElement?.id === "resQ";
   v.innerHTML = `<div class="stack">
     <div class="panel stack res-head" style="gap:10px">
-      <div class="row" style="gap:10px"><h2 style="margin:0">Results</h2><span class="small muted">Released in the last ${resDays} days</span>${ev ? `<span class="grow"></span><span class="pill ${flagged ? "bad" : "ok"}">${flagged} flagged</span><span class="pill gold">${due} to evaluate</span>` : ""}</div>
+      <div class="row" style="gap:10px"><h2 style="margin:0">Results</h2><span class="small muted">Released in the last ${resDays} days</span>${ev ? `<span class="grow"></span><span class="pill${flagged ? " bad" : ""}">${flagged} flagged</span><span class="pill${due ? " gold" : ""}">${due} to evaluate</span>` : ""}</div>
       <div class="row bd-tools" style="gap:8px">
         <input class="inp" id="resQ" placeholder="Search ID, site code, purpose" value="${esc(resQ)}" style="flex:1 1 220px;width:auto">
         <select class="inp" id="resSec" style="width:auto" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${resSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
@@ -7791,7 +7828,7 @@ setTab(tab);
     if (before && before !== JSON.stringify(session)){ $("#view-register").innerHTML = ""; if (!session) toast("Your account was changed by an admin. Please sign in again."); setTab(tab); }
     refreshFormRoute();
     if (tab === "routes" && !$("#view-routes").contains(document.activeElement)) renderRoutes();
-    if (tab === "stages" && !draftDirty && !$("#view-stages").contains(document.activeElement)) renderStages();
+    if (tab === "stages" && !draftDirty && !$("#view-stages").contains(document.activeElement) && !document.getElementById("cfgRestoreBox")) renderStages();
     if (tab === "track") renderTrack();
     if (tab === "login") renderLogin();
     rerenderSoon();

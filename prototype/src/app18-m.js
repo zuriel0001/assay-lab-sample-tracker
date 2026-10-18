@@ -283,7 +283,7 @@ let upState = null, upScope = null;
 function attachInput(){
   let el = $("#upFile");
   if (!el){
-    el = document.createElement("input"); el.type = "file"; el.id = "upFile"; el.hidden = true; el.accept = ".xls,.xlsx,.csv,.txt,.tsv";
+    el = document.createElement("input"); el.type = "file"; el.id = "upFile"; el.hidden = true;   // v24: any file; the ones the site can read fill in the values
     el.addEventListener("change", () => { const f = el.files && el.files[0]; el.value = ""; if (f) openUpload(f, upScope || {}); });
     document.body.appendChild(el);
   }
@@ -296,14 +296,21 @@ document.addEventListener("click", e => {
   attachInput().click();
 });
 const kb = n => n < 1024 ? `${n} bytes` : n < 1048576 ? `${(n / 1024).toFixed(n < 10240 ? 1 : 0)} KB` : `${(n / 1048576).toFixed(1)} MB`;
-const KIND = { xls: "Excel 97-2003", xlsx: "Excel", csv: "Text (CSV)" };
+const KIND = { xls: "Excel 97-2003", xlsx: "Excel", csv: "Text (CSV)", pdf: "PDF", doc: "Word", docx: "Word", png: "Picture", jpg: "Picture", jpeg: "Picture" };
+const extOf = n => (String(n).match(/\.([A-Za-z0-9]{1,8})$/) || ["", "file"])[1].toLowerCase();
 async function openUpload(file, scope){
   if (file.size > FILE_MAX){ toast(`${file.name} is ${kb(file.size)}. Files up to ${kb(FILE_MAX)} can be attached.`); return; }
   let got;
-  try { got = await readGrid(file); } catch (e) { toast(`${file.name} could not be read: ${e?.message || "not a report this site reads"}. Save it as Excel or CSV and try again.`); return; }
-  const rep = parseReport(got.grid, sampleIndex());
+  try { got = await readGrid(file); }
+  catch (e){
+    // v24, release at once: a file the site can't read is still attached; its samples are released with it.
+    if (!relNow()){ toast(`${file.name} could not be read: ${e?.message || "not a report this site reads"}. Save it as Excel or CSV and try again.`); return; }
+    got = { kind: extOf(file.name), grid: null, bytes: new Uint8Array(await file.arrayBuffer()) };
+  }
+  if (got.kind === "csv" && !["csv", "txt", "tsv"].includes(extOf(file.name)) && relNow()) got = { ...got, kind: extOf(file.name), grid: null };   // a PDF, a picture…: kept, not read
+  const rep = got.grid ? parseReport(got.grid, sampleIndex()) : { error: "This file's values can't be read here.", rows: [], cols: [], crms: [] };
   const sha = await sha256(got.bytes);
-  upState = { file: { name: file.name.slice(0, 120), size: file.size, kind: got.kind, sha }, bytes: got.bytes, grid: got.grid, rep, scope, plan: rep.error ? null : planUpload(rep, scope), prior: [] };
+  upState = { file: { name: file.name.slice(0, 120), size: file.size, kind: got.kind, sha }, bytes: got.bytes, grid: got.grid, rep, scope, plan: rep.error ? null : planUpload(rep, scope), prior: [], pick: new Set(), q: "" };
   renderUpload();
   if (db && sha) try { upState.prior = (await db.collection("files").where("sha", "==", sha).limit(5).get()).docs.map(d => d.data()).filter(Boolean); renderUpload(); } catch {}
 }
@@ -321,7 +328,7 @@ function renderUpload(){
     for (const t of P.fresh) save.push(li(t.miss.length ? "warn" : "ok", `New lab batch, ${esc(lcName(QC_PROFILES[t.b.qcp]?.name || t.b.qcp))}: ${t.b.sids.length} sample${t.b.sids.length === 1 ? "" : "s"}${t.b.pos.length > t.b.sids.length ? `, ${t.b.pos.length - t.b.sids.length} QC` : ""}${t.miss.length ? ` · <b>${t.miss.length} missing</b> (${esc(t.miss.slice(0, 3).join("; "))}${t.miss.length > 3 ? "…" : ""}): saved as a draft` : " · QC checked on save"}`));
     if (P.samples.length) save.push(li("ok", `Results on ${P.samples.length} sample record${P.samples.length === 1 ? "" : "s"}: ${esc(listAnd([...new Set(P.samples.flatMap(x => Object.values(x.rows).map(v => v.col.name)))].slice(0, 8)))}`));
     if (P.viaBatch.length) check.push(li("warn", `Saved with the lab batch: ${esc(listAnd(P.viaBatch))} <button type="button" class="btn small" id="upBatches">Lab batches</button>`));
-    if (P.notReady.length) check.push(li("warn", `Not at analysis yet: ${ids(P.notReady)} <button type="button" class="btn small" id="upMove">Move ${P.notReady.length === 1 ? "it" : "them"} to analysis</button>`));
+    if (P.notReady.length) check.push(relNow() ? li("", `Moved on to analysis when saved: ${ids(P.notReady)}`) : li("warn", `Not at analysis yet: ${ids(P.notReady)} <button type="button" class="btn small" id="upMove">Move ${P.notReady.length === 1 ? "it" : "them"} to analysis</button>`));
     if (P.awaiting.length) check.push(li("warn", `Waiting for receipt: ${ids(P.awaiting)}`));
     if (P.done.length) check.push(li("warn", `Results already released: ${ids(P.done)}`));
     if (P.already.length) check.push(li("warn", `Batch results already saved: ${ids(P.already, 4)}`));
@@ -334,25 +341,60 @@ function renderUpload(){
   const rowsRead = P ? [
     ...P.batches.concat(P.fresh).flatMap(t => t.b.pos.filter(x => Object.keys(t.vals[x.p] || {}).length).map(x => [x.t === "s" ? x.sid : x.t === "crm" ? t.crms[x.p] || x.crm : `${posLabel(QC_PROFILES[t.b.qcp] || {}, x)}${x.of ? " of " + x.of : ""}`, t.b.id || "New batch", Object.entries(t.vals[x.p]).map(([k, v]) => `${anShort(bAns(t.b).find(a => a.k === k) || { k, n: k })} ${v}`).join(", ")])),
     ...P.samples.map(x => [x.sid, "Sample record", Object.entries(x.rows).map(([k, v]) => `${anShort(anOf(bs(x.sid)).find(a => a.k === k) || { k, n: k })} ${v.raw}`).join(", ")])] : [];
-  const any = P && (P.batches.length || P.fresh.length || P.samples.length);
+  const loose = relNow(), tg = loose ? uploadTargets(u) : [];
+  const any = loose ? tg.length > 0 : P && (P.batches.length || P.fresh.length || P.samples.length);
   box.innerHTML = `<div class="modal-card stack" style="gap:12px">
     <div class="row" style="gap:8px"><h3 id="upTitle" style="margin:0">Results file</h3><span class="pill">${esc(KIND[u.file.kind] || u.file.kind)}</span><span style="flex:1"></span><button type="button" class="btn ghost small" id="upClose" aria-label="Close">✕</button></div>
     <div class="small"><b class="mono">${esc(u.file.name)}</b> · ${kb(u.file.size)}${m.ref ? ` · Lab ref <b class="mono">${esc(m.ref)}</b>` : ""}${m.project ? ` · ${esc(m.project)}` : ""}${r.rows ? ` · ${r.rows.length} row${r.rows.length === 1 ? "" : "s"} read` : ""}</div>
     ${u.prior.length ? `<div class="notice warn"><b>Attached before</b> ${u.prior.map(f => `${fmt(f.at)} by ${esc(f.tech || "")}`).join("; ")}</div>` : ""}
-    ${r.error ? `<div class="notice bad">${esc(r.error)}</div>` : ""}
-    ${save.length ? `<div class="up-sec"><h4>Saves</h4><ul class="up-list">${save.join("")}</ul></div>` : P && !any && !P.notReady.length ? `<div class="notice warn"><b>Nothing to save from this file.</b></div>` : ""}
+    ${r.error && !loose ? `<div class="notice bad">${esc(r.error)}</div>` : ""}
+    ${save.length ? `<div class="up-sec"><h4>Saves</h4><ul class="up-list">${save.join("")}</ul></div>` : P && !any && !P.notReady.length && !loose ? `<div class="notice warn"><b>Nothing to save from this file.</b></div>` : ""}
+    ${loose ? uploadTargetsHtml(u, tg) : ""}
     ${check.length ? `<div class="up-sec"><h4>Check</h4><ul class="up-list">${check.join("")}</ul></div>` : ""}
     ${unused.length ? `<div class="up-sec"><h4>Not used</h4><ul class="up-list">${unused.join("")}</ul></div>` : ""}
     ${rowsRead.length ? `<details class="more" id="upRead"><summary>Values read (${rowsRead.length})</summary><div class="tbl-wrap"><table><thead><tr><th>Sample or QC</th><th>Goes to</th><th>Results</th></tr></thead><tbody>${rowsRead.slice(0, 400).map(x => `<tr><td class="mono">${esc(x[0])}</td><td class="mono">${esc(x[1])}</td><td>${esc(x[2])}</td></tr>`).join("")}</tbody></table></div></details>` : ""}
-    <div class="row"><button type="button" class="btn primary" id="upSave" ${any ? "" : "disabled data-hold"}>Save results</button><button type="button" class="btn ghost" id="upCancel">Cancel</button><span class="small muted" id="upMsg"></span></div>
+    <div class="row"><button type="button" class="btn primary" id="upSave" ${any ? "" : "disabled data-hold"}>${loose ? `Save and release${tg.length ? ` (${tg.length})` : ""}` : "Save results"}</button><button type="button" class="btn ghost" id="upCancel">Cancel</button><span class="small muted" id="upMsg"></span></div>
   </div>`;
   $("#upClose", box).onclick = closeUpload; $("#upCancel", box).onclick = closeUpload;
   $("#upSave", box).onclick = saveUpload;
   $("#upMove", box)?.addEventListener("click", moveToAnalysis);
+  bindUploadTargets(box);
   $("#upBatches", box)?.addEventListener("click", () => { closeUpload(); setTab("batches"); });
   $("#upCols", box)?.addEventListener("click", () => { closeUpload(); cfgTab = "files"; setTab("stages"); });
   $("#upCrms", box)?.addEventListener("click", () => { closeUpload(); cfgTab = "crms"; setTab("stages"); });
   box.onclick = e => { if (e.target === box) closeUpload(); };
+}
+/* v24, release at once: every file attached is accepted. The samples it is for are released with it: those the file names (their values
+   filled in), else the sample or batch it was attached on, else the ones the technician ticks. A file the site can't read (a PDF, a
+   picture, a report laid out another way) is kept as their results; the certificate points to it. */
+const canTakeFile = s => !!s && !awaiting(s) && s.open !== false && curIdx(s) >= 1 && curIdx(s) < targetIdx(s);
+function uploadTargets(u){
+  const sc = u.scope || {}, P = u.plan;
+  if (sc.sample) return canTakeFile(bs(sc.sample)) ? [sc.sample] : [];
+  if (sc.batch){ const b = openBatches.get(sc.batch) || (batchLive && batchLive.id === sc.batch ? batchLive : null); return (b?.sids || []).filter(id => { const s = bs(id); return canTakeFile(s) && inBatch(s, sc.batch); }); }
+  const named = P ? [...new Set([...P.batches.flatMap(t => t.b.pos.filter(x => x.t === "s" && Object.keys(t.vals[x.p] || {}).length).map(x => x.sid)), ...P.fresh.flatMap(t => t.b.sids), ...P.samples.map(x => x.sid), ...P.notReady])] : [];
+  return named.length ? named : [...u.pick].filter(id => canTakeFile(bs(id)));
+}
+function uploadTargetsHtml(u, tg){
+  const sc = u.scope || {}, P = u.plan, named = P && !sc.sample && !sc.batch && (P.batches.length || P.fresh.length || P.samples.length || P.notReady.length);
+  const unread = u.rep.error ? `<div class="notice">${u.grid ? "This file doesn't name its samples in a way the site can read." : "This file's values can't be read here."} It is kept as the results of the samples below, and they are released with it.</div>` : "";
+  if (sc.sample || sc.batch || named) return `${unread}<div class="up-sec"><h4>Released with this file</h4><div class="small">${tg.length ? tg.map(id => `<span class="mono">${esc(id)}</span>`).join(", ") : "No sample here can take results (not received yet, or already released)."}</div></div>`;
+  const q = u.q.trim().toUpperCase().replace(/\s+/g, "");
+  const list = [...samples.values()].filter(canTakeFile).filter(s => !q || [s.id, tagText(s)].some(x => String(x).toUpperCase().replace(/\s+/g, "").includes(q))).sort((a, b) => a.id < b.id ? 1 : -1).slice(0, 150);
+  return `${unread}<div class="up-sec"><h4>Which samples are these results for?</h4>
+    <input class="inp" id="upQ" placeholder="Search ID or site code" value="${esc(u.q)}" style="margin-bottom:6px">
+    <div class="up-pick">${list.length ? list.map(s => `<label><input type="checkbox" data-uppick="${esc(s.id)}" ${u.pick.has(s.id) ? "checked" : ""}> <span class="mono">${esc(s.id)}</span> <span class="small muted">${esc(tagText(s))} · ${esc(s.type || "")} · ${esc(stage(s, s.stageKey)?.name || "")}</span></label>`).join("") : `<div class="small muted">No samples in the lab are waiting for results.</div>`}</div></div>`;
+}
+function bindUploadTargets(box){
+  box.querySelectorAll("[data-uppick]").forEach(c => c.onchange = () => { const u = upState; if (!u) return; c.checked ? u.pick.add(c.dataset.uppick) : u.pick.delete(c.dataset.uppick); renderUpload(); });
+  const q = $("#upQ", box); if (q){ q.oninput = () => { if (upState){ upState.q = q.value; renderUpload(); const n = $("#upQ"); if (n){ n.focus(); n.setSelectionRange(n.value.length, n.value.length); } } }; }
+}
+/* The file as a sample's results: what was read stays, the file is named as where the rest are. */
+function fileResults(s, f, inst){
+  const at = nowAfter(s);
+  return { results: { ...(s.results || {}), v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: s.results?.rows || {}, inst: inst || s.results?.inst || "", file: fileTag(f), att: true },
+    resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), fids: [...new Set([...(s.fids || []), f.id])],
+    history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, note: `Results file ${f.name} attached` }] };
 }
 /* Samples still in preparation when their results arrive move to their first analysis step, one step at a time, each step recorded. */
 async function moveToAnalysis(){
@@ -393,10 +435,24 @@ async function downloadFile(id){
 document.addEventListener("click", e => { const b = e.target.closest("[data-rfile]"); if (b){ e.preventDefault(); downloadFile(b.dataset.rfile); } });
 const fileTag = f => f ? { id: f.id, name: f.name } : null;
 async function saveUpload(){
-  const u = upState; if (!u?.plan || u.busy || !canEdit()) return;
-  const P = u.plan;
+  const u = upState; if (!u || u.busy || !canEdit() || (!u.plan && !relNow())) return;
+  const loose = relNow(), targets = loose ? uploadTargets(u) : [];
   u.busy = true; document.querySelectorAll("#upBox button").forEach(b => b.disabled = true);
   const msg = t => { const m = $("#upMsg"); if (m) m.textContent = t; };
+  // Release at once: samples the file names that are still in preparation move on to analysis first, each step recorded.
+  if (loose && u.plan?.notReady.length){
+    msg("Moving samples to analysis…");
+    await pool(u.plan.notReady, 4, sid => sampleWrite(sid, s => {
+      const p = planOf(s), ci = curIdx(s), to = p.findIndex((x, i) => i > ci && (x.phase === "test" || x.phase === "qc"));
+      if (ci < 1 || to < 0 || to >= targetIdx(s) || readyForResults(s)) return null;
+      let at = nowAfter(s); const hist = [...(s.history || [])];
+      for (let i = ci + 1; i <= to; i++){ hist.push({ key: p[i].key, sn: p[i].name, at, by: session.u, tech: session.name, ref: u.file.name, note: `Moved on with results file ${u.file.name}` }); at += 1000; }
+      return { stageKey: p[to].key, stageAt: at - 1000, history: hist };
+    }));
+    await new Promise(r => setTimeout(r, 300));
+    u.rep = parseReport(u.grid, sampleIndex()); u.plan = u.rep.error ? null : planUpload(u.rep, u.scope);
+  }
+  const P = u.plan || { batches: [], fresh: [], samples: [] };
   const done = [];
   // The file's values replace what was typed, unsaved, in the same boxes of the batch on screen.
   const shown = P.batches.find(t => t.b.id === batchSel);
@@ -424,13 +480,21 @@ async function saveUpload(){
         const bk = batchKeys(s), defs = anOf(s), rows = { ...rowsOf(s) };
         for (const [k, v] of Object.entries(x.rows)){ const a = defs.find(y => y.k === k); if (!a || bk.has(k)) continue; const r = parseRes(v.raw, a); if (r && !r.bad && !r.amb) rows[k] = { ...r, by: session.u, src: "file" }; }
         const all = withCalc(s, rows), at = nowAfter(s);
-        return { results: { v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: patch(s.results?.rows, all), batch: s.results?.batch || "", inst, file: fileTag(f) },
+        return { results: { v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: patch(s.results?.rows, all), batch: s.results?.batch || "", inst, file: fileTag(f) }, fids: [...new Set([...(s.fids || []), f.id])],
           resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null,
           history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, note: `Results from file ${f.name}: ${resSummary(defs, all)}` }] };
       }));
       done.push(`results on ${n} sample record${n === 1 ? "" : "s"}`);
     }
-    toast(`Saved: ${done.join("; ")}.`);
+    if (loose && targets.length){
+      // Every sample the file is for and not released yet: the file is its results, and it is released (withRelease).
+      msg("Releasing…");
+      const inst = f.labRef || f.name;
+      const rel = await pool(targets, 4, sid => sampleWrite(sid, s => canTakeFile(s) ? fileResults(s, f, inst) : null));
+      if (rel) done.push(`${rel} released with the file`);
+      for (const b of new Set(targets.flatMap(id => Object.values(labsOf(bs(id) || {})).map(l => l.b)))) await closeBatchIfDone(b);
+    }
+    toast(`Saved: ${done.join("; ") || "the file is kept"}.`);
     closeUpload();
   } catch (e) { writeFailed(e); u.busy = false; renderUpload(); return; }
   if (tab === "batches") renderBatches(); else if (tab === "track") renderTrack();
@@ -439,7 +503,7 @@ async function saveUpload(){
 async function fileIntoBatch(b, t, f, inst){
   const notYet = b.sids.filter(id => { const s = bs(id); return s && inBatch(s, b.id) && !released(s) && !readyForResults(s); });
   const files = [...(b.files || []).filter(x => x.id !== f.id), { id: f.id, name: f.name, at: Date.now(), tech: session.name }];
-  if (t.miss.length || notYet.length){
+  if (!relNow() && (t.miss.length || notYet.length)){   // release at once: what the file holds is saved; the rest of each sample's results is the file
     const ref = db.doc("batches/" + b.id);
     await ref.update({ draft: { at: Date.now(), by: session.u, tech: session.name, file: fileTag(f), vals: t.vals, crms: t.crms }, files, status: "results",
       log: batchLog(b, `Results file ${f.name} attached; ${t.miss.length ? `${t.miss.length} value(s) still to enter` : `${notYet.length} sample(s) not at analysis yet`}`) });

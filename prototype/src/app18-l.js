@@ -1,7 +1,7 @@
 /* ---------- results files: read a lab report (Excel .xls or .xlsx, CSV or text) into a grid of cell texts, in the page ---------- */
 /* Excel 97-2003 (.xls) files are a compound file holding a "Workbook" stream of BIFF records; .xlsx files are a zip of XML parts. Only the
    first worksheet is read. Numbers come out as the report shows them where the cell has a fixed-decimals format (0.900 stays 0.900). */
-const FILE_MAX = 1024 * 1024;
+const FILE_MAX = 5 * 1024 * 1024;   // v24: any file, up to 5 MB
 async function readGrid(file){
   const buf = new Uint8Array(await file.arrayBuffer());
   if (buf.length >= 8 && buf[0] === 0xD0 && buf[1] === 0xCF && buf[2] === 0x11 && buf[3] === 0xE0) return { kind: "xls", grid: xlsGrid(buf), bytes: buf };

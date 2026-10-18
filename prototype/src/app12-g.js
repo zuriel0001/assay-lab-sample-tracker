@@ -107,7 +107,8 @@ function resCell(r, a){
 }
 const resSummary = (ans, rows) => ans.filter(a => rows[a.k]).slice(0, 4).map(a => `${anShort(a)} ${resText(rows[a.k], a)}${a.u ? " " + a.u : ""}`).join("; ") + (ans.filter(a => rows[a.k]).length > 4 ? "; …" : "");
 /* A pick (such as the sampling point) describes the sample; it is never a missing result. */
-const missingRes = (s, rows = s.results?.rows || {}) => anOf(s).filter(a => !a.opt && !a.calc && a.t !== "pick" && !rows[a.k]);
+/* v24: results attached as a file the site can't read (att) are complete as they stand: the file is the results. */
+const missingRes = (s, rows = s.results?.rows || {}) => s?.results?.att && relNow() ? [] : anOf(s).filter(a => !a.opt && !a.calc && a.t !== "pick" && !rows[a.k]);
 const overRes = (s, rows = s.results?.rows || {}) => anOf(s).filter(a => rows[a.k]?.f === "over");
 /* Results worked out from others are never typed: they are set, or cleared, from their inputs whenever results are saved ("<DL" counts as 0). */
 function withCalc(s, rows){
@@ -225,6 +226,7 @@ function makeCert(s, at, why, x = {}){
     rows: clone(live(rows)), cov, ents: entrants(s), acc: s.resAcc ? clone(s.resAcc) : null, soft: resultChecks(s).filter(c => !c.ok).map(c => c.msg),
     alerts: limitHits(s, rows).map(h => ({ line: alertLine(s, h), act: h.act, ack: ackOf(s, h) })),
     ...(x.self ? { self: x.self } : {}), ...(x.amendBy ? { amendBy: x.amendBy } : {}),
+    ...(s.results?.file ? { file: clone(s.results.file) } : {}), ...(s.results?.att ? { att: true } : {}),
     ...(prev ? { amends: prev.no, why: why || s.lastRedo || "Results amended" } : {}) };
   c.code = certCode(s.id, c);
   return c;
@@ -245,7 +247,7 @@ function withRelease(s, res){
   const upd = res.upd || res, h = upd.history, last = h && h.at(-1);
   if (!upd.results || !last || !last.res || last.redo || h.length <= (s.history || []).length) return res;
   const m = { ...s, ...upd }, p = planOf(m), ci = curIdx(m), ti = targetIdx(m), ph = stage(m, m.stageKey)?.phase;
-  if (awaiting(m) || twoPerson(m) || !(ci >= 1 && ci < ti && (ph === "test" || ph === "qc")) || releaseBlock(m)) return res;
+  if (awaiting(m) || twoPerson(m) || !(ci >= 1 && ci < ti && (ph === "test" || ph === "qc" || upd.results.att)) || releaseBlock(m)) return res;
   let at = Math.max(...h.map(e => +e.at || 0)) + 1000;
   const hist = [...h];
   for (let i = ci + 1; i < ti; i++){ hist.push({ key: p[i].key, sn: p[i].name, at, by: session.u, tech: session.name, note: "Done: results saved" }); at += 1000; }
@@ -284,7 +286,8 @@ const certLine = c => `<button type="button" class="linkish" data-cert="${c.v}">
 function resultsPanel(s){
   const ci = curIdx(s), ti = targetIdx(s), ph = stage(s, s.stageKey)?.phase, certs = s.certs || [], last = certs.at(-1);
   const entering = canEdit() && ci >= 0 && ci < ti && (ph === "test" || ph === "qc");
-  if (!s.results && !certs.length && !entering && !Object.keys(labsOf(s)).length) return "";
+  const attachable = relNow() && canEdit() && !entering && canTakeFile(s);   // v24: a results file is taken at any step after receipt
+  if (!s.results && !certs.length && !entering && !attachable && !Object.keys(labsOf(s)).length) return "";
   if (!canSeeResults(s)) return certs.length ? `<div class="panel stack" id="resPanel"><h3>Results</h3><p class="small muted" style="margin:0">Results were released on ${fmtDate(last.at)} on certificate <b class="mono">${esc(last.no)}</b>${last.code ? `, check code <span class="mono">${esc(last.code)}</span>` : ""}. The lab sends them to the submitting section; ask the Assay Lab for the certificate. A copy you hold is genuine if its number and check code match these.</p></div>` : "";
   const rows = s.results?.rows || {}, ans = anOf(s), draft = s.results && (!last || s.results.at > last.at);
   const checks = draft ? resultChecks(s) : [], bad = checks.filter(c => !c.ok);
@@ -295,7 +298,8 @@ function resultsPanel(s){
         <button type="button" class="btn small" data-cert="${last.v}">View certificate</button></div>
       ${last.amends ? `<div class="small"><span class="pill warn">Amended</span> Replaces ${esc(last.amends)}: ${esc(last.why || "")}</div>` : ""}
       ${last.qcNote ? `<div class="small muted">${esc(last.qcNote)}</div>` : ""}${last.acc ? `<div class="small muted">Accepted outside a check by ${esc(last.acc.tech)}: ${esc(last.acc.why)}</div>` : ""}
-      ${resTable(last.an, last.rows, last.cov)}
+      ${last.file ? `<div class="small">Results file: <button type="button" class="linkish mono" data-rfile="${esc(last.file.id)}">${esc(last.file.name)}</button>${last.att ? (last.an.length ? " · results not listed here are in the file" : " · the results are in this file") : ""}</div>` : ""}
+      ${last.an.length ? resTable(last.an, last.rows, last.cov) : ""}
       ${certs.length > 1 ? `<div class="small muted">Earlier versions: ${certs.slice(0, -1).reverse().map(certLine).join(", ")}. They stay on record.</div>` : ""}
     </div>`);
   if (draft) parts.push(`<div class="stack" style="gap:6px">
@@ -313,6 +317,7 @@ function resultsPanel(s){
   if (gs.length && (batchesRequired() || Object.keys(labs).length)) parts.push(`<div class="small stack" style="gap:2px">${gs.map(g => { const l = labs[g.p], what = gs.length > 1 ? ` (${esc(listAnd(groupAns(g, { an: ans }).map(a => lcName(a.n))))})` : "";
     return `<div>Lab batch${what}: ${l ? `<button type="button" class="linkish mono" data-batch="${esc(l.b)}">${esc(l.b)}</button> ${!relNow() || canEval() ? `<span class="pill ${qcCls(l.q)}">${esc(qcLabel(l.q) || "no results yet")}</span>${l.n ? `<div class="small muted">${esc(l.n)}</div>` : ""}` : !l.q || l.q === "pending" ? `<span class="pill info">no results yet</span>` : ""}` : `<span class="muted">not in ${esc(aAn(lcName(QC_PROFILES[g.p]?.name || "batch")))} yet. ${canEdit() ? `Add it on the <button type="button" class="linkish" data-goto="batches">Lab batches</button> tab.` : ""}</span>`}</div>`; }).join("")}</div>`);
   if (entering) parts.push(resultsForm(s));
+  else if (attachable) parts.push(`<div class="row"><button type="button" class="btn" data-attach="sample:${esc(s.id)}">Attach results file</button></div>`);
   if (last && canEdit() && !draft && !entering && !s.amend) parts.push(amendForm(s, last));
   return `<div class="panel stack" id="resPanel"><h3>Results</h3>${parts.join("")}</div>`;
 }
@@ -500,8 +505,9 @@ function certHtml(s, c){
       ${fact("Test", esc(c.testName || ""))}${fact("Method", `${c.route ? `<span class="mono">${esc(c.route)}</span> ` : ""}${esc(c.routeName || "")}`)}
       ${c.batch ? fact(c.batch.includes(",") ? "Lab batches" : "Lab batch", `<span class="mono">${esc(c.batch)}</span> · ${esc(qcLabel(c.qc) || "")}`) : ""}
     </table>
-    <table class="cert-res"><thead><tr><th>Analyte</th><th>Result</th><th>Unit</th><th>Detection limit</th>${c.cov ? "<th>Quality control</th>" : ""}</tr></thead><tbody>
-      ${c.an.map(a => `<tr><td>${esc(a.n)}</td><td class="mono"><b>${esc(resText(c.rows[a.k], a))}</b></td><td>${esc(a.u || "")}</td><td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>${c.cov ? `<td>${covText(c.cov[a.k])}</td>` : ""}</tr>`).join("")}</tbody></table>
+    ${c.file ? `<div class="cert-file">Results file: <b>${esc(c.file.name)}</b>${c.att ? (c.an.length ? ". Results not shown below are in this file." : ". The results are in this file.") : ""}</div>` : ""}
+    ${c.an.length ? `<table class="cert-res"><thead><tr><th>Analyte</th><th>Result</th><th>Unit</th><th>Detection limit</th>${c.cov ? "<th>Quality control</th>" : ""}</tr></thead><tbody>
+      ${c.an.map(a => `<tr><td>${esc(a.n)}</td><td class="mono"><b>${esc(resText(c.rows[a.k], a))}</b></td><td>${esc(a.u || "")}</td><td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>${c.cov ? `<td>${covText(c.cov[a.k])}</td>` : ""}</tr>`).join("")}</tbody></table>` : ""}
     ${exc.length ? `<div class="cert-note">${exc.join("<br>")}</div>` : ""}
     <div class="cert-sign"><div>Released by <b>${esc(c.tech)}</b>, ${esc(ROLE_SIGN[c.role] || "lab supervisor (QA/QC)")}</div><div>${esc(fmtFull(c.at))}${TZ() ? ` (${esc(TZ())})` : ""}</div></div>
     <div class="cert-foot">Results relate only to the sample as received. Values below the detection limit are shown as &lt;DL${calc ? "; calculated results and balance checks count them as 0" : ""}. A result marked "Not in a lab batch" is a field, physical or worksheet measurement that is not run with reference materials. ${c.code ? `Check this copy by looking up the sample ID in the Assay Lab tracker: the certificate number and check code must match. ` : ""}Design prototype: not an official laboratory certificate.</div>
@@ -821,7 +827,7 @@ async function storeBatchResults(b, got, inst, file, typed){
       ans.forEach((ch, i) => { const k = g?.k[i], a = defs.find(y => y.k === k), r0 = x.rs[ch.k]; if (!a || !r0) return; const r = parseRes(r0.raw, a); rows[k] = r && !r.bad && !r.amb ? { ...r, by: session.u, ...(r0.src ? { src: r0.src } : {}) } : r0; got.push(a); });
       const all = withCalc(s, rows);
       const results = { v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: patch(s.results?.rows, all), batch: b.id, inst: inst || s.results?.inst || "", ...(file ? { file: { id: file.id, name: file.name } } : s.results?.file ? { file: s.results.file } : {}) };
-      return { results, resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null, ...labsUpd(s, { ...labsOf(s), [b.qcp]: { b: b.id, q: qc.status, n: "" } }),
+      return { results, ...(file ? { fids: [...new Set([...(s.fids || []), file.id])] } : {}), resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null, ...labsUpd(s, { ...labsOf(s), [b.qcp]: { b: b.id, q: qc.status, n: "" } }),
         history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: b.id, res: true, note: `Result${got.length > 1 ? "s" : ""} from lab batch ${b.id}${file ? ` (file ${file.name})` : ""}: ${got.map(a => `${a.n} ${resText(all[a.k], a)} ${a.u}${all[a.k]?.f === "over" ? " (over the method's range)" : ""}`).join("; ")}. ${qcLabel(qc.status)}` }] };
     }));
     if (relNow()){ await closeBatchIfDone(b.id); toast(`Results saved on ${ok} sample(s); complete results are released.`); }
@@ -981,7 +987,7 @@ function buildBatches(v){
       <div class="stack" style="gap:6px;min-width:0;flex:1 1 320px">
         <h2 style="margin:0">Lab batches</h2>
         <p class="small" style="margin:0">A batch is one run of samples through the furnace or AAS, with its standards, blanks and duplicates. Attach the run's results file: each sample is found by its ID or site sample code, and complete results are released.</p>
-        <div class="row" style="gap:6px"><span class="pill ${waitRes ? "gold" : ""}">${waitRes} waiting for results</span><span class="pill">${open.length} open</span><span class="pill ok">${closed.length} closed this month</span></div>
+        <div class="row" style="gap:6px"><span class="pill ${waitRes ? "gold" : ""}">${waitRes} waiting for results</span><span class="pill">${open.length} open</span><span class="pill">${closed.length} closed this month</span></div>
       </div>
       ${edit ? `<button type="button" class="btn primary big" data-attach="all">Attach results file</button>` : ""}
     </div>

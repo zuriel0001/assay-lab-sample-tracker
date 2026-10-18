@@ -179,14 +179,14 @@ function blindRule(a, cur, next){
 }
 /* A results file the lab attached (CSV or Excel), kept as it came: files/RF-<id> describes it and names who attached it,
    files/RF-<id>~1, ~2… hold it in base64 pieces. Written once; never changed or deleted. */
-const FILE_ID = /^RF-(?:[0-9A-F]{16}|\d{8}-[0-9A-Z]{1,10})$/, FILE_PIECE = 180000, FILE_PARTS = 10;
+const FILE_ID = /^RF-(?:[0-9A-F]{16}|\d{8}-[0-9A-Z]{1,10})$/, FILE_PIECE = 180000, FILE_PARTS = 40;   // v24: any file up to 5 MB
 const short = (v, n) => v == null || (typeof v === "string" && v.length <= n);
 function fileProblem(a, id, d){
   const m = /^(RF-[^~]+)~(\d{1,2})$/.exec(id);
   if (m) return FILE_ID.test(m[1]) && Object.keys(d).every(k => ["id", "of", "n", "data"].includes(k)) && d.id === id && d.of === m[1] && d.n === +m[2] &&
     d.n >= 1 && d.n <= FILE_PARTS && typeof d.data === "string" && d.data.length <= FILE_PIECE && /^[A-Za-z0-9+/]*=*$/.test(d.data) ? "" : "Not a valid piece of a results file.";
   if (!FILE_ID.test(id) || d.id !== id || !Object.keys(d).every(k => ["id", "name", "kind", "size", "sha", "labRef", "parts", "at", "by", "tech"].includes(k)) ||
-      typeof d.name !== "string" || !d.name || d.name.length > 200 || !short(d.kind, 20) || !short(d.labRef, 100) || !(d.size >= 0 && d.size <= 1100000) ||
+      typeof d.name !== "string" || !d.name || d.name.length > 200 || !short(d.kind, 20) || !short(d.labRef, 100) || !(d.size >= 0 && d.size <= 5300000) ||
       !(Number.isInteger(d.parts) && d.parts >= 1 && d.parts <= FILE_PARTS) || !(d.sha == null || d.sha === "" || /^[0-9a-f]{64}$/i.test(d.sha))) return "Not a valid results file.";
   return signedBy(a)(d) ? "" : "A results file must be kept under the name of the person signed in.";
 }
@@ -247,6 +247,12 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
     const { coll, id } = parsePath(path) || {};
     if (coll === "access") return a.role === "admin" || (a.signedIn && id === requestKey(a.email, a.via)) ? d : undefined;   // the lab manager, and the person asking
     if (coll === "blind") return APPROVERS.includes(a.role) ? d : undefined;   // which sample a blind one re-assays: supervisors and the lab manager only
+    // v24: a section account may open a results file attached to one of its own section's samples (the sample lists it in fids).
+    if (coll === "files" && a.role === "section" && a.sec && d != null){
+      const fid = String(id).split("~")[0];
+      const hit = await store.query("samples", [["fids", "array-contains", fid], ["section", "==", a.sec]], { limit: 1 });
+      return hit.length ? d : undefined;
+    }
     if (!isStaff(a) && !["settings", "samples", "tagidx", "meta"].includes(coll)) return undefined;   // ledger, lab batches, stock records: staff only
     if (d == null) return d;
     if (coll === "settings"){

@@ -165,6 +165,33 @@ async function typeResults(page, id, vals){
   log("Font: a step larger");
   check(await Tc.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize)) === 16 && await Tc.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".small") || document.body).fontSize)) >= 14, "body text 16 px, small text 14 px");
 
+  log("Any file is accepted: a PDF on a sample still in preparation, a CSV that names no samples");
+  await fillForm(Tc, "register", { section: "PLT", type: "belt", purpose: "plant", test: "aufx_m", submitter: "Shift boss", count: 1, tags: "BC-0700", details: { point: "Mill feed conveyor" } });
+  const [p1] = await ids(Tc);
+  await open(Tc, p1);
+  check(doc(p1).stageKey === "received" && !!(await Tc.$(`[data-attach="sample:${p1}"]`)), "a received sample offers Attach results file at once, before any analysis step");
+  let up = await H.attachFile(Tc, `sample:${p1}`, "SGS-report.pdf", Buffer.from("%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer\n%%EOF"));
+  check(/PDF/.test(up) && /can't be read here/.test(up) && new RegExp(p1).test(up) && /Save and release \(1\)/.test(up) && !/No column of sample IDs/.test(up), "a PDF is accepted: it will be kept as the sample's results and the sample released: " + up.slice(0, 200));
+  await H.saveAttach(Tc); await waitFor(() => doc(p1).certs?.length, 8000);
+  const pc = (doc(p1).certs || [])[0] || {};
+  check(pc.att && pc.file?.name === "SGS-report.pdf" && pc.by === "tech1" && doc(p1).results?.att && (doc(p1).fids || []).includes(pc.file.id) && store["files/" + pc.file.id]?.name === "SGS-report.pdf",
+    "released at once with the PDF as its results; the file is kept and listed on the sample");
+  check(doc(p1).history.filter(e => /Done: results saved/.test(e.note || "")).length >= 8, "the steps it skipped are recorded as done with the results");
+  await open(Tc, p1);
+  check(/Results file: SGS-report\.pdf/.test(await text(Tc, "#resPanel")) && /the results are in this file/.test(await text(Tc, "#resPanel")), "the record names the file the results are in");
+  await Tc.click("[data-cert]"); await Tc.waitForSelector("#certBox:not([hidden])");
+  check(/Results file: SGS-report\.pdf\. The results are in this file\./.test(await text(Tc, "#certBox")) && !(await Tc.$("#certBox table.cert-res")), "the certificate names the file and shows no empty results table");
+  await Tc.evaluate(() => { const b = document.querySelector("#certBox"); if (b){ b.hidden = true; b.innerHTML = ""; } });
+  await fillForm(Tc, "register", { section: "PLT", type: "plant_feed", purpose: "plant", test: "ausx", submitter: "Shift boss", count: 2, tags: "NOID-1, NOID-2", details: { point: "CIL feed" } });
+  const nid = await ids(Tc);
+  await H.tab(Tc, "batches"); await Tc.waitForSelector('[data-attach="all"]');
+  up = await H.attachFile(Tc, "all", "run-sheet.csv", "Lab no,AuSX (mg/L)\n1,0.150\n2,0.152\n");
+  check(/Which samples are these results for/.test(up) && await Tc.$eval("#upSave", b => b.disabled), "a file that names no sample asks which samples it is for; nothing is saved until one is ticked");
+  for (const id of nid) await Tc.check(`[data-uppick="${id}"]`);
+  check(/Save and release \(2\)/.test(await Tc.textContent("#upSave")), "ticking the two samples offers to release both");
+  await H.saveAttach(Tc); await waitFor(() => nid.every(id => doc(id).certs?.length), 8000);
+  check(nid.every(id => doc(id).certs?.[0]?.file?.name === "run-sheet.csv" && doc(id).certs[0].att), "both are released with the file as their results");
+
   log("Sign-off can still be chosen");
   await H.tab(Ad, "stages"); await Ad.waitForSelector("#cfgRel"); await H.cfgTab(Ad, "accounts").catch(() => {});
   await Ad.selectOption("#cfgRel", "signoff"); await Ad.waitForSelector("#cfgQcStep"); await Ad.click("#cfgSave");

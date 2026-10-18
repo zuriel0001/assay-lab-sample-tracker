@@ -1,18 +1,4 @@
-/* v24: a size larger, a little colour, and the new pieces (departments, evaluation, Results tab, concise routes). */
-:root{
-  --c-ore:#8a5a2b; --c-ore-soft:#f3e7da; --c-plant:#1f6f8b; --c-plant-soft:#dcedf3; --c-met:#6b4fa3; --c-met-soft:#ebe4f6;
-  --c-env:#2f7d4f; --c-env-soft:#e1f1e6; --c-qc:#5e6864; --c-qc-soft:#e8ebe8; --c-gold:#9a6b12; --c-gold-soft:#f5ead2;
-  --c-blue:#2c5d7c; --c-blue-soft:#dfeaf2; --c-teal:#1d7a72; --c-teal-soft:#d9efec; --c-violet:#6b4fa3; --c-violet-soft:#ebe4f6;
-}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --c-ore:#d9a46b; --c-ore-soft:#3a2a1a; --c-plant:#7cc3dc; --c-plant-soft:#16303a; --c-met:#b9a0e8; --c-met-soft:#2c2340;
-  --c-env:#6cc48f; --c-env-soft:#1d3326; --c-qc:#9aa4a0; --c-qc-soft:#252b28; --c-gold:#d6a443; --c-gold-soft:#3a2f17;
-  --c-blue:#7fb4d6; --c-blue-soft:#1c2d38; --c-teal:#6fd0c4; --c-teal-soft:#15312e; --c-violet:#b9a0e8; --c-violet-soft:#2c2340}}
-:root[data-theme="dark"]{
-  --c-ore:#d9a46b; --c-ore-soft:#3a2a1a; --c-plant:#7cc3dc; --c-plant-soft:#16303a; --c-met:#b9a0e8; --c-met-soft:#2c2340;
-  --c-env:#6cc48f; --c-env-soft:#1d3326; --c-qc:#9aa4a0; --c-qc-soft:#252b28; --c-gold:#d6a443; --c-gold-soft:#3a2f17;
-  --c-blue:#7fb4d6; --c-blue-soft:#1c2d38; --c-teal:#6fd0c4; --c-teal-soft:#15312e; --c-violet:#b9a0e8; --c-violet-soft:#2c2340}
-
+/* v24: a size larger, restrained colour, and the new pieces (departments, evaluation, Results tab, concise routes). */
 /* Type a step larger: 16 px body, nothing that carries meaning under 13 px. */
 body{font-size:16px;line-height:1.5}
 .small,.subtle,.st-note,.st-meta,.hist time,.prog-t,.mock,.daychip,td.note{font-size:14px}
@@ -37,90 +23,68 @@ div.stat.tile.zero{background:var(--soft);border-style:dashed;box-shadow:none}
 div.stat.tile.zero .n,div.stat.tile.zero .l{color:var(--muted);opacity:.75}
 button.stat.tile{box-shadow:var(--shadow)}
 
-/* Page heads and coloured summary cards (Storage, Ledger). */
+/* Colour, v24b: surfaces stay neutral. The accent (gold) marks what to press and where you are; green, amber and red appear only
+   when they mean something (done, needs attention, wrong), and only when there is something to count. */
 .page-head{gap:10px;align-items:baseline}
 .cstats{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-.cstats .stat{font:inherit;text-align:left;color:var(--ink);border-left:5px solid var(--line);cursor:default}
+.cstats .stat{font:inherit;text-align:left;color:var(--ink);cursor:default}
 .cstats button.stat{cursor:pointer}
-.cstats button.stat:hover{filter:brightness(.98);border-color:var(--muted)}
-.cstats .stat[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:1px}
-.cstats .stat.zero{opacity:.6}
-.stat.c-blue{border-left-color:var(--c-blue);background:linear-gradient(90deg,var(--c-blue-soft),var(--panel) 70%)}.stat.c-blue .n{color:var(--c-blue)}
-.stat.c-teal{border-left-color:var(--c-teal);background:linear-gradient(90deg,var(--c-teal-soft),var(--panel) 70%)}.stat.c-teal .n{color:var(--c-teal)}
-.stat.c-red{border-left-color:var(--bad);background:linear-gradient(90deg,var(--bad-soft),var(--panel) 70%)}.stat.c-red .n{color:var(--bad)}
-.stat.c-amber{border-left-color:var(--warn);background:linear-gradient(90deg,var(--warn-soft),var(--panel) 70%)}.stat.c-amber .n{color:var(--warn)}
-.stat.c-violet{border-left-color:var(--c-violet);background:linear-gradient(90deg,var(--c-violet-soft),var(--panel) 70%)}.stat.c-violet .n{color:var(--c-violet)}
-.stat.c-green{border-left-color:var(--ok);background:linear-gradient(90deg,var(--ok-soft),var(--panel) 70%)}.stat.c-green .n{color:var(--ok)}
-.stat.c-orange{border-left-color:var(--warn);background:linear-gradient(90deg,var(--warn-soft),var(--panel) 70%)}.stat.c-orange .n{color:var(--warn)}
-.stat.c-grey{border-left-color:var(--muted)}
-#view-storage tr.st-past td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
-#view-storage tr.st-soon td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
-#view-storage tr.st-noloc td:first-child{box-shadow:inset 4px 0 0 var(--c-violet)}
-#view-storage tr.st-ok td:first-child{box-shadow:inset 4px 0 0 var(--ok)}
-.tdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:1px;background:var(--line)}
-.tdot.t-ore{background:var(--c-ore)}.tdot.t-plant{background:var(--c-plant)}.tdot.t-met{background:var(--c-met)}.tdot.t-env{background:var(--c-env)}.tdot.t-qc{background:var(--c-qc)}
-.dirp{display:inline-block;font-family:var(--f-mono);font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em}
-.dirp.dir-in{background:var(--ok-soft);color:var(--ok)}.dirp.dir-out{background:var(--warn-soft);color:var(--warn)}.dirp.dir-rev{background:var(--soft);color:var(--muted)}
+.cstats button.stat:hover{border-color:var(--muted)}
+.cstats .stat[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent)}
+.cstats .stat.zero .n{color:var(--muted)}
+.stat.c-red:not(.zero) .n{color:var(--bad)}
+.stat.c-amber:not(.zero) .n,.stat.c-violet:not(.zero) .n{color:var(--warn)}
+#view-storage tr.st-past td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
+#view-storage tr.st-soon td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+.dirp{display:inline-block;font-family:var(--f-mono);font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em;background:var(--soft);color:var(--ink)}
+.dirp.dir-rev{color:var(--muted)}
 
-/* Submit / Register: three short steps, each with its colour. */
-.sub-form{gap:14px;border-top:5px solid var(--accent)}
+/* Submit / Register: three short steps, plain cards; the step number carries the accent. */
+.sub-form{gap:14px}
 .sub-head h2{margin:0}
-.sub-step{border:1px solid var(--line);border-left:5px solid var(--line);border-radius:10px;padding:12px 14px 14px;background:var(--panel)}
-.sub-step.s1{border-left-color:var(--c-plant);background:linear-gradient(180deg,var(--c-plant-soft),var(--panel) 46px)}
-.sub-step.s2{border-left-color:var(--c-met);background:linear-gradient(180deg,var(--c-met-soft),var(--panel) 46px)}
-.sub-step.s3{border-left-color:var(--c-gold);background:linear-gradient(180deg,var(--c-gold-soft),var(--panel) 46px)}
+.sub-step{border:1px solid var(--line);border-radius:10px;padding:12px 14px 14px;background:var(--panel)}
 .sub-t{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;font-size:18px;margin-bottom:10px}
-.sub-t .num{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;color:#fff;font-size:15px;flex:none}
-.s1 .num{background:var(--c-plant)}.s2 .num{background:var(--c-met)}.s3 .num{background:var(--c-gold)}
-:root[data-theme="dark"] .sub-t .num{color:#111}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .sub-t .num{color:#111}}
+.sub-t .num{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:14px;flex:none}
 .sub-step .form{margin:0}
 .sub-form select,.sub-form input:not([type=checkbox]):not([type=radio]){min-height:46px}
-.typechip{display:inline-block;font-family:var(--f-body);font-weight:600;font-size:13px;margin-left:auto;padding:3px 10px;border-radius:999px;background:var(--c-qc-soft);color:var(--c-qc)}
+.typechip{display:inline-block;font-family:var(--f-body);font-weight:600;font-size:13px;margin-left:auto;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--muted)}
 .typechip:empty{display:none}
-.typechip.t-ore{background:var(--c-ore-soft);color:var(--c-ore)}
-.typechip.t-plant{background:var(--c-plant-soft);color:var(--c-plant)}
-.typechip.t-met{background:var(--c-met-soft);color:var(--c-met)}
-.typechip.t-env{background:var(--c-env-soft);color:var(--c-env)}
 .f.pair{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:10px}
 .f.pair > label.f{min-width:0}
 details.recv-at{align-self:end;min-height:46px;display:flex;flex-direction:column;justify-content:center;font-size:15px}
 details.recv-at > summary{cursor:pointer;color:var(--muted);list-style:none;min-height:46px;display:flex;align-items:center;gap:4px}
 details.recv-at > summary::-webkit-details-marker{display:none}
-details.recv-at > summary b{color:var(--ok)}
+details.recv-at > summary b{color:var(--ink)}
 details.recv-at[open] > summary{min-height:28px}
 .sub-form details.form-more > summary .muted{font-weight:400;margin-left:6px}
 .sub-form .sticky-bar .btn.big{min-width:240px}
 @media (max-width:760px){.sub-form .sticky-bar .btn.big{flex:1 1 auto;min-width:0}.f.pair{grid-template-columns:minmax(0,1fr) 96px}}
 
 /* Batches */
-.batch-hero{display:flex;flex-wrap:wrap;align-items:center;gap:14px;border-left:5px solid var(--c-blue);background:linear-gradient(90deg,var(--c-blue-soft),var(--panel) 60%)}
+.batch-hero{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
 .batch-hero .btn.big{margin-left:auto}
 details.more-panel > summary{cursor:pointer;min-height:var(--tap);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 details.more-panel > summary h3{margin:0}
+.up-pick{display:grid;gap:2px;max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.up-pick label{display:flex;align-items:baseline;gap:8px;min-height:34px;cursor:pointer}
+.cert-file{margin:10px 0;font-size:15px}
 
 /* Evaluation, re-assay requests and the Results tab */
-.evalbox{border:1px solid var(--line);border-left:5px solid var(--c-met);border-radius:10px;padding:12px 14px;background:linear-gradient(90deg,var(--c-met-soft),var(--panel) 50%);gap:10px}
+.evalbox{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel);gap:10px}
 ul.flags{margin:0;padding:0;list-style:none;display:grid;gap:4px}
-ul.flags li{font-size:14px;padding:4px 10px;border-radius:6px;background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn)}
-ul.flags li.bad{background:var(--bad-soft);border-left-color:var(--bad)}
+ul.flags li{font-size:14px;padding:4px 10px;border-radius:6px;background:var(--soft);color:var(--ink);border-left:3px solid var(--warn)}
+ul.flags li.bad{border-left-color:var(--bad)}
 ul.evlist{margin:0;padding:0;list-style:none;display:grid;gap:6px}
 ul.evlist li{font-size:15px}
 .evform{display:grid;gap:8px}
 .evform .seg span{padding:0 14px}
-.seg .ev-ok input:checked+span{color:var(--ok)}.seg .ev-query input:checked+span{color:var(--warn)}.seg .ev-redo input:checked+span{color:var(--bad)}
-.res-head{border-left:5px solid var(--c-met)}
-table.restbl tr.due td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
+table.restbl tr.due td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 
-/* Routes: facts in a few lines, the steps as a coloured row. */
+/* Routes: facts in a few lines, the steps as a plain row (the phase shows as a thin edge, as in the legend). */
 .rt-facts{display:grid;gap:3px}
 ol.flow{list-style:none;margin:6px 0 2px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
-ol.flow li{position:relative;display:inline-flex;align-items:baseline;gap:6px;font-size:14px;padding:4px 10px;border-radius:6px;background:var(--soft);border-left:4px solid var(--line)}
+ol.flow li{position:relative;display:inline-flex;align-items:baseline;gap:6px;font-size:14px;padding:4px 10px;border-radius:6px;background:var(--soft);border-left:3px solid var(--line)}
 ol.flow li i{font-style:normal;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
-ol.flow li.ph-intake{border-left-color:var(--info)}
-ol.flow li.ph-prep{border-left-color:var(--c-ore);background:var(--c-ore-soft)}
-ol.flow li.ph-test{border-left-color:var(--c-plant);background:var(--c-plant-soft)}
-ol.flow li.ph-qc{border-left-color:var(--c-met);background:var(--c-met-soft)}
-ol.flow li.ph-report{border-left-color:var(--ok);background:var(--ok-soft)}
-ol.flow li .redo{color:var(--warn)}
+ol.flow li.ph-intake,ol.flow li.ph-report{color:var(--muted)}
+ol.flow li .redo{color:var(--muted)}
 details.route > summary .subtle{white-space:nowrap}

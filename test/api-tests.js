@@ -402,6 +402,16 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
       certs: [...mem.docs[np].certs, { no: nid + "-R2", v: 2, at: at(), ...who, role: who.by === "t1" ? "tech" : "super", amendBy: { by: "t1", tech: "Tech One", at: now } }], history: [...h(), { key: "released", at: at(), ...who }] });
     check(!(await one("t1@site.com", { op: "update", path: np, data: amended(T) })).ok && (await one("s1@site.com", { op: "update", path: np, data: amended(S) })).ok,
       "an amended certificate is still approved by someone other than the person who proposed it");
+    // Any results file up to 5 MB is kept; a section account opens one attached to its own section's sample, and no other.
+    const fid = "RF-00000000000F11E5", meta = { id: fid, name: "report.pdf", kind: "pdf", size: 4800000, sha: "", labRef: "", parts: 27, at: now, by: "t1", tech: "Tech One" };
+    check((await one("t1@site.com", { op: "set", path: "files/" + fid, data: meta })).ok && (await one("t1@site.com", { op: "set", path: `files/${fid}~27`, data: { id: `${fid}~27`, of: fid, n: 27, data: "QUJD" } })).ok,
+      "a 4.8 MB file of 27 pieces is kept");
+    check(!(await one("exp@site.com", { op: "get", path: "files/" + fid })).ok, "a section account can't open a file before it is on one of its samples");
+    await mem.update(np, { fids: [fid] });
+    check(!(await one("exp@site.com", { op: "get", path: "files/" + fid })).ok, "nor one on another section's sample");
+    const xid = `EXP-${day}-0903`; await mem.set("samples/" + xid, { id: xid, section: "EXP", fids: [fid], history: [] });
+    check((await one("exp@site.com", { op: "get", path: "files/" + fid })).ok && (await one("exp@site.com", { op: "get", path: `files/${fid}~27` })).ok && !(await one("exp@site.com", { op: "get", path: "ledger/x" })).ok,
+      "a section account opens a results file attached to its own section's sample (and its pieces), nothing else");
     // Sign-off brings back the supervisor's release and four eyes.
     await mem.update("settings/stages", { relMode: "signoff" }); await new Promise(r => setTimeout(r, 3100));
     const sid2 = `PLT-${day}-0902`, sp2 = "samples/" + sid2;

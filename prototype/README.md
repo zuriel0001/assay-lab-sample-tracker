@@ -124,6 +124,19 @@ assays, so routes are analyses and testwork (bottle roll…) is what the samples
   (batches and limits for evaluators only). **Text** is 16 px, small text 14 px. Role names are shorter (Lab
   supervisor, Section account).
 
+**Later the same day (Zuriel, 16:30Z): "when result is attached, just accept any file … no conditions"; "the Submit/Register page has
+too much colour … manage the colours well".**
+- **Any file is accepted** while results are released at once (sign-off keeps the v23 checks). Any type (PDF, picture, Word, a report laid
+  out another way), up to 5 MB. Values the site can read are filled in as before (samples still in preparation move on to analysis first;
+  a lab batch's values are saved even when some are missing, never kept as a draft). Every sample the file is for is then released with
+  the file as its results: the samples the file names, else the sample or batch it was attached on, else the ones the technician ticks
+  ("Which samples are these results for?"). The sample's results carry `file` and `att: true`; `missingRes` counts nothing missing; the
+  certificate (`file`, `att`) says "Results file: NAME. The results are in this file." (or "Results not shown below are in this file") and
+  the record links to it. *Attach results file* shows on a record at any step after receipt. Samples list their files in `fids`.
+- **Colour.** Surfaces are neutral; the accent (gold) marks what to press, where you are and the Submit step numbers; green, amber and red
+  appear only when they mean something and there is something to count. The Submit steps, Batches, Storage and Ledger cards, the
+  evaluation box, the Results heading, route steps and the type chip lost their own colours; zero counts are plain.
+
 For the Azure build:
 - Source: `build24.py` replaces `build20.py` (adds `app24-p.js` before `app10-f.js`, and `css24.css`). `build.py`: eight example accounts
   (the metallurgist), the Department column in the account table, one paragraph no longer there.
@@ -131,7 +144,8 @@ For the Azure build:
   `"signoff"`: as before; an amended certificate always by someone other than its proposer). `/api/me` and the staff's view of Settings give
   each account's `dept`. A viewer in a department that evaluates (Settings `depts`, Metallurgy by default until saved) may update a sample
   only by adding one evaluation (its `evals` entry and history line under their own name) and setting `rq: true`; nothing else, never
-  removing one; only the lab clears `rq`. New `evals` entries from anyone must name the person signed in.
+  removing one; only the lab clears `rq`. New `evals` entries from anyone must name the person signed in. Results files up to 5 MB
+  (40 pieces); a section account may open a file listed in `fids` on one of its own section's samples.
 - On the live site: results already waiting for a supervisor are released by any technician; set each metallurgist's department to
   Metallurgy in Settings and save.
 

@@ -55,7 +55,8 @@ function watchStore(){
   }, () => { storeReady = true; });
 }
 /* Settings shows open-sample counts; a burst of storage changes redraws it once. */
-function stagesSoon(){ clearTimeout(stagesSoon.t); stagesSoon.t = setTimeout(() => { if (tab === "stages" && !$("#view-stages").contains(document.activeElement)) renderStages(); }, 150); }
+/* A live update redraws Settings, but never under an open restore preview (the Azure build's Restore backup box). */
+function stagesSoon(){ clearTimeout(stagesSoon.t); stagesSoon.t = setTimeout(() => { if (tab === "stages" && !$("#view-stages").contains(document.activeElement) && !document.getElementById("cfgRestoreBox")) renderStages(); }, 150); }
 /* Samples still open (in the lab or in storage) on a route or from a section, for Settings. */
 const openOn = f => [...samples.values()].filter(f).length + [...stored.values()].filter(x => !samples.has(x.id) && f({ route: x.route, section: x.sec })).length;
 
@@ -79,7 +80,7 @@ function renderStorage(){
   const row = r => { const top = !first.has(r.id) && !!first.add(r.id); return `<tr class="${isPast(r) ? "st-past" : isSoon(r) ? "st-soon" : !r.loc ? "st-noloc" : "st-ok"}"><td style="white-space:nowrap"><button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>${r.tag ? `<div class="small mono muted">${esc(r.tag)}</div>` : ""}${top ? qaOfNote(r.id) : ""}${edit && top ? `<div><button type="button" class="btn ghost small reassay-btn" data-reassay="${esc(r.id)}">Re-assay</button></div>` : ""}${top ? qaPickBox(r.id) : ""}</td>
     <td>${esc(r.item)}</td><td>${r.loc ? esc(r.loc) : `<span class="pill warn">No location</span>`}</td>
     <td style="white-space:nowrap">${fmtDate(r.dueAt)}${isPast(r) ? ` <span class="pill bad">Past retention</span>` : r.dueAt && r.dueAt - now < 7 * 86400e3 ? ` <span class="pill warn">Due</span>` : ""}</td>
-    <td>${esc(r.then)}</td><td class="mono">${esc(r.sec)}</td><td><span class="tdot t-${typeTone(Object.values(TYPES).find(t => t.name === r.type)?.key)}"></span>${esc(r.type)}${r.route ? `<div class="small mono" style="color:var(--accent)">${esc(r.route)}</div>` : ""}</td></tr>`; };
+    <td>${esc(r.then)}</td><td class="mono">${esc(r.sec)}</td><td>${esc(r.type)}${r.route ? `<div class="small mono" style="color:var(--accent)">${esc(r.route)}</div>` : ""}</td></tr>`; };
   keepUiSimple(v, () => {
     v.innerHTML = `<div class="stack">
       ${qaSlot()}
