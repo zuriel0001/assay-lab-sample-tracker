@@ -66,7 +66,7 @@ if (fs.existsSync(CORE)){
   await H.tab(E, "submit"); await E.waitForSelector("#regForm");
   check((await E.inputValue("#rSection")) === "EXP", "a section account's form starts on its own section");
   await H.tab(T, "register"); await T.waitForSelector("#regForm");
-  check(!!(await T.$("#rRoute")) && await T.isVisible("#rRecvAt") && !(await T.$("#regForm .form-h .pill")), "lab staff still register straight in, as the receiver");   // v23: the route list shows only when there is a choice
+  check(!!(await T.$("#rRoute")) && await T.isVisible("#rRecvAtBox") && !(await T.$("#regForm .form-h .pill")), "lab staff still register straight in, as the receiver");   // v23: the route list shows only when there is a choice
 
   log("Assay purpose Other");
   await H.tab(P, "register"); await P.waitForSelector("#regForm"); if (await P.$("#rAgain")) await P.click("#rAgain");
@@ -131,7 +131,7 @@ if (fs.existsSync(CORE)){
   await fillForm(P, "register", { section: "PLT", type: "carbon", purpose: "plant", submitter: "Kojo", count: 8 }); await ids(P);
   await H.tab(A, "board"); await A.waitForTimeout(500);
   const tiles = await A.$$eval(".stats.tiles > .stat", ts => ts.map(t => [t.tagName, t.querySelector(".n").textContent, t.querySelector(".l").textContent]));
-  check(tiles.length === 11 && tiles.some(t => t[1] === "0" && t[0] === "DIV") && tiles.filter(t => t[1] !== "0" && t[0] === "BUTTON").length >= 2 && await A.$eval(".stats.tiles", s => getComputedStyle(s).display === "grid"), "11 tiles in a grid, zeros included; tiles with samples are buttons: " + tiles.map(t => t[1] + " " + t[2]).join(" | "));
+  check(tiles.length === 12 && tiles.some(t => t[1] === "0" && t[0] === "DIV") && tiles.filter(t => t[1] !== "0" && t[0] === "BUTTON").length >= 2 && await A.$eval(".stats.tiles", s => getComputedStyle(s).display === "grid"), "12 tiles in a grid (v24: Re-assay requested), zeros included; tiles with samples are buttons: " + tiles.map(t => t[1] + " " + t[2]).join(" | "));
   const aw = await A.$eval(".lane.ph-await .cards", c => ({ n: c.children.length, scrolls: c.classList.contains("scrolls"), ch: c.clientHeight, sh: c.scrollHeight, fifth: c.children[4].offsetTop + c.children[4].offsetHeight <= c.clientHeight + 1, sixth: c.children[5].offsetTop < c.clientHeight, seventh: c.children[6].offsetTop >= c.clientHeight }));
   check(aw.n >= 9 && aw.scrolls && aw.sh > aw.ch && aw.fifth && aw.sixth && aw.seventh, `a lane with ${aw.n} cards shows about five and scrolls (${aw.ch}px of ${aw.sh}px)`);
   check(await A.$$eval(".lane", ls => ls.every(l => !l.classList.contains("empty")) && ls.some(l => !l.querySelector(".chip"))), "empty lanes stay full size");

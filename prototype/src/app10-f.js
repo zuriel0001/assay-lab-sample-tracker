@@ -140,7 +140,7 @@ setTab(tab);
         routes: mergeRoutes(d.routes, d.removed), removed: Array.isArray(d.removed) ? d.removed.slice() : [],
         sections: Array.isArray(d.sections) && d.sections.length ? clone(d.sections) : clone(DEFAULT_CONFIG.sections),
         users, tz: d.tz && tzOk(d.tz) ? d.tz : DEFAULT_CONFIG.tz,
-        crms: Array.isArray(d.crms) && d.schema >= 12 ? clone(d.crms) : mergeCrms(d.crms), limits: Array.isArray(d.limits) ? newLimits(d.limits, d.limitsV) : clone(DEFAULT_CONFIG.limits), routeUse: isMap(d.routeUse) ? clone(d.routeUse) : {}, resultsPublic: !!d.resultsPublic, batchReq: !!d.batchReq, qcStep: !!d.qcStep, work: workOf(d.work), logo: logoOf(d.logo),
+        crms: Array.isArray(d.crms) && d.schema >= 12 ? clone(d.crms) : mergeCrms(d.crms), limits: Array.isArray(d.limits) ? newLimits(d.limits, d.limitsV) : clone(DEFAULT_CONFIG.limits), routeUse: isMap(d.routeUse) ? clone(d.routeUse) : {}, depts: Array.isArray(d.depts) && d.depts.length ? clone(d.depts) : clone(DEFAULT_CONFIG.depts), resultsPublic: !!d.resultsPublic, relMode: d.relMode === "signoff" ? "signoff" : "now", batchReq: !!d.batchReq, qcStep: !!d.qcStep, work: workOf(d.work), logo: logoOf(d.logo),
         crmLog: Array.isArray(d.crmLog) ? d.crmLog.slice(0, CRM_LOG_MAX) : [], cols: Array.isArray(d.cols) ? clone(d.cols) : []
       };
     }
@@ -148,6 +148,7 @@ setTab(tab);
     else if (tab === "stages") toast("Someone else just saved settings. Discard your changes to see theirs.");
     refreshRegisterOptions();
     showLogo();
+    if (session) updateChrome();
     const before = session && JSON.stringify(session);
     resolveSession();                       // an admin may have changed this account's role, password or removed it
     if (before && before !== JSON.stringify(session)){ $("#view-register").innerHTML = ""; if (!session) toast("Your account was changed by an admin. Please sign in again."); setTab(tab); }
@@ -171,6 +172,7 @@ setTab(tab);
   }, () => {});
   watchBatches();
   watchSectionResults(); resultsBadge(); watchStoreDue();
+  watchReq(); watchStaffResults();
   if (current) openSample(current.id); else renderTab();
   if (!session && (tab === "login" || tab === "register")) renderTab();
   setTimeout(maintenance, 1500);

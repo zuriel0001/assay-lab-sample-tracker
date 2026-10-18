@@ -1,6 +1,6 @@
 /* ---------- v15 design: navigation, theme, logo, wall screen, time left ---------- */
 /* Tabs that do not fit go in a More menu: on a computer when the row is full, on a phone after the first four of the bottom bar. */
-const NAV_ORDER = ["board", "track", "submit", "register", "batches", "storage", "results", "ledger", "routes", "stages", "login"];
+const NAV_ORDER = ["board", "track", "submit", "register", "results", "batches", "storage", "ledger", "routes", "stages", "login"];
 const PHONE = matchMedia("(max-width: 760px)");
 function closeNavMenu(){ const m = $("#tabMenu"); if (m && !m.hidden){ m.hidden = true; $("#tabMore").setAttribute("aria-expanded", "false"); } }
 function layoutNav(){

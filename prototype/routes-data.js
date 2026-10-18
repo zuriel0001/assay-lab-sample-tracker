@@ -1,19 +1,33 @@
 /* ROUTES-BEGIN: sample types, tests, purposes and the default workflow routes. Admins edit routes on the Settings tab. */
 const S = (key, name, hours, phase, note = "", redo = false) => ({ key, name, hours, phase, note, ...(redo ? { redo: true } : {}) });
+/* What the analysis is for (v24: grouped; the lab only assays, so a testwork programme such as a bottle roll is what the samples are for,
+   not a route). A sub-purpose (sub) chooses routes as its base purpose does. */
 const PURPOSES = [
-  { key: "exp",     name: "Exploration / resource definition" },
-  { key: "gc",      name: "Grade control (ore / waste)" },
-  { key: "plant",   name: "Plant process control" },
-  { key: "recon",   name: "Mine-to-mill reconciliation" },
-  { key: "met",     name: "Metallurgical testwork / process design" },
-  { key: "bullion", name: "Bullion / export settlement" },
-  { key: "env",     name: "Environmental compliance" },
-  { key: "hse",     name: "Health & safety / occupational hygiene" },
-  { key: "qc",      name: "Quality control / check assay" },
-  { key: "other",   name: "Other" }
+  { key: "plant",     g: "Process plant", name: "Plant process control" },
+  { key: "recon",     g: "Process plant", name: "Mine-to-mill reconciliation" },
+  { key: "bullion",   g: "Process plant", name: "Gold room / bullion" },
+  { key: "exp",       g: "Mine & geology", name: "Exploration / resource definition" },
+  { key: "gc",        g: "Mine & geology", name: "Grade control (ore / waste)" },
+  { key: "met_br",    g: "Metallurgical testwork", name: "Bottle roll test", sub: "met" },
+  { key: "met_cil",   g: "Metallurgical testwork", name: "CIL / CIP leach test", sub: "met" },
+  { key: "met_grg",   g: "Metallurgical testwork", name: "Gravity (GRG) test", sub: "met" },
+  { key: "met_diag",  g: "Metallurgical testwork", name: "Diagnostic leach", sub: "met" },
+  { key: "met_pri",   g: "Metallurgical testwork", name: "Preg-robbing test", sub: "met" },
+  { key: "met_reag",  g: "Metallurgical testwork", name: "Reagent consumption test", sub: "met" },
+  { key: "met_col",   g: "Metallurgical testwork", name: "Column / heap leach", sub: "met" },
+  { key: "met_ilr",   g: "Metallurgical testwork", name: "Intensive leach (ILR)", sub: "met" },
+  { key: "met_flot",  g: "Metallurgical testwork", name: "Flotation test", sub: "met" },
+  { key: "met_strip", g: "Metallurgical testwork", name: "Carbon strip / elution test", sub: "met" },
+  { key: "met_detox", g: "Metallurgical testwork", name: "Cyanide detox test", sub: "met" },
+  { key: "met",       g: "Metallurgical testwork", name: "Other metallurgical testwork" },
+  { key: "env",       g: "Environment & safety", name: "Environmental compliance" },
+  { key: "hse",       g: "Environment & safety", name: "Health & safety / occupational hygiene" },
+  { key: "qc",        g: "Quality control", name: "Quality control / check assay" },
+  { key: "other",     g: "Other", name: "Other" }
 ];
+const purpBase = k => PURPOSES.find(p => p.key === k)?.sub || k;
 /* Test catalogue, grouped the way a mine assay lab groups its work. */
-const TEST_CATS = ["Gold assay", "Process plant", "Gold room", "Leach & recovery testwork", "Gravity & flotation", "Physical & comminution", "Chemistry & mineralogy", "Plant & gold room", "Environment & cyanide"];
+const TEST_CATS = ["Gold assay", "Process plant", "Gold room", "Physical tests", "Chemistry", "Environment & cyanide", "Leach & recovery testwork", "Gravity & flotation", "Plant & gold room"];
 const TESTS = [
   { key: "fa_aas",       cat: "Gold assay", name: "Gold by fire assay, AAS finish" },
   { key: "fa_grav",      cat: "Gold assay", name: "Gold by fire assay, gravimetric finish (high grade)" },
@@ -23,13 +37,14 @@ const TESTS = [
   /* Version 23: the process plant and gold room tests in the lab's own words. AuFx: gold in the solids (fire assay); AuSx: gold in the solution. */
   { key: "aufx_ausx",    cat: "Process plant", name: "Slurry: AuFx & AuSx" },
   { key: "aufx",         cat: "Process plant", name: "Solids: AuFx" },
+  { key: "aufx_m",       cat: "Process plant", name: "Belt cut: AuFx & moisture" },
   { key: "ausx",         cat: "Process plant", name: "Solution: AuSx" },
   { key: "aufx_ausx_cn", cat: "Process plant", name: "Slurry: AuFx, AuSx & cyanide" },
   { key: "ausx_cn",      cat: "Process plant", name: "Solution: AuSx & cyanide" },
   { key: "cn_only",      cat: "Process plant", name: "Cyanide: NaCN, WAD & pH" },
   { key: "c_load",       cat: "Gold room", name: "Carbon: Au loading" },
   { key: "elu_sol",      cat: "Gold room", name: "Elution solution: AuSx, AgSx & Cu" },
-  { key: "cn_sol",       cat: "Leach & recovery testwork", name: "Cyanide-soluble gold (LeachWELL)" },
+  { key: "cn_sol",       cat: "Gold assay", name: "Cyanide-soluble gold (LeachWELL)" },
   { key: "bottle",       cat: "Leach & recovery testwork", name: "Bottle roll cyanidation test" },
   { key: "cil_test",     cat: "Leach & recovery testwork", name: "CIL / CIP leach test with carbon" },
   { key: "pri",          cat: "Leach & recovery testwork", name: "Preg-robbing test (gold-rob test, PRI)" },
@@ -40,15 +55,15 @@ const TESTS = [
   { key: "ilr",          cat: "Leach & recovery testwork", name: "Intensive leach test (gravity concentrate)" },
   { key: "grg",          cat: "Gravity & flotation", name: "Gravity recoverable gold (GRG)" },
   { key: "flot",         cat: "Gravity & flotation", name: "Flotation test (rougher / cleaner kinetics)" },
-  { key: "commin",       cat: "Physical & comminution", name: "Comminution & abrasion (SMC, BWi, RWi, Ai)" },
-  { key: "density",      cat: "Physical & comminution", name: "Specific gravity & bulk density" },
-  { key: "psd",          cat: "Physical & comminution", name: "Particle size distribution" },
-  { key: "moisture",     cat: "Physical & comminution", name: "Moisture content" },
-  { key: "settle",       cat: "Physical & comminution", name: "Settling & rheology (thickener, flocculant)" },
-  { key: "icp",          cat: "Chemistry & mineralogy", name: "Multi-element ICP" },
-  { key: "delet",        cat: "Chemistry & mineralogy", name: "Deleterious & cyanicide elements (Cu, As, Sb, Hg…)" },
-  { key: "leco",         cat: "Chemistry & mineralogy", name: "Sulphur & carbon speciation (total / sulphide S, organic C)" },
-  { key: "mineral",      cat: "Chemistry & mineralogy", name: "Mineralogy (XRD, QEMSCAN / MLA, gold deportment)" },
+  { key: "commin",       cat: "Physical tests", name: "Comminution & abrasion (SMC, BWi, RWi, Ai)" },
+  { key: "density",      cat: "Physical tests", name: "Specific gravity & bulk density" },
+  { key: "psd",          cat: "Physical tests", name: "Particle size distribution" },
+  { key: "moisture",     cat: "Physical tests", name: "Moisture content" },
+  { key: "settle",       cat: "Physical tests", name: "Settling & rheology (thickener, flocculant)" },
+  { key: "icp",          cat: "Chemistry", name: "Multi-element ICP" },
+  { key: "delet",        cat: "Chemistry", name: "Deleterious & cyanicide elements (Cu, As, Sb, Hg…)" },
+  { key: "leco",         cat: "Chemistry", name: "Sulphur & carbon speciation (total / sulphide S, organic C)" },
+  { key: "mineral",      cat: "Chemistry", name: "Mineralogy (XRD, QEMSCAN / MLA, gold deportment)" },
   { key: "plant_solids", cat: "Plant & gold room", name: "Mill sample assay (head grade, grind, moisture)" },
   { key: "ccd",          cat: "Plant & gold room", name: "CCD survey (solution gold, wash efficiency)" },
   { key: "residue",      cat: "Plant & gold room", name: "Tails / residue gold loss (solid & solution)" },
@@ -57,7 +72,7 @@ const TESTS = [
   { key: "eluate",       cat: "Plant & gold room", name: "Elution solution assay (eluate, strip & electrowinning solutions)" },
   { key: "elution",      cat: "Plant & gold room", name: "Carbon strip test (lab elution of loaded carbon)" },
   { key: "solution",     cat: "Plant & gold room", name: "Process solution assay (Au, Ag, Cu, cyanide)" },
-  { key: "conc",         cat: "Plant & gold room", name: "Concentrate assay" },
+  { key: "conc",         cat: "Process plant", name: "Concentrate assay" },
   { key: "bullion",      cat: "Gold room", name: "Bullion fineness (doré)" },
   { key: "tsf",          cat: "Environment & cyanide", name: "TSF sample characterisation (Au, CN, S, metals)" },
   { key: "cn_spec",      cat: "Environment & cyanide", name: "Cyanide speciation (free, WAD, total, SCN)" },
@@ -74,6 +89,7 @@ const TSF_PTS = ["TSF spigot", "Decant pond", "Return water", "Seepage / underdr
 const PLANT_PTS = [...new Set([...MILL_PTS, ...CCD_PTS, ...TSF_PTS].filter(x => x !== "Other")), "Other"];
 const CARBON_PTS = ["CIL tank carbon", "Loaded carbon (to elution)", "Eluted carbon", "Regenerated carbon", "Fresh carbon"];
 const ELU_PTS = ["Pregnant solution", "Electrowinning head", "Electrowinning tails", "Lean eluate", "Other"];
+const BELT_PTS = ["Mill feed conveyor", "Crusher product conveyor", "Stockpile reclaim conveyor", "Other"];
 /* tests: recommended tests for the type, first = default (the first one a route in use performs). pur: the usual purpose. fields: extra details
    asked at submission. check: what the technician checks at receipt. */
 const TYPES = [
@@ -107,6 +123,9 @@ const TYPES = [
   { key: "tsf", group: "Plant & gold room", pur: "plant", name: "TSF sample", hold: 336, holdWhat: "cyanide (NaOH-preserved)", cool: 6, haz: ["cn"], tests: ["aufx_ausx_cn", "ausx_cn", "cn_only", "aufx_ausx", "ausx", "tsf", "cn_spec", "settle", "aba", "psd", "leco", "icp"],
     fields: [{ k: "point", l: "Sampling point", o: TSF_PTS }, { k: "cell", l: "TSF cell / location" }],
     check: "Cyanide bottles preserved; cooler temperature recorded." },
+  { key: "belt", group: "Plant & gold room", pur: "plant", name: "Belt cut sample", tests: ["aufx_m", "aufx", "moisture", "psd"],
+    fields: [{ k: "point", l: "Conveyor", o: BELT_PTS }, SHIFT, { k: "time", l: "Cut time", ph: "e.g. 14:30" }],
+    check: "Full cut in a sealed bag, conveyor and time labelled; weighed wet on arrival." },
   { key: "bullion", group: "Plant & gold room", pur: "bullion", name: "Bullion", unit: "g", tests: ["bullion"],
     fields: [{ k: "bar", l: "Pour / bar number" }, { k: "gross", l: "Gross bar mass (g)", t: "number" }, { k: "escort", l: "Escort / witness" }],
     check: "Bar number, gross mass and seal match the gold-room dispatch; two people present at all times." },
@@ -134,9 +153,22 @@ const TYPES = [
   { key: "env_soil", group: "Environment", pur: "env", name: "Environmental soil / sediment", hold: 336, holdWhat: "cyanide and mercury", cool: 6, tests: ["soil", "icp", "aba"],
     fields: [{ k: "point", l: "Monitoring point / grid ref" }, { k: "depth", l: "Depth (cm)", t: "number" }, { k: "use", l: "Setting", ph: "e.g. downstream of TSF, farmland" }],
     check: "Samples in sealed bags; monitoring point and depth labelled." },
-  { key: "met_comp", group: "Metallurgical testwork", pur: "met", name: "Metallurgical testwork composite", tests: ["bottle", "cil_test", "pri", "diag", "reagent", "grg", "o2", "column", "flot", "ilr", "commin", "mineral", "settle", "cn_sol", "leco", "delet", "icp", "psd", "density"],
-    fields: [{ k: "prog", l: "Testwork programme" }, { k: "comp", l: "Composite ID / lithology" }, { k: "p80", l: "Target grind P80 (µm)", t: "number" }, { k: "kg", l: "Mass supplied (kg)", t: "number" }],
-    check: "Mass is enough for the tests requested (GRG needs 90 kg or more); composite sheet attached." },
+  { key: "met_comp", group: "Metallurgical testwork", pur: "met", name: "Testwork head / composite", tests: ["fa_aas", "sfa", "fa_grav", "cn_sol", "icp", "leco", "delet", "moisture", "psd", "density", "bottle", "cil_test", "pri", "diag", "reagent", "grg", "o2", "column", "flot", "ilr", "commin", "mineral", "settle"],
+    fields: [{ k: "prog", l: "Testwork programme" }, { k: "comp", l: "Composite ID / lithology" }],
+    check: "Composite sheet attached." },
+  /* v24: the products of a test (a bottle roll, a CIL test…) come to the lab for assay like plant samples; the purpose says which test. */
+  { key: "tw_slurry", group: "Metallurgical testwork", pur: "met_br", name: "Testwork slurry", haz: ["cn"], tests: ["aufx_ausx", "aufx_ausx_cn"],
+    fields: [{ k: "prog", l: "Test number", ph: "e.g. BR-014" }, { k: "tp", l: "Time point", ph: "e.g. 24 h" }],
+    check: "Test number and time point labelled." },
+  { key: "tw_sol", group: "Metallurgical testwork", pur: "met_br", name: "Testwork solution (leach liquor)", haz: ["cn"], tests: ["ausx", "ausx_cn", "cn_only", "elu_sol"],
+    fields: [{ k: "prog", l: "Test number", ph: "e.g. BR-014" }, { k: "tp", l: "Time point", ph: "e.g. 24 h" }],
+    check: "Bottle sealed; test number and time point labelled." },
+  { key: "tw_res", group: "Metallurgical testwork", pur: "met_br", name: "Testwork residue (solids)", tests: ["aufx", "moisture", "psd"],
+    fields: [{ k: "prog", l: "Test number", ph: "e.g. BR-014" }],
+    check: "Residue washed and labelled with the test number." },
+  { key: "tw_carbon", group: "Metallurgical testwork", pur: "met_cil", name: "Testwork carbon", haz: ["cn"], tests: ["c_load"],
+    fields: [{ k: "prog", l: "Test number", ph: "e.g. CIL-006" }],
+    check: "Carbon washed and labelled with the test number." },
   { key: "pulp", group: "Quality control", pur: "qc", name: "Assay pulp (check / umpire / re-assay)", tests: ["check", "fa_aas", "fa_grav", "icp"],
     fields: [{ k: "orig", l: "Original sample ID" }, { k: "job", l: "Original lab batch / job no." }],
     check: "Pulp envelopes match the list; original IDs not written on blind samples." },
@@ -789,7 +821,7 @@ const DEFAULT_ROUTES = [
     retention: [{ item: "Pulp", days: 365, then: "Kept in secure store" }] },
   /* ---- Version 23: the routes the lab runs, in its own words. Plant samples are a slurry or a solution: a slurry is filtered, the
      solution read for AuSx and the solids dried, pulverised and fire assayed for AuFx; CCD and TSF samples add cyanide (NaCN and WAD). ---- */
-  { code: "AUFX-AUSX", transit: 2, name: "Slurry: AuFx & AuSx", tests: ["aufx_ausx"], types: ["plant_feed", "ccd", "tsf"], purposes: ["plant", "recon"],
+  { code: "AUFX-AUSX", transit: 2, name: "Slurry: AuFx & AuSx", tests: ["aufx_ausx"], types: ["plant_feed", "ccd", "tsf", "tw_slurry"], purposes: ["plant", "recon", "met"],
     desc: "Plant slurry: filtered, the solution read for AuSx, the solids dried, pulverised and fire assayed for AuFx.",
     stages: [
       S("wet", "Weigh slurry & % solids", 0.25, "test", "pH and NaCN read now when asked: cyanide does not keep."),
@@ -803,7 +835,7 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["AuFx or AuSx far off the shift trend: repeat from the kept pulp or filtrate", "Plant CRM outside ±2 SD: repeat the shift set"],
     retention: [{ item: "Pulp", days: 30, then: "Disposed" }, { item: "Filtrate", days: 7, then: "Cyanide destroyed, disposed" }] },
-  { code: "AUFX", transit: 2, name: "Solids: AuFx", tests: ["aufx"], types: ["plant_feed", "ccd", "tsf"], purposes: ["plant", "recon"],
+  { code: "AUFX", transit: 2, name: "Solids: AuFx", tests: ["aufx"], types: ["plant_feed", "ccd", "tsf", "belt", "tw_res"], purposes: ["plant", "recon", "met"],
     desc: "Head grade of a plant slurry or solids sample: dried, pulverised and fire assayed for AuFx.",
     stages: [
       S("wet", "Weigh & % solids", 0.25, "test"),
@@ -815,7 +847,22 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["AuFx far off the shift trend: repeat from the kept pulp", "Plant CRM outside ±2 SD: repeat the shift set"],
     retention: [{ item: "Pulp", days: 30, then: "Disposed" }] },
-  { code: "AUSX", transit: 2, name: "Solution: AuSx", tests: ["ausx"], types: ["plant_feed", "ccd", "tsf"], purposes: ["plant", "recon"],
+  { code: "BELT", transit: 2, name: "Belt cut: AuFx & moisture", tests: ["aufx_m"], types: ["belt"], purposes: ["plant", "recon"],
+    desc: "Belt cut of the mill feed: weighed wet and dry for moisture, crushed, pulverised and fire assayed for AuFx.",
+    stages: [
+      S("wet", "Weigh wet", 0.25, "test", "Weighed as soon as the bag is opened."),
+      S("dry", "Drying at 105 °C", 6, "prep"),
+      S("dryw", "Weigh dry: moisture", 0.25, "test"),
+      S("crush", "Crush to 2 mm", 0.5, "prep"),
+      S("split", "Split", 0.25, "prep", "Coarse reject bagged and kept."),
+      S("pulv", "Pulverising to 80% passing 75 µm", 0.75, "prep"),
+      S("fuse", "Fire assay: fusion & cupellation", 1.75, "test", "Lead collection, 50 g charge.", true),
+      S("aufx", "AuFx: AAS finish", 0.5, "test", "Solids gold in g/t."),
+      S("qc", "QA/QC review", 0.5, "qc")
+    ],
+    triggers: ["AuFx far off the shift trend: repeat from the kept pulp"],
+    retention: [{ item: "Pulp", days: 30, then: "Disposed" }, { item: "Coarse reject", days: 7, then: "Disposed" }] },
+  { code: "AUSX", transit: 2, name: "Solution: AuSx", tests: ["ausx"], types: ["plant_feed", "ccd", "tsf", "tw_sol"], purposes: ["plant", "recon", "met"],
     desc: "Plant solution: filtered and read for AuSx.",
     stages: [
       S("filter", "Filter 0.45 µm", 0.25, "prep", "Carbon fines and solids removed so they add no gold."),
@@ -824,7 +871,7 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["AuSx far off the shift trend: repeat from the kept solution"],
     retention: [{ item: "Solution", days: 7, then: "Cyanide destroyed, disposed" }] },
-  { code: "AUFX-AUSX-CN", transit: 2, name: "Slurry: AuFx, AuSx & cyanide", tests: ["aufx_ausx_cn"], types: ["ccd", "tsf"], purposes: ["plant", "env", "recon"],
+  { code: "AUFX-AUSX-CN", transit: 2, name: "Slurry: AuFx, AuSx & cyanide", tests: ["aufx_ausx_cn"], types: ["ccd", "tsf", "tw_slurry"], purposes: ["plant", "env", "recon", "met"],
     desc: "CCD or TSF slurry: filtered, the solution read at once for cyanide (NaCN, WAD) and AuSx, the solids fire assayed for AuFx.",
     stages: [
       S("wet", "Weigh slurry & % solids", 0.25, "test"),
@@ -839,7 +886,7 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["WAD cyanide over 50 mg/L at the TSF: alert Environment and the plant at once", "AuSx or AuFx far off the shift trend: repeat from the kept filtrate or pulp"],
     retention: [{ item: "Pulp", days: 30, then: "Disposed" }, { item: "Filtrate", days: 7, then: "Cyanide destroyed, disposed" }] },
-  { code: "AUSX-CN", transit: 2, name: "Solution: AuSx & cyanide", tests: ["ausx_cn"], types: ["ccd", "tsf"], purposes: ["plant", "env", "recon"],
+  { code: "AUSX-CN", transit: 2, name: "Solution: AuSx & cyanide", tests: ["ausx_cn"], types: ["ccd", "tsf", "tw_sol"], purposes: ["plant", "env", "recon", "met"],
     desc: "CCD overflow, decant pond or return water: cyanide (NaCN, WAD) read at once, then AuSx.",
     stages: [
       S("filter", "Filter 0.45 µm", 0.25, "prep"),
@@ -849,7 +896,7 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["WAD cyanide over 50 mg/L in the decant pond: alert Environment and the plant at once"],
     retention: [{ item: "Solution", days: 7, then: "Cyanide destroyed, disposed" }] },
-  { code: "CN", transit: 2, name: "Cyanide: NaCN, WAD & pH", tests: ["cn_only"], types: ["plant_feed", "ccd", "tsf"], purposes: ["plant", "env"],
+  { code: "CN", transit: 2, name: "Cyanide: NaCN, WAD & pH", tests: ["cn_only"], types: ["plant_feed", "ccd", "tsf", "tw_sol"], purposes: ["plant", "env", "met"],
     desc: "Cyanide control on a tails grab, TSF spigot or pond: free cyanide (NaCN), WAD cyanide and pH.",
     stages: [
       S("filter", "Filter 0.45 µm", 0.25, "prep"),
@@ -858,7 +905,7 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["WAD cyanide over 50 mg/L at the TSF: alert Environment and the plant at once"],
     retention: [{ item: "Solution", days: 7, then: "Cyanide destroyed, disposed" }] },
-  { code: "C-LOAD", transit: 2, name: "Carbon: Au loading", tests: ["c_load"], types: ["carbon"], purposes: ["plant", "bullion"],
+  { code: "C-LOAD", transit: 2, name: "Carbon: Au loading", tests: ["c_load"], types: ["carbon", "tw_carbon"], purposes: ["plant", "bullion", "met"],
     desc: "Gold loading on CIL tank, loaded, eluted or regenerated carbon: ashed, digested and read by AAS.",
     stages: [
       S("wash", "Wash & screen carbon", 0.5, "prep", "Fines and grit removed; the bag opened under gold-room custody."),
@@ -870,7 +917,7 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["Eluted carbon above 100 g/t Au: repeat and notify the elution operator", "Repeat differs by more than 10%: repeat the loading"],
     retention: [{ item: "Carbon sample", days: 30, then: "Returned to gold room" }] },
-  { code: "ELU-AUSX", transit: 2, name: "Elution solution: AuSx, AgSx & Cu", tests: ["elu_sol"], types: ["elution"], purposes: ["plant", "bullion"],
+  { code: "ELU-AUSX", transit: 2, name: "Elution solution: AuSx, AgSx & Cu", tests: ["elu_sol"], types: ["elution", "tw_sol"], purposes: ["plant", "bullion", "met"],
     desc: "Pregnant solution, electrowinning head and tails and eluate: AuSx, AgSx and copper, with NaOH, NaCN and pH.",
     stages: [
       S("custody", "Custody check & log", 0.25, "intake", "Sealed bottle; strip number and time recorded."),
@@ -980,6 +1027,7 @@ const RESULTS = {
   soil:     { an: [A("As", "Arsenic", "mg/kg", 1, 0), A("Hg", "Mercury", "mg/kg", 0.01, 2), A("Pb", "Lead", "mg/kg", 1, 0), A("Cu", "Copper", "mg/kg", 1, 0), A("cn", "Total cyanide", "mg/kg", 0.5, 1), A("pH", "pH", "", null, 1)] },
   aufx_ausx:    { an: [PICK("Sampling point", PLANT_PTS), AUFX(), AUSX(), AGSX(), PH(), NACN({ opt: true }), SOLIDS(), SCREEN()], qc: "Au" },
   aufx:         { an: [PICK("Sampling point", PLANT_PTS), AUFX(), SOLIDS(), SCREEN()], qc: "Au" },
+  aufx_m:       { an: [PICK("Conveyor", BELT_PTS), A("h2o", "Moisture", "%", null, 2, { s: "Moisture" }), AUFX()], qc: "Au" },
   ausx:         { an: [PICK("Sampling point", PLANT_PTS), AUSX(), AGSX(), PH(), NACN({ opt: true })], qc: "Au_s" },
   aufx_ausx_cn: { an: [PICK("Sampling point", PLANT_PTS), AUFX(), AUSX(), CNWAD(), NACN({ opt: true }), PH(), SOLIDS(), ...METALS()], qc: "Au" },
   ausx_cn:      { an: [PICK("Sampling point", PLANT_PTS), AUSX(), CNWAD(), NACN({ opt: true }), PH(), ...METALS()], qc: "Au_s" },
@@ -1025,7 +1073,7 @@ const ROUTE_QC = {
   "CCD-SVY": ["soln"], "ELUATE": ["eluate"], "CIL-SVY": ["soln"],
   "CARBON": ["carbon"], "SOLN": ["soln"], "CONC": ["conc", "Two-person custody for all handling."], "BULLION": ["bull", "Top and bottom within 2 parts per thousand is checked on each bar's results."],
   "TSF-CHAR": ["cyan", "Field blanks are reported as supplied."],
-  "AUFX-AUSX": ["plant"], "AUFX": ["plant"], "AUSX": ["soln"], "AUFX-AUSX-CN": ["tail"], "AUSX-CN": ["soln"], "CN": ["cyan"], "C-LOAD": ["carbon"], "ELU-AUSX": ["eluate"], "ENV-W": ["envw", "Field blank, trip blank and field duplicate per sampling round, reported as supplied."],
+  "AUFX-AUSX": ["plant"], "AUFX": ["plant"], "BELT": ["plant"], "AUSX": ["soln"], "AUFX-AUSX-CN": ["tail"], "AUSX-CN": ["soln"], "CN": ["cyan"], "C-LOAD": ["carbon"], "ELU-AUSX": ["eluate"], "ENV-W": ["envw", "Field blank, trip blank and field duplicate per sampling round, reported as supplied."],
   "ENV-S": ["soil"], "DELET": ["multi"], "CN-SPEC": ["cnspec", "Free ≤ WAD ≤ total is checked on every sample's results."], "ABA": ["aba"], "DENSITY": ["dens"], "AR-AU": ["arau", "Field duplicates are reported as supplied."]
 };
 const QC_NAMES = { pb: ["preparation blank", "preparation blanks"], cd: ["crusher duplicate", "crusher duplicates"], pd: ["pulp duplicate", "pulp duplicates"], crm: ["CRM", "CRMs"], bl: ["blank", "blanks"] };
@@ -1115,7 +1163,9 @@ const CLOCK_STEP = /^(Drying|Fast drying|Oven drying|Air drying|Bottle roll leac
 DEFAULT_ROUTES.forEach(r => r.stages.forEach(x => { if (CLOCK_STEP.test(x.name)) x.clock = true; }));
 /* Routes kept for samples already on them but not in use since version 23: not offered at submission and not listed, until the lab manager
    turns one back on under Settings › Workflow routes. */
-const RETIRED_ROUTES = ["CN-SOL", "BRT", "CIL-T", "GRG", "DIAG", "COMMIN", "ICP", "LECO", "MOIST", "PSD", "PLT-HEAD", "PLT-TAIL", "CCD-SVY", "ELUATE", "CIL-SVY",
-  "CARBON", "SOLN", "CONC", "TSF-CHAR", "ENV-W", "ENV-S", "PRI", "REAGENT", "O2-UPT", "COLUMN", "ILR", "C-STRIP", "FLOT", "DENSITY", "SETTLE", "DELET", "MINERAL",
-  "CN-SPEC", "DETOX", "ABA", "AR-AU", "CHECK"];
+/* v24: the lab only assays, so the analytical routes are back in use (ICP, LECO, moisture, sieve, density, aqua regia gold, cyanide-soluble gold,
+   cyanide speciation, water, soil, deleterious elements, concentrate, check assay). Testwork (bottle roll, CIL test, GRG…) is what samples are for
+   (a purpose), not a route; its products come in as testwork samples on the assay routes. */
+const RETIRED_ROUTES = ["BRT", "CIL-T", "GRG", "DIAG", "COMMIN", "PLT-HEAD", "PLT-TAIL", "CCD-SVY", "ELUATE", "CIL-SVY",
+  "CARBON", "SOLN", "TSF-CHAR", "PRI", "REAGENT", "O2-UPT", "COLUMN", "ILR", "C-STRIP", "FLOT", "SETTLE", "MINERAL", "DETOX", "ABA"];
 /* ROUTES-END */

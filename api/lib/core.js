@@ -54,8 +54,10 @@ function redactSample(d){
 
 /* ---------- Record-keeping rules kept by the server, whatever a page sends ----------
    The page applies the full workflow (step order, QC gates, limits). These rules make sure that even a page someone has
-   tampered with can't rewrite the record: history, certificates and ledger movements are only ever added to, every new
-   entry names the person actually signed in, and results are released by someone other than the person who entered them. */
+   tampered with can't rewrite the record: history, certificates and ledger movements are only ever added to, and every new
+   entry names the person actually signed in. Who releases follows Settings › Release of results (relMode): "now" (the default since
+   v24) lets any lab writer release the results they saved; "signoff" keeps the release to a lab supervisor or the lab manager, by
+   someone other than the person who entered them. An amended certificate always needs a second person. */
 const filled = x => typeof x === "string" && x.trim() !== "";
 const signedBy = a => e => !!e && e.by === a.u && e.tech === a.name;
 const extends_ = (old, now) => Array.isArray(now) && now.length >= old.length && old.every((e, i) => same(e, now[i]));
@@ -64,7 +66,8 @@ const entrantsOf = s => {
   const rows = (s && s.results && s.results.rows) || {};
   return [...new Set(Object.values(rows).filter(r => r && !r.calc).map(r => r.by || s.results.by).filter(Boolean))];
 };
-function sampleRule(a, cur, next){
+const releaseNow = st => !(st && st.relMode === "signoff");
+function sampleRule(a, cur, next, st){
   const who = signedBy(a);
   const h0 = (cur && cur.history) || [], h1 = next.history;
   if (!extends_(h0, h1)) return "A sample's history can only be added to, never changed.";
@@ -77,9 +80,11 @@ function sampleRule(a, cur, next){
   if (!extends_(c0, c1)) return "An issued certificate can't be changed or removed.";
   const issued = c1.slice(c0.length);
   for (const c of issued){
-    if (!APPROVERS.includes(a.role)) return "Only a lab supervisor or the lab manager can release results.";
+    const open = releaseNow(st) && !c.amendBy;
+    if (!open && !APPROVERS.includes(a.role)) return "Only a lab supervisor or the lab manager can release results.";
     if (!who(c) || c.role !== a.role) return "A certificate must name the person signed in.";
     if (c.amendBy && !(cur && cur.amend && cur.amend.by === c.amendBy.by)) return "An amended certificate needs the amendment that was proposed.";
+    if (open) continue;
     const own = c.amendBy ? cur.amend.by === a.u : entrantsOf(cur).includes(a.u);
     if (own && !(a.role === "admin" && filled(c.self))) return "Results are released by someone other than the person who entered them.";
   }
@@ -98,6 +103,24 @@ function sampleRule(a, cur, next){
   if (next.amend && !same(next.amend, cur && cur.amend) && !who(next.amend)) return "An amendment must be proposed under the name of the person signed in.";
   const k0 = (cur && cur.acks) || [];
   if ((next.acks || []).some(x => !k0.some(y => same(x, y)) && !who(x))) return "A limit action must be recorded under the name of the person signed in.";
+  const e0 = (cur && cur.evals) || [], e1 = next.evals || [];
+  if (!extends_(e0, e1)) return "An evaluation can't be changed or removed.";
+  if (e1.slice(e0.length).some(e => !who(e))) return "An evaluation must be recorded under the name of the person signed in.";
+  return "";
+}
+/* v24, departments: someone who evaluates results (a department marked so in Settings, Metallurgy by default) but is not lab staff
+   who writes may add an evaluation to a sample, and nothing else: the evaluation, a request for re-assay, and its line in the history. */
+const DEFAULT_DEPTS = [{ n: "Metallurgy", ev: true }];   // as the page's default, until Settings are saved with a department list
+const evaluates = (a, st) => !!a && (APPROVERS.includes(a.role) || (STAFF.includes(a.role) && !!a.dept &&
+  (st && Array.isArray(st.depts) && st.depts.length ? st.depts : DEFAULT_DEPTS).some(d => d && d.n === a.dept && d.ev)));
+const EVAL_KEYS = ["evals", "rq", "history", "updatedAt"];
+function evalRule(a, cur, next){
+  if (!cur) return "Only lab staff can change records.";
+  for (const k of new Set([...Object.keys(cur), ...Object.keys(next)])) if (!EVAL_KEYS.includes(k) && !same(cur[k], next[k])) return "An evaluation changes nothing else on the sample.";
+  const why = sampleRule(a, cur, next, null); if (why) return why;
+  const e0 = cur.evals || [], e1 = next.evals || [], h0 = cur.history || [], h1 = next.history || [];
+  if (e1.length !== e0.length + 1 || h1.length !== h0.length + 1 || !h1[h1.length - 1].ev) return "Record one evaluation at a time.";
+  if (!same(cur.rq, next.rq) && next.rq !== true) return "A re-assay request is cleared by the lab.";
   return "";
 }
 function batchRule(a, cur, next){
@@ -212,7 +235,7 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
     // Microsoft account with the same address, nor the other way round.
     let a = users.find(x => x && x.em && String(x.em).trim().toLowerCase() === email && (x.via === "email" ? "email" : "microsoft") === via);
     if (!a && devUsers && via === "microsoft") a = users.find(x => x && x.u === email) || devUsers.find(x => x.u === email);   // local testing only: sign in by username
-    if (a && a.role) return { signedIn: true, email, via, u: a.u, name: a.name || a.u, role: a.role, sec: a.role === "section" ? a.sec || "" : "" };
+    if (a && a.role) return { signedIn: true, email, via, u: a.u, name: a.name || a.u, role: a.role, sec: a.role === "section" ? a.sec || "" : "", dept: typeof a.dept === "string" ? a.dept : "" };
     // ADMIN_EMAILS: the first admin. With an email login only until an admin is on the account list.
     if (admins.includes(email) && (via === "microsoft" || !users.some(x => x && x.role === "admin" && x.em)))
       return { signedIn: true, email, via, u: email, name: email, role: "admin", sec: "", bootstrap: true };
@@ -228,7 +251,7 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
     if (d == null) return d;
     if (coll === "settings"){
       if (a.role === "admin") return d;
-      return { ...d, users: isStaff(a) ? (d.users || []).map(x => ({ u: x.u, name: x.name, role: x.role, ...(x.sec ? { sec: x.sec } : {}) })) : [] };
+      return { ...d, users: isStaff(a) ? (d.users || []).map(x => ({ u: x.u, name: x.name, role: x.role, ...(x.sec ? { sec: x.sec } : {}), ...(x.dept ? { dept: x.dept } : {}) })) : [] };
     }
     if (isStaff(a)) return d;
     if (coll === "samples"){
@@ -411,9 +434,13 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
         await store.remove(op.path);
         return { ok: true };
       }
-      const rule = RULES[pp.coll], check = rule ? (cur, next) => rule(a, cur, next) : null;
+      const rule = RULES[pp.coll], st = rule ? await settings() : null, check = rule ? (cur, next) => rule(a, cur, next, st) : null;
       if (t === "set") await store.set(op.path, op.data, { check });
       else await store.update(op.path, op.data, { check });
+      return { ok: true };
+    }
+    if (pp.coll === "samples" && t === "update" && evaluates(a, await settings())){
+      await store.update(op.path, op.data, { check: (cur, next) => evalRule(a, cur, next) });
       return { ok: true };
     }
     // Everyone else: public submissions only.

@@ -170,6 +170,7 @@ const log = t => console.log("• " + t);
   const s2 = await start({ port: 0, store: mem2, adminEmails: ["new@lab.test"], quiet: true }); s2.server.unref();
   const base2 = `http://localhost:${s2.port}`, ctx2 = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await ctx2.addCookies([{ name: "devauth", value: "new@lab.test", url: base2 }]);
+  await ctx2.route(/fonts\.(googleapis|gstatic)\.com/, r => r.fulfill({ status: 200, contentType: "text/css", body: "" }));   // as harness-head.js
   const N = await ctx2.newPage();
   N.on("pageerror", e => errors.push(`[New copy] pageerror ${e.message}`));
   N.on("console", m => { if (m.type() === "error" && !/fonts\.g/.test(m.text())) errors.push(`[New copy] ${m.text()}`); });

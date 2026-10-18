@@ -42,7 +42,7 @@ if (fs.existsSync(CORE)){
 
   log("Walk-in: handed to, with badge number");
   await H.tab(P, "register"); await P.waitForSelector("#rHandTo");
-  check(/Handed to \(lab technician\)\s*\*/.test(await P.textContent('label:has(#rHandTo)')) && /badge number\s*\*/.test(await P.textContent('label:has(#rHandBadge)')), "both fields are on the walk-in form, marked required");
+  check(/Handed to \(lab technician\)\s*\*/.test(await P.textContent('label:has(#rHandTo)')) && /badge n(o\.|umber)\s*\*/.test(await P.textContent('label:has(#rHandBadge)')), "both fields are on the walk-in form, marked required");
   check(await P.$$eval("#rTechList option", os => os.map(o => o.value).includes("Lab Technician A")), "the name box suggests the lab staff names it knows");
   await fillForm(P, "register", { section: "GC", type: "rc", purpose: "gc", submitter: "Yaw Boateng", handed: "", badge: "" }); await P.waitForTimeout(300);
   check(/name of the technician you handed it to/.test(await toastText(P)) && !(await P.$("#rResult code")), "the name is required");
@@ -69,7 +69,7 @@ if (fs.existsSync(CORE)){
 
   log("Submit when signed in");
   await H.tab(T, "submit"); await T.waitForSelector("#rRecvNow");
-  check(await T.$eval("#rRecvNow", c => c.checked) && !!(await T.$("#rRoute")) && await shown(T, "#rRecvAt") && !(await shown(T, "#rHandTo")) && (await T.textContent("#rSubmit")) === "Register and issue ID", "lab staff: Received now at the lab, by me is ticked; route and time received show");   // v23: the route list shows only when there is a choice
+  check(await T.$eval("#rRecvNow", c => c.checked) && !!(await T.$("#rRoute")) && await shown(T, "#rRecvAtBox") && !(await shown(T, "#rHandTo")) && (await T.textContent("#rSubmit")) === "Register and issue ID", "lab staff: Received now at the lab, by me is ticked; route and time received show");   // v23: the route list shows only when there is a choice
   await T.setChecked("#rRecvNow", false); await T.waitForTimeout(100);
   check(!(await shown(T, "#rRouteSel")) && !(await shown(T, "#rRecvAt")) && await shown(T, "#rHandTo") && (await T.textContent("#rSubmit")) === "Submit and get sample ID" && !/\*/.test(await T.textContent('label:has(#rHandTo)')), "cleared: a submission for later, with optional hand-over fields");
   await fillForm(T, "submit", { section: "EXP", type: "core", purpose: "exp", submitter: "Ama" }); const [s1] = await ids(T);

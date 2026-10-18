@@ -22,6 +22,7 @@ let BASE = "";
 async function newUser(browser, opts, viewport = { width: 1280, height: 900 }, scheme = "light", extra = {}){
   const s = await server(); BASE = `http://localhost:${s.port}`;
   const ctx = await browser.newContext({ viewport, colorScheme: scheme, ...extra });
+  await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.fulfill({ status: 200, contentType: "text/css", body: "" }));   // web fonts are not needed for the checks, and a test machine may have no internet
   const page = await ctx.newPage();
   page.on("console", m => { if (m.type() === "error" && !/fonts\.g/.test(m.text())) errors.push(`[${opts.name}] ${m.text()}`); });
   page.on("pageerror", e => errors.push(`[${opts.name}] pageerror ${e.message} ${(e.stack || "").split("\n").slice(1, 4).join(" < ")}`));

@@ -315,7 +315,7 @@ const moves = id => ledger().filter(m => m.sid === id);
   log("Viewer and forged session");
   const B = await newUser(browser, { uid: "u_b", name: "Viewer", canEdit: true, names });
   await signIn(B, "viewer");
-  check(JSON.stringify(await visibleTabs(B)) === JSON.stringify(["board", "track", "submit", "batches", "storage", "ledger", "routes"]), "viewer tabs");
+  check(JSON.stringify(await visibleTabs(B)) === JSON.stringify(["board", "track", "submit", "results", "batches", "storage", "ledger", "routes"]), "viewer tabs (v24: Results for staff)");
   await open(B, "EXP-20261001-0001");
   check(!(await B.$("#moveForm")) && !(await B.$("[data-mat]")) && /Retained material/.test(await B.textContent("#view-track")), "viewer sees retained material but has no controls");
   const F = await newUser(browser, { uid: "u_f", name: "Forger", canEdit: true, names, session: "admin" });

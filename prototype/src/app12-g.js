@@ -16,7 +16,7 @@ function groupsOf(s){
 const qcpOf = s => groupsOf(s)[0]?.p || "";
 const profOf = s => QC_PROFILES[qcpOf(s)] || null;
 /* Lab batches are optional unless Settings require them: a sample in no batch then has all its results typed or attached on its record. */
-const batchesRequired = () => !!cfg.batchReq;
+const batchesRequired = () => !!cfg.batchReq && cfg.relMode === "signoff";
 const batchKeys = s => { const labs = labsOf(s); return new Set(groupsOf(s).filter(g => batchesRequired() || labs[g.p]).flatMap(g => g.k)); };
 /* The results this sample reports. One repeated by gravimetric finish takes that method's limits; one repeated by dilution has no upper limit. */
 function anOf(s){
@@ -129,6 +129,7 @@ function entrants(s, rows = s?.results?.rows || {}){
 }
 /* Four eyes: whoever entered a result can't accept its failed checks or release it. The lab manager may, giving a reason that is recorded. */
 const selfCheck = (s, rows) => session && entrants(s, rows).includes(session.u) ? (isAdmin() ? "admin" : "blocked") : "";
+const relSelf = (s, rows) => relNow() ? "" : selfCheck(s, rows);
 const SELF_MSG = "You entered results on this sample. Another lab supervisor or the lab manager reviews and releases them.";
 /* Acceptance checks on one sample's results (balances, repeats, limits). */
 function resultChecks(s, rows = s.results?.rows || {}){
@@ -185,6 +186,7 @@ const readyRel = s => { const i = curIdx(s); return i >= 1 && !!planOf(s)[i + 1]
 function releaseBlock(s){
   const miss = missingRes(s);
   if (miss.length) return `Results missing: ${miss.map(a => a.s || a.n).join(", ")}.`;
+  if (relNow()) return "";   // QC, limits, range and checks are for the people who evaluate the results: they never hold them back
   const over = overRes(s);
   if (over.length) return `${over.map(a => a.s || a.n).join(", ")} is over the method's range. Re-assay it first.`;
   const bad = resultChecks(s).filter(c => !c.ok && !c.soft);
@@ -209,7 +211,7 @@ function certCode(sid, c){
   const h = seed => { let x = seed; for (const ch of body){ x ^= ch.codePointAt(0); x = Math.imul(x, 0x01000193) >>> 0; } return x.toString(16).padStart(8, "0"); };
   return (h(0x811c9dc5) + h(0x2f6b1a3d)).toUpperCase().match(/.{4}/g).join("-");
 }
-const ROLE_SIGN = { admin: "lab manager", super: "lab supervisor (QA/QC)" };
+const ROLE_SIGN = { admin: "lab manager", super: "lab supervisor", tech: "lab technician" };
 /* A certificate keeps its own copy of the results, their units and what stands behind each one (its lab batch, a calculation, or neither),
    so it reads the same however the method library changes later. */
 function makeCert(s, at, why, x = {}){
@@ -235,6 +237,22 @@ function releaseUpdate(s, at, note, wit, ref, selfWhy){
   return { stageKey: key, stageAt: at, relAt: at, relDay: dayKey(at), materials: mats, certs: [...(s.certs || []), cert],
     history: [...(s.history || []), { key: "released", sn: "Results released", at, by: session.u, tech: session.name, ref: [ref, cert.no].filter(Boolean).join(" · "), ...(wit ? { wit } : {}),
       note: (note ? note + ". " : "") + `Certificate ${cert.no} issued${cert.amends ? `, amending ${cert.amends}: ${cert.why}` : ""}${selfWhy ? `. Released by the person who entered the results: ${selfWhy}` : ""}` }] };
+}
+/* v24, release at once: when saved results complete a sample in analysis, the analysis steps left are recorded as done and the results are
+   released in the same write, under the name of the person who saved them. Two-person custody samples wait for their release with a witness. */
+function withRelease(s, res){
+  if (!res || !relNow() || !canRelease()) return res;
+  const upd = res.upd || res, h = upd.history, last = h && h.at(-1);
+  if (!upd.results || !last || !last.res || last.redo || h.length <= (s.history || []).length) return res;
+  const m = { ...s, ...upd }, p = planOf(m), ci = curIdx(m), ti = targetIdx(m), ph = stage(m, m.stageKey)?.phase;
+  if (awaiting(m) || twoPerson(m) || !(ci >= 1 && ci < ti && (ph === "test" || ph === "qc")) || releaseBlock(m)) return res;
+  let at = Math.max(...h.map(e => +e.at || 0)) + 1000;
+  const hist = [...h];
+  for (let i = ci + 1; i < ti; i++){ hist.push({ key: p[i].key, sn: p[i].name, at, by: session.u, tech: session.name, note: "Done: results saved" }); at += 1000; }
+  const rel = releaseUpdate({ ...m, history: hist }, at, "Released when the results were saved", "", "", "");
+  Object.assign(upd, rel);
+  if (res.upd && res.msg) res.msg += `. Released: certificate ${rel.certs.at(-1).no}`;
+  return res;
 }
 /* A re-assay: the results so far move to the results history. The sample leaves lab batches that already have results (it joins new ones),
    but stays in batches still being prepared. */
@@ -271,7 +289,7 @@ function resultsPanel(s){
   const rows = s.results?.rows || {}, ans = anOf(s), draft = s.results && (!last || s.results.at > last.at);
   const checks = draft ? resultChecks(s) : [], bad = checks.filter(c => !c.ok);
   const over = draft ? overRes(s) : [];
-  const parts = [];
+  const parts = [reqNote(s)];
   if (last) parts.push(`<div class="stack" style="gap:6px">
       <div class="row" style="gap:8px"><span class="pill ok">Released</span><b>Certificate ${esc(last.no)}</b><span class="small muted">${fmtFull(last.at)} by ${esc(last.tech)}${last.code ? ` · check code <span class="mono">${esc(last.code)}</span>` : ""}</span>
         <button type="button" class="btn small" data-cert="${last.v}">View certificate</button></div>
@@ -285,15 +303,15 @@ function resultsPanel(s){
       ${resTable(ans, rows)}
       ${over.length ? `<div class="notice bad"><b>Over the method's range:</b> ${over.map(a => `${esc(a.n)} above ${esc(fmtNum(a.ul))} ${esc(a.u)}`).join(", ")}. ${resOf(s).over ? `Repeat by ${esc(testOf(resOf(s).over)?.name || "")}.` : "Dilute and re-assay."}
         ${canEdit() && ci < ti ? `<div class="row" style="margin-top:6px"><button type="button" class="btn" id="overBtn">${resOf(s).over ? "Send for gravimetric finish" : "Send back for a diluted re-run"}</button></div>` : ""}</div>` : ""}
-      ${bad.length ? `<div class="notice ${bad.some(c => !c.soft) && !s.resAcc ? "bad" : "warn"}"><b>Check${bad.length > 1 ? "s" : ""} not met:</b> ${bad.map(c => esc(c.msg) + (c.soft ? " (reported, does not hold the release)" : "")).join("; ")}.
+      ${relNow() ? "" : bad.length ? `<div class="notice ${bad.some(c => !c.soft) && !s.resAcc ? "bad" : "warn"}"><b>Check${bad.length > 1 ? "s" : ""} not met:</b> ${bad.map(c => esc(c.msg) + (c.soft ? " (reported, does not hold the release)" : "")).join("; ")}.
         ${s.resAcc ? `<div class="small">Accepted by ${esc(s.resAcc.tech)}, ${fmt(s.resAcc.at)}: ${esc(s.resAcc.why)}</div>` : bad.some(c => !c.soft) ? `<div class="small">The release is held until the sample is re-assayed or a lab supervisor who did not enter the results accepts it with a reason.</div>` : ""}
         ${!s.resAcc && bad.some(c => !c.soft) && canApprove() && selfCheck(s) !== "blocked" ? `<div class="row" style="margin-top:6px"><input class="inp" id="accWhy" data-clear placeholder="${selfCheck(s) === "admin" ? "You entered these results: reason for accepting them yourself" : "Reason for accepting (printed on the certificate)"}" style="flex:1 1 220px;width:auto"><button type="button" class="btn" id="accBtn">Accept with this reason</button></div>` : ""}</div>` : checks.length ? `<div class="small" style="color:var(--ok)">All checks met: ${checks.map(c => esc(c.msg.replace(/^the /, "").replace(/ (differ|is|differs|are|add).*$/, ""))).join("; ")}.</div>` : ""}
     </div>`);
   if (s.amend) parts.push(amendPending(s, last));
-  parts.push(alertsBox(s));
+  parts.push(relNow() ? evalBox(s) : alertsBox(s));
   const gs = groupsOf(s), labs = labsOf(s);
   if (gs.length && (batchesRequired() || Object.keys(labs).length)) parts.push(`<div class="small stack" style="gap:2px">${gs.map(g => { const l = labs[g.p], what = gs.length > 1 ? ` (${esc(listAnd(groupAns(g, { an: ans }).map(a => lcName(a.n))))})` : "";
-    return `<div>Lab batch${what}: ${l ? `<button type="button" class="linkish mono" data-batch="${esc(l.b)}">${esc(l.b)}</button> <span class="pill ${qcCls(l.q)}">${esc(qcLabel(l.q) || "no results yet")}</span>${l.n ? `<div class="small muted">${esc(l.n)}</div>` : ""}` : `<span class="muted">not in ${esc(aAn(lcName(QC_PROFILES[g.p]?.name || "batch")))} yet. ${canEdit() ? `Add it on the <button type="button" class="linkish" data-goto="batches">Lab batches</button> tab.` : ""}</span>`}</div>`; }).join("")}</div>`);
+    return `<div>Lab batch${what}: ${l ? `<button type="button" class="linkish mono" data-batch="${esc(l.b)}">${esc(l.b)}</button> ${!relNow() || canEval() ? `<span class="pill ${qcCls(l.q)}">${esc(qcLabel(l.q) || "no results yet")}</span>${l.n ? `<div class="small muted">${esc(l.n)}</div>` : ""}` : !l.q || l.q === "pending" ? `<span class="pill info">no results yet</span>` : ""}` : `<span class="muted">not in ${esc(aAn(lcName(QC_PROFILES[g.p]?.name || "batch")))} yet. ${canEdit() ? `Add it on the <button type="button" class="linkish" data-goto="batches">Lab batches</button> tab.` : ""}</span>`}</div>`; }).join("")}</div>`);
   if (entering) parts.push(resultsForm(s));
   if (last && canEdit() && !draft && !entering && !s.amend) parts.push(amendForm(s, last));
   return `<div class="panel stack" id="resPanel"><h3>Results</h3>${parts.join("")}</div>`;
@@ -675,7 +693,7 @@ async function sampleWrite(id, fn){
   const ref = db.doc("samples/" + id);
   try {
     const s = await leased(ref, true); if (!s) return false;
-    const res = fn(s); if (!res) return false;
+    const res = withRelease(s, fn(s)); if (!res) return false;
     const upd = res.upd || res, moves = res.moves || [];
     upd.updatedAt = Date.now();
     if (moves.length){ upd.ledgerPending = [...(s.ledgerPending || []), ...moves]; upd.lp = true; }
@@ -806,7 +824,8 @@ async function storeBatchResults(b, got, inst, file, typed){
       return { results, resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null, ...labsUpd(s, { ...labsOf(s), [b.qcp]: { b: b.id, q: qc.status, n: "" } }),
         history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: b.id, res: true, note: `Result${got.length > 1 ? "s" : ""} from lab batch ${b.id}${file ? ` (file ${file.name})` : ""}: ${got.map(a => `${a.n} ${resText(all[a.k], a)} ${a.u}${all[a.k]?.f === "over" ? " (over the method's range)" : ""}`).join("; ")}. ${qcLabel(qc.status)}` }] };
     }));
-    toast(`${qcLabel(qc.status)}. Results saved on ${ok} sample(s).`);
+    if (relNow()){ await closeBatchIfDone(b.id); toast(`Results saved on ${ok} sample(s); complete results are released.`); }
+    else toast(`${qcLabel(qc.status)}. Results saved on ${ok} sample(s).`);
     return qc.status;
   } catch (e) { writeFailed(e); return false; }
   finally { setBatchBusy(false); renderBatches(); }
@@ -869,7 +888,7 @@ async function doBatchDecide(kind){
   finally { setBatchBusy(false); renderBatches(); }
 }
 async function doBatchRelease(){
-  const b = batchLive; if (!b || !canApprove() || batchBusy) return;
+  const b = batchLive; if (!b || !canRelease() || batchBusy) return;
   const anyTwo = b.sids.some(id => twoPerson(bs(id)));
   const wit = anyTwo ? val("#bWit") : ""; if (anyTwo && !wit){ toast("Two-person custody: choose the witness first."); $("#bWit")?.focus(); return; }
   const selfWhy = val("#bSelfWhy");
@@ -879,7 +898,7 @@ async function doBatchRelease(){
   const ok = await pool(b.sids, 5, sid => sampleWrite(sid, s => {
     if (!inBatch(s, b.id) || curIdx(s) !== targetIdx(s) - 1) return null;
     const why = releaseBlock(s); if (why){ held.push(`${s.id}: ${why}`); return null; }
-    const self = selfCheck(s); if (self === "blocked"){ held.push(`${s.id}: you entered its results`); return null; }
+    const self = relSelf(s); if (self === "blocked"){ held.push(`${s.id}: you entered its results`); return null; }
     return releaseUpdate(s, nowAfter(s), `Released with lab batch ${b.id}`, wit, "", self === "admin" ? selfWhy : "");
   }));
   setBatchBusy(false);
@@ -924,6 +943,7 @@ function batchNext(b){
   if (b.status === "rerun" || b.status === "done" || !b.open) return "";
   if (b.status === "creating") return "Being created";
   if (!b.qc) return b.draft ? "Complete the results (technician)" : "Attach results (technician)";
+  if (relNow()) return "Release the rest (technician)";
   if (!(qcClear(b.qc.status) || b.qc.accepted)) return "QC decision (supervisor)";
   return "Release (supervisor)";
 }
@@ -932,6 +952,7 @@ function batchStatus(b){
   if (b.status === "done") return ["", "Closed: all results released"];
   if (b.status === "creating") return ["info", "Being created"];
   if (!b.qc) return ["gold", b.draft ? "Results file attached: values to complete" : "Waiting for results"];
+  if (relNow() && !canEval()) return ["ok", "Results saved"];
   if (b.qc.accepted) return ["ok", b.qc.accepted.exception ? "QC failure accepted (exception)" : "QC warnings accepted"];
   return [qcCls(b.qc.status), qcLabel(b.qc.status)];
 }
@@ -954,13 +975,22 @@ function buildBatches(v){
     return `<tr class="${x.id === batchSel ? "sel" : ""}"><td><button type="button" class="linkish mono" data-bsel="${esc(x.id)}">${esc(x.id)}</button></td><td>${esc(p.name)}</td><td class="mono">${(x.sids || []).length}</td><td><span class="pill ${cls}">${esc(txt)}</span></td><td>${esc(batchNext(x))}</td><td style="white-space:nowrap">${fmt(x.at)}</td><td>${esc(x.tech || "")}</td></tr>`; };
   const seen = new Set(), crmOpts = (cfg.crms || []).filter(c => { const k = `${c.id}|${c.an}|${c.u}`; if (seen.has(k)) return false; seen.add(k); return true; })
     .map(c => { const k = `${c.id}|${c.an}|${c.u || ""}`; return `<option value="${esc(k)}" ${k === chartCrm ? "selected" : ""}>${esc(c.id)} · ${esc(c.an)}${c.u ? " " + esc(c.u) : ""} · ${esc(c.name)}</option>`; }).join("");
+  const ev = !relNow() || canEval(), waitRes = open.filter(x => !x.qc).length;
   v.innerHTML = `<div class="stack">
-    <div class="panel row" style="gap:10px">
-      <h2 style="margin:0">Lab batches</h2><span style="flex:1"></span>
-      ${edit ? `<button type="button" class="btn primary" data-attach="all">Attach results file</button>` : ""}
+    <div class="panel batch-hero">
+      <div class="stack" style="gap:6px;min-width:0;flex:1 1 320px">
+        <h2 style="margin:0">Lab batches</h2>
+        <p class="small" style="margin:0">A batch is one run of samples through the furnace or AAS, with its standards, blanks and duplicates. Attach the run's results file: each sample is found by its ID or site sample code, and complete results are released.</p>
+        <div class="row" style="gap:6px"><span class="pill ${waitRes ? "gold" : ""}">${waitRes} waiting for results</span><span class="pill">${open.length} open</span><span class="pill ok">${closed.length} closed this month</span></div>
+      </div>
+      ${edit ? `<button type="button" class="btn primary big" data-attach="all">Attach results file</button>` : ""}
     </div>
-    ${trends.length ? `<div class="notice warn"><b>Reference material trends:</b> ${trends.map(t => `${esc(t.crm)}${t.k ? ` ${esc(t.k)}` : ""}: ${esc(t.msg)}`).join("; ")}. Check the control chart before the next batch.</div>` : ""}
-    ${edit ? `<div class="panel stack" style="gap:10px"><h3>New batch</h3>
+    ${trends.length && ev ? `<div class="notice warn"><b>Reference material trends:</b> ${trends.map(t => `${esc(t.crm)}${t.k ? ` ${esc(t.k)}` : ""}: ${esc(t.msg)}`).join("; ")}. Check the control chart before the next batch.</div>` : ""}
+    <div class="panel stack" style="gap:8px"><h3>Open batches</h3>
+      ${open.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>Batch</th><th>Type</th><th>Samples</th><th>Status</th><th>Next step</th><th>Created</th><th>By</th></tr></thead><tbody>${open.map(row).join("")}</tbody></table></div>` : `<p class="small muted" style="margin:0">No open batches.</p>`}
+    </div>
+    ${batchLive ? batchDetail(batchLive) : batchSel ? `<div class="panel empty"><strong>Loading ${esc(batchSel)}…</strong></div>` : ""}
+    ${edit ? `<details class="panel more-panel" id="nbBox" ${batchNewProf || !relNow() ? "open" : ""}><summary><h3 style="display:inline">Make a batch by hand</h3> <span class="small muted">${ready.length ? `${ready.reduce((n, x) => n + x[2].length, 0)} sample(s) can join one` : "no samples waiting"}</span></summary><div class="stack" style="gap:10px;margin-top:10px">
       ${ready.length ? `<label class="f" style="max-width:520px"><span>Batch type</span><select class="inp" id="nbProf"><option value="">Choose…</option>${profs.map(([k, p, l]) => `<option value="${k}" ${k === batchNewProf ? "selected" : ""} ${l.length ? "" : "disabled"}>${esc(p.name)} · ${l.length} sample${l.length === 1 ? "" : "s"} ready</option>`).join("")}</select></label>`
         : `<p class="small muted" style="margin:0">No samples are waiting for a batch. Samples join a batch after receipt and before QA/QC review.</p>`}
       ${np ? `<p class="small" style="margin:0"><b>QC rule:</b> ${esc(qcRuleText(np, el[0] ? batchAns(batchNewProf, el[0]) : null))}</p>
@@ -968,15 +998,11 @@ function buildBatches(v){
         <div class="tbl-wrap" id="nbList"><table><thead><tr><th></th><th>Sample</th><th>Route</th>${sigs.size > 1 ? "<th>Results checked</th>" : ""}<th>Step now</th><th>Received</th></tr></thead><tbody>
         ${el.map((s, i) => `<tr><td><input type="checkbox" id="nb_${esc(s.id)}" value="${esc(s.id)}" ${i < np.size && sigOf(batchAns(batchNewProf, s)) === sigOf(batchAns(batchNewProf, el[0])) ? "checked" : ""}></td><td class="mono">${esc(s.id)}${s.priority === "Urgent" ? ` <span class="pill gold">Urgent</span>` : ""}</td><td class="mono">${esc(s.route || "")}</td>${sigs.size > 1 ? `<td>${esc(batchAns(batchNewProf, s).map(anShort).join(", "))}</td>` : ""}<td>${esc(stage(s, s.stageKey)?.name || "")}</td><td style="white-space:nowrap">${fmt(s.recvAt)}</td></tr>`).join("")}</tbody></table></div>
         <div class="row"><button type="button" class="btn primary" id="nbCreate">Create batch</button><span class="small muted">Up to ${np.size} samples. QC positions are added automatically.</span></div>` : ""}
-    </div>` : ""}
-    <div class="panel stack" style="gap:8px"><h3>Open batches</h3>
-      ${open.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>Batch</th><th>Type</th><th>Samples</th><th>Status</th><th>Next step</th><th>Created</th><th>By</th></tr></thead><tbody>${open.map(row).join("")}</tbody></table></div>` : `<p class="small muted" style="margin:0">No open batches.</p>`}
-    </div>
-    ${batchLive ? batchDetail(batchLive) : batchSel ? `<div class="panel empty"><strong>Loading ${esc(batchSel)}…</strong></div>` : ""}
-    <div class="panel stack" style="gap:8px"><h3>QC control chart</h3>
+    </div></details>` : ""}
+    ${ev ? `<details class="panel more-panel" id="chPanel" ${chartCrm || !relNow() ? "open" : ""}><summary><h3 style="display:inline">QC control chart</h3></summary><div class="stack" style="gap:8px;margin-top:10px">
       <div class="row"><select class="inp" id="chCrm" style="width:auto;max-width:100%"><option value="">Choose a reference material…</option>${crmOpts}</select></div>
-      <div id="chBox"></div></div>
-    ${closed.length ? `<div class="panel stack" style="gap:8px"><h3>Closed this month</h3><div class="tbl-wrap"><table class="cardy"><thead><tr><th>Batch</th><th>Type</th><th>Samples</th><th>Status</th><th>Next step</th><th>Created</th><th>By</th></tr></thead><tbody>${closed.map(row).join("")}</tbody></table></div></div>` : ""}
+      <div id="chBox"></div></div></details>` : ""}
+    ${closed.length ? `<details class="panel more-panel"><summary><h3 style="display:inline">Closed this month (${closed.length})</h3></summary><div class="tbl-wrap" style="margin-top:10px"><table class="cardy"><thead><tr><th>Batch</th><th>Type</th><th>Samples</th><th>Status</th><th>Next step</th><th>Created</th><th>By</th></tr></thead><tbody>${closed.map(row).join("")}</tbody></table></div></details>` : ""}
     <div class="small muted" id="bMsg"></div>
   </div>`;
   $("#nbProf", v)?.addEventListener("change", e => { batchNewProf = e.target.value; renderBatches(); });
@@ -1008,15 +1034,15 @@ function batchDetail(b){
   }).join("");
   const anyTwo = ss.some(twoPerson);
   const ready = ss.filter(s => inBatch(s, b.id) && curIdx(s) === targetIdx(s) - 1 && !releaseBlock(s));
-  const releasable = ready.filter(s => selfCheck(s) !== "blocked").length, mineHeld = ready.length - releasable, adminSelf = ready.some(s => selfCheck(s) === "admin");
+  const releasable = ready.filter(s => relSelf(s) !== "blocked").length, mineHeld = ready.length - releasable, adminSelf = ready.some(s => relSelf(s) === "admin");
   const fails = (b.qc?.checks || []).filter(c => c.verdict === "fail"), warns = (b.qc?.checks || []).filter(c => c.verdict === "warn");
   const relDone = releasedFrom(b).length;
   const lab = c => `${esc(c.label)}${c.p ? ` at #${c.p}` : ""}${c.kn ? ` (${esc(c.kn)})` : ""}`;
   const inB = ss.filter(s => inBatch(s, b.id)), atAn = inB.filter(s => readyForResults(s) || released(s)).length;
   const qcOk = !!b.qc && (qcClear(b.qc.status) || !!b.qc.accepted);
-  const st = [true, !!b.qc || (inB.length > 0 && atAn === inB.length), !!b.qc, qcOk, b.status === "done"].map(Boolean), nowAt = st.indexOf(false);
+  const st = [true, !!b.qc || (inB.length > 0 && atAn === inB.length), !!b.qc, relNow() ? !!b.qc : qcOk, b.status === "done"].map(Boolean), nowAt = st.indexOf(false);
   const qcCount = ["crm", "bl", "pb", "pd", "cd"].map(t => [t, (b.pos || []).filter(x => x.t === t).length]).filter(x => x[1]).map(([t, n]) => `${n} ${qcName(p, t, n)}`);
-  const step = (i, title, who, body) => `<li class="bstep ${st[i] ? "done" : i === nowAt ? "now" : "todo"}"><span class="dot">${st[i] ? "✓" : i + 1}</span><div class="stack" style="gap:6px;min-width:0">
+  const step = (i, title, who, body, n = i + 1) => `<li class="bstep ${st[i] ? "done" : i === nowAt ? "now" : "todo"}"><span class="dot">${st[i] ? "✓" : n}</span><div class="stack" style="gap:6px;min-width:0">
       <div class="row" style="gap:8px"><b>${title}</b>${i === nowAt && b.open ? `<span class="pill gold">Next</span>` : ""}<span class="small muted">${who}</span></div>${body || ""}</div></li>`;
   const files = (b.files || []).length ? `<div class="small">File${b.files.length > 1 ? "s" : ""}: ${b.files.map(f => `<button type="button" class="linkish mono" data-rfile="${esc(f.id)}">${esc(f.name)}</button>`).join(", ")}</div>` : "";
   const draftMiss = b.draft ? (b.pos || []).filter(x => x.t === "s" && !goneFrom(b, x)).reduce((n, x) => n + ans.filter(ch => !b.draft.vals?.[x.p]?.[ch.k]).length, 0) : 0;   // QC positions a file leaves empty are not judged
@@ -1039,17 +1065,17 @@ function batchDetail(b){
           <button type="button" class="btn${b.qc.status === "fail" ? " primary" : ""}" data-bdec="rerun">Re-run the batch</button>${relDone ? "" : `<button type="button" class="btn ghost" data-bdec="reopen">Correct an entry</button>`}
           ${b.qc.status === "fail" && isAdmin() ? `<button type="button" class="btn ghost danger" data-bdec="override">Accept the failure as an exception</button>` : ""}</div>
         ${relDone ? `<p class="small muted" style="margin:0">${relDone} sample${relDone === 1 ? " was" : "s were"} already released from this batch, so its entries can't be opened again: correct a released result with an amended certificate.</p>` : ""}</div>` : ""}` : "";
-  const s5 = b.status === "done" ? `<div class="small">All results released.</div>` : `${b.qc ? moves : ""}${b.open && canApprove() && b.qc ? `<div class="stack" style="gap:6px">${adminSelf ? `<label class="f"><span>Some of these results were entered by you: reason for releasing them yourself (recorded on the certificates)</span><input id="bSelfWhy" data-clear></label>` : ""}
+  const s5 = b.status === "done" ? `<div class="small">All results released.</div>` : `${b.qc ? moves : ""}${b.open && canRelease() && b.qc ? `<div class="stack" style="gap:6px">${adminSelf ? `<label class="f"><span>Some of these results were entered by you: reason for releasing them yourself (recorded on the certificates)</span><input id="bSelfWhy" data-clear></label>` : ""}
       <div class="row"><button type="button" class="btn ${releasable ? "primary" : ""}" id="bRelease" ${releasable ? "" : "disabled data-hold"}>Release results for ${releasable} sample${releasable === 1 ? "" : "s"}${qcStepOn() ? " at QA/QC review" : ""}</button><span class="small muted">Each gets its own certificate.${mineHeld ? ` ${mineHeld} with results you entered wait for another supervisor.` : ""}</span></div></div>` : relDone ? `<div class="small">${relDone} released.</div>` : ""}`;
   return `<div class="panel stack" id="batchBox" style="gap:12px">
     <div class="row" style="gap:10px"><h3 style="margin:0" class="mono">${esc(b.id)}</h3><span class="pill ${cls}">${esc(txt)}</span><span class="small muted">${esc(p.name)} · ${one ? (an.n ? `${esc(an.n)} in ${esc(an.u)}` : "") : `checks ${esc(listAnd(ans.map(anShort)))}`}${b.rerunOf ? ` · re-run of <button type="button" class="linkish mono" data-batch="${esc(b.rerunOf)}">${esc(b.rerunOf)}</button>` : ""}</span></div>
     ${canEdit() && b.open && anyTwo ? `<div class="form">${witnessField("bWit")}</div>` : ""}
     <ol class="bsteps">
-      ${step(0, "Samples and QC", `${fmt(b.at)} · ${esc(b.tech || "")}`, `<div class="small">${inB.length} sample${inB.length === 1 ? "" : "s"}${qcCount.length ? ` · ${esc(qcCount.join(" · "))}` : ""}${b.fromFile ? ` · from <button type="button" class="linkish mono" data-rfile="${esc(b.fromFile.id)}">${esc(b.fromFile.name)}</button>` : ""}</div><div class="small muted">${esc(qcRuleText(p, ans))}</div>`)}
+      ${step(0, "Samples and QC", `${fmt(b.at)} · ${esc(b.tech || "")}`, `<div class="small">${inB.length} sample${inB.length === 1 ? "" : "s"}${qcCount.length ? ` · ${esc(qcCount.join(" · "))}` : ""}${b.fromFile ? ` · from <button type="button" class="linkish mono" data-rfile="${esc(b.fromFile.id)}">${esc(b.fromFile.name)}</button>` : ""}</div>${!relNow() || canEval() ? `<div class="small muted">${esc(qcRuleText(p, ans))}</div>` : ""}`)}
       ${step(1, "Preparation and analysis", "Lab technician", s2)}
       ${step(2, "Results", "Lab technician", s3)}
-      ${step(3, "QC check", "Automatic · decisions by a lab supervisor", s4)}
-      ${step(4, "Release", "Lab supervisor who did not enter the results", s5)}
+      ${!relNow() ? step(3, "QC check", "Automatic · decisions by a lab supervisor", s4) : canEval() ? step(3, "QC", "Checked automatically, for evaluation; never holds the release", s4) : ""}
+      ${step(4, "Release", relNow() ? "At once, when the results are complete" : "Lab supervisor who did not enter the results", s5, relNow() && !canEval() ? 4 : 5)}
     </ol>
     ${edit ? "" : `<details class="more" id="bPos" open><summary>Positions and results</summary>${table}</details>`}
     ${(b.log || []).length ? `<details class="more"><summary>Batch history</summary><ul class="hist">${b.log.slice().reverse().map(l => `<li><time>${fmt(l.at)} · ${esc(l.tech || "")}</time><div>${esc(l.note)}</div></li>`).join("")}</ul></details>` : ""}
@@ -1108,10 +1134,10 @@ function watchSectionResults(){
   }, () => {});
 }
 const newResults = () => { const seen = +lsGet(seenKey()) || 0; return secRes.filter(s => (s.certs.at(-1).at || 0) > seen); };
-function resultsBadge(){ const t = $('#tabs [data-tab="results"]'); if (t) t.textContent = newResults().length ? `Results (${newResults().length} new)` : "Results"; }
+function resultsBadge(){ if (session && session.role !== "section") return staffResBadge(); const t = $('#tabs [data-tab="results"]'); if (t) t.textContent = newResults().length ? `Results (${newResults().length} new)` : "Results"; }
 function renderResultsTab(){
   const v = $("#view-results"); if (!v) return;
-  if (session?.role !== "section"){ v.innerHTML = ""; return; }
+  if (session?.role !== "section"){ if (session) renderStaffResults(v); else v.innerHTML = ""; return; }
   const seen = +lsGet(seenKey()) || 0, list = secRes.slice().sort((a, b) => b.certs.at(-1).at - a.certs.at(-1).at).slice(0, 200), fresh = newResults().length;
   v.innerHTML = `<div class="stack"><div class="panel stack" style="gap:8px"><h2>Results for ${esc(session.sec)} · ${esc(sectionName(session.sec))}</h2>
       <p class="small muted" style="margin:0">Certificates of analysis for samples your section submitted, newest first. ${fresh ? `<b>${fresh} new since you last marked them as seen.</b>` : "Nothing new since you last looked."} In the production system this notice also goes to the section by email.</p>

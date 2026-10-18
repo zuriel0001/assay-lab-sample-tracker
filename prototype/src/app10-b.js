@@ -2,7 +2,11 @@
 /* ---------- tabs ---------- */
 function lsGet(k){ try { return localStorage.getItem(k) || ""; } catch { return ""; } }
 function lsSet(k, v){ try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch {} }
-function allowedTabs(){ return session ? ROLE_TABS[session.role] || ["track"] : ["register", "track", "routes", "login"]; }
+function allowedTabs(){
+  if (!session) return ["register", "track", "routes", "login"];
+  const t = ROLE_TABS[session.role] || ["track"];
+  return session.role === "viewer" && relNow() && !canEval() ? t.filter(x => x !== "batches") : t;   // QC lives on Lab batches: evaluators only, among viewers
+}
 /* Where a person lands: the board for lab staff, their results for a section account, the submission form when signed out. */
 const homeTab = () => !session ? "register" : allowedTabs().includes("board") ? "board" : allowedTabs().includes("results") ? "results" : "track";
 /* Tabs that don't fit go in the More menu (layoutNav, app15-j.js). */
@@ -13,7 +17,7 @@ function updateChrome(){
   document.querySelectorAll("#tabs button[data-tab]").forEach(b => { b.hidden = !tabs.includes(b.dataset.tab); b.style.order = !session && b.dataset.tab === "register" ? -1 : ""; });
   $("#who").textContent = session ? `${session.name} · ${ROLES[session.role]}` : "Not signed in";
   $("#signBtn").hidden = !session;
-  watchSectionResults(); resultsBadge(); watchStoreDue(); watchBlinds();
+  watchSectionResults(); resultsBadge(); watchStoreDue(); watchBlinds(); watchReq(); watchStaffResults();
   tabCue();
 }
 /* Prototype only: the browser keeps the username and a fingerprint of the account, so a password or role change signs the person out. Real sign-in belongs on a server. */

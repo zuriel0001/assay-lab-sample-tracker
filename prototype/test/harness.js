@@ -57,6 +57,7 @@ const MOCK = ({ uid, name, canEdit, canWrite = true, names }) => {
 
 async function newUser(browser, opts, viewport = { width: 1280, height: 900 }, scheme = "light", extra = {}){
   const ctx = await browser.newContext({ viewport, colorScheme: scheme, ...extra });
+  await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.fulfill({ status: 200, contentType: "text/css", body: "" }));   // web fonts are not needed for the checks, and a test machine may have no internet
   const page = await ctx.newPage();
   page.on("console", m => { if (m.type() === "error" && !/fonts\.g/.test(m.text())) errors.push(`[${opts.name}] ${m.text()}`); });
   page.on("pageerror", e => errors.push(`[${opts.name}] pageerror ${e.message}`));
@@ -83,7 +84,7 @@ async function newUser(browser, opts, viewport = { width: 1280, height: 900 }, s
 const launch = () => chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
 const T = new Date().toISOString().slice(0, 10).replace(/-/g, "");   // site time zone in the tests is Africa/Accra (UTC)
 /* The tabs a person can open, in menu order, whether they sit in the bar or in the More menu. */
-const visibleTabs = p => p.$$eval("#tabs button[data-tab]", bs => bs.filter(b => !b.hidden).map(b => b.dataset.tab).sort((a, b) => ["board", "track", "submit", "register", "batches", "storage", "results", "ledger", "routes", "stages", "login"].indexOf(a) - ["board", "track", "submit", "register", "batches", "storage", "results", "ledger", "routes", "stages", "login"].indexOf(b)));
+const visibleTabs = p => p.$$eval("#tabs button[data-tab]", bs => bs.filter(b => !b.hidden).map(b => b.dataset.tab).sort((a, b) => ["board", "track", "submit", "register", "results", "batches", "storage", "ledger", "routes", "stages", "login"].indexOf(a) - ["board", "track", "submit", "register", "results", "batches", "storage", "ledger", "routes", "stages", "login"].indexOf(b)));
 async function signIn(page, u){
   if (!(await page.$("#loginForm"))) await tab(page, "login");
   await page.waitForSelector("#loginForm");
@@ -130,7 +131,7 @@ async function fillForm(page, tabName, { section, type = "core", purpose = "exp"
     await page.fill("#rTag", tags);
   }
   await page.fill("#rCollected", collected);   // a refused value stays in the form, so always set it
-  if (recvAt) await page.fill("#rRecvAt", recvAt);
+  if (recvAt){ await page.$eval("#rRecvAtBox", d => { d.open = true; }).catch(() => {}); await page.fill("#rRecvAt", recvAt); }   // v24: "Received now · change"
   if (wit) await page.selectOption("#rWit", { label: wit });
   await page.click("#rSubmit");
 }
@@ -157,6 +158,7 @@ const waitFor = async (fn, ms = 6000) => { const t = Date.now(); while (Date.now
 /* Creates a lab batch on the Lab batches tab with exactly these samples; returns its id. */
 async function createBatch(page, prof, sids){
   await page.click('#tabs button[data-tab="batches"]');
+  await page.$eval("#nbBox", d => { d.open = true; }).catch(() => {});   // v24: "Make a batch by hand" is folded away when results are released at once
   await page.waitForSelector("#nbProf", { timeout: 5000 });
   await page.selectOption("#nbProf", prof); await page.waitForSelector("#nbCreate", { timeout: 5000 });
   await page.$$eval("#nbList input[type=checkbox]", (els, ids) => els.forEach(e => { e.checked = ids.includes(e.value); }), sids);
@@ -209,18 +211,24 @@ async function attachFile(page, scope, name, data){
 /* v22: routes' QA/QC review step is off by default. Suites written around it turn it on first, as a lab manager would in Settings. */
 async function useQcStep(browser, on = true){
   const p = await newUser(browser, { uid: "u_settings", name: "Settings", canEdit: true, names: {} });
-  await signIn(p, "admin"); await tab(p, "stages"); await p.waitForSelector("#cfgQcStep"); await cfgTab(p, "accounts").catch(() => {});
+  await signIn(p, "admin"); await tab(p, "stages"); await p.waitForSelector("#cfgRel"); await cfgTab(p, "accounts").catch(() => {});
+  if (await p.$eval("#cfgRel", e => e.value) !== "signoff"){ await p.selectOption("#cfgRel", "signoff"); }   // v24: the QA/QC review step belongs to the sign-off release
+  await p.waitForSelector("#cfgQcStep");
   await p.selectOption("#cfgQcStep", on ? "1" : "0"); await p.click("#cfgSave");
-  if (!await waitFor(() => store["settings/stages"]?.qcStep === on, 6000)) throw new Error("could not set the QA/QC review step");
+  if (!await waitFor(() => store["settings/stages"]?.qcStep === on && store["settings/stages"]?.relMode === "signoff", 6000)) throw new Error("could not set the QA/QC review step");
   pages.splice(pages.indexOf(p), 1); await p.context().close();
 }
 /* v23: the lab's own routes (AuFx, AuSx, cyanide, carbon loading) are in use and 38 older ones are retired. Suites written around the older
    routes turn them all back on and the new ones off, as a lab manager can under Settings › Workflow routes. Call it before the first page opens. */
-const NEW_ROUTES = ["AUFX-AUSX", "AUFX", "AUSX", "AUFX-AUSX-CN", "AUSX-CN", "CN", "C-LOAD", "ELU-AUSX"];
+const NEW_ROUTES = ["AUFX-AUSX", "AUFX", "AUSX", "AUFX-AUSX-CN", "AUSX-CN", "CN", "C-LOAD", "ELU-AUSX", "BELT"];   // v24: BELT
 const OLD_ROUTES = ["CN-SOL", "BRT", "CIL-T", "GRG", "DIAG", "COMMIN", "ICP", "LECO", "MOIST", "PSD", "PLT-HEAD", "PLT-TAIL", "CCD-SVY", "ELUATE", "CIL-SVY",
   "CARBON", "SOLN", "CONC", "TSF-CHAR", "ENV-W", "ENV-S", "PRI", "REAGENT", "O2-UPT", "COLUMN", "ILR", "C-STRIP", "FLOT", "DENSITY", "SETTLE", "DELET", "MINERAL",
   "CN-SPEC", "DETOX", "ABA", "AR-AU", "CHECK"];
 const OLD_ROUTE_USE = Object.fromEntries([...OLD_ROUTES.map(c => [c, true]), ...NEW_ROUTES.map(c => [c, false])]);
+/* v24: results are released at once by default. The suites written before v24 test the lab supervisor's sign-off, with QC, limits and
+   checks holding the release, as a lab manager can still choose under Settings › Release of results; v24-tests.js sets V24=1 for the default. */
+function useSignoff(){ store["settings/stages"] = { ...(store["settings/stages"] || { schema: 12 }), relMode: "signoff" }; }
+if (!process.env.V24) useSignoff();
 function useOldRoutes(){ store["settings/stages"] = { ...(store["settings/stages"] || { schema: 12 }), routeUse: clone(OLD_ROUTE_USE) }; }
 async function saveAttach(page){ await page.click("#upSave"); await page.waitForSelector("#upBox", { state: "detached", timeout: 15000 }); await page.waitForTimeout(600); }
-module.exports = { useOldRoutes, OLD_ROUTE_USE, NEW_ROUTES, OLD_ROUTES, useQcStep, attachFile, saveAttach, openTyping, tab, cfgTab, batchDoc, waitFor, createBatch, fillBatch, saveBatch, runBatch, toasts, FILE, store, leases, pages, errors, stats, clone, broadcast, newUser, launch, T, visibleTabs, signIn, fillForm, ids, open, doc, ledger, toastText, localStr };
+module.exports = { useSignoff, useOldRoutes, OLD_ROUTE_USE, NEW_ROUTES, OLD_ROUTES, useQcStep, attachFile, saveAttach, openTyping, tab, cfgTab, batchDoc, waitFor, createBatch, fillBatch, saveBatch, runBatch, toasts, FILE, store, leases, pages, errors, stats, clone, broadcast, newUser, launch, T, visibleTabs, signIn, fillForm, ids, open, doc, ledger, toastText, localStr };

@@ -180,8 +180,9 @@ function buildTrack(v, s){
   const stepNo = Math.min(Math.max(curI, 0), tIdx) + 1, pct = curI >= tIdx ? 100 : Math.round(Math.max(curI, 0) / tIdx * 100);
   const prog = st.closed ? "" : `<div class="prog${st.late && !st.post ? " late" : awaiting(s) ? " wait" : ""}"><div class="prog-t"><span>${curI >= tIdx ? "<b>Results released</b>" : `Step <b>${stepNo}</b> of ${tIdx + 1}`}</span><span>${curI < tIdx && cardTime(s).left ? esc(cardTime(s).left) + " on this step" : ""}</span></div><div class="prog-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div></div>`;
 
-  const ret = s.retention || r?.retention || [], qcText = s.qc || r?.qc || "", trig = s.triggers || r?.triggers || [];
-  const qcBlock = qcText || trig.length || ret.length ? `<details class="more" id="qcBox"><summary>Quality control, re-assay triggers and retention</summary><div class="stack" style="gap:8px;margin-top:8px">
+  const showQc = !relNow() || canEval();   // v24: QC rules are for the people who evaluate
+  const ret = s.retention || r?.retention || [], qcText = showQc ? s.qc || r?.qc || "" : "", trig = showQc ? s.triggers || r?.triggers || [] : [];
+  const qcBlock = qcText || trig.length || ret.length ? `<details class="more" id="qcBox"><summary>${showQc ? "Quality control, re-assay triggers and retention" : "Retention and disposal"}</summary><div class="stack" style="gap:8px;margin-top:8px">
       ${qcText ? `<div class="small"><b>QA/QC:</b> ${esc(qcText)}</div>` : ""}
       ${trig.length ? `<div class="small"><b>Re-assay when</b><ul class="tight">${trig.map(t => `<li>${esc(t)}</li>`).join("")}</ul></div>` : ""}
       ${ret.length ? `<div class="small"><b>Retention and disposal</b>${s.relAt ? "" : " (each period starts when results are released)"}<ul class="tight">${ret.map(x => `<li>${esc(retentionLine(x))}</li>`).join("")}</ul></div>` : ""}
@@ -301,8 +302,8 @@ function receiptTimeError(s, at){
 const redoOk = s => { if (!s || awaiting(s) || s.open === false || stage(s, s.stageKey)?.final) return false; const ri = redoIdx(s), ci = curIdx(s), ti = targetIdx(s); return ri >= 0 && ci > ri && (ci <= ti || keptMaterials(s).length > 0); };
 function redoBox(s){
   const p = planOf(s), ri = redoIdx(s), r = routeByCode(s.route);
-  const reasons = [...new Set([...(s.triggers || r?.triggers || []), "CRM outside limits", "Blank above limit", "Duplicate or replicate out of tolerance", "Client query on the result", "Other (see note)"])];
-  return `<details class="more" id="redoBox"><summary>QC failed or a result needs repeating?</summary>
+  const reasons = [...new Set([...(s.rq ? ["Requested on evaluation"] : []), ...(s.triggers || r?.triggers || []), "CRM outside limits", "Blank above limit", "Duplicate or replicate out of tolerance", "Client query on the result", "Other (see note)"])];
+  return `<details class="more" id="redoBox" ${s.rq ? "open" : ""}><summary>Re-assay</summary>
       <div class="stack" style="gap:8px;margin-top:8px">
         <p class="small muted" style="margin:0">Sends the sample back to <b>${esc(p[ri].name)}</b> and moves the expected finish out. The note is saved with it.${curIdx(s) >= targetIdx(s) ? " Results already released stay on record; the repeat is reported as an amendment." : ""}</p>
         <label class="f">Reason<select class="inp" id="redoWhy">${reasons.map(x => `<option>${esc(x)}</option>`).join("")}</select></label>
@@ -314,7 +315,7 @@ function moveForm(s){
   const back = p.map((x, j) => [x, j]).filter(([, j]) => j >= 1 && j < ci);
   const ahead = canApprove() ? p.map((x, j) => [x, j]).filter(([, j]) => j > ci + 1 && j < ti && !blockedBy(s, j)) : [];
   const release = next && next.target;
-  const self = release && canApprove() ? selfCheck(s) : "";
+  const self = release && canRelease() ? relSelf(s) : "";
   const hold = release ? releaseBlock(s) || (self === "blocked" ? SELF_MSG : "") : next && next.phase === "qc" && p[ci].phase !== "qc" ? qcEntryBlock(s) : "";
   return `<div id="moveForm" class="stack" style="gap:10px">
     ${hold ? `<div class="notice warn" id="holdNote"><b>${release ? "Release on hold" : "Before QA/QC review"}:</b> ${esc(hold)}</div>` : ""}
@@ -327,7 +328,7 @@ function moveForm(s){
       ${self === "admin" && !hold ? `<label class="f full"><span>You entered results on this sample: reason for releasing them yourself (printed on the certificate) <span class="req">*</span></span><input id="selfWhy" data-clear></label>` : ""}
     </div>
     <div class="row">
-      ${release ? (canApprove() ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Release results and issue certificate</button>` : `<span class="small muted">A lab supervisor releases the results${qcStepOn() ? " after the QA/QC review" : ""}.</span>`)
+      ${release ? (canRelease() ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Release results and issue certificate</button>` : `<span class="small muted">A lab supervisor releases the results${qcStepOn() ? " after the QA/QC review" : ""}.</span>`)
         : next ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Move to: ${esc(next.name)}</button>` : ""}
       <button type="button" class="btn" data-step="note">Save note only</button>
     </div>
@@ -378,7 +379,7 @@ function materialsPanel(s){
     }
     return `<tr><td><b>${esc(m.item)}</b><div class="small muted">Then: ${esc(lcFirst(m.then))}</div></td>
       <td style="white-space:nowrap">${m.days ? fmtDate(m.dueAt) : "At release"}${od ? `<div class="small" style="color:var(--bad);font-weight:600">${dur(now - m.dueAt)} past</div>` : ""}</td>
-      <td>${state}${ctl}</td></tr>`;
+      <td>${state}</td></tr>${ctl ? `<tr class="mat-ctl"><td colspan="3" style="border-top:0;padding-top:0">${ctl}</td></tr>` : ""}`;
   }).join("");
   return `<div class="panel stack" id="matBox"><h3>Retained material</h3>
     <p class="small muted" style="margin:0">Each material is kept for its own period from the release of results, then returned or disposed. Every return, disposal or send-out is written to the ledger.</p>
@@ -416,6 +417,7 @@ function bindTrack(v, s){
   $("#overBtn", v)?.addEventListener("click", doOverRange);
   $("#amBtn", v)?.addEventListener("click", doAmend);
   $("#ackBtn", v)?.addEventListener("click", doAckAlerts);
+  $("#evBtn", v)?.addEventListener("click", doEvaluate);
   $("#amApprove", v)?.addEventListener("click", doApproveAmend);
   $("#amDrop", v)?.addEventListener("click", doDropAmend);
   v.querySelectorAll("[data-cert]").forEach(b => b.addEventListener("click", () => showCert(b.dataset.cert)));
@@ -446,7 +448,7 @@ async function act(fn, opts = {}){
   try {
     const s = await leased(docRef); if (!s) return false;
     if (!opts.anyStage && s.stageKey !== seen.stageKey){ toast(`${s.id} was just moved to ${stage(s, s.stageKey)?.name || s.stageKey} by ${lastTech(s)}. Check it and try again.`); return false; }
-    const res = fn(s); if (!res) return false;
+    const res = withRelease(s, fn(s)); if (!res) return false;
     const { upd, moves = [], msg } = res;
     upd.updatedAt = Date.now();
     if (moves.length){ upd.ledgerPending = [...(s.ledgerPending || []), ...moves]; upd.lp = true; }
@@ -513,9 +515,9 @@ async function doStep(kind){
   let key = s0.stageKey, wit = "";
   if (kind === "next"){
     const nx = p[ci + 1]; if (!nx) return;
-    if (nx.target && !canApprove()){ toast("Only a lab supervisor can release results."); return; }
-    if (nx.target && selfCheck(s0) === "blocked"){ toast(SELF_MSG); return; }
-    if (nx.target && selfCheck(s0) === "admin" && !val("#selfWhy")){ toast("You entered results on this sample: give the reason for releasing them yourself."); $("#selfWhy")?.focus(); return; }
+    if (nx.target && !canRelease()){ toast("Only a lab supervisor can release results."); return; }
+    if (nx.target && relSelf(s0) === "blocked"){ toast(SELF_MSG); return; }
+    if (nx.target && relSelf(s0) === "admin" && !val("#selfWhy")){ toast("You entered results on this sample: give the reason for releasing them yourself."); $("#selfWhy")?.focus(); return; }
     key = nx.key;
     if ((wit = needWitness(s0, "#mvWit")) === null) return;
   } else {
@@ -526,9 +528,9 @@ async function doStep(kind){
     const at = nowAfter(s), to = stage(s, key), h = s.history || [];
     if (key !== s.stageKey && to?.phase === "qc" && stage(s, s.stageKey)?.phase !== "qc"){ const why = qcEntryBlock(s); if (why){ toast(why); return null; } }
     if (to?.target){
-      if (!canApprove()) return null;
+      if (!canRelease()) return null;
       const why = releaseBlock(s); if (why){ toast(why); return null; }
-      const self = selfCheck(s), selfWhy = val("#selfWhy");
+      const self = relSelf(s), selfWhy = val("#selfWhy");
       if (self === "blocked"){ toast(SELF_MSG); return null; }
       if (self === "admin" && !selfWhy){ toast("You entered results on this sample: give the reason for releasing them yourself."); return null; }
       const upd = releaseUpdate(s, at, note, wit, ref, self === "admin" ? selfWhy : "");
@@ -569,7 +571,7 @@ async function doRedo(){
     if (!redoOk(s)) return null;
     const p = planOf(s), back = p[redoIdx(s)], at = nowAfter(s), kept = keptMaterials(s), fromStore = curIdx(s) > targetIdx(s) || stage(s, s.stageKey)?.phase === "store";
     const out = fromStore ? `. Taken from storage${kept.some(m => m.loc) ? ` (${kept.filter(m => m.loc).map(m => `${m.item}: ${m.loc}`).join("; ")})` : ""}` : "";
-    return { upd: { stageKey: back.key, stageAt: at, reassays: (s.reassays || 0) + 1, lastRedo: why, ...redoReset(s, at),
+    return { upd: { stageKey: back.key, stageAt: at, reassays: (s.reassays || 0) + 1, lastRedo: why, ...redoReset(s, at), ...(s.rq ? { rq: null } : {}),
       history: [...(s.history || []), { key: back.key, sn: back.name, at, by: session.u, tech: session.name, ref, redo: true, ...(wit ? { wit } : {}), note: `Re-assay: ${why}${note ? ". " + note : ""}${out}` }] },
       msg: `${s.id} sent back to ${back.name}` };
   });

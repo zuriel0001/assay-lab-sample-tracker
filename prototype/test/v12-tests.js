@@ -42,7 +42,7 @@ function certCode(sid, c){
 (async () => {
   // Settings saved by version 11: two reference material rows (one edited), no limits, no section accounts.
   // v22: qcStep added, since this suite is written around the QA/QC review step.
-  store["settings/stages"] = { qcStep: true, schema: 11, tz: "Africa/Accra", resultsPublic: false, routes: [], removed: [],
+  store["settings/stages"] = { qcStep: true, relMode: "signoff", schema: 11, tz: "Africa/Accra", resultsPublic: false, routes: [], removed: [],
     sections: [{ code: "MET", name: "Metallurgy" }, { code: "EXP", name: "Exploration" }, { code: "GEO", name: "Geology" }, { code: "PLT", name: "Process plant" }],
     users: [{ u: "admin", name: "Lab Manager", role: "admin", pw: "admin123" }, { u: "super", name: "Lab Supervisor", role: "super", pw: "super123" }, { u: "tech1", name: "Lab Technician A", role: "tech", pw: "tech123" }, { u: "tech2", name: "Lab Technician B", role: "tech", pw: "tech123" }, { u: "viewer", name: "Site Viewer", role: "viewer", pw: "view123" }],
     crms: [{ id: "STD-AU-LOW", name: "Low-grade gold ore", an: "Au", u: "g/t", val: 0.52, sd: 0.025, use: "FA, GC, PT, SF" }, { id: "CN-WAD-10", name: "WAD cyanide check standard", an: "wad", u: "mg/L", val: 10, sd: 0, use: "CY" }] };

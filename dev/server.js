@@ -10,9 +10,9 @@ const APP = path.join(__dirname, "..", "app");
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/json", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon" };
 /* The page's example accounts. Locally they sign in by username; on Azure they need a Microsoft email on Settings. */
 const DEV_USERS = [
-  { u: "admin", name: "Lab Manager", role: "admin" }, { u: "super", name: "Lab Supervisor", role: "super" },
-  { u: "tech1", name: "Lab Technician A", role: "tech" }, { u: "tech2", name: "Lab Technician B", role: "tech" },
-  { u: "viewer", name: "Site Viewer", role: "viewer" },
+  { u: "admin", name: "Lab Manager", role: "admin", dept: "Assay Lab" }, { u: "super", name: "Lab Supervisor", role: "super", dept: "Assay Lab" },
+  { u: "tech1", name: "Lab Technician A", role: "tech", dept: "Assay Lab" }, { u: "tech2", name: "Lab Technician B", role: "tech", dept: "Assay Lab" },
+  { u: "viewer", name: "Site Viewer", role: "viewer" }, { u: "met", name: "Plant Metallurgist", role: "viewer", dept: "Metallurgy" },
   { u: "exp", name: "Exploration (results)", role: "section", sec: "EXP" }, { u: "plant", name: "Process plant (results)", role: "section", sec: "PLT" }
 ];
 const cookies = req => Object.fromEntries((req.headers.cookie || "").split(/;\s*/).filter(Boolean).map(c => { const i = c.indexOf("="); return [c.slice(0, i), decodeURIComponent(c.slice(i + 1))]; }));

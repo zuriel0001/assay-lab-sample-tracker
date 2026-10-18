@@ -15,7 +15,8 @@ function renderBoard(){
   const noBatch = inProc.filter(s => { const labs = labsOf(s); return groupsOf(s).some(g => !labs[g.p]); });
   const relReady = qcStepOn() ? [] : inProc.filter(readyRel);
   const qcAct = inProc.filter(s => Object.values(labsOf(s)).some(l => l.q === "fail" || l.q === "warn"));
-  const alerts = isStaff() ? list.filter(s => (s.results || s.amend) && openAlerts(s).length) : [], trends = isStaff() ? crmTrendFlags() : [];
+  // Release at once: limits and QC are for the people who evaluate (Results tab); the lab's board shows only the lab's work.
+  const alerts = isStaff() && !relNow() ? list.filter(s => (s.results || s.amend) && openAlerts(s).length) : [], trends = isStaff() && (!relNow() || canEval()) ? crmTrendFlags() : [];
   const relN = [...releasedToday.values()].filter(pass).length;
   const unstored = list.filter(s => s.stageKey === "released" && stageDue(s) && Date.now() > stageDue(s)), notStored = unstored.length;
   const dueNow = Date.now(), dueL = [...list.filter(s => overdueMaterials(s).length).map(s => ({ sec: s.section, route: s.route || "", n: overdueMaterials(s).length })),
@@ -30,9 +31,10 @@ function renderBoard(){
     { k: "late", n: late.length, l: "Running late", tone: "bad", pick: late },
     { k: "redo", n: redo.length, l: "Being re-assayed", tone: "warn", pick: redo },
     ...(canEdit() ? [batchesRequired() ? { k: "nobatch", n: noBatch.length, l: "Waiting for a lab batch", tone: "", pick: noBatch } : { k: "relready", n: relReady.length, l: "Ready for release", tone: relReady.length ? "info" : "", pick: relReady },
-      { k: "qc", n: qcAct.length, l: "In a batch with QC to act on", tone: "warn", pick: qcAct }] : []),
-    ...(isStaff() ? [{ k: "alerts", n: alerts.length, l: "Results past an action or permit limit, not yet recorded", tone: "bad", pick: alerts },
-      { k: "trends", n: trends.length, l: "Reference material trends", tone: "warn", go: "batches" }] : []),
+      ...(!relNow() ? [{ k: "qc", n: qcAct.length, l: "In a batch with QC to act on", tone: "warn", pick: qcAct }] : [])] : []),
+    ...(isStaff() && !relNow() ? [{ k: "alerts", n: alerts.length, l: "Results past an action or permit limit, not yet recorded", tone: "bad", pick: alerts }] : []),
+    ...(isStaff() && (!relNow() || canEval()) ? [{ k: "trends", n: trends.length, l: "Reference material trends", tone: "warn", go: "batches" }] : []),
+    ...(isStaff() ? [{ k: "req", n: reqs.size, l: "Re-assay requested", tone: "bad" }] : []),
     { k: "rel", n: relN, l: "Results released today", tone: "ok" },
     { k: "unstored", n: notStored, l: "Released, not yet put in storage", tone: "warn", pick: unstored },
     { k: "retention", n: dueM, l: `Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}`, tone: "warn", go: allowedTabs().includes("storage") ? "storage" : "" },
@@ -44,7 +46,7 @@ function renderBoard(){
   const shown = cur ? new Set(cur.pick) : null;
   const sumHtml = sums.filter(x => !x.hide).map(x => {
     const act = !x.n ? "" : x.pick ? `data-bpick="${x.k}" aria-pressed="${boardPick === x.k}"` : x.go ? `data-goto="${x.go}"` : "", inner = `<span class="n">${x.n}</span><span class="l">${esc(x.l)}</span>`;
-    return act ? `<button type="button" class="stat tile ${x.tone}" ${act}>${inner}</button>` : `<div class="stat tile${x.n ? " " + x.tone : ""}">${inner}</div>`;
+    return act ? `<button type="button" class="stat tile ${x.tone}" ${act}>${inner}</button>` : `<div class="stat tile${x.n ? " " + x.tone : " zero"}">${inner}</div>`;
   }).join("");
   const filters = `<div class="bd-top bd-tools">
     <select class="inp" id="bdSec" style="width:auto;max-width:100%" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${boardSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
@@ -62,7 +64,7 @@ function renderBoard(){
   };
   if (!list.length && (boardSec || boardRoute)){ v.innerHTML = `<div class="stack">${wallHead}${filters}<div class="panel empty"><strong>No samples in the lab match these filters</strong></div></div>`; bind(); return; }
   if (!list.length){
-    v.innerHTML = `${wallHead}<div class="panel empty"><strong>No samples in the lab</strong>
+    v.innerHTML = `${wallHead}${boardReqNote()}<div class="panel empty"><strong>No samples in the lab</strong>
       <div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-goto="submit">Submit a sample</button>${allowedTabs().includes("storage") ? `<button class="btn" data-goto="storage">Storage</button>` : ""}</div></div>`;
     bind(); return;
   }
@@ -94,6 +96,7 @@ function renderBoard(){
     ${wallHead}
     ${filters}
     <div class="stats tiles">${sumHtml}</div>
+    ${boardReqNote()}
     ${cur ? `<div class="pick-note"><span>Showing <b>${esc(cur.l.toLowerCase())}</b>: ${cur.n}</span><button type="button" class="btn ghost small" data-bpick="${cur.k}">Show all</button></div>` : ""}
     ${alerts.length ? `<div class="notice bad" id="bdAlerts"><b>Past a limit:</b> ${alerts.slice(0, 12).map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button> <span class="small">${esc(openAlerts(s).map(h => alertLine(s, h)).join("; "))}</span>`).join("<br>")}${alerts.length > 12 ? `<br>+${alerts.length - 12} more` : ""}<div class="small">Open each sample, act as the limit says and record what was done and who was told. In the production system these also go out by email or SMS.</div></div>` : ""}
     ${trends.length ? `<div class="notice warn" id="bdTrends"><b>Reference material trends:</b> ${esc(trends.map(t => `${t.crm}${t.k ? " " + t.k : ""}: ${t.msg}`).join("; "))}. See the control chart on the <button type="button" class="linkish" data-goto="batches">Lab batches</button> tab.</div>` : ""}
@@ -112,6 +115,16 @@ function typeOptions(){
   const list = TYPES.filter(t => typeOn(t.key)), groups = [...new Set(list.map(t => t.group))];
   return groups.map(g => `<optgroup label="${esc(g)}">${list.filter(t => t.group === g).map(t => `<option value="${esc(t.key)}">${esc(t.name)}</option>`).join("")}</optgroup>`).join("");
 }
+/* What the analysis is for, grouped (v24). */
+function purposeOptions(){
+  const groups = [...new Set(PURPOSES.map(p => p.g || ""))];
+  return groups.map(g => { const o = PURPOSES.filter(p => (p.g || "") === g).map(p => `<option value="${esc(p.key)}">${esc(p.name)}</option>`).join(""); return g ? `<optgroup label="${esc(g)}">${o}</optgroup>` : o; }).join("");
+}
+/* The section a purpose usually comes from, offered until the submitter picks one. */
+const PURPOSE_SEC = { plant: "PLT", recon: "PLT", bullion: "GR", exp: "EXP", gc: "GC", met: "MET", env: "ENV", hse: "HSE", qc: "QC", other: "OTH" };
+/* Sample type groups get a colour of their own on the form, the board and the record. */
+const TYPE_TONE = { "Ore (exploration, geology, mine)": "ore", "Plant & gold room": "plant", "Other plant & gold room samples": "plant", "Metallurgical testwork": "met", "Environment": "env", "Quality control": "qc" };
+const typeTone = k => TYPE_TONE[typeOf(k)?.group] || "other";
 function renderDetails(typeKey){
   const box = $("#rDetails"); if (!box) return;
   const was = {}; box.querySelectorAll("[id^='rD_']").forEach(el => { if (el.value) was[el.id] = el.value; });
@@ -147,28 +160,31 @@ function renderSampleForm(mode){
   // Signed out: Register at lab (a walk-in, received later by a technician). Signed in: Submit a sample; lab staff can receive it on the spot.
   const now = Date.now(), walk = mode === "register", staff = !walk && canEdit(), req = ` <span class="req">*</span>`;
   const techs = (cfg.users || []).filter(x => ["tech", "super", "admin"].includes(x.role)).map(x => x.name).filter(Boolean);
-  v.innerHTML = `<form class="panel stack${staff ? " recv-now" : ""}" id="regForm" data-mode="${mode}" autocomplete="off" novalidate>
-    <div class="form-h"><h2>${walk ? "Register at lab" : "Submit a sample"}</h2>${walk ? `<span class="pill info">Waits for receipt by a lab technician</span>` : ""}
+  v.innerHTML = `<form class="panel stack sub-form${staff ? " recv-now" : ""}" id="regForm" data-mode="${mode}" autocomplete="off" novalidate>
+    <div class="form-h sub-head"><h2>${walk ? "Register at lab" : "Submit a sample"}</h2>${kindPicker()}${walk ? `<span class="pill info">Waits for receipt by a lab technician</span>` : ""}
       ${staff ? `<label class="recv-toggle"><input type="checkbox" id="rRecvNow" checked> Received now at the lab, by me</label>` : ""}</div>
-    ${kindPicker()}
-    <div class="form">
+    <div class="sub-step s1"><div class="sub-t"><span class="num">1</span>Sample<span class="typechip" id="rTypeChip"></span></div><div class="form">
       <label class="f"><span>Sample type <span class="req">*</span></span><select id="rType" required><option value="">Choose…</option>${typeOptions()}</select></label>
       <label class="f"><span>Analysis <span class="req">*</span></span><select id="rTest" required>${testOptions("")}</select></label>
-      <label class="f"><span>Purpose <span class="req">*</span></span><select id="rPurpose" required><option value="">Choose…</option>${PURPOSES.map(p => `<option value="${esc(p.key)}">${esc(p.name)}</option>`).join("")}</select></label>
-      <label class="f"><span>Submitting section <span class="req">*</span></span><select id="rSection" required><option value="">Choose…</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select></label>
-      <label class="f full" id="rWhyBox" hidden><span>Why it is being tested <span class="req">*</span></span><input id="rWhy" maxlength="200" placeholder="e.g. customer check sample, survey of old stockpile"></label>
-      ${staff ? `<label class="f full" data-lab><span>Workflow route (only routes that perform the test)</span><select id="rRouteSel"><option value="">Automatic</option></select></label>` : ""}
+      ${staff ? `<label class="f full" data-lab><span>Workflow route</span><select id="rRouteSel"><option value="">Automatic</option></select></label>` : ""}
       <div class="full" id="rRoute"></div>
-      <label class="f"><span>Submitted by (name) <span class="req">*</span></span><input id="rSubmitter" required placeholder="Person who sent the sample"></label>
-      <label class="f"><span>Submitter's badge number</span><input id="rSubBadge" maxlength="20" autocomplete="off"></label>
+    </div></div>
+    <div class="sub-step s2"><div class="sub-t"><span class="num">2</span>What it is for</div><div class="form">
+      <label class="f"><span>Purpose <span class="req">*</span></span><select id="rPurpose" required><option value="">Choose…</option>${purposeOptions()}</select></label>
+      <label class="f"><span>Section <span class="req">*</span></span><select id="rSection" required><option value="">Choose…</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select></label>
+      <label class="f full" id="rWhyBox" hidden><span>Why it is being tested <span class="req">*</span></span><input id="rWhy" maxlength="200" placeholder="e.g. customer check sample, survey of old stockpile"></label>
+    </div></div>
+    <div class="sub-step s3"><div class="sub-t"><span class="num">3</span>${walk ? "Who brought it" : "Who sent it"}</div><div class="form">
+      <div class="f pair"><label class="f"><span>Submitted by <span class="req">*</span></span><input id="rSubmitter" required placeholder="Name"></label><label class="f badge-f"><span>Badge no.</span><input id="rSubBadge" maxlength="20" autocomplete="off"></label></div>
       <label class="f" data-single>Site sample code<input id="rTag" placeholder="e.g. MILL-A-001" autocomplete="off" spellcheck="false"></label>
       <label class="f" data-hand><span>Handed to (lab technician)${walk ? req : ""}</span><input id="rHandTo" maxlength="60" list="rTechList" autocomplete="off"></label>
-      <label class="f" data-hand><span>Technician's badge number${walk ? req : ""}</span><input id="rHandBadge" maxlength="20" autocomplete="off"></label>
+      <label class="f" data-hand><span>Technician's badge no.${walk ? req : ""}</span><input id="rHandBadge" maxlength="20" autocomplete="off"></label>
       <datalist id="rTechList">${techs.map(n => `<option value="${esc(n)}">`).join("")}</datalist>
-      ${staff ? `<label class="f" data-lab><span>Date &amp; time received <span class="req">*</span></span><input id="rRecvAt" type="datetime-local" required value="${localInput(now)}"></label>
+      ${staff ? `<details class="f recv-at" id="rRecvAtBox" data-lab><summary>Received <b id="rRecvAtTxt">now</b> · change</summary><input id="rRecvAt" type="datetime-local" required value="${localInput(now)}" aria-label="Date and time received"></details>
       <div id="rWitBox" data-lab hidden>${witnessField("rWit")}</div>` : ""}
       ${batchBlock()}
-      <details class="form-more" id="rMore"><summary>More details</summary><div class="form">
+    </div></div>
+      <details class="form-more" id="rMore"><summary>More details <span class="muted small">site reference, collection time, priority, hazards, notes</span></summary><div class="form">
         <div class="full" id="rDetails"></div>
         <label class="f">Site reference<input id="rSiteRef" placeholder="e.g. GC-PIT2-B340-017"></label>
         <label class="f">Source location<input id="rSource" placeholder="Pit / bench / hole / sampling point"></label>
@@ -181,14 +197,16 @@ function renderSampleForm(mode){
         <fieldset class="full"><div class="legend">Add-on analyses</div><div class="checks">${ADDONS.map((a, i) => `<label><input type="checkbox" id="rAn${i}" value="${a}"> ${a}</label>`).join("")}</div></fieldset>
         <label class="f full">Notes<textarea id="rNotes"></textarea></label>
       </div></details>
-    </div>
     <div class="row sticky-bar bar"><span class="small muted" id="rMsg"></span><button class="btn primary big" type="submit" id="rSubmit">${staff ? "Register and issue ID" : walk ? "Register and get sample ID" : "Submit and get sample ID"}</button></div>
     <div id="rResult"></div>
   </form>`;
-  const ty = $("#rType", v), pu = $("#rPurpose", v), te = $("#rTest", v), hz = $("#rHaz", v);
+  const ty = $("#rType", v), pu = $("#rPurpose", v), te = $("#rTest", v), hz = $("#rHaz", v), sc = $("#rSection", v);
+  const secFor = () => { const c = PURPOSE_SEC[purpBase(pu.value)]; if (c && !sc.dataset.touched && !sc.value && (cfg.sections || []).some(x => x.code === c)){ sc.value = c; refreshFormRoute(); } };
+  const chip = () => { const t = typeOf(ty.value), c = $("#rTypeChip", v); if (c){ c.className = "typechip" + (t ? " t-" + typeTone(t.key) : ""); c.textContent = t ? t.group.replace(/ \(.*\)$/, "") : ""; } };
   ty.onchange = () => {
     const pur = typeOf(ty.value)?.pur;   // the usual purpose for the type, until the submitter picks one
-    if (pur && !pu.dataset.touched){ pu.value = pur; $("#rWhyBox", v).hidden = pu.value !== "other"; }
+    if (pur && !pu.dataset.touched){ pu.value = pur; $("#rWhyBox", v).hidden = pu.value !== "other"; secFor(); }
+    chip();
     const keep = te.dataset.touched ? te.value : "";
     te.innerHTML = testOptions(ty.value);
     te.value = keep || defaultTest(ty.value, pu.value);
@@ -196,11 +214,13 @@ function renderSampleForm(mode){
     if (!hz.dataset.touched) HAZARDS.forEach(h => { $("#rHz_" + h.k, v).checked = (typeOf(ty.value)?.haz || []).includes(h.k); });
     renderDetails(ty.value); refreshFormRoute();
   };
-  pu.onchange = () => { pu.dataset.touched = "1"; $("#rWhyBox", v).hidden = pu.value !== "other"; if (!te.dataset.touched && ty.value) te.value = defaultTest(ty.value, pu.value); refreshFormRoute(); };
+  pu.onchange = () => { pu.dataset.touched = "1"; $("#rWhyBox", v).hidden = pu.value !== "other"; secFor(); if (!te.dataset.touched && ty.value) te.value = defaultTest(ty.value, pu.value); refreshFormRoute(); };
   te.onchange = () => { te.dataset.touched = "1"; refreshFormRoute(); };
   hz.addEventListener("change", () => hz.dataset.touched = "1");
   $("#rRouteSel", v)?.addEventListener("change", refreshFormRoute);
-  $("#rSection", v).addEventListener("change", refreshFormRoute);
+  sc.addEventListener("change", () => { sc.dataset.touched = "1"; refreshFormRoute(); });
+  const ra = $("#rRecvAt", v);
+  if (ra) ra.addEventListener("change", () => { const t = Date.parse(ra.value), txt = $("#rRecvAtTxt", v); if (txt) txt.textContent = t && Math.abs(t - Date.now()) > 5 * 60000 ? fmt(t) : "now"; });
   if (session && !walk && !staff){ $("#rSubmitter", v).value = session.name || ""; if (session.role === "section" && session.sec) $("#rSection", v).value = session.sec; }
   const rn = $("#rRecvNow", v);
   if (rn) rn.onchange = () => {
@@ -397,22 +417,26 @@ function renderLedger(){
   if (f.q){ const q = f.q.toLowerCase(); rows = rows.filter(r => [r.sid, r.type, r.sub, r.tag, r.tech, r.wit, r.ref, r.note, r.item, r.route].join(" ").toLowerCase().includes(q)); }
   const body = rows.map(r => `<tr class="${r.reversed ? "reversed" : ""}">
     <td style="white-space:nowrap">${fmtFull(r.at)}</td>
-    <td class="${r.dir === "in" ? "dir-in" : r.dir === "rev" ? "dir-rev" : "dir-out"}">${r.dir === "in" ? "IN" : r.dir === "rev" ? "REV" : "OUT"}${r.reversed ? `<div><span class="pill warn">Reversed</span></div>` : ""}</td>
+    <td><span class="dirp ${r.dir === "in" ? "dir-in" : r.dir === "rev" ? "dir-rev" : "dir-out"}">${r.dir === "in" ? "IN" : r.dir === "rev" ? "REV" : "OUT"}</span>${r.reversed ? `<div><span class="pill warn">Reversed</span></div>` : ""}</td>
     <td><button class="linkish" data-open="${esc(r.sid)}">${esc(r.sid)}</button>${!shownQa.has(r.sid) && shownQa.add(r.sid) ? qaOfNote(r.sid) + qaPickBox(r.sid) : ""}${!shownRedo.has(r.sid) && redoFor(r.sid) && shownRedo.add(r.sid) ? `<div><button type="button" class="btn ghost small reassay-btn" data-reassay="${esc(r.sid)}">Re-assay</button></div>` : ""}</td>
     <td class="mono">${esc(r.tag) || "—"}</td>
-    <td>${esc(r.type)}${r.route ? `<div class="small mono" style="color:var(--accent)">${esc(r.route)}</div>` : ""}</td>
+    <td>${esc(r.type)}<div class="small mono"><span style="color:var(--accent)">${esc(r.route || "")}</span>${r.sec ? ` <span class="muted">${esc(r.sec)}</span>` : ""}</div></td>
     <td>${esc(r.item || "")}${r.qty ? `<div class="small muted">${esc(r.qty)}</div>` : ""}</td>
-    <td class="mono">${esc(r.sec || "")}</td>
-    <td>${r.dir === "in" ? esc(r.from || "Mine site") : r.dir === "rev" ? "Reversal of an earlier movement" : esc(DISPO[r.kind] || r.kind || "")}</td>
-    <td>${esc(r.ref) || "—"}</td>
-    <td>${r.dir === "in" ? esc(r.sub) : "—"}</td>
+    <td>${r.dir === "in" ? esc(r.from || "Mine site") : r.dir === "rev" ? "Reversal of an earlier movement" : esc(DISPO[r.kind] || r.kind || "")}${r.dir === "in" && r.sub ? `<div class="small muted">by ${esc(r.sub)}</div>` : ""}</td>
     <td>${esc(r.tech) || who(r.by)}${r.wit ? `<div class="small muted">Witness: ${esc(r.wit)}</div>` : ""}</td>
-    <td>${esc(r.note) || ""}</td></tr>`).join("");
+    <td>${r.ref ? `<span class="mono small">${esc(r.ref)}</span>${r.note ? "<br>" : ""}` : ""}${esc(r.note) || ""}</td></tr>`).join("");
   const act = rows.filter(r => !r.reversed && r.dir !== "rev"), inN = act.filter(r => r.dir === "in").length, outN = act.filter(r => r.dir === "out").length, revN = rows.filter(r => r.dir === "rev").length;
   const rc = recon && recon.m === f.month ? recon : null;
   keepUiSimple(v, () => {
     v.innerHTML = `<div class="stack">
       ${qaSlot()}
+      <div class="panel row page-head"><h2 style="margin:0">In / out ledger</h2><span class="small muted">Every sample received and every material that left the lab</span></div>
+      <div class="stats cstats">
+        <button type="button" class="stat c-green${inN ? "" : " zero"}" data-lgdir="in" aria-pressed="${f.dir === "in"}"><div class="n">${inN}</div><div class="l">Received in ${esc(f.month)}</div></button>
+        <button type="button" class="stat c-orange${outN ? "" : " zero"}" data-lgdir="out" aria-pressed="${f.dir === "out"}"><div class="n">${outN}</div><div class="l">Sent out (returned, disposed…)</div></button>
+        ${rc ? `<div class="stat c-blue"><div class="n">${rc.closing}</div><div class="l">On hand at month end</div></div>` : ""}
+        ${revN ? `<div class="stat c-grey"><div class="n">${revN}</div><div class="l">Reversals</div></div>` : ""}
+      </div>
       <div class="row">
         <input class="inp" id="lgMonth" type="month" style="width:auto" value="${esc(f.month)}" aria-label="Month">
         <select class="inp" id="lgDir" style="width:auto"><option value="all">In and out</option><option value="in">Inbound only</option><option value="out">Outbound only</option></select>
@@ -422,12 +446,13 @@ function renderLedger(){
       </div>
       ${rc ? `<div class="recon"><b>Month check:</b> ${rc.opening} on hand at the start + ${rc.ins} received − ${rc.outs} fully out = <b>${rc.closing}</b> on hand at the end${rc.now != null ? (rc.now === rc.closing ? ` <span class="pill ok">matches the ${rc.now} on hand now</span>` : ` <span class="pill bad">${rc.now} on hand now: check for missing movements</span>`) : ""}.</div>` : ""}
       <p class="small muted" style="margin:0">${inN} inbound and ${outN} outbound movement${outN === 1 ? "" : "s"}${revN ? `, ${revN} reversal${revN === 1 ? "" : "s"}` : ""} in ${esc(f.month)}. A sample is written in once, when the lab receives it. Each retained material is written out when it is returned, disposed, sent to another lab or archived. Mistakes are reversed with a visible entry, never deleted. Times are ${esc(TZ() || "this device's")} time.</p>
-      ${!ledgerReady && db ? `<div class="panel empty"><strong>Loading ${esc(f.month)}…</strong></div>` : rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>Date &amp; time</th><th>Dir.</th><th>Sample ID</th><th>Site code</th><th>Type</th><th>Material</th><th>Section</th><th>From / to</th><th>Reference</th><th>Submitted by</th><th>Lab staff</th><th>Note</th></tr></thead><tbody>${body}</tbody></table></div>`
+      ${!ledgerReady && db ? `<div class="panel empty"><strong>Loading ${esc(f.month)}…</strong></div>` : rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>Date &amp; time</th><th>Dir.</th><th>Sample ID</th><th>Site code</th><th>Type</th><th>Material</th><th>From / to</th><th>Lab</th><th>Reference · note</th></tr></thead><tbody>${body}</tbody></table></div>`
         : `<div class="panel empty"><strong>No ledger entries${f.dir !== "all" || f.q || f.sec ? " match these filters" : ` in ${esc(f.month)}`}</strong>Entries appear when samples are received at the lab or leave it.</div>`}
     </div>`;
   });
   $("#lgDir").value = f.dir;
   $("#lgDir").onchange = e => { f.dir = e.target.value; renderLedger(); };
+  v.querySelectorAll("[data-lgdir]").forEach(b => b.onclick = () => { f.dir = f.dir === b.dataset.lgdir ? "all" : b.dataset.lgdir; renderLedger(); });
   $("#lgSec").onchange = e => { f.sec = e.target.value; renderLedger(); };
   $("#lgMonth").onchange = e => { if (/^\d{4}-\d{2}$/.test(e.target.value)){ f.month = e.target.value; ledgerWatch(); renderLedger(); } };
   $("#lgQ").oninput = e => { f.q = e.target.value; clearTimeout(renderLedger.t); renderLedger.t = setTimeout(renderLedger, 250); };

@@ -133,8 +133,8 @@ async function typeSearch(page, q){ await page.click("#lookupInput"); await page
   const lg = await M.$eval("#view-ledger table.cardy", t => ({ thead: getComputedStyle(t.querySelector("thead")).display, tr: getComputedStyle(t.querySelector("tbody tr")).display,
     labels: [...t.querySelector("tbody tr").children].map(td => td.dataset.label || ""), nil: t.querySelectorAll("td.nil").length, wide: document.documentElement.scrollWidth - innerWidth,
     idw: (() => { const b = t.querySelector("tbody tr button.linkish[data-open]"); return b ? b.getClientRects().length : -1; })() }));
-  check(lg.thead === "none" && lg.tr === "block" && lg.labels.includes("Sample ID") && lg.labels.includes("Lab staff"), "the ledger's rows are cards with each column named: " + lg.labels.join("|"));
-  check(lg.nil > 0 && lg.wide <= 0, `empty cells are left out (${lg.nil}) and the page does not scroll sideways (${lg.wide})`);
+  check(lg.thead === "none" && lg.tr === "block" && lg.labels.includes("Sample ID") && lg.labels.includes("Lab"), "the ledger's rows are cards with each column named: " + lg.labels.join("|"));
+  check(lg.wide <= 0, `the page does not scroll sideways (${lg.wide}; ${lg.nil} empty cells left out; v24 merged the ledger's mostly empty columns)`);
   check(lg.idw === 1, "a sample ID stays on one line");
   await M.screenshot({ path: OUT + "/v21-ledger-phone.png" });
   await M.fill("#lookupInput", ref); await M.press("#lookupInput", "Enter"); await M.waitForSelector(".bv-prog"); await M.waitForTimeout(500);

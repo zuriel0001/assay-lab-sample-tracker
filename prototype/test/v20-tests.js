@@ -214,7 +214,8 @@ async function material(page, id, k, what, ref){
   await Tc.check("#bvOk"); await Tc.click("#bvRecvBtn");
   await waitFor(() => bat.every(id => doc(id).stageKey === "received" && stock(id)?.st === "lab"), 10000); await Tc.waitForTimeout(600);
   check(bat.every(id => doc(id).stageKey === "received" && doc(id).receivedBy === "Lab Technician A" && /Received with batch/.test(doc(id).history.at(-1).note)), "all four received in one go, in the technician's name");
-  check(H.ledger().filter(r => bat.includes(r.sid) && r.dir === "in").length === 4, "each has its IN line in the Ledger");
+  await waitFor(() => H.ledger().filter(r => bat.includes(r.sid) && r.dir === "in").length === 4, 8000);   // the ledger is written just after the receipt
+  check(H.ledger().filter(r => bat.includes(r.sid) && r.dir === "in").length === 4, "each has its IN line in the Ledger (" + H.ledger().filter(r => bat.includes(r.sid) && r.dir === "in").length + ")");
   bv = await text(Tc, "#view-track");
   check(!(await Tc.$("#bvRecv")) && /4 In progress: Received/.test(bv), "the batch page shows them received");
   const L = await newUser(browser, { uid: "u_l", name: "Link", canEdit: true, names, hash: ref }); await L.waitForSelector("#view-track .sid", { timeout: 8000 }); await L.waitForTimeout(300);

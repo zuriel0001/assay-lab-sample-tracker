@@ -43,7 +43,7 @@ const PHASES = [
   { key: "await",  name: "Awaiting receipt" },
   { key: "intake", name: "Received & logged" },
   { key: "prep",   name: "Sample preparation" },
-  { key: "test",   name: "Analysis & testwork" },
+  { key: "test",   name: "Analysis" },
   { key: "qc",     name: "QA/QC review" },
   { key: "report", name: "Results released" },
   { key: "store",  name: "In storage" }
@@ -52,14 +52,21 @@ const PHASE_LABEL = { await: "Waiting", intake: "Intake", prep: "Preparation", t
 const DEFAULT_CONFIG = {
   /* Demo accounts for the prototype. Admin changes them on the Settings tab. NOT real security: anyone with the page can read them. */
   users: [
-    { u: "admin",  name: "Lab Manager",      role: "admin",  pw: "admin123" },
-    { u: "super",  name: "Lab Supervisor",   role: "super",  pw: "super123" },
-    { u: "tech1",  name: "Lab Technician A", role: "tech",   pw: "tech123" },
-    { u: "tech2",  name: "Lab Technician B", role: "tech",   pw: "tech123" },
+    { u: "admin",  name: "Lab Manager",      role: "admin",  dept: "Assay Lab", pw: "admin123" },
+    { u: "super",  name: "Lab Supervisor",   role: "super",  dept: "Assay Lab", pw: "super123" },
+    { u: "tech1",  name: "Lab Technician A", role: "tech",   dept: "Assay Lab", pw: "tech123" },
+    { u: "tech2",  name: "Lab Technician B", role: "tech",   dept: "Assay Lab", pw: "tech123" },
     { u: "viewer", name: "Site Viewer",      role: "viewer", pw: "view123" },
+    { u: "met",    name: "Plant Metallurgist", role: "viewer", dept: "Metallurgy", pw: "met123" },
     /* Section accounts see the results and certificates of their own section's samples, and a list of newly released ones. */
     { u: "exp",    name: "Exploration (results)",    role: "section", sec: "EXP", pw: "exp123" },
     { u: "plant",  name: "Process plant (results)",  role: "section", sec: "PLT", pw: "plant123" }
+  ],
+  /* Departments (v24). Every staff account belongs to one. A department that evaluates sees QC, limit alerts and checks on released results
+     and records its evaluation; everyone else sees the results only. The lab manager and lab supervisors always evaluate. */
+  depts: [
+    { n: "Assay Lab", ev: false }, { n: "Metallurgy", ev: true }, { n: "Process Plant", ev: false }, { n: "Geology / Exploration", ev: false },
+    { n: "Mining / Grade Control", ev: false }, { n: "Environment", ev: false }, { n: "Management", ev: false }
   ],
   /* Submitting sections. Sample IDs are SECTION-YYYYMMDD-0001 (submission date, site time); each section has its own counter per day. */
   sections: [
@@ -183,19 +190,24 @@ const DEFAULT_CONFIG = {
 
 let cfg = clone(DEFAULT_CONFIG);
 let db = null, user = null, canWrite = null;
-const ROLES = { admin: "Admin (lab manager)", super: "Lab supervisor (QA/QC)", tech: "Lab technician", viewer: "Viewer", section: "Section (sees its results)" };
+const ROLES = { admin: "Admin (lab manager)", super: "Lab supervisor", tech: "Lab technician", viewer: "Viewer", section: "Section account" };
 const ROLE_TABS = {
-  admin:  ["track", "board", "submit", "batches", "storage", "ledger", "routes", "stages"],
-  super:  ["track", "board", "submit", "batches", "storage", "ledger", "routes"],
+  admin:  ["track", "board", "submit", "results", "batches", "storage", "ledger", "routes", "stages"],
+  super:  ["track", "board", "submit", "results", "batches", "storage", "ledger", "routes"],
   tech:   ["track", "board", "submit", "batches", "storage", "ledger", "routes"],
-  viewer: ["track", "board", "submit", "batches", "storage", "ledger", "routes"],
+  viewer: ["track", "board", "submit", "results", "batches", "storage", "ledger", "routes"],
   section: ["track", "results", "submit", "routes"]
 };
 let session = null;   // { u, name, role, sec } of the signed-in demo account; null = public lookup only
-const canEdit = () => !!session && ["tech", "super", "admin"].includes(session.role);
+const LAB_ROLES = ["tech", "super", "admin"];
+const canEdit = () => !!session && LAB_ROLES.includes(session.role);
 /* Supervisors and admins release results, approve skipped steps and reverse ledger movements. */
 const canApprove = () => !!session && (session.role === "super" || session.role === "admin");
 const isAdmin = () => session?.role === "admin";
+/* v24: results go out as soon as they are complete, released by whoever saves them (Settings › Release: At once). Sign-off brings back the
+   lab supervisor's release, four eyes, and QC, limits and checks holding it. */
+const relNow = () => cfg.relMode !== "signoff";
+const canRelease = () => relNow() ? canEdit() : canApprove();
 /* Lab staff, who see every result; a section account sees its own section's. */
 const isStaff = () => !!session && ["tech", "super", "admin", "viewer"].includes(session.role);
 const samples = new Map();   // id -> body for every open sample: awaiting receipt, in the lab, or with material still in storage
@@ -327,7 +339,7 @@ function routeFor(typeKey, testKey, purposeKey){
   let best = null, score = -1;
   for (const r of routesForTest(testKey)){
     const ty = r.types || [];
-    const s = ((r.purposes || []).includes(purposeKey) ? 3 : 0) + (ty.includes(typeKey) ? 2 : ty.includes("*") || !ty.length ? 1 : 0);
+    const s = ((r.purposes || []).includes(purpBase(purposeKey)) ? 3 : 0) + (ty.includes(typeKey) ? 2 : ty.includes("*") || !ty.length ? 1 : 0);
     if (s > score){ best = r; score = s; }
   }
   return best;
@@ -359,7 +371,7 @@ function groupsFor(r, test){
 }
 /* A QA/QC review step counts only while Settings use it. A sample keeps one it is at or has been through, and one it passed while the
    step was not used stays out when it is used again. Samples keep their stored steps, so the setting can be changed back. */
-const qcStepOn = () => !!cfg.qcStep;
+const qcStepOn = () => !!cfg.qcStep && cfg.relMode === "signoff";   // v24: the QA/QC review step and the lab batch rule belong to the sign-off release
 const stepsUsed = stages => qcStepOn() ? stages : stages.filter(x => x.phase !== "qc");
 const planMemo = new WeakMap();
 const planOf = s => {

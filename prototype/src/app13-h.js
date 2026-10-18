@@ -76,19 +76,20 @@ function renderStorage(){
   list.sort((a, b) => (a.dueAt || OPEN_T) - (b.dueAt || OPEN_T) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   const shown = list.slice(0, 200 + storeMore), past = all.filter(isPast).length, due = all.filter(isSoon).length, noLoc = all.filter(r => !r.loc).length;
   const edit = canEdit(), first = new Set();
-  const row = r => { const top = !first.has(r.id) && !!first.add(r.id); return `<tr><td style="white-space:nowrap"><button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>${r.tag ? `<div class="small mono muted">${esc(r.tag)}</div>` : ""}${top ? qaOfNote(r.id) : ""}${edit && top ? `<div><button type="button" class="btn ghost small reassay-btn" data-reassay="${esc(r.id)}">Re-assay</button></div>` : ""}${top ? qaPickBox(r.id) : ""}</td>
+  const row = r => { const top = !first.has(r.id) && !!first.add(r.id); return `<tr class="${isPast(r) ? "st-past" : isSoon(r) ? "st-soon" : !r.loc ? "st-noloc" : "st-ok"}"><td style="white-space:nowrap"><button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>${r.tag ? `<div class="small mono muted">${esc(r.tag)}</div>` : ""}${top ? qaOfNote(r.id) : ""}${edit && top ? `<div><button type="button" class="btn ghost small reassay-btn" data-reassay="${esc(r.id)}">Re-assay</button></div>` : ""}${top ? qaPickBox(r.id) : ""}</td>
     <td>${esc(r.item)}</td><td>${r.loc ? esc(r.loc) : `<span class="pill warn">No location</span>`}</td>
     <td style="white-space:nowrap">${fmtDate(r.dueAt)}${isPast(r) ? ` <span class="pill bad">Past retention</span>` : r.dueAt && r.dueAt - now < 7 * 86400e3 ? ` <span class="pill warn">Due</span>` : ""}</td>
-    <td>${esc(r.then)}</td><td class="mono">${esc(r.sec)}</td><td>${esc(r.type)}${r.route ? `<div class="small mono" style="color:var(--accent)">${esc(r.route)}</div>` : ""}</td></tr>`; };
+    <td>${esc(r.then)}</td><td class="mono">${esc(r.sec)}</td><td><span class="tdot t-${typeTone(Object.values(TYPES).find(t => t.name === r.type)?.key)}"></span>${esc(r.type)}${r.route ? `<div class="small mono" style="color:var(--accent)">${esc(r.route)}</div>` : ""}</td></tr>`; };
   keepUiSimple(v, () => {
     v.innerHTML = `<div class="stack">
       ${qaSlot()}
-      <div class="stats">
-        <div class="stat"><div class="n">${stored.size}</div><div class="l">Samples in storage</div></div>
-        <div class="stat"><div class="n">${all.length}</div><div class="l">Materials kept</div></div>
-        <div class="stat"><div class="n" style="color:${past ? "var(--bad)" : "inherit"}">${past}</div><div class="l">Past retention</div></div>
-        <div class="stat"><div class="n" style="color:${due ? "var(--warn)" : "inherit"}">${due}</div><div class="l">Due within 30 days</div></div>
-        ${noLoc ? `<div class="stat"><div class="n" style="color:var(--warn)">${noLoc}</div><div class="l">No location</div></div>` : ""}
+      <div class="panel row page-head"><h2 style="margin:0">Storage</h2><span class="small muted">Retained material, oldest due first</span></div>
+      <div class="stats cstats">
+        <button type="button" class="stat c-blue" data-stshow="all" aria-pressed="${storeShow === "all"}"><div class="n">${stored.size}</div><div class="l">Samples in storage</div></button>
+        <button type="button" class="stat c-teal" data-stshow="all"><div class="n">${all.length}</div><div class="l">Materials kept</div></button>
+        <button type="button" class="stat c-red${past ? "" : " zero"}" data-stshow="past" aria-pressed="${storeShow === "past"}"><div class="n">${past}</div><div class="l">Past retention</div></button>
+        <button type="button" class="stat c-amber${due ? "" : " zero"}" data-stshow="soon" aria-pressed="${storeShow === "soon"}"><div class="n">${due}</div><div class="l">Due within 30 days</div></button>
+        <button type="button" class="stat c-violet${noLoc ? "" : " zero"}" data-stshow="noloc" aria-pressed="${storeShow === "noloc"}"><div class="n">${noLoc}</div><div class="l">No location</div></button>
       </div>
       <div class="row">
         <input class="inp" id="stQ" placeholder="Search ID, site code, location or material" style="flex:1 1 220px;width:auto" value="${esc(storeQ)}">
@@ -108,6 +109,7 @@ function renderStorage(){
   $("#stQ").oninput = e => { storeQ = e.target.value; storeMore = 0; clearTimeout(renderStorage.t); renderStorage.t = setTimeout(renderStorage, 250); };
   $("#stSec").onchange = e => { storeSec = e.target.value; storeMore = 0; renderStorage(); };
   $("#stShow").onchange = e => { storeShow = e.target.value; storeMore = 0; renderStorage(); };
+  v.querySelectorAll("[data-stshow]").forEach(b => b.onclick = () => { storeShow = b.dataset.stshow; storeMore = 0; renderStorage(); });
   $("#stMore", v)?.addEventListener("click", () => { storeMore += 200; renderStorage(); });
   $("#stCsv").onclick = () => exportStorageCsv(list);
 }

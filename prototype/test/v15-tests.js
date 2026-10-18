@@ -21,7 +21,7 @@ const noScroll = page => page.evaluate(() => document.documentElement.scrollWidt
   await P.waitForTimeout(800);
 
   log("Navigation");
-  check((await barTabs(A)).join() === "board,track,submit,batches,storage,ledger,routes,stages" && await A.$eval("#tabMoreWrap", w => w.hidden), "computer: all eight admin tabs fit in the row, no More menu (v17: no separate Register when signed in)");
+  check((await barTabs(A)).join() === "board,track,submit,results,batches,storage,ledger,routes,stages" && await A.$eval("#tabMoreWrap", w => w.hidden), "computer: all nine admin tabs fit in the row, no More menu (v17: no separate Register when signed in; v24: Results for staff)");
   check(await A.$$eval("#tabs > button[data-tab]:not([hidden])", bs => bs.every(b => getComputedStyle(b, "::before").maskImage.startsWith("url(") || getComputedStyle(b, "::before").webkitMaskImage.startsWith("url("))), "every tab has an icon");
   const Tb = await newUser(browser, { uid: "u_tb", name: "Tablet", canEdit: true, names }, { width: 820, height: 1000 }); await signIn(Tb, "admin");
   const tbMenu = await menuTabs(Tb);
@@ -79,7 +79,7 @@ const noScroll = page => page.evaluate(() => document.documentElement.scrollWidt
   await A.click("#bdWall"); await A.waitForTimeout(200);
   check(await A.evaluate(() => document.body.classList.contains("wall")) && !(await shown(A, "header.top")) && !(await shown(A, "#tabs")) && await shown(A, ".wall-head") && /^\d\d:\d\d$/.test(await A.textContent("#wallClock")), "Wall screen shows the board alone with a clock");
   await A.click("[data-wall-exit]"); await A.waitForTimeout(200);
-  check(!(await A.evaluate(() => document.body.classList.contains("wall"))) && await shown(A, "header.top") && (await barTabs(A)).length === 8, "Exit brings the page back");
+  check(!(await A.evaluate(() => document.body.classList.contains("wall"))) && await shown(A, "header.top") && (await barTabs(A)).length === 9, "Exit brings the page back");
 
   log("Sample record");
   await open(A, ex[0]);

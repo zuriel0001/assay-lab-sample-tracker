@@ -56,7 +56,7 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
     { u: "v", name: "Viewer", role: "viewer", em: "v@site.com" }, { u: "exp", name: "EXP results", role: "section", sec: "EXP", em: "exp@site.com" },
     { u: "s1", name: "Super One", role: "super", em: "s1@site.com" }];
   check(!(await one("t1@site.com", { op: "set", path: "settings/stages", data: { users } })).ok, "a non-admin can't save settings");
-  check((await one("boss@site.com", { op: "set", path: "settings/stages", data: { schema: 12, users, resultsPublic: false } })).ok, "the bootstrap admin saves settings");
+  check((await one("boss@site.com", { op: "set", path: "settings/stages", data: { schema: 12, users, resultsPublic: false, relMode: "signoff" } })).ok, "the bootstrap admin saves settings");   // v24: the checks below are of the sign-off release
   await new Promise(r => setTimeout(r, 3100));   // settings cache
   const t1 = await core.account(P("t1@site.com"));
   check(t1.role === "tech" && t1.u === "t1" && t1.name === "Tech One", "accounts are matched by Microsoft email, case-insensitively");
@@ -365,6 +365,49 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
     check((await one("boss@site.com", { op: "update", path: "settings/stages", data: { qcStep: true } })).ok && mem.docs["settings/stages"].qcStep === true &&
       !(await one("s1@site.com", { op: "update", path: "settings/stages", data: { qcStep: false } })).ok && !(await one("t1@site.com", { op: "update", path: "settings/stages", data: { qcStep: false } })).ok,
       "only the lab manager turns the QA/QC review step on or off"); }
+  { // v24: release at once (the default) and departments that evaluate.
+    const st0 = mem.docs["settings/stages"];
+    await mem.update("settings/stages", { relMode: null, depts: [{ n: "Assay Lab", ev: false }, { n: "Metallurgy", ev: true }, { n: "Mining", ev: false }],
+      users: [...st0.users, { u: "met", name: "Metallurgist", role: "viewer", dept: "Metallurgy", em: "met@site.com" }, { u: "mv", name: "Mine Viewer", role: "viewer", dept: "Mining", em: "mv@site.com" }] });
+    await new Promise(r => setTimeout(r, 3100));   // settings cache
+    const T = { by: "t1", tech: "Tech One" }, S = { by: "s1", tech: "Super One" }, MET = { by: "met", tech: "Metallurgist" }, MV = { by: "mv", tech: "Mine Viewer" };
+    const nid = `PLT-${day}-0901`, np = "samples/" + nid;
+    await mem.set(np, { id: nid, v: 13, section: "PLT", stageKey: "aufx", open: true, lab: true, createdBy: "t1", createdAt: now, history: [{ key: "received", at: now, ...T }],
+      results: { v: 1, at: now, by: "t1", tech: "Tech One", rows: { Au: { v: 1.2, raw: "1.2", by: "t1" } } } });
+    const h = () => mem.docs[np].history, at = () => Math.max(...h().map(e => e.at)) + 1000;
+    check(!(await one("t1@site.com", { op: "update", path: np, data: { certs: [{ no: nid + "-R1", v: 1, at: now, ...S, role: "super" }] } })).ok, "release at once: a certificate still names the person releasing it");
+    check((await one("t1@site.com", { op: "update", path: np, data: { stageKey: "released", relAt: now, certs: [{ no: nid + "-R1", v: 1, at: now, ...T, role: "tech" }], history: [...h(), { key: "released", at: at(), ...T }] } })).ok,
+      "release at once: the technician releases the results they saved, with no second person");
+    check(!(await one("v@site.com", { op: "update", path: np, data: { certs: [...mem.docs[np].certs, { no: nid + "-R2", v: 2, at: now, by: "v", tech: "Viewer", role: "viewer" }] } })).ok, "a viewer can't release");
+    const me = await core.account(P("met@site.com"));
+    check(me.role === "viewer" && me.dept === "Metallurgy", "/api/me gives the account's department");
+    check((await one("t1@site.com", { op: "get", path: "settings/stages" })).data.users.find(x => x.u === "met")?.dept === "Metallurgy", "staff see each account's department");
+    const ev = (who, extra = {}) => ({ evals: [...(mem.docs[np].evals || []), { at: at(), ...who, dept: "Metallurgy", v: "redo", note: "Repeat" }], rq: true,
+      history: [...h(), { key: "released", at: at(), ...who, ev: true, note: "Evaluation (Metallurgy): Re-assay requested. Repeat" }], updatedAt: Date.now(), ...extra });
+    check(!(await one("mv@site.com", { op: "update", path: np, data: ev(MV) })).ok, "a viewer in a department that does not evaluate can't record an evaluation");
+    check(!(await one("met@site.com", { op: "update", path: np, data: ev(MET, { stageKey: "aufx" }) })).ok, "an evaluation changes nothing else on the sample");
+    check(!(await one("met@site.com", { op: "update", path: np, data: ev(MV) })).ok, "an evaluation is recorded under the name of the person signed in");
+    check((await one("met@site.com", { op: "update", path: np, data: ev(MET) })).ok && mem.docs[np].rq === true && mem.docs[np].evals.length === 1 && h().at(-1).ev,
+      "a metallurgist (an evaluating department) records an evaluation and asks for a re-assay");
+    check(!(await one("met@site.com", { op: "update", path: np, data: { evals: [], history: [...h(), { key: "released", at: at(), ...MET, ev: true }] } })).ok, "an evaluation can't be removed");
+    check(!(await one("met@site.com", { op: "update", path: np, data: { ...ev(MET), rq: null } })).ok, "only the lab clears a re-assay request");
+    check(!(await one("met@site.com", { op: "update", path: np, data: { stageKey: "fuse" } })).ok && !(await one("met@site.com", { op: "set", path: np, data: mem.docs[np] })).ok, "an evaluator writes nothing else");
+    check((await one("t1@site.com", { op: "update", path: np, data: { rq: null, stageKey: "fuse", history: [...h(), { key: "fuse", at: at(), ...T, redo: true }] } })).ok && mem.docs[np].rq === null,
+      "the lab clears the request when it sends the sample back for re-assay");
+    check((await one("s1@site.com", { op: "update", path: np, data: { evals: [...mem.docs[np].evals, { at: at(), ...S, v: "ok" }], history: [...h(), { key: "fuse", at: at(), ...S, ev: true }] } })).ok &&
+      !(await one("s1@site.com", { op: "update", path: np, data: { evals: [...mem.docs[np].evals, { at: at(), ...T, v: "ok" }] } })).ok, "a lab supervisor evaluates too, under their own name");
+    // An amended certificate still needs a second person.
+    await mem.update(np, { stageKey: "released", amend: { by: "t1", tech: "Tech One", at: now, why: "Typo", rows: { Au: { v: 1.3, raw: "1.3", by: "t1" } } } });
+    const amended = who => ({ results: { ...mem.docs[np].results, rows: { Au: { v: 1.3, raw: "1.3", by: "t1" } } }, amend: null,
+      certs: [...mem.docs[np].certs, { no: nid + "-R2", v: 2, at: at(), ...who, role: who.by === "t1" ? "tech" : "super", amendBy: { by: "t1", tech: "Tech One", at: now } }], history: [...h(), { key: "released", at: at(), ...who }] });
+    check(!(await one("t1@site.com", { op: "update", path: np, data: amended(T) })).ok && (await one("s1@site.com", { op: "update", path: np, data: amended(S) })).ok,
+      "an amended certificate is still approved by someone other than the person who proposed it");
+    // Sign-off brings back the supervisor's release and four eyes.
+    await mem.update("settings/stages", { relMode: "signoff" }); await new Promise(r => setTimeout(r, 3100));
+    const sid2 = `PLT-${day}-0902`, sp2 = "samples/" + sid2;
+    await mem.set(sp2, { id: sid2, v: 13, section: "PLT", stageKey: "aufx", open: true, lab: true, createdBy: "t1", createdAt: now, history: [{ key: "received", at: now, ...T }], results: { v: 1, at: now, by: "t1", tech: "Tech One", rows: { Au: { v: 2, raw: "2", by: "t1" } } } });
+    check(!(await one("t1@site.com", { op: "update", path: sp2, data: { certs: [{ no: sid2 + "-R1", v: 1, at: now, ...T, role: "tech" }], history: [...mem.docs[sp2].history, { key: "released", at: now + 1000, ...T }] } })).ok,
+      "with Release: After a lab supervisor signs off, a technician can't release"); }
   { // Restore: a backup loads into a copy with no samples, by its lab manager only, and comes back as it was.
     const backup = {};
     for (const coll of ["settings", "access", "meta", "tagidx", "samples", "blind", "batches", "stock", "ledger", "files"])

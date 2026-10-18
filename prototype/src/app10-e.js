@@ -30,30 +30,25 @@ function renderRoutes(){
   if (routesFocus){ document.getElementById("route-" + routesFocus)?.scrollIntoView({ block: "start" }); routesFocus = ""; }
 }
 function routeResultsLine(r){
-  const res = RESULTS[(r.tests || [])[0]], gs = Array.isArray(r.qcg) ? r.qcg : routeGroups(r), calc = res ? res.an.filter(a => a.calc) : [];
-  const lims = (cfg.limits || []).filter(l => l.route === r.code), anN = k => (res?.an.find(a => a.k === k) || { n: k }).n, anU = k => res?.an.find(a => a.k === k)?.u || "";
-  return `<div class="small"><b>Results reported:</b> ${res ? esc(res.an.filter(a => !a.opt).map(a => a.n + (a.u ? ` (${a.u})` : "")).join(", ")) : "—"}${res && res.an.some(a => a.opt) ? `; optional: ${esc(res.an.filter(a => a.opt).map(a => a.n).join(", "))}` : ""}<br>
-    ${calc.length ? `<b>Calculated, not typed:</b> ${esc(calc.map(a => `${a.n} from ${listAnd((a.from || []).map(anN).map(lcName))}`).join("; "))}<br>` : ""}
-    <b>Lab batch${gs.length > 1 ? "es" : ""}:</b> ${gs.length ? `${gs.map(g => { const qp = QC_PROFILES[g.p]; return qp ? `${esc(qp.name)} for ${esc(listAnd(groupAns(g, res).map(a => /^[A-Z][a-z]?$/.test(a.k) ? a.k : lcName(a.n))))} (up to ${qp.size} ${esc(qp.item || "sample")}s)` : ""; }).filter(Boolean).join("; ")}. Standards, blanks and duplicates are placed automatically and every result a batch checks must pass before release${res && res.an.some(a => !a.calc && !a.t && !gs.some(g => g.k.includes(a.k))) ? `. ${esc(listAnd(res.an.filter(a => !a.calc && !a.t && !gs.some(g => g.k.includes(a.k))).map((a, i) => i ? lcName(a.n) : a.n)))}: measured outside a lab batch, and shown as such on the certificate` : ""}` : "none; the checks run on each sample's own results"}
-    ${lims.length ? `<br><b>Action limits:</b> ${esc(lims.map(l => `${anN(l.k)} ${l.op === "<" ? "below" : "above"} ${fmtNum(l.val)}${anU(l.k) ? " " + anU(l.k) : ""}${l.when ? ` (${l.when})` : ""}${l.permit ? " (permit)" : ""}: ${l.act}`).join("; "))}` : ""}</div>`;
+  const res = RESULTS[(r.tests || [])[0]], gs = Array.isArray(r.qcg) ? r.qcg : routeGroups(r), ev = !relNow() || canEval();
+  const lims = (cfg.limits || []).filter(l => l.route === r.code), anN = k => (res?.an.find(a => a.k === k) || { n: k }), anU = k => res?.an.find(a => a.k === k)?.u || "";
+  const short = a => a.s || a.n;
+  return `<div><b>Results reported:</b> ${res ? esc(res.an.filter(a => !a.opt && a.t !== "pick").map(a => short(a) + (a.u ? ` (${a.u})` : "")).join(", ")) : "—"}</div>
+    ${ev && gs.length ? `<div><b>Lab batch${gs.length > 1 ? "es" : ""}:</b> ${gs.map(g => { const qp = QC_PROFILES[g.p]; return qp ? `${esc(qp.name)} for ${esc(listAnd(groupAns(g, res).map(a => /^[A-Z][a-z]?$/.test(a.k) ? a.k : lcName(a.n))))} (up to ${qp.size} ${esc(qp.item || "sample")}s)` : ""; }).filter(Boolean).join("; ")}</div>` : ""}
+    ${ev && lims.length ? `<div><b>Action limits:</b> ${esc(lims.map(l => `${short(anN(l.k))} ${l.op === "<" ? "below" : "above"} ${fmtNum(l.val)}${anU(l.k) ? " " + anU(l.k) : ""}${l.when ? ` (${l.when})` : ""}${l.permit ? " (permit)" : ""}`).join("; "))}</div>` : ""}`;
 }
-function routeRows(r){
-  const rows = [
-    { name: HEAD[0].name, phase: "await", hours: transitOf(r), note: "Submitted online; time allowed for the sample to reach the lab." },
-    { name: HEAD[1].name, phase: "intake", hours: HEAD[1].hours, note: "Bag, seal, mass and condition checked against the submission by a lab technician; written to the inbound ledger." },
-    ...stepsUsed(r.stages),
-    { name: "Results released", phase: "report", hours: 24, note: "Released by a lab supervisor once QA/QC passes; material put into storage within 24 h." },
-    { name: "Retained in storage", phase: "store", hours: Math.max(1, keepDays(r)) * 24, note: "Each material on its own clock, then returned, sent to an external lab or disposed (outbound ledger)." }
-  ];
-  return rows.map((x, i) => `<tr><td class="mono">${i + 1}</td><td>${esc(x.name)}</td><td><span class="ph-tag ph-${esc(x.phase)}">${esc(PHASE_LABEL[x.phase] || x.phase)}</span></td><td style="white-space:nowrap">${hoursLabel(x.hours)}</td>
-    <td class="note">${esc(x.note || "")}${x.redo ? `${x.note ? " " : ""}<b style="color:var(--warn)">Re-assays restart here.</b>` : ""}</td></tr>`).join("");
+/* The route as a row of steps, coloured by phase, with the time each is allowed. */
+function routeFlow(r){
+  const steps = [{ name: "Received", phase: "intake" }, ...stepsUsed(r.stages), { name: "Released", phase: "report" }];
+  return steps.map(x => `<li class="ph-${esc(x.phase)}"${x.note ? ` title="${esc(x.note)}"` : ""}><span>${esc(x.name)}</span>${x.hours ? `<i>${hoursLabel(x.hours)}</i>` : ""}${x.redo ? `<b class="redo" title="Re-assays restart here">↺</b>` : ""}</li>`).join("");
 }
 function renderRouteList(){
   const box = $("#rtList"); if (!box) return;
   const q = routesQ.trim().toLowerCase(), t = typeOf(routesType);
   const list = (cfg.routes || []).filter(r => (routeOn(r) || openRoutes.has(r.code)) && (!t || (r.types || []).includes(t.key) || (t.tests || []).some(k => (r.tests || []).includes(k)))
     && (!q || [r.code, r.name, r.desc, ...(r.stages || []).map(x => x.name), ...(r.tests || []).map(k => testOf(k)?.name)].join(" ").toLowerCase().includes(q)));
-  list.sort((a, b) => testRank(a) - testRank(b));
+  const catRank = r => { const i = TEST_CATS.indexOf(routeCat(r)); return i < 0 ? 99 : i; };
+  list.sort((a, b) => catRank(a) - catRank(b) || testRank(a) - testRank(b));
   let lastCat = "";
   box.innerHTML = list.length ? list.map(r => {
     const cat = routeCat(r), headHtml = cat !== lastCat ? `<h3 style="margin-top:${lastCat ? 10 : 0}px">${esc(cat)}</h3>` : "";
@@ -61,18 +56,16 @@ function renderRouteList(){
     const types = (r.types || []).filter(k => k !== "*").map(k => typeOf(k)?.name).filter(Boolean);
     const purp = (r.purposes || []).map(k => purposeOf(k)?.name).filter(Boolean);
     return `${headHtml}<details class="route" id="route-${esc(r.code)}" data-code="${esc(r.code)}" ${openRoutes.has(r.code) ? "open" : ""}>
-      <summary><span class="code">${esc(r.code)}</span><b>${esc(r.name)}</b>${routeOn(r) ? "" : ` <span class="pill">Not in use</span>`}<span class="subtle" style="margin-left:auto">results about ${hoursLabel(routeTat(r))} after receipt</span></summary>
+      <summary title="${esc(r.desc || "")}"><span class="code">${esc(r.code)}</span><b>${esc(r.name)}</b>${routeOn(r) ? "" : ` <span class="pill">Not in use</span>`}<span class="subtle" style="margin-left:auto">≈ ${hoursLabel(routeTat(r))}</span></summary>
       <div class="body">
-        ${r.desc ? `<p class="small" style="margin:0">${esc(r.desc)}</p>` : ""}
-        ${r.two ? `<div class="small"><span class="pill warn">Two-person custody</span> A witness is recorded at receipt and at every step.</div>` : ""}
-        <div class="small"><b>Test:</b> ${(r.tests || []).map(k => esc(testOf(k)?.name || k)).join(", ")}<br>
-          <b>Sample types:</b> ${types.length ? esc(types.join(", ")) : ""}${(r.types || []).includes("*") ? (types.length ? ", and any other type" : "Any type") : ""}${purp.length ? `<br><b>Chosen first when the purpose is:</b> ${esc(purp.join(", "))}` : ""}</div>
-        ${routeResultsLine(r)}
-        <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Step</th><th>Phase</th><th>Time allowed</th><th>Method and checks</th></tr></thead><tbody>${routeRows(r)}</tbody></table></div>
+        <div class="rt-facts small">
+          <div><b>Sample types:</b> ${types.length ? esc(types.join(", ")) : ""}${(r.types || []).includes("*") ? (types.length ? ", any other" : "Any type") : ""}</div>
+          ${routeResultsLine(r)}
+          ${r.two ? `<div><span class="pill warn">Two-person custody</span></div>` : ""}
+        </div>
+        <ol class="flow">${routeFlow(r)}</ol>
+        ${(r.retention || []).length ? `<div class="small muted"><b>Kept:</b> ${r.retention.map(x => esc(retentionLine(x))).join(" · ")}</div>` : ""}
         ${isAdmin() ? `<div class="row"><button class="btn" type="button" data-edit-route="${esc(r.code)}">Edit steps and hours</button></div>` : ""}
-        ${r.qc ? `<div class="small"><b>QA/QC:</b> ${esc(r.qc)}</div>` : ""}
-        ${(r.triggers || []).length ? `<div class="small"><b>Re-assay triggers</b><ul class="tight">${r.triggers.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
-        ${(r.retention || []).length ? `<div class="small"><b>Retention and disposal</b><ul class="tight">${r.retention.map(x => `<li>${esc(retentionLine(x))}</li>`).join("")}</ul></div>` : ""}
       </div></details>`;
   }).join("") : `<div class="panel empty"><strong>No routes match</strong>Clear the search or choose All sample types.</div>`;
   box.querySelectorAll("details.route").forEach(d => d.addEventListener("toggle", () => { d.open ? openRoutes.add(d.dataset.code) : openRoutes.delete(d.dataset.code); }));
@@ -90,18 +83,21 @@ function renderStages(){
   draft.tz = draft.tz || DEFAULT_CONFIG.tz;
   draft.crms = Array.isArray(draft.crms) ? draft.crms : clone(DEFAULT_CONFIG.crms);
   draft.resultsPublic = !!draft.resultsPublic;
+  draft.relMode = draft.relMode === "signoff" ? "signoff" : "now";
   draft.batchReq = !!draft.batchReq;
   draft.qcStep = !!draft.qcStep;
   draft.limits = Array.isArray(draft.limits) ? draft.limits : clone(DEFAULT_CONFIG.limits);
   draft.users = draft.users || [];
+  draft.depts = Array.isArray(draft.depts) && draft.depts.length ? draft.depts : clone(DEFAULT_CONFIG.depts);
   draft.routes = draft.routes && draft.routes.length ? draft.routes : clone(DEFAULT_ROUTES);
   draft.routeUse = draft.routeUse && typeof draft.routeUse === "object" ? draft.routeUse : {};
   const editable = isAdmin();
   if (!editable){ v.innerHTML = `<div class="notice warn">Only admins can change these settings.</div>`; return; }
   const userRows = draft.users.map((x, i) => `<tr>
-    <td><input class="inp mono" style="width:130px" data-ui="${i}" data-uf="u" value="${esc(x.u)}" aria-label="Username"></td>
-    <td><input class="inp" data-ui="${i}" data-uf="name" value="${esc(x.name)}" aria-label="Full name"></td>
+    <td><input class="inp mono" style="width:110px" data-ui="${i}" data-uf="u" value="${esc(x.u)}" aria-label="Username"></td>
+    <td><input class="inp" style="min-width:170px" data-ui="${i}" data-uf="name" value="${esc(x.name)}" aria-label="Full name"></td>
     <td><select class="inp" style="width:auto" data-ui="${i}" data-uf="role" aria-label="Role">${Object.entries(ROLES).map(([k, l]) => `<option value="${k}" ${x.role === k ? "selected" : ""}>${l}</option>`).join("")}</select></td>
+    <td><select class="inp" style="width:auto" data-ui="${i}" data-uf="dept" aria-label="Department"><option value="">—</option>${draft.depts.map(d => `<option ${d.n === (x.dept || (LAB_ROLES.includes(x.role) ? "Assay Lab" : "")) ? "selected" : ""}>${esc(d.n)}</option>`).join("")}${x.dept && !draft.depts.some(d => d.n === x.dept) ? `<option selected>${esc(x.dept)}</option>` : ""}</select></td>
     <td>${x.role === "section" ? `<select class="inp" style="width:auto" data-ui="${i}" data-uf="sec" aria-label="Section">${draft.sections.map(c => `<option value="${esc(c.code)}" ${x.sec === c.code ? "selected" : ""}>${esc(c.code)}</option>`).join("")}${draft.sections.some(c => c.code === x.sec) ? "" : `<option selected value="${esc(x.sec || "")}">${esc(x.sec || "—")}</option>`}</select>` : `<span class="muted">—</span>`}</td>
     <td><input class="inp mono" style="width:130px" data-ui="${i}" data-uf="pw" value="${esc(x.pw)}" aria-label="Password"></td>
     <td><button class="btn ghost danger" data-urm="${i}" aria-label="Remove account" ${x.u === session?.u ? "disabled title='You cannot remove your own account'" : ""}>✕</button></td></tr>`).join("");
@@ -153,8 +149,16 @@ function renderStages(){
     <h2>Staff accounts</h2>
     <p class="small muted" style="margin:0">Anyone can register a sample at the lab without an account. Lab technicians confirm receipt, register walk-in samples and record stages; their name is filled in automatically as "Received by" and on every stage update. Lab supervisors also release results, approve skipped steps and reverse ledger movements recorded by mistake. Viewers can see the board and ledger but change nothing. A section account sees only the released results of its own section's samples, with a notice when new ones are ready. Anyone can look up a sample by ID without an account.</p>
     <div class="mock"><b>Design prototype.</b><span>Passwords here are visible to anyone who opens the page. The real system should store hashed passwords on a server or use the company's existing staff sign-in.</span></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Username</th><th>Full name</th><th>Role</th><th>Section</th><th>Password</th><th></th></tr></thead><tbody>${userRows}</tbody></table></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Username</th><th>Full name</th><th>Role</th><th>Department</th><th>Section</th><th>Password</th><th></th></tr></thead><tbody>${userRows}</tbody></table></div>
     <div class="row"><button class="btn" id="userAdd">Add account</button></div>
+
+    <h2 style="margin-top:12px">Departments</h2>
+    <div class="tbl-wrap"><table><thead><tr><th>Department</th><th>Evaluates results</th><th>Accounts</th><th></th></tr></thead><tbody>${draft.depts.map((d, i) => `<tr>
+      <td><input class="inp" data-di="${i}" value="${esc(d.n)}" aria-label="Department name"></td>
+      <td><label class="row" style="gap:6px"><input type="checkbox" data-dev="${i}" ${d.ev ? "checked" : ""}> <span class="small">${d.ev ? "Sees QC, limits and checks; records evaluations" : "Sees results only"}</span></label></td>
+      <td class="mono">${draft.users.filter(x => (x.dept || (LAB_ROLES.includes(x.role) ? "Assay Lab" : "")) === d.n).length}</td>
+      <td><button class="btn ghost danger" data-drm="${i}" aria-label="Remove department">✕</button></td></tr>`).join("")}</tbody></table></div>
+    <div class="row"><button class="btn" id="deptAdd">Add department</button></div>
 
     <h2 style="margin-top:12px">Submitting sections</h2>
     <p class="small muted" style="margin:0">Sample IDs are the section code, the submission date and a running number, for example <span class="mono">${esc(exampleId((draft.sections[1] || draft.sections[0] || {code:"EXP"}).code))}</span>. Each section's number restarts at 0001 every day. Codes are 2 to 5 capital letters; changing a code only affects new samples.</p>
@@ -168,10 +172,10 @@ function renderStages(){
     ${logoHtml()}
 
     <h2 style="margin-top:12px">Results and certificates</h2>
-    <p class="small muted" style="margin:0">A lab supervisor releases results with a numbered certificate of analysis. Corrections issue an amended certificate; earlier versions stay on record.</p>
+    <label class="f" style="max-width:520px"><span>Release of results</span><select class="inp" id="cfgRel"><option value="now" ${draft.relMode === "signoff" ? "" : "selected"}>At once, when the results are complete</option><option value="signoff" ${draft.relMode === "signoff" ? "selected" : ""}>After a lab supervisor signs off</option></select></label>
     <label class="f" style="max-width:520px"><span>Who can see results on a sample record</span><select class="inp" id="cfgResPub"><option value="0" ${draft.resultsPublic ? "" : "selected"}>Signed-in staff only (recommended)</option><option value="1" ${draft.resultsPublic ? "selected" : ""}>Anyone with the sample ID or site sample code</option></select></label>
-    <label class="f" style="max-width:520px"><span>Lab batch before release</span><select class="inp" id="cfgBatchReq"><option value="0" ${draft.batchReq ? "" : "selected"}>Not required</option><option value="1" ${draft.batchReq ? "selected" : ""}>Required</option></select></label>
-    <label class="f" style="max-width:520px"><span>QA/QC review step</span><select class="inp" id="cfgQcStep"><option value="0" ${draft.qcStep ? "" : "selected"}>Not used</option><option value="1" ${draft.qcStep ? "selected" : ""}>Before release</option></select></label>
+    ${draft.relMode === "signoff" ? `<label class="f" style="max-width:520px"><span>Lab batch before release</span><select class="inp" id="cfgBatchReq"><option value="0" ${draft.batchReq ? "" : "selected"}>Not required</option><option value="1" ${draft.batchReq ? "selected" : ""}>Required</option></select></label>
+    <label class="f" style="max-width:520px"><span>QA/QC review step</span><select class="inp" id="cfgQcStep"><option value="0" ${draft.qcStep ? "" : "selected"}>Not used</option><option value="1" ${draft.qcStep ? "selected" : ""}>Before release</option></select></label>` : ""}
 
     <h2 style="margin-top:12px">Reference materials (CRMs and check standards)</h2>
     <div class="mock"><b>Example values.</b><span>The certified values and standard deviations below are placeholders for the prototype. Replace them with the values on your own CRM certificates before relying on the QC checks.</span></div>
@@ -209,7 +213,7 @@ function renderStages(){
       ${inUse ? `<p class="small muted" style="margin:0">${inUse} open sample(s) are on this route. They keep the steps, QA/QC rule and retention they started with.</p>` : ""}
       <fieldset><div class="legend">Tests this route performs</div><div class="checks">${checks("tests", TESTS.map(t => [t.key, t.name]), R.tests)}</div></fieldset>
       <fieldset><div class="legend">Sample types it is meant for</div><div class="checks">${checks("types", [["*", "Any type"], ...TYPES.map(t => [t.key, t.name])], R.types)}</div></fieldset>
-      <fieldset><div class="legend">Purposes it is chosen first for</div><div class="checks">${checks("purposes", PURPOSES.map(p => [p.key, p.name]), R.purposes)}</div></fieldset>
+      <fieldset><div class="legend">Purposes it is chosen first for</div><div class="checks">${checks("purposes", PURPOSES.filter(p => !p.sub).map(p => [p.key, p.name]), R.purposes)}</div></fieldset>
       <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Lab step</th><th>Hours</th><th>Round the clock</th><th>Phase</th><th>Re-assay restarts here</th><th>Method and checks</th><th></th></tr></thead><tbody>${stRows}</tbody></table></div>
       <div class="row"><button class="btn" id="rsAdd">Add step</button><span class="small muted">Results about <b>${hoursLabel(routeTat(R))}</b> after receipt.</span></div>
       <label class="f" style="max-width:520px"><span>Lab batch and QC</span><select class="inp" id="rtQcp"><option value="">None: checks run on each sample's own results</option>${Object.entries(QC_PROFILES).map(([k, p]) => `<option value="${k}" ${R.qcp === k ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
@@ -226,8 +230,9 @@ function renderStages(){
   if (goEdit) $("#rtEdit").scrollIntoView({ block: "start" });
   const dirty = () => { draftDirty = true; renderStages(); };
   $("#cfgResPub").addEventListener("change", e => { draft.resultsPublic = e.target.value === "1"; dirty(); });
-  $("#cfgBatchReq").addEventListener("change", e => { draft.batchReq = e.target.value === "1"; dirty(); });
-  $("#cfgQcStep").addEventListener("change", e => { draft.qcStep = e.target.value === "1"; dirty(); });
+  $("#cfgRel").addEventListener("change", e => { draft.relMode = e.target.value; dirty(); });
+  $("#cfgBatchReq")?.addEventListener("change", e => { draft.batchReq = e.target.value === "1"; dirty(); });
+  $("#cfgQcStep")?.addEventListener("change", e => { draft.qcStep = e.target.value === "1"; dirty(); });
   $("#rtQcp").addEventListener("change", e => { R.qcp = e.target.value; regenQc(R); dirty(); });
   v.querySelectorAll("[data-cf]").forEach(el => el.addEventListener("change", () => {
     const i = +el.dataset.ci, f = el.dataset.cf, c = draft.crms[i];
@@ -373,6 +378,20 @@ function renderStages(){
     dirty();
   }));
   v.querySelectorAll("[data-urm]").forEach(b => b.onclick = () => { draft.users.splice(+b.dataset.urm, 1); dirty(); });
+  v.querySelectorAll("[data-di]").forEach(el => el.addEventListener("change", () => {
+    const d = draft.depts[+el.dataset.di], n = el.value.trim().slice(0, 40);
+    if (!n){ toast("Give the department a name."); renderStages(); return; }
+    if (draft.depts.some((y, j) => y.n === n && j !== +el.dataset.di)){ toast(`${n} is already listed.`); renderStages(); return; }
+    draft.users.forEach(x => { if (x.dept === d.n) x.dept = n; });
+    d.n = n; dirty();
+  }));
+  v.querySelectorAll("[data-dev]").forEach(el => el.addEventListener("change", () => { draft.depts[+el.dataset.dev].ev = el.checked; dirty(); }));
+  v.querySelectorAll("[data-drm]").forEach(b => b.onclick = () => {
+    const d = draft.depts[+b.dataset.drm];
+    if (draft.users.some(x => x.dept === d.n)){ toast(`Move the accounts in ${d.n} to another department first.`); return; }
+    draft.depts.splice(+b.dataset.drm, 1); dirty();
+  });
+  $("#deptAdd").onclick = () => { let n = 1, c; do { c = "New department" + (n > 1 ? " " + n : ""); n++; } while (draft.depts.some(x => x.n === c)); draft.depts.push({ n: c, ev: false }); dirty(); };
   $("#userAdd").onclick = () => {
     let n = 1, u; do { u = "tech" + n++; } while (draft.users.some(x => x.u === u));
     draft.users.push({ u, name: "New lab technician", role: "tech", pw: "tech123" }); dirty();
@@ -404,7 +423,7 @@ function renderStages(){
     const mine = draft, crmLog = [...crmChanges(clone(cfg.crms || []), draft.crms), ...(cfg.crmLog || [])].slice(0, CRM_LOG_MAX);
     draftDirty = false;                      // our own save coming back is not "someone else's"
     try {
-      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users), crms: clone(draft.crms), crmLog, limits: clone(draft.limits), cols: (draft.cols || []).filter(x => x.n).map(x => ({ n: x.n, c: x.c || "" })), resultsPublic: !!draft.resultsPublic, batchReq: !!draft.batchReq, qcStep: !!draft.qcStep, work: workOf(draft.work), logo: logoOf(draft.logo), routeUse: clone(draft.routeUse || {}), limitsV: LIMITS_V, routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
+      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users).map(x => x.dept || !LAB_ROLES.includes(x.role) ? x : { ...x, dept: "Assay Lab" }), depts: clone(draft.depts), crms: clone(draft.crms), crmLog, limits: clone(draft.limits), cols: (draft.cols || []).filter(x => x.n).map(x => ({ n: x.n, c: x.c || "" })), resultsPublic: !!draft.resultsPublic, relMode: draft.relMode, batchReq: !!draft.batchReq, qcStep: !!draft.qcStep, work: workOf(draft.work), logo: logoOf(draft.logo), routeUse: clone(draft.routeUse || {}), limitsV: LIMITS_V, routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
       draftDirty = false; draft = null; renderStages();
       toast(uncovered.length ? `Saved. No route performs: ${uncovered.slice(0, 3).join(", ")}${uncovered.length > 3 ? "…" : ""}` : "Settings saved for everyone.");
     }

@@ -54,7 +54,7 @@ put('<button class="btn" id="signBtn" type="button" hidden>Sign out</button>', '
 put_re(r'  /\* Demo accounts for the prototype\. Admin changes them on the Settings tab\. NOT real security: anyone with the page can read them\. \*/\n',
        '  /* Example accounts. Until the lab manager saves Settings with real Microsoft sign-in emails, only the emails in the ADMIN_EMAILS app setting can sign in (as admin). */\n')
 page, n = re.subn(r'(\n    \{ u: "[a-z0-9]+",[^\n]*?),\s+pw: "[a-z0-9]+" \}', r'\1 }', page)
-assert n == 7, f"expected 7 example accounts, found {n}"
+assert n == 8, f"expected 8 example accounts, found {n}"
 
 # 4. Session: from the Microsoft sign-in (window.__me, filled by the shim from /api/me), not from a stored password token.
 put_re(r'function resolveSession\(\)\{\n.*?\n\}\n\$\("#signBtn"\)\.addEventListener\("click", \(\) => \{[^\n]*\n',
@@ -253,8 +253,8 @@ put('''    <td><input class="inp mono" style="width:130px" data-ui="${i}" data-u
     <td style="white-space:nowrap"><select class="inp" style="width:auto" data-ui="${i}" data-uf="via" aria-label="Sign in with"><option value="" ${x.via === "email" ? "" : "selected"}>Microsoft</option><option value="email" ${x.via === "email" ? "selected" : ""}>Email</option></select>${x.via === "email" && x.em ? ` <button class="btn ghost" type="button" data-pwreset="${i}">Reset password</button>` : ""}</td>''')
 put('''\n    <div class="mock"><b>Design prototype.</b><span>Passwords here are visible to anyone who opens the page. The real system should store hashed passwords on a server or use the company's existing staff sign-in.</span></div>''',
     '')
-put('<th>Username</th><th>Full name</th><th>Role</th><th>Section</th><th>Password</th><th></th>',
-    '<th>Username</th><th>Full name</th><th>Role</th><th>Section</th><th>Sign-in email</th><th>Sign in with</th><th></th>')
+put('<th>Username</th><th>Full name</th><th>Role</th><th>Department</th><th>Section</th><th>Password</th><th></th>',
+    '<th>Username</th><th>Full name</th><th>Role</th><th>Department</th><th>Section</th><th>Sign-in email</th><th>Sign in with</th><th></th>')
 put('''    if (f === "pw" && !val){ toast("A password cannot be empty."); renderStages(); return; }''',
     '''    if (f === "em"){
       val = val.toLowerCase();
@@ -347,7 +347,6 @@ drop('''<div class="notice">Edit accounts, sections, the site time zone and work
 drop('''<p class="small muted" style="margin:0">Anyone can register a sample at the lab without an account. Lab technicians confirm receipt, register walk-in samples and record stages; their name is filled in automatically as "Received by" and on every stage update. Lab supervisors also release results, approve skipped steps and reverse ledger movements recorded by mistake. Viewers can see the board and ledger but change nothing. A section account sees only the released results of its own section's samples, with a notice when new ones are ready. Anyone can look up a sample by ID without an account.</p>''')
 drop('''<p class="small muted" style="margin:0">Sample IDs are the section code, the submission date and a running number, for example <span class="mono">${esc(exampleId((draft.sections[1] || draft.sections[0] || {code:"EXP"}).code))}</span>. Each section's number restarts at 0001 every day. Codes are 2 to 5 capital letters; changing a code only affects new samples.</p>''')
 drop('''<p class="small muted" style="margin:0">Sample ID dates, ledger months and every time on screen use the site's time zone, whatever each phone or PC is set to. Use a name from the IANA list, such as Africa/Accra or Africa/Johannesburg.</p>''')
-drop('''<p class="small muted" style="margin:0">A lab supervisor releases results with a numbered certificate of analysis. Corrections issue an amended certificate; earlier versions stay on record.</p>''')
 put('''<span>The certified values and standard deviations below are placeholders for the prototype. Replace them with the values on your own CRM certificates before relying on the QC checks.</span>''',
     '''<span>Replace them with the values on your CRM certificates.</span>''')
 drop('''<p class="small muted" style="margin:0">A material certified for several results has one row per result under the same ID (type an existing ID in a new row). Lab batches pick reference materials for their analyte and unit, preferring those whose batch types list the batch's prefix (FA fire assay, GC grade control, FG gravimetric, SF screen fire assay, PL plant, PT tails, CC concentrate, BU bullion, SL solutions, EL eluate, CB carbon, CY and CS cyanide, EW water, IC ICP, ME multi-element, LE LECO, AR aqua regia, LW cyanide-soluble gold, SO soil, AB ARD, DN density). Leave batch types empty to allow any. A standard deviation is needed wherever the rule is in SD.</p>''')
