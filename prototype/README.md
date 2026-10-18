@@ -28,7 +28,7 @@ and lab batches, the version the second review was done against; to rebuild it, 
 | `checkroutes.js` | Validates the route data and prints turnaround per route. |
 | `genmd.js` | Regenerates `workflow-routes.md`: what each route reports (picked and calculated results marked), the batches it joins and its action limits. Run it from `src/`'s parent with `src/app10-a.js` present. |
 | `test/harness.js` | Shared mock of the db capability: several browser pages on one store, with `where` filters (including `array-contains`), `orderBy`, `limit`, recursive `update` merge, update-requires-existence, leases, frozen snapshots and deletes. Batch helpers (`createBatch`, `fillBatch` for one or many results per position, `saveBatch`). |
-| `test/v24-tests.js` | New: release at once (complete results released by the technician who saves them, typed or from a file; QC, limits and checks never hold them; a failed blank doesn't either); departments in Settings with Metallurgy evaluating; tabs by role and department; the Results tab (flags, to evaluate, results in short names) and the Evaluation box (Accepted, Query, Re-assay requested with a reason); the lab's board and record show a re-assay request and re-assaying clears it; a viewer outside an evaluating department sees results only; the three-step Submit form, Belt cut sample on BELT, purpose and section filled in; testwork as purpose (bottle roll solution on AUSX); empty board tiles greyed; Storage and Ledger cards; concise Routes with the analytical routes back; 16 px text; sign-off still selectable. |
+| `test/v24-tests.js` | New: release at once (complete results released by the technician who saves them, typed or from a file; QC, limits and checks never hold them; a failed blank doesn't either); departments in Settings with Metallurgy evaluating; tabs by role and department; the Results tab (flags, to evaluate, results in short names) and the Evaluation box (Accepted, Query, Re-assay requested with a reason); the lab's board and record show a re-assay request and re-assaying clears it; a viewer outside an evaluating department sees results only; the three-step Submit form, Belt cut sample on BELT, purpose and section filled in; testwork as purpose (bottle roll solution sent as drill core, on AUSX); v24c sample types, AuFx names and the plain analysis list; empty board tiles marked; Storage and Ledger cards; concise Routes with the analytical routes back; 16 px text; sign-off still selectable. |
 | `test/v23-tests.js` | The routes the lab runs (route counts brought up to v24's 27 in use). The Workflow routes tab lists 13 routes and only the tests and sample types they take; Submit picks the analysis, purpose and route from the sample type (mill sample AUFX-AUSX, CCD and TSF AUFX-AUSX-CN, carbon C-LOAD, elution ELU-AUSX, RC EXP-FA) and hides the route list when there is one route; a chosen purpose stays; sampling points are lists; a mill sample moves weigh, filter, AuSx, dry, pulverise, fusion, AuFx and needs "AuFx, AuSx"; the sampling point given at submission is the results' point and drives the limits; a CCD slurry reads cyanide straight after filtering and needs AuFx, AuSx and CNWAD; a results file with AuFA, AuSX, NaCN, CNWAD and pH fills it; carbon loading and its limit; elution needs AuSx; the board filter; In use in Settings brings CCD-SVY back and stores only the change, a sample on it keeps its steps after it is turned off; limits on routes not in use are drawn when opened; saved limits get the 10 plant limits once. A shift report laid out like the lab's (method, repeat and unit rows), attached on Lab batches, puts AuFA in the plant batch and AuSX in the solution batch with no clash. Last run: **53 PASS**, no console errors. |
 | `test/v22-tests.js` | No QA/QC review step by default. Settings shows QA/QC review step: Not used and Lab batch before release; the route preview and the record have no QA/QC review; a CCD sample moves through every step to Wash efficiency unstopped; the technician sees "A lab supervisor releases the results."; the note asks only for solution and solids gold (not the sampling point); typed results lift it; the board's Ready for release tile and lane hold the sample; a supervisor releases it from Wash efficiency with no QA/QC review in its history; solution gold over the Final underflow limit with no sampling point holds the release, Thickener feed lifts it, Final underflow keeps it; a fire assay lab batch releases its samples from their last step; Before release brings the step back for unreleased samples only (entering it needs the results, not the sampling point; the board lane is QA/QC review again); turned off again, a sample already at QA/QC review is released from there. Last run: **29 PASS**, no console errors. |
 | `test/v21-tests.js` | New: the polish pass. One sample, one ID on the button; Same details again after a submission and Same as last on a fresh form (staff batch and walk-in single; codes never copied); the site sample code on board cards; the receipt check without “tag none given”; 1 bag, not 1 bag(s); the browser tab named after the open sample or batch; the ledger search says site code; suggestions under the header search (site code, ID, batch reference, submitter; marked match; arrow keys, Enter, Escape, click; a whole ID with Enter still just opens it; / jumps to the search; signed out only your own recent samples); recently opened on the Sample tab (newest first, live status, one click, Clear, each person their own list, a walk-in's registered samples); the Sample tab pressed again goes back to its start page; the batch page's progress, expected finish and no empty Source column; on a phone the ledger and the batch page read as cards with no sideways scroll, IDs on one line; on a computer the ledger is still a table. Lab batches optional: Not required by default; an exploration fire assay sample goes through its steps, has its gold typed on the record, enters QA/QC review and is released with no batch; a results file attached on a record in no batch saves onto the record and makes no batch; Required brings back the batch rule. Last run: **60 PASS**, no console errors. |
@@ -137,6 +137,35 @@ too much colour … manage the colours well".**
   appear only when they mean something and there is something to count. The Submit steps, Batches, Storage and Ledger cards, the
   evaluation box, the Results heading, route steps and the type chip lost their own colours; zero counts are plain.
 
+**Evening (Zuriel): "You see how colors are used in the 'sample' tab, this is better. plain white and grey is not good. the board page
+used to be nicer"; fire assay is for AuFx and the Analysis should show it; "Plant & goldroom" becomes "Processing" (Primary Crusher →
+Process Plant → TSF); Environment can submit from anywhere; testwork types are duplicates; carbon and elution are process plant samples,
+the gold room sends only bullion; the Gold assay subsection is not needed.** (v24c)
+- **Sample types**, one of each: *Ore (mine & exploration)*: RC chips, diamond core, grade control blast holes, channel / grab / trench,
+  ROM / stockpile, soil / stream sediment. *Processing (crusher to TSF)*: belt cut, mill sample, CCD sample, carbon, elution sample,
+  gravity concentrate, TSF sample. *Gold room*: bullion. *Environment*: water, soil / sediment. *Quality control*: assay pulp. *Other*.
+  Waste rock, plant tails, CIL slurry, process solution and the five testwork types are `off: true`: no route in use names them any more
+  (they were taken out of the routes' type lists), so they leave the form, and records already on them keep them; an admin who puts back
+  a route that names one brings it back.
+- **Analysis** is one plain list, no sections: the type's own analyses, then any other a route in use names the type for (TSF sample gets
+  Water quality from ENV-W), and for a testwork purpose (bottle roll …) the leach products' analyses (AuFx, AuSx, cyanide) on any type,
+  since testwork samples now come in as the site's own type. Type *Other* lists every analysis in use.
+- **AuFx named**: fire assay analyses read *AuFx: fire assay, AAS finish*, *AuFx: fire assay, gravimetric finish (high grade)*,
+  *AuFx: screen fire assay (coarse gold)*, *AuFx: check / umpire assay*; their results and the concentrate's report **AuFx** (key `Au`
+  unchanged, so old results and files still match); the routes (EXP-FA, GC-FA, FA-GRAV, SFA, CHECK) and their finish steps say AuFx.
+  Bullion: Au & Ag fineness; Gravity concentrate: AuFx, Hg & As.
+- **Catalogue groups**: Ore grade (AuFx) · Processing (with carbon loading and elution solution) · Gold room (bullion) · Environment ·
+  Physical & chemistry (· Metallurgical testwork, not in use). Purposes: Mine & geology first, then Processing (process control
+  "crusher, plant, TSF", reconciliation), Gold room (bullion), testwork, Environment ("Environmental compliance (any site)"; on a TSF
+  sample it picks water quality, which ENV-W runs for TSF samples), QC, Other.
+- **Colour, the Sample tab's way**: panels stay white; meaning is a soft tint, a coloured pill or a coloured edge. Board tiles are white with
+  a coloured top edge (blue awaiting receipt, gold in the lab, red late or re-assay requested, amber re-assaying or not stored, green ready
+  or released) and take their tint when they count something; empty ones keep the edge and a quiet number (no more grey dashed tiles).
+  Storage and Ledger cards the same; ledger IN / OUT green and amber pills; storage rows edged by state. Submit: solid gold step numbers,
+  the type chip in its group's colour (ore brown, processing blue, gold room gold, environment green, QC violet), the route line gold-soft.
+  Routes: the test catalogue tinted by group, the steps as soft chips by phase. Batches' header and the evaluation box are soft blue,
+  flags amber and red.
+
 For the Azure build:
 - Source: `build24.py` replaces `build20.py` (adds `app24-p.js` before `app10-f.js`, and `css24.css`). `build.py`: eight example accounts
   (the metallurgist), the Department column in the account table, one paragraph no longer there.
@@ -151,7 +180,9 @@ For the Azure build:
 
 Tests: new `v24-tests.js`. The suites written before v24 test the sign-off release: `harness.js` seeds `relMode: "signoff"` unless
 `V24=1` (`useSignoff()`), `useQcStep()` chooses sign-off first, `createBatch()` opens *Make a batch by hand*, `fillForm()` opens the
-received time before typing it, and Google Fonts are answered locally. `v23-tests.js` counts 27 routes in use.
+received time before typing it, and Google Fonts are answered locally. `v23-tests.js` counts 27 routes in use. v24c: `v24-tests.js` checks the type groups (gold room bullion only, carbon and elution under
+Processing, no testwork or duplicate types), the plain AuFx-first analysis list, Environment on a TSF sample, and a bottle roll solution
+sent as drill core; `v23-tests.js` expects the Processing group and a plain list.
 
 ## What v23 changes: the routes the lab runs, in its own words, and a cleaner Submit form (2026-10-17)
 

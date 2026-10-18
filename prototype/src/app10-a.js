@@ -328,11 +328,17 @@ const editedRoutes = routes => routes.filter(r => { const d = DEFAULT_ROUTES.fin
 const testRank = r => { const i = TESTS.findIndex(t => t.key === (r.tests || [])[0]); return i < 0 ? 999 : i; };
 const routeCat = r => testOf((r.tests || [])[0])?.cat || "Other";
 /* Recommended test for a sample type; the purpose can steer it (testwork, environmental, plant). */
+/* Testwork samples come from the main sites (v24c): for a testwork purpose any type also offers the leach products' analyses. */
+const TESTWORK_TESTS = ["aufx", "ausx", "aufx_ausx", "aufx_ausx_cn", "ausx_cn", "cn_only"];
 function defaultTest(typeKey, purposeKey){
-  const all = typeOf(typeKey)?.tests || ["fa_aas"], list = all.filter(testOn);
-  const pref = { met: ["bottle", "cil_test", "pri", "grg", "diag", "commin", "cn_sol"], env: ["water", "soil", "tsf", "aba"], hse: ["water", "soil"], qc: ["check"],
-    plant: ["plant_solids", "ccd", "eluate", "residue", "cil_survey", "carbon", "solution"], bullion: ["bullion", "c_load", "elu_sol"] }[purposeKey] || [];
-  return pref.find(x => list.includes(x)) || list[0] || all[0];
+  /* The same analyses the form lists for the type (v24c): its own, those a route in use names it for, and for testwork the leach products'. */
+  const t = typeOf(typeKey), own = t?.tests || ["fa_aas"];
+  const named = t ? liveRoutes().filter(r => (r.types || []).includes(t.key)).flatMap(r => r.tests || []) : [];
+  const list = [...new Set([...own, ...TESTS.map(x => x.key).filter(k => named.includes(k)), ...(purpBase(purposeKey) === "met" ? TESTWORK_TESTS : [])])].filter(testOn);
+  /* Environment may send a sample from any site (v24c). The older tests here only count when an admin has put their routes back in use. */
+  const pref = { met: ["bottle", "cil_test", "pri", "grg", "diag", "commin", "cn_sol"], env: ["tsf", "water", "soil", "aba", "cn_spec"], hse: ["water", "soil"], qc: ["check"],
+    plant: ["plant_solids", "ccd", "eluate", "residue", "cil_survey", "carbon", "solution"], bullion: ["bullion"] }[purposeKey] || [];
+  return pref.find(x => list.includes(x)) || list[0] || own[0];
 }
 /* The route must perform the test; among those, a purpose match counts most, then a sample-type match. Null when no route performs it. */
 function routeFor(typeKey, testKey, purposeKey){

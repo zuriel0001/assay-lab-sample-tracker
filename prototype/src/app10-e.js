@@ -4,6 +4,8 @@ const openRoutes = new Set();
 document.addEventListener("click", e => { const b = e.target.closest("[data-route]"); if (b){ routesFocus = b.dataset.route; setTab("routes"); } });
 let routeEditGo = "";
 document.addEventListener("click", e => { const b = e.target.closest("[data-edit-route]"); if (b){ routeEditGo = b.dataset.editRoute; setTab("stages"); } });
+/* Each catalogue group carries the colour of its sample types (v24c). */
+const CAT_TONE = { "Ore grade (AuFx)": "ore", "Processing": "plant", "Gold room": "gold", "Environment": "env", "Physical & chemistry": "qc" };
 function renderRoutes(){
   const v = $("#view-routes");
   if (routesFocus){ openRoutes.add(routesFocus); routesType = ""; routesQ = ""; }
@@ -15,7 +17,7 @@ function renderRoutes(){
       <div class="row" style="gap:6px"><span class="ph-tag ph-intake">Intake</span><span class="ph-tag ph-prep">Preparation</span><span class="ph-tag ph-test">Analysis / test</span><span class="ph-tag ph-qc">QA/QC</span></div>
     </div>
     <div class="panel stack" style="gap:10px"><h3>All ${liveTests.length} tests</h3>
-      ${TEST_CATS.filter(c => liveTests.some(t => t.cat === c)).map(c => `<div class="cat-row"><div class="cat-name">${esc(c)}</div><div class="cat-tests">${liveTests.filter(t => t.cat === c).map(t => { const r = routeFor("", t.key, ""); return r ? `<button type="button" class="tchip" data-route="${esc(r.code)}">${esc(t.name)}</button>` : ""; }).join("")}</div></div>`).join("")}
+      ${TEST_CATS.filter(c => liveTests.some(t => t.cat === c)).map(c => `<div class="cat-row t-${CAT_TONE[c] || "other"}"><div class="cat-name">${esc(c)}</div><div class="cat-tests">${liveTests.filter(t => t.cat === c).map(t => { const r = routeFor("", t.key, ""); return r ? `<button type="button" class="tchip" data-route="${esc(r.code)}">${esc(t.name)}</button>` : ""; }).join("")}</div></div>`).join("")}
     </div>
     <div class="row">
       <select class="inp" id="rtType" style="width:auto;max-width:100%"><option value="">All sample types</option>${TYPES.filter(t => typeOn(t.key) || t.key === routesType).map(t => `<option value="${esc(t.key)}" ${routesType === t.key ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select>

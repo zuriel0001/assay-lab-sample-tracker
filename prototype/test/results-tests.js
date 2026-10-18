@@ -303,7 +303,7 @@ const posOf = (b, sid) => batchDoc(b).pos.find(x => x.t === "s" && x.sid === sid
   await Tc.click('[data-tab="routes"]'); await Tc.waitForSelector("#rtList");
   await Tc.click('#route-EXP-FA summary');
   const rt = await Tc.textContent("#route-EXP-FA");
-  check(/Results reported:\s*Gold \(g\/t\)/.test(rt) && /Lab batch:\s*Fire assay, 50-position furnace batch/.test(rt), "routes tab shows what each route reports and its batch");
+  check(/Results reported:\s*AuFx \(g\/t\)/.test(rt) && /Lab batch:\s*Fire assay, 50-position furnace batch/.test(rt), "routes tab shows what each route reports (v24c: fire assay reports AuFx) and its batch");
   const Vw = await newUser(browser, { uid: "u_v", name: "Viewer", canEdit: false, names }); await signIn(Vw, "viewer");
   await Vw.click('[data-tab="batches"]'); await Vw.waitForTimeout(400);
   check(!(await Vw.$("#nbProf")) && (await Vw.$$("[data-bsel]")).length >= 1, "viewer sees batches but can't create one");

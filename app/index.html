@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 df3b50dba987) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 fdd60bbf3ad2) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -667,50 +667,68 @@ ol.steps li,.tchip{font-size:14px}
 
 nav.tabs button{padding:10px 12px}
 nav.tabs .count.flag{background:var(--bad-soft);color:var(--bad)}
-/* Board: a tile with nothing in it is plainly not a button. */
-div.stat.tile.zero{background:var(--soft);border-style:dashed;box-shadow:none}
-div.stat.tile.zero .n,div.stat.tile.zero .l{color:var(--muted);opacity:.75}
-button.stat.tile{box-shadow:var(--shadow)}
 
-/* Colour, v24b: surfaces stay neutral. The accent (gold) marks what to press and where you are; green, amber and red appear only
-   when they mean something (done, needs attention, wrong), and only when there is something to count. */
+/* Colour, v24c: the Sample tab's way. Panels stay white; meaning is carried by soft tints (as the released box), coloured pills and dots,
+   and a coloured edge. A tile or card with something in it takes its tint; an empty one keeps its coloured edge and a quiet number. */
+:root{--c-ore:#8a5a2b;--c-ore-soft:#f3e7da;--c-plant:#1f6f8b;--c-plant-soft:#dcedf3;--c-env:#2f7d4f;--c-env-soft:#e1f1e6;--c-violet:#6b4fa3;--c-violet-soft:#ebe4f6}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--c-ore:#d9a46b;--c-ore-soft:#3a2a1a;--c-plant:#7cc3dc;--c-plant-soft:#16303a;--c-env:#6cc48f;--c-env-soft:#1d3326;--c-violet:#b9a0e8;--c-violet-soft:#2c2340}}
+:root[data-theme="dark"]{--c-ore:#d9a46b;--c-ore-soft:#3a2a1a;--c-plant:#7cc3dc;--c-plant-soft:#16303a;--c-env:#6cc48f;--c-env-soft:#1d3326;--c-violet:#b9a0e8;--c-violet-soft:#2c2340}
+.stat.tile,.cstats .stat{border-top:4px solid var(--line)}
+.stat.tile.info,.stat.c-blue{--t:var(--info);--ts:var(--info-soft)}
+.stat.tile.gold{--t:var(--accent);--ts:var(--accent-soft)}
+.stat.tile.ok,.stat.c-green{--t:var(--ok);--ts:var(--ok-soft)}
+.stat.tile.warn,.stat.c-amber,.stat.c-orange{--t:var(--warn);--ts:var(--warn-soft)}
+.stat.tile.bad,.stat.c-red{--t:var(--bad);--ts:var(--bad-soft)}
+.stat.c-teal{--t:var(--c-plant);--ts:var(--c-plant-soft)}
+.stat.c-violet{--t:var(--c-violet);--ts:var(--c-violet-soft)}
+.stat.c-grey{--t:var(--muted);--ts:var(--soft)}
+.stat.tile[class*=" "],.cstats .stat[class*="c-"]{border-top-color:var(--t,var(--line))}
+.stat.tile:not(.zero),.cstats .stat:not(.zero){background:var(--ts,var(--panel))}
+.stat.tile:not(.zero) .n,.cstats .stat:not(.zero) .n{color:var(--t,var(--ink))}
+.stat.tile.zero .n,.cstats .stat.zero .n{color:var(--muted)}
+button.stat.tile{box-shadow:var(--shadow)}
+button.stat.tile:hover,.cstats button.stat:hover{border-color:var(--t,var(--muted));border-top-color:var(--t,var(--muted))}
+
 .page-head{gap:10px;align-items:baseline}
 .cstats{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 .cstats .stat{font:inherit;text-align:left;color:var(--ink);cursor:default}
 .cstats button.stat{cursor:pointer}
-.cstats button.stat:hover{border-color:var(--muted)}
-.cstats .stat[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent)}
-.cstats .stat.zero .n{color:var(--muted)}
-.stat.c-red:not(.zero) .n{color:var(--bad)}
-.stat.c-amber:not(.zero) .n,.stat.c-violet:not(.zero) .n{color:var(--warn)}
-#view-storage tr.st-past td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
-#view-storage tr.st-soon td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
-.dirp{display:inline-block;font-family:var(--f-mono);font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em;background:var(--soft);color:var(--ink)}
-.dirp.dir-rev{color:var(--muted)}
+.cstats .stat[aria-pressed="true"],.stat.tile[aria-pressed="true"]{outline:2px solid var(--t,var(--ink));outline-offset:1px}
+#view-storage tr.st-past td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
+#view-storage tr.st-soon td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
+#view-storage tr.st-noloc td:first-child{box-shadow:inset 4px 0 0 var(--c-violet)}
+#view-storage tr.st-ok td:first-child{box-shadow:inset 4px 0 0 var(--ok)}
+.dirp{display:inline-block;font-family:var(--f-mono);font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em}
+.dirp.dir-in{background:var(--ok-soft);color:var(--ok)}.dirp.dir-out{background:var(--warn-soft);color:var(--warn)}.dirp.dir-rev{background:var(--soft);color:var(--muted)}
 
-/* Submit / Register: three short steps, plain cards; the step number carries the accent. */
+/* Submit / Register: three short steps on white cards; the step number is solid gold, as the Track button, and the sample type shows its group's colour. */
 .sub-form{gap:14px}
 .sub-head h2{margin:0}
 .sub-step{border:1px solid var(--line);border-radius:10px;padding:12px 14px 14px;background:var(--panel)}
 .sub-t{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;font-size:18px;margin-bottom:10px}
-.sub-t .num{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:14px;flex:none}
+.sub-t .num{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:15px;flex:none}
 .sub-step .form{margin:0}
 .sub-form select,.sub-form input:not([type=checkbox]):not([type=radio]){min-height:46px}
 .typechip{display:inline-block;font-family:var(--f-body);font-weight:600;font-size:13px;margin-left:auto;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--muted)}
 .typechip:empty{display:none}
+.typechip.t-ore{background:var(--c-ore-soft);color:var(--c-ore)}
+.typechip.t-plant{background:var(--c-plant-soft);color:var(--c-plant)}
+.typechip.t-gold{background:var(--accent-soft);color:var(--accent)}
+.typechip.t-env{background:var(--c-env-soft);color:var(--c-env)}
+.typechip.t-qc,.typechip.t-met{background:var(--c-violet-soft);color:var(--c-violet)}
 .f.pair{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:10px}
 .f.pair > label.f{min-width:0}
 details.recv-at{align-self:end;min-height:46px;display:flex;flex-direction:column;justify-content:center;font-size:15px}
 details.recv-at > summary{cursor:pointer;color:var(--muted);list-style:none;min-height:46px;display:flex;align-items:center;gap:4px}
 details.recv-at > summary::-webkit-details-marker{display:none}
-details.recv-at > summary b{color:var(--ink)}
+details.recv-at > summary b{color:var(--ok)}
 details.recv-at[open] > summary{min-height:28px}
 .sub-form details.form-more > summary .muted{font-weight:400;margin-left:6px}
 .sub-form .sticky-bar .btn.big{min-width:240px}
 @media (max-width:760px){.sub-form .sticky-bar .btn.big{flex:1 1 auto;min-width:0}.f.pair{grid-template-columns:minmax(0,1fr) 96px}}
 
 /* Batches */
-.batch-hero{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+.batch-hero{display:flex;flex-wrap:wrap;align-items:center;gap:14px;background:var(--info-soft);border-color:transparent}
 .batch-hero .btn.big{margin-left:auto}
 details.more-panel > summary{cursor:pointer;min-height:var(--tap);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 details.more-panel > summary h3{margin:0}
@@ -719,24 +737,37 @@ details.more-panel > summary h3{margin:0}
 .cert-file{margin:10px 0;font-size:15px}
 
 /* Evaluation, re-assay requests and the Results tab */
-.evalbox{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel);gap:10px}
+.evalbox{border:1px solid transparent;border-radius:10px;padding:12px 14px;background:var(--info-soft);gap:10px}
 ul.flags{margin:0;padding:0;list-style:none;display:grid;gap:4px}
-ul.flags li{font-size:14px;padding:4px 10px;border-radius:6px;background:var(--soft);color:var(--ink);border-left:3px solid var(--warn)}
-ul.flags li.bad{border-left-color:var(--bad)}
+ul.flags li{font-size:14px;padding:4px 10px;border-radius:6px;background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn)}
+ul.flags li.bad{background:var(--bad-soft);border-left-color:var(--bad)}
+.seg .ev-ok input:checked+span{color:var(--ok)}.seg .ev-query input:checked+span{color:var(--warn)}.seg .ev-redo input:checked+span{color:var(--bad)}
 ul.evlist{margin:0;padding:0;list-style:none;display:grid;gap:6px}
 ul.evlist li{font-size:15px}
 .evform{display:grid;gap:8px}
 .evform .seg span{padding:0 14px}
-table.restbl tr.due td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+table.restbl tr.due td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
 
-/* Routes: facts in a few lines, the steps as a plain row (the phase shows as a thin edge, as in the legend). */
+/* Routes: facts in a few lines, the steps as a row of soft chips coloured by phase (as the legend). */
 .rt-facts{display:grid;gap:3px}
 ol.flow{list-style:none;margin:6px 0 2px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
-ol.flow li{position:relative;display:inline-flex;align-items:baseline;gap:6px;font-size:14px;padding:4px 10px;border-radius:6px;background:var(--soft);border-left:3px solid var(--line)}
+ol.flow li{position:relative;display:inline-flex;align-items:baseline;gap:6px;font-size:14px;padding:4px 10px;border-radius:6px;background:var(--soft);border-left:4px solid var(--line)}
 ol.flow li i{font-style:normal;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
-ol.flow li.ph-intake,ol.flow li.ph-report{color:var(--muted)}
-ol.flow li .redo{color:var(--muted)}
+ol.flow li.ph-intake{background:var(--info-soft)}
+ol.flow li.ph-prep{background:var(--warn-soft)}
+ol.flow li.ph-test{background:var(--accent-soft)}
+ol.flow li.ph-qc{background:var(--ok-soft)}
+ol.flow li .redo{color:var(--warn)}
 details.route > summary .subtle{white-space:nowrap}
+.cat-row .tchip{border-color:transparent}
+.cat-row.t-ore .tchip{background:var(--c-ore-soft)}.cat-row.t-ore .cat-name{color:var(--c-ore)}
+.cat-row.t-plant .tchip{background:var(--c-plant-soft)}.cat-row.t-plant .cat-name{color:var(--c-plant)}
+.cat-row.t-gold .tchip{background:var(--accent-soft)}.cat-row.t-gold .cat-name{color:var(--accent)}
+.cat-row.t-env .tchip{background:var(--c-env-soft)}.cat-row.t-env .cat-name{color:var(--c-env)}
+.cat-row.t-qc .tchip{background:var(--c-violet-soft)}.cat-row.t-qc .cat-name{color:var(--c-violet)}
+.cat-row .tchip:hover{border-color:var(--muted)}
+details.route-mini{background:var(--accent-soft);border-color:transparent}
+details.route-mini .code{background:var(--panel)}
 </style>
 
 <div class="wrap">
@@ -802,11 +833,11 @@ const S = (key, name, hours, phase, note = "", redo = false) => ({ key, name, ho
 /* What the analysis is for (v24: grouped; the lab only assays, so a testwork programme such as a bottle roll is what the samples are for,
    not a route). A sub-purpose (sub) chooses routes as its base purpose does. */
 const PURPOSES = [
-  { key: "plant",     g: "Process plant", name: "Plant process control" },
-  { key: "recon",     g: "Process plant", name: "Mine-to-mill reconciliation" },
-  { key: "bullion",   g: "Process plant", name: "Gold room / bullion" },
   { key: "exp",       g: "Mine & geology", name: "Exploration / resource definition" },
   { key: "gc",        g: "Mine & geology", name: "Grade control (ore / waste)" },
+  { key: "plant",     g: "Processing", name: "Process control (crusher, plant, TSF)" },
+  { key: "recon",     g: "Processing", name: "Mine-to-mill reconciliation" },
+  { key: "bullion",   g: "Gold room", name: "Bullion (gold pour)" },
   { key: "met_br",    g: "Metallurgical testwork", name: "Bottle roll test", sub: "met" },
   { key: "met_cil",   g: "Metallurgical testwork", name: "CIL / CIP leach test", sub: "met" },
   { key: "met_grg",   g: "Metallurgical testwork", name: "Gravity (GRG) test", sub: "met" },
@@ -819,66 +850,68 @@ const PURPOSES = [
   { key: "met_strip", g: "Metallurgical testwork", name: "Carbon strip / elution test", sub: "met" },
   { key: "met_detox", g: "Metallurgical testwork", name: "Cyanide detox test", sub: "met" },
   { key: "met",       g: "Metallurgical testwork", name: "Other metallurgical testwork" },
-  { key: "env",       g: "Environment & safety", name: "Environmental compliance" },
+  { key: "env",       g: "Environment & safety", name: "Environmental compliance (any site)" },
   { key: "hse",       g: "Environment & safety", name: "Health & safety / occupational hygiene" },
   { key: "qc",        g: "Quality control", name: "Quality control / check assay" },
   { key: "other",     g: "Other", name: "Other" }
 ];
 const purpBase = k => PURPOSES.find(p => p.key === k)?.sub || k;
 /* Test catalogue, grouped the way a mine assay lab groups its work. */
-const TEST_CATS = ["Gold assay", "Process plant", "Gold room", "Physical tests", "Chemistry", "Environment & cyanide", "Leach & recovery testwork", "Gravity & flotation", "Plant & gold room"];
+/* v24c: ore and exploration samples end in AuFx (gold in the solids, by fire assay); processing runs from the primary crusher through the plant
+   to the TSF, carbon and elution included; the gold room sends bullion only. Testwork is no longer a test of its own (the lab assays its samples). */
+const TEST_CATS = ["Ore grade (AuFx)", "Processing", "Gold room", "Environment", "Physical & chemistry", "Metallurgical testwork"];
 const TESTS = [
-  { key: "fa_aas",       cat: "Gold assay", name: "Gold by fire assay, AAS finish" },
-  { key: "fa_grav",      cat: "Gold assay", name: "Gold by fire assay, gravimetric finish (high grade)" },
-  { key: "sfa",          cat: "Gold assay", name: "Screen fire assay (coarse / nuggety gold)" },
-  { key: "ar_au",        cat: "Gold assay", name: "Low-level gold by aqua regia / BLEG (soils, sediments)" },
-  { key: "check",        cat: "Gold assay", name: "Check / umpire assay (external lab)" },
-  /* Version 23: the process plant and gold room tests in the lab's own words. AuFx: gold in the solids (fire assay); AuSx: gold in the solution. */
-  { key: "aufx_ausx",    cat: "Process plant", name: "Slurry: AuFx & AuSx" },
-  { key: "aufx",         cat: "Process plant", name: "Solids: AuFx" },
-  { key: "aufx_m",       cat: "Process plant", name: "Belt cut: AuFx & moisture" },
-  { key: "ausx",         cat: "Process plant", name: "Solution: AuSx" },
-  { key: "aufx_ausx_cn", cat: "Process plant", name: "Slurry: AuFx, AuSx & cyanide" },
-  { key: "ausx_cn",      cat: "Process plant", name: "Solution: AuSx & cyanide" },
-  { key: "cn_only",      cat: "Process plant", name: "Cyanide: NaCN, WAD & pH" },
-  { key: "c_load",       cat: "Gold room", name: "Carbon: Au loading" },
-  { key: "elu_sol",      cat: "Gold room", name: "Elution solution: AuSx, AgSx & Cu" },
-  { key: "cn_sol",       cat: "Gold assay", name: "Cyanide-soluble gold (LeachWELL)" },
-  { key: "bottle",       cat: "Leach & recovery testwork", name: "Bottle roll cyanidation test" },
-  { key: "cil_test",     cat: "Leach & recovery testwork", name: "CIL / CIP leach test with carbon" },
-  { key: "pri",          cat: "Leach & recovery testwork", name: "Preg-robbing test (gold-rob test, PRI)" },
-  { key: "diag",         cat: "Leach & recovery testwork", name: "Diagnostic leach (gold deportment)" },
-  { key: "reagent",      cat: "Leach & recovery testwork", name: "Cyanide & lime consumption (reagent optimisation)" },
-  { key: "o2",           cat: "Leach & recovery testwork", name: "Oxygen uptake rate test" },
-  { key: "column",       cat: "Leach & recovery testwork", name: "Column / heap leach with agglomeration" },
-  { key: "ilr",          cat: "Leach & recovery testwork", name: "Intensive leach test (gravity concentrate)" },
-  { key: "grg",          cat: "Gravity & flotation", name: "Gravity recoverable gold (GRG)" },
-  { key: "flot",         cat: "Gravity & flotation", name: "Flotation test (rougher / cleaner kinetics)" },
-  { key: "commin",       cat: "Physical tests", name: "Comminution & abrasion (SMC, BWi, RWi, Ai)" },
-  { key: "density",      cat: "Physical tests", name: "Specific gravity & bulk density" },
-  { key: "psd",          cat: "Physical tests", name: "Particle size distribution" },
-  { key: "moisture",     cat: "Physical tests", name: "Moisture content" },
-  { key: "settle",       cat: "Physical tests", name: "Settling & rheology (thickener, flocculant)" },
-  { key: "icp",          cat: "Chemistry", name: "Multi-element ICP" },
-  { key: "delet",        cat: "Chemistry", name: "Deleterious & cyanicide elements (Cu, As, Sb, Hg…)" },
-  { key: "leco",         cat: "Chemistry", name: "Sulphur & carbon speciation (total / sulphide S, organic C)" },
-  { key: "mineral",      cat: "Chemistry", name: "Mineralogy (XRD, QEMSCAN / MLA, gold deportment)" },
-  { key: "plant_solids", cat: "Plant & gold room", name: "Mill sample assay (head grade, grind, moisture)" },
-  { key: "ccd",          cat: "Plant & gold room", name: "CCD survey (solution gold, wash efficiency)" },
-  { key: "residue",      cat: "Plant & gold room", name: "Tails / residue gold loss (solid & solution)" },
-  { key: "cil_survey",   cat: "Plant & gold room", name: "CIL / CIP tank survey" },
-  { key: "carbon",       cat: "Plant & gold room", name: "Carbon loading & activity" },
-  { key: "eluate",       cat: "Plant & gold room", name: "Elution solution assay (eluate, strip & electrowinning solutions)" },
-  { key: "elution",      cat: "Plant & gold room", name: "Carbon strip test (lab elution of loaded carbon)" },
-  { key: "solution",     cat: "Plant & gold room", name: "Process solution assay (Au, Ag, Cu, cyanide)" },
-  { key: "conc",         cat: "Process plant", name: "Concentrate assay" },
-  { key: "bullion",      cat: "Gold room", name: "Bullion fineness (doré)" },
-  { key: "tsf",          cat: "Environment & cyanide", name: "TSF sample characterisation (Au, CN, S, metals)" },
-  { key: "cn_spec",      cat: "Environment & cyanide", name: "Cyanide speciation (free, WAD, total, SCN)" },
-  { key: "detox",        cat: "Environment & cyanide", name: "Cyanide destruction (detox) test" },
-  { key: "aba",          cat: "Environment & cyanide", name: "Acid-base accounting & NAG (acid rock drainage)" },
-  { key: "water",        cat: "Environment & cyanide", name: "Water quality (CN, metals, pH, solids)" },
-  { key: "soil",         cat: "Environment & cyanide", name: "Soil / sediment (metals, Hg, As, CN)" }
+  { key: "fa_aas",       cat: "Ore grade (AuFx)", name: "AuFx: fire assay, AAS finish" },
+  { key: "fa_grav",      cat: "Ore grade (AuFx)", name: "AuFx: fire assay, gravimetric finish (high grade)" },
+  { key: "sfa",          cat: "Ore grade (AuFx)", name: "AuFx: screen fire assay (coarse gold)" },
+  { key: "ar_au",        cat: "Ore grade (AuFx)", name: "Soil gold: aqua regia / BLEG (low level)" },
+  { key: "check",        cat: "Ore grade (AuFx)", name: "AuFx: check / umpire assay (external lab)" },
+  /* The processing tests in the lab's own words (v23). AuFx: gold in the solids (fire assay); AuSx: gold in the solution. */
+  { key: "aufx_ausx",    cat: "Processing", name: "Slurry: AuFx & AuSx" },
+  { key: "aufx",         cat: "Processing", name: "Solids: AuFx" },
+  { key: "aufx_m",       cat: "Processing", name: "Belt cut: AuFx & moisture" },
+  { key: "ausx",         cat: "Processing", name: "Solution: AuSx" },
+  { key: "aufx_ausx_cn", cat: "Processing", name: "Slurry: AuFx, AuSx & cyanide" },
+  { key: "ausx_cn",      cat: "Processing", name: "Solution: AuSx & cyanide" },
+  { key: "cn_only",      cat: "Processing", name: "Cyanide: NaCN, WAD & pH" },
+  { key: "c_load",       cat: "Processing", name: "Carbon: Au loading" },
+  { key: "elu_sol",      cat: "Processing", name: "Elution solution: AuSx, AgSx & Cu" },
+  { key: "cn_sol",       cat: "Ore grade (AuFx)", name: "Cyanide-soluble gold (LeachWELL)" },
+  { key: "bottle",       cat: "Metallurgical testwork", name: "Bottle roll cyanidation test" },
+  { key: "cil_test",     cat: "Metallurgical testwork", name: "CIL / CIP leach test with carbon" },
+  { key: "pri",          cat: "Metallurgical testwork", name: "Preg-robbing test (gold-rob test, PRI)" },
+  { key: "diag",         cat: "Metallurgical testwork", name: "Diagnostic leach (gold deportment)" },
+  { key: "reagent",      cat: "Metallurgical testwork", name: "Cyanide & lime consumption (reagent optimisation)" },
+  { key: "o2",           cat: "Metallurgical testwork", name: "Oxygen uptake rate test" },
+  { key: "column",       cat: "Metallurgical testwork", name: "Column / heap leach with agglomeration" },
+  { key: "ilr",          cat: "Metallurgical testwork", name: "Intensive leach test (gravity concentrate)" },
+  { key: "grg",          cat: "Metallurgical testwork", name: "Gravity recoverable gold (GRG)" },
+  { key: "flot",         cat: "Metallurgical testwork", name: "Flotation test (rougher / cleaner kinetics)" },
+  { key: "commin",       cat: "Physical & chemistry", name: "Comminution & abrasion (SMC, BWi, RWi, Ai)" },
+  { key: "density",      cat: "Physical & chemistry", name: "Specific gravity & bulk density" },
+  { key: "psd",          cat: "Physical & chemistry", name: "Particle size distribution" },
+  { key: "moisture",     cat: "Physical & chemistry", name: "Moisture content" },
+  { key: "settle",       cat: "Physical & chemistry", name: "Settling & rheology (thickener, flocculant)" },
+  { key: "icp",          cat: "Physical & chemistry", name: "Multi-element ICP" },
+  { key: "delet",        cat: "Physical & chemistry", name: "Deleterious & cyanicide elements (Cu, As, Sb, Hg…)" },
+  { key: "leco",         cat: "Physical & chemistry", name: "Sulphur & carbon (LECO): total / sulphide S, organic C" },
+  { key: "mineral",      cat: "Physical & chemistry", name: "Mineralogy (XRD, QEMSCAN / MLA, gold deportment)" },
+  { key: "plant_solids", cat: "Processing", name: "Mill sample assay (head grade, grind, moisture)" },
+  { key: "ccd",          cat: "Processing", name: "CCD survey (solution gold, wash efficiency)" },
+  { key: "residue",      cat: "Processing", name: "Tails / residue gold loss (solid & solution)" },
+  { key: "cil_survey",   cat: "Processing", name: "CIL / CIP tank survey" },
+  { key: "carbon",       cat: "Processing", name: "Carbon loading & activity" },
+  { key: "eluate",       cat: "Processing", name: "Elution solution assay (eluate, strip & electrowinning solutions)" },
+  { key: "elution",      cat: "Processing", name: "Carbon strip test (lab elution of loaded carbon)" },
+  { key: "solution",     cat: "Processing", name: "Process solution assay (Au, Ag, Cu, cyanide)" },
+  { key: "conc",         cat: "Processing", name: "Gravity concentrate: AuFx, Hg & As" },
+  { key: "bullion",      cat: "Gold room", name: "Bullion: Au & Ag fineness" },
+  { key: "tsf",          cat: "Processing", name: "TSF sample characterisation (Au, CN, S, metals)" },
+  { key: "cn_spec",      cat: "Environment", name: "Cyanide speciation (free, WAD, total, SCN)" },
+  { key: "detox",        cat: "Environment", name: "Cyanide destruction (detox) test" },
+  { key: "aba",          cat: "Environment", name: "Acid-base accounting & NAG (acid rock drainage)" },
+  { key: "water",        cat: "Environment", name: "Water quality (CN, metals, pH, solids)" },
+  { key: "soil",         cat: "Environment", name: "Soil / sediment (metals, Hg, As, CN)" }
 ];
 const SHIFT = { k: "shift", l: "Shift", o: ["Day", "Night"] };
 /* Sampling points, the same at submission (sample details) and on the results, so a limit for one point follows what the submitter chose. */
@@ -892,89 +925,90 @@ const BELT_PTS = ["Mill feed conveyor", "Crusher product conveyor", "Stockpile r
 /* tests: recommended tests for the type, first = default (the first one a route in use performs). pur: the usual purpose. fields: extra details
    asked at submission. check: what the technician checks at receipt. */
 const TYPES = [
-  { key: "rc", group: "Ore (exploration, geology, mine)", pur: "exp", name: "RC chips (reverse circulation)", tests: ["fa_aas", "sfa", "fa_grav", "icp", "cn_sol", "leco", "bottle", "density", "delet", "aba"],
+  { key: "rc", group: "Ore (mine & exploration)", pur: "exp", name: "RC chips (reverse circulation)", tests: ["fa_aas", "fa_grav", "sfa", "cn_sol", "icp", "leco", "moisture", "density"],
     fields: [{ k: "hole", l: "Hole ID", ph: "e.g. KRC-0412" }, { k: "from", l: "From (m)", t: "number" }, { k: "to", l: "To (m)", t: "number" }, { k: "cond", l: "Sample condition", o: ["Dry", "Moist", "Wet"] }],
     check: "Bag count and numbers match the sheet; wet or split bags noted." },
-  { key: "core", group: "Ore (exploration, geology, mine)", pur: "exp", name: "Diamond drill core", tests: ["fa_aas", "sfa", "fa_grav", "icp", "leco", "density", "bottle", "pri", "diag", "commin", "cn_sol", "mineral", "delet", "aba"],
+  { key: "core", group: "Ore (mine & exploration)", pur: "exp", name: "Diamond drill core", tests: ["fa_aas", "fa_grav", "sfa", "cn_sol", "icp", "leco", "moisture", "density", "delet"],
     fields: [{ k: "hole", l: "Hole ID", ph: "e.g. KDD-0231" }, { k: "from", l: "From (m)", t: "number" }, { k: "to", l: "To (m)", t: "number" }, { k: "size", l: "Core size", o: ["PQ", "HQ", "NQ", "BQ"] }, { k: "cut", l: "Core portion", o: ["Half core", "Quarter core", "Whole core"] }],
     check: "Bags or trays match the cut sheet; intervals continuous, no gaps or overlaps." },
-  { key: "gc_bh", group: "Ore (exploration, geology, mine)", pur: "gc", name: "Grade control blast-hole cuttings", tests: ["fa_aas", "fa_grav", "cn_sol", "moisture"],
+  { key: "gc_bh", group: "Ore (mine & exploration)", pur: "gc", name: "Grade control blast-hole cuttings", tests: ["fa_aas", "fa_grav", "moisture"],
     fields: [{ k: "pit", l: "Pit" }, { k: "bench", l: "Bench / RL" }, { k: "pattern", l: "Blast pattern", ph: "e.g. P2-1140-07" }, { k: "holeno", l: "Hole number(s)" }],
     check: "Pattern and hole numbers match the sheet; samples arrive before the dig plan deadline." },
-  { key: "channel", group: "Ore (exploration, geology, mine)", pur: "exp", name: "Channel / grab / trench sample", tests: ["fa_aas", "sfa", "icp", "density"],
+  { key: "channel", group: "Ore (mine & exploration)", pur: "exp", name: "Channel / grab / trench sample", tests: ["fa_aas", "fa_grav", "sfa", "icp", "density"],
     fields: [{ k: "loc", l: "Face / trench location" }, { k: "len", l: "Sample length (m)", t: "number" }],
     check: "Labels legible; sample length recorded." },
-  { key: "rom", group: "Ore (exploration, geology, mine)", pur: "recon", name: "ROM ore / stockpile", tests: ["fa_aas", "moisture", "psd", "cn_sol", "commin", "column", "density"],
+  { key: "rom", group: "Ore (mine & exploration)", pur: "recon", name: "ROM ore / stockpile", tests: ["fa_aas", "fa_grav", "moisture", "psd", "cn_sol", "density", "delet"],
     fields: [{ k: "pile", l: "Stockpile / truck reference" }, SHIFT],
     check: "Stockpile or truck reference recorded." },
-  { key: "waste", group: "Ore (exploration, geology, mine)", pur: "env", name: "Waste rock / overburden (acid rock drainage)", tests: ["aba", "leco", "icp", "density"],
-    fields: [{ k: "dump", l: "Dump / pit location" }, { k: "lith", l: "Lithology" }],
-    check: "Location and lithology labelled; bags sealed." },
-  { key: "soil_geo", group: "Ore (exploration, geology, mine)", pur: "exp", name: "Soil / stream sediment (geochemistry)", tests: ["ar_au", "icp", "fa_aas"],
+  { key: "soil_geo", group: "Ore (mine & exploration)", pur: "exp", name: "Soil / stream sediment (geochemistry)", tests: ["ar_au", "fa_aas", "icp"],
     fields: [{ k: "station", l: "Grid / line / station" }, { k: "depth", l: "Depth (cm)", t: "number" }, { k: "hor", l: "Horizon", o: ["B horizon", "C horizon", "Laterite", "Stream sediment"] }],
     check: "Station numbers match the sheet; samples dry and not mixed." },
-  { key: "plant_feed", group: "Plant & gold room", pur: "plant", name: "Mill sample", tests: ["aufx_ausx", "aufx", "ausx", "cn_only", "plant_solids", "psd", "moisture", "cn_sol", "fa_aas", "o2", "settle", "reagent", "pri"],
-    fields: [{ k: "point", l: "Sampling point", o: MILL_PTS }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
-    check: "Shift and sampling point labelled; bucket sealed with no spillage." },
-  { key: "ccd", group: "Plant & gold room", pur: "plant", name: "CCD sample", hold: 24, holdWhat: "solution gold (solution not separated)", haz: ["cn"], tests: ["aufx_ausx_cn", "ausx_cn", "cn_only", "aufx_ausx", "ausx", "ccd", "settle", "solution", "cn_spec", "residue"],
-    fields: [{ k: "point", l: "Sampling point", o: CCD_PTS }, { k: "stage", l: "CCD thickener", ph: "e.g. CCD 1" }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
-    check: "One container per thickener and stream, labelled; solution not separated in transit; delivered promptly." },
-  { key: "tsf", group: "Plant & gold room", pur: "plant", name: "TSF sample", hold: 336, holdWhat: "cyanide (NaOH-preserved)", cool: 6, haz: ["cn"], tests: ["aufx_ausx_cn", "ausx_cn", "cn_only", "aufx_ausx", "ausx", "tsf", "cn_spec", "settle", "aba", "psd", "leco", "icp"],
-    fields: [{ k: "point", l: "Sampling point", o: TSF_PTS }, { k: "cell", l: "TSF cell / location" }],
-    check: "Cyanide bottles preserved; cooler temperature recorded." },
-  { key: "belt", group: "Plant & gold room", pur: "plant", name: "Belt cut sample", tests: ["aufx_m", "aufx", "moisture", "psd"],
+  { key: "belt", group: "Processing (crusher to TSF)", pur: "plant", name: "Belt cut sample (crusher / conveyor)", tests: ["aufx_m", "aufx", "moisture", "psd"],
     fields: [{ k: "point", l: "Conveyor", o: BELT_PTS }, SHIFT, { k: "time", l: "Cut time", ph: "e.g. 14:30" }],
     check: "Full cut in a sealed bag, conveyor and time labelled; weighed wet on arrival." },
-  { key: "bullion", group: "Plant & gold room", pur: "bullion", name: "Bullion", unit: "g", tests: ["bullion"],
-    fields: [{ k: "bar", l: "Pour / bar number" }, { k: "gross", l: "Gross bar mass (g)", t: "number" }, { k: "escort", l: "Escort / witness" }],
-    check: "Bar number, gross mass and seal match the gold-room dispatch; two people present at all times." },
-  { key: "carbon", group: "Plant & gold room", pur: "plant", name: "Carbon", haz: ["cn"], tests: ["c_load", "carbon", "elution", "moisture"],
+  { key: "plant_feed", group: "Processing (crusher to TSF)", pur: "plant", name: "Mill sample", tests: ["aufx_ausx", "aufx", "ausx", "cn_only", "psd", "moisture"],
+    fields: [{ k: "point", l: "Sampling point", o: MILL_PTS }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
+    check: "Shift and sampling point labelled; bucket sealed with no spillage." },
+  { key: "ccd", group: "Processing (crusher to TSF)", pur: "plant", name: "CCD sample", hold: 24, holdWhat: "solution gold (solution not separated)", haz: ["cn"], tests: ["aufx_ausx_cn", "ausx_cn", "cn_only", "aufx_ausx", "ausx", "aufx"],
+    fields: [{ k: "point", l: "Sampling point", o: CCD_PTS }, { k: "stage", l: "CCD thickener", ph: "e.g. CCD 1" }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
+    check: "One container per thickener and stream, labelled; solution not separated in transit; delivered promptly." },
+  { key: "carbon", group: "Processing (crusher to TSF)", pur: "plant", name: "Carbon", haz: ["cn"], tests: ["c_load", "moisture"],
     fields: [{ k: "ctype", l: "Carbon type", o: CARBON_PTS }, { k: "batch", l: "Tank / elution batch no." }],
     check: "Seal intact; gold-room custody form signed." },
-  { key: "elution", group: "Plant & gold room", pur: "plant", name: "Elution sample", hold: 168, holdWhat: "solution gold", haz: ["cn", "acid"], tests: ["elu_sol", "eluate", "solution", "cn_spec"],
+  { key: "elution", group: "Processing (crusher to TSF)", pur: "plant", name: "Elution sample", hold: 168, holdWhat: "solution gold", haz: ["cn", "acid"], tests: ["elu_sol"],
     fields: [{ k: "sol", l: "Solution", o: ELU_PTS }, { k: "batch", l: "Elution batch / strip no." }, { k: "bv", l: "Time or bed volume", ph: "e.g. 02:30 or BV 4" }],
     check: "Sealed bottle; elution batch and bed volume labelled; gold-room custody form signed." },
-  { key: "plant_tails", group: "Other plant & gold room samples", pur: "plant", name: "Plant tails / CIL residue", haz: ["cn"], tests: ["residue", "cn_sol", "psd", "diag", "leco", "settle", "detox", "cn_spec", "flot"],
-    fields: [{ k: "point", l: "Sampling point", o: ["Final tails", "Last CIL tank", "Thickener underflow", "Detox discharge"] }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
-    check: "Shift and sampling point labelled; solution not separated in transit." },
-  { key: "cil_slurry", group: "Other plant & gold room samples", pur: "plant", name: "CIL / CIP tank slurry", hold: 24, holdWhat: "free cyanide and solution gold", haz: ["cn"], tests: ["cil_survey", "solution", "cn_spec", "o2", "settle"],
-    fields: [{ k: "tanks", l: "Tank number(s)", ph: "e.g. Tanks 1–8" }, { k: "time", l: "Survey time", ph: "e.g. 08:00" }],
-    check: "One container per tank, labelled; delivered promptly (cyanide degrades)." },
-  { key: "solution", group: "Other plant & gold room samples", pur: "plant", name: "Process solution (leach, barren, process water)", hold: 336, holdWhat: "cyanide (NaOH-preserved)", haz: ["cn"], tests: ["solution", "cn_spec", "detox"],
-    fields: [{ k: "sol", l: "Solution", o: ["Leach tank", "Barren solution", "Process water", "Detox discharge", "Other"] }, { k: "time", l: "Sampling time" }, { k: "pres", l: "Preserved with NaOH (pH > 11)", o: ["Yes", "No"] }],
-    check: "Bottle sealed and labelled; preserved if cyanide is to be measured." },
-  { key: "conc", group: "Other plant & gold room samples", pur: "plant", name: "Gravity / flotation concentrate", unit: "g", haz: ["hg", "as"], tests: ["conc", "ilr", "icp", "leco", "moisture", "mineral"],
+  { key: "conc", group: "Processing (crusher to TSF)", pur: "plant", name: "Gravity concentrate", unit: "g", haz: ["hg", "as"], tests: ["conc", "icp", "moisture"],
     fields: [{ k: "csrc", l: "Concentrate", o: ["Gravity (Knelson / table)", "Flotation", "Intensive leach (ILR) residue"] }, { k: "batch", l: "Batch / campaign no." }, { k: "mass", l: "Dispatch mass (g)", t: "number" }],
     check: "Seal numbers and mass match the dispatch note; two people present." },
+  { key: "tsf", group: "Processing (crusher to TSF)", pur: "plant", name: "TSF sample", hold: 336, holdWhat: "cyanide (NaOH-preserved)", cool: 6, haz: ["cn"], tests: ["aufx_ausx_cn", "ausx_cn", "cn_only", "aufx", "ausx", "cn_spec"],
+    fields: [{ k: "point", l: "Sampling point", o: TSF_PTS }, { k: "cell", l: "TSF cell / location" }],
+    check: "Cyanide bottles preserved; cooler temperature recorded." },
+  { key: "bullion", group: "Gold room", pur: "bullion", name: "Bullion", unit: "g", tests: ["bullion"],
+    fields: [{ k: "bar", l: "Pour / bar number" }, { k: "gross", l: "Gross bar mass (g)", t: "number" }, { k: "escort", l: "Escort / witness" }],
+    check: "Bar number, gross mass and seal match the gold-room dispatch; two people present at all times." },
   { key: "env_water", group: "Environment", pur: "env", name: "Environmental water (surface, ground, discharge)", hold: 336, holdWhat: "cyanide (free cyanide within 24 h)", cool: 6, tests: ["water", "cn_spec"],
     fields: [{ k: "point", l: "Monitoring point ID" }, { k: "ph", l: "Field pH", t: "number" }, { k: "ec", l: "Field EC (µS/cm)", t: "number" }, { k: "temp", l: "Water temperature (°C)", t: "number" }, { k: "pres", l: "Preservation", o: ["NaOH (cyanide) and HNO₃ (metals)", "NaOH only", "HNO₃ only", "None"] }, { k: "cool", l: "Cooler temperature at dispatch (°C)", t: "number" }],
     check: "Cooler at 6 °C or below, preservation correct, within holding time, chain-of-custody signed." },
-  { key: "env_soil", group: "Environment", pur: "env", name: "Environmental soil / sediment", hold: 336, holdWhat: "cyanide and mercury", cool: 6, tests: ["soil", "icp", "aba"],
+  { key: "env_soil", group: "Environment", pur: "env", name: "Environmental soil / sediment", hold: 336, holdWhat: "cyanide and mercury", cool: 6, tests: ["soil", "icp"],
     fields: [{ k: "point", l: "Monitoring point / grid ref" }, { k: "depth", l: "Depth (cm)", t: "number" }, { k: "use", l: "Setting", ph: "e.g. downstream of TSF, farmland" }],
     check: "Samples in sealed bags; monitoring point and depth labelled." },
-  { key: "met_comp", group: "Metallurgical testwork", pur: "met", name: "Testwork head / composite", tests: ["fa_aas", "sfa", "fa_grav", "cn_sol", "icp", "leco", "delet", "moisture", "psd", "density", "bottle", "cil_test", "pri", "diag", "reagent", "grg", "o2", "column", "flot", "ilr", "commin", "mineral", "settle"],
-    fields: [{ k: "prog", l: "Testwork programme" }, { k: "comp", l: "Composite ID / lithology" }],
-    check: "Composite sheet attached." },
-  /* v24: the products of a test (a bottle roll, a CIL test…) come to the lab for assay like plant samples; the purpose says which test. */
-  { key: "tw_slurry", group: "Metallurgical testwork", pur: "met_br", name: "Testwork slurry", haz: ["cn"], tests: ["aufx_ausx", "aufx_ausx_cn"],
-    fields: [{ k: "prog", l: "Test number", ph: "e.g. BR-014" }, { k: "tp", l: "Time point", ph: "e.g. 24 h" }],
-    check: "Test number and time point labelled." },
-  { key: "tw_sol", group: "Metallurgical testwork", pur: "met_br", name: "Testwork solution (leach liquor)", haz: ["cn"], tests: ["ausx", "ausx_cn", "cn_only", "elu_sol"],
-    fields: [{ k: "prog", l: "Test number", ph: "e.g. BR-014" }, { k: "tp", l: "Time point", ph: "e.g. 24 h" }],
-    check: "Bottle sealed; test number and time point labelled." },
-  { key: "tw_res", group: "Metallurgical testwork", pur: "met_br", name: "Testwork residue (solids)", tests: ["aufx", "moisture", "psd"],
-    fields: [{ k: "prog", l: "Test number", ph: "e.g. BR-014" }],
-    check: "Residue washed and labelled with the test number." },
-  { key: "tw_carbon", group: "Metallurgical testwork", pur: "met_cil", name: "Testwork carbon", haz: ["cn"], tests: ["c_load"],
-    fields: [{ k: "prog", l: "Test number", ph: "e.g. CIL-006" }],
-    check: "Carbon washed and labelled with the test number." },
   { key: "pulp", group: "Quality control", pur: "qc", name: "Assay pulp (check / umpire / re-assay)", tests: ["check", "fa_aas", "fa_grav", "icp"],
     fields: [{ k: "orig", l: "Original sample ID" }, { k: "job", l: "Original lab batch / job no." }],
     check: "Pulp envelopes match the list; original IDs not written on blind samples." },
-  { key: "other", group: "Other", name: "Other", tests: ["fa_aas", "icp", "moisture"], fields: [], check: "Sample matches the description on the submission." }
+  { key: "other", group: "Other", name: "Other", tests: ["fa_aas", "icp", "moisture"], fields: [], check: "Sample matches the description on the submission." },
+  /* off: not offered since v24c (duplicates of the types above, or testwork, whose products come in as the types above). No route in use names
+     them, so they stay off the form unless an admin puts back a route that does; samples already on them keep them. */
+  { key: "waste", off: true, group: "Ore (mine & exploration)", pur: "env", name: "Waste rock / overburden (acid rock drainage)", tests: ["aba", "leco", "icp", "density"],
+    fields: [{ k: "dump", l: "Dump / pit location" }, { k: "lith", l: "Lithology" }],
+    check: "Location and lithology labelled; bags sealed." },
+  { key: "plant_tails", off: true, group: "Processing (crusher to TSF)", pur: "plant", name: "Plant tails / CIL residue", haz: ["cn"], tests: ["residue", "cn_sol", "psd", "diag", "leco", "settle", "detox", "cn_spec", "flot"],
+    fields: [{ k: "point", l: "Sampling point", o: ["Final tails", "Last CIL tank", "Thickener underflow", "Detox discharge"] }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
+    check: "Shift and sampling point labelled; solution not separated in transit." },
+  { key: "cil_slurry", off: true, group: "Processing (crusher to TSF)", pur: "plant", name: "CIL / CIP tank slurry", hold: 24, holdWhat: "free cyanide and solution gold", haz: ["cn"], tests: ["cil_survey", "solution", "cn_spec", "o2", "settle"],
+    fields: [{ k: "tanks", l: "Tank number(s)", ph: "e.g. Tanks 1–8" }, { k: "time", l: "Survey time", ph: "e.g. 08:00" }],
+    check: "One container per tank, labelled; delivered promptly (cyanide degrades)." },
+  { key: "solution", off: true, group: "Processing (crusher to TSF)", pur: "plant", name: "Process solution (leach, barren, process water)", hold: 336, holdWhat: "cyanide (NaOH-preserved)", haz: ["cn"], tests: ["solution", "cn_spec", "detox"],
+    fields: [{ k: "sol", l: "Solution", o: ["Leach tank", "Barren solution", "Process water", "Detox discharge", "Other"] }, { k: "time", l: "Sampling time" }, { k: "pres", l: "Preserved with NaOH (pH > 11)", o: ["Yes", "No"] }],
+    check: "Bottle sealed and labelled; preserved if cyanide is to be measured." },
+  { key: "met_comp", off: true, group: "Metallurgical testwork", pur: "met", name: "Testwork head / composite", tests: ["fa_aas", "sfa", "fa_grav", "cn_sol", "icp", "leco", "delet", "moisture", "psd", "density", "bottle", "cil_test", "pri", "diag", "reagent", "grg", "o2", "column", "flot", "ilr", "commin", "mineral", "settle"],
+    fields: [{ k: "prog", l: "Testwork programme" }, { k: "comp", l: "Composite ID / lithology" }],
+    check: "Composite sheet attached." },
+  { key: "tw_slurry", off: true, group: "Metallurgical testwork", pur: "met_br", name: "Testwork slurry", haz: ["cn"], tests: ["aufx_ausx", "aufx_ausx_cn"],
+    fields: [{ k: "prog", l: "Test number", ph: "e.g. BR-014" }, { k: "tp", l: "Time point", ph: "e.g. 24 h" }],
+    check: "Test number and time point labelled." },
+  { key: "tw_sol", off: true, group: "Metallurgical testwork", pur: "met_br", name: "Testwork solution (leach liquor)", haz: ["cn"], tests: ["ausx", "ausx_cn", "cn_only", "elu_sol"],
+    fields: [{ k: "prog", l: "Test number", ph: "e.g. BR-014" }, { k: "tp", l: "Time point", ph: "e.g. 24 h" }],
+    check: "Bottle sealed; test number and time point labelled." },
+  { key: "tw_res", off: true, group: "Metallurgical testwork", pur: "met_br", name: "Testwork residue (solids)", tests: ["aufx", "moisture", "psd"],
+    fields: [{ k: "prog", l: "Test number", ph: "e.g. BR-014" }],
+    check: "Residue washed and labelled with the test number." },
+  { key: "tw_carbon", off: true, group: "Metallurgical testwork", pur: "met_cil", name: "Testwork carbon", haz: ["cn"], tests: ["c_load"],
+    fields: [{ k: "prog", l: "Test number", ph: "e.g. CIL-006" }],
+    check: "Carbon washed and labelled with the test number." }
 ];
 const DEFAULT_ROUTES = [
-  { code: "EXP-FA", name: "Exploration fire assay (50 g, AAS finish)", tests: ["fa_aas"], types: ["rc", "core", "channel", "rom", "*"], purposes: ["exp", "recon", "qc", "other"],
+  { code: "EXP-FA", name: "AuFx: fire assay (50 g, AAS finish)", tests: ["fa_aas"], types: ["rc", "core", "channel", "rom", "*"], purposes: ["exp", "recon", "qc", "other"],
     desc: "Standard route for drill and surface samples: full preparation to a 50 g pulp, lead-collection fire assay, AAS finish. Range 0.005 to 10 g/t Au.",
     stages: [
       S("sort", "Sorting & lab QC insertion", 0.5, "intake", "Sort into sequence and reconcile with the submission sheet. Lab QC is placed per 50-position furnace batch as in the QA/QC rule; client blind QC stays as submitted."),
@@ -984,13 +1018,13 @@ const DEFAULT_ROUTES = [
       S("pulv", "Pulverising to 80% passing 75 µm", 2, "prep", "Quartz wash between samples; wet-sieve check 1 in 20."),
       S("weigh", "Weighing 50 g charge & flux", 1, "test", "Balance checked with a certified weight each batch."),
       S("fuse", "Fusion & cupellation", 3, "test", "Lead-collection fusion at 1,050 °C, then cupellation to a precious-metal bead.", true),
-      S("finish", "Bead digest & AAS finish", 2, "test", "Aqua regia digest; Au read by AAS against matrix-matched standards."),
+      S("finish", "AuFx: bead digest & AAS finish", 2, "test", "Aqua regia digest; Au read by AAS against matrix-matched standards."),
       S("qc", "QA/QC review", 1, "qc", "Batch checked against the pass rules before release.")
     ],
     qc: "Per 50-position furnace batch: 1 preparation blank, 1 crusher duplicate, 2 pulp duplicates, 2 CRMs and 1 analytical blank. Passes when CRMs are within ±2 SD (2 to 3 SD is a warning, outside ±3 SD fails), blanks are below 5× the detection limit (0.025 g/t Au), pulp duplicates agree within 20% and crusher duplicates within 30% (relative difference, above 10× detection limit). Client blind QC is reported unchanged.",
     triggers: ["Au of 10 g/t or more: repeat by gravimetric finish (FA-GRAV)", "Replicates differ by more than 20%, or visible gold logged: screen fire assay (SFA)", "CRM outside ±3 SD or blank above 5× detection limit: re-assay the batch from fusion"],
     retention: [{ item: "Pulp", days: 365, then: "Returned to geology" }, { item: "Coarse reject", days: 90, then: "Disposed" }] },
-  { code: "GC-FA", name: "Grade control fast track (30 g fire assay)", tests: ["fa_aas"], types: ["gc_bh"], purposes: ["gc"],
+  { code: "GC-FA", name: "AuFx: grade control fast track (30 g)", tests: ["fa_aas"], types: ["gc_bh"], purposes: ["gc"],
     desc: "Quick turnaround so ore and waste boundaries can be marked before digging. Whole sample pulverised; 30 g charge.",
     stages: [
       S("sort", "Sorting & QC insertion", 0.5, "intake", "Sorted by pattern and hole; CRM and blank inserted 1 in 25."),
@@ -998,13 +1032,13 @@ const DEFAULT_ROUTES = [
       S("pulv", "Crush & pulverise whole sample (LM5)", 3, "prep", "Single stage to 80% passing 75 µm; sieve check 1 in 25."),
       S("weigh", "Weighing 30 g charge", 0.5, "test"),
       S("fuse", "Fusion & cupellation", 2, "test", "Lead-collection fire assay, 30 g charge.", true),
-      S("finish", "AAS finish", 1, "test", "Results posted to mine geology by blast pattern."),
+      S("finish", "AuFx: AAS finish", 1, "test", "Results posted to mine geology by blast pattern."),
       S("qc", "QA/QC review", 1, "qc", "CRMs, blanks and duplicates near the cut-off grade checked.")
     ],
     qc: "1 CRM and 1 blank per 25 samples; pulp duplicate on any result within ±20% of the ore / waste cut-off grade.",
     triggers: ["Au of 10 g/t or more: repeat by gravimetric finish", "Duplicate near cut-off differs by more than 20%: repeat fusion", "CRM or blank fails: re-assay the whole pattern"],
     retention: [{ item: "Pulp", days: 90, then: "Disposed" }, { item: "Coarse reject", days: 30, then: "Disposed" }] },
-  { code: "FA-GRAV", name: "High-grade fire assay (gravimetric finish)", tests: ["fa_grav"], types: ["*"], purposes: [],
+  { code: "FA-GRAV", name: "AuFx: high grade (gravimetric finish)", tests: ["fa_grav"], types: ["*"], purposes: [],
     desc: "For expected high-grade ore and for over-range repeats (10 g/t or more by AAS). The gold prill is parted and weighed on a microbalance.",
     stages: [
       S("sort", "Sorting & QC insertion", 0.5, "intake", "High-grade CRM and blank inserted per batch."),
@@ -1014,13 +1048,13 @@ const DEFAULT_ROUTES = [
       S("pulv", "Pulverising to 80% passing 75 µm", 2, "prep", "Barren wash after every high-grade sample to stop carry-over."),
       S("weigh", "Weighing 50 g charge", 1, "test"),
       S("fuse", "Fusion & cupellation", 3, "test", "", true),
-      S("part", "Parting & prill weighing", 2, "test", "Silver parted with nitric acid; gold annealed and weighed on a 1 µg microbalance."),
+      S("part", "AuFx: parting & prill weighing", 2, "test", "Silver parted with nitric acid; gold annealed and weighed on a 1 µg microbalance."),
       S("qc", "QA/QC review", 1, "qc")
     ],
     qc: "1 high-grade CRM and 1 blank per batch; every sample in duplicate, agreeing within 10%.",
     triggers: ["Duplicates differ by more than 10%: screen fire assay", "Prill too small to weigh (under 0.1 mg): report the AAS result", "Blank after a high-grade sample above 5× detection limit: re-pulverise and repeat"],
     retention: [{ item: "Pulp", days: 365, then: "Returned to geology" }, { item: "Coarse reject", days: 90, then: "Disposed" }] },
-  { code: "SFA", name: "Screen fire assay (coarse / nuggety gold)", tests: ["sfa"], types: ["*"], purposes: [],
+  { code: "SFA", name: "AuFx: screen fire assay (coarse gold)", tests: ["sfa"], types: ["*"], purposes: [],
     desc: "Separates coarse free gold so it is assayed in full instead of being sub-sampled. Used where visible gold or poor duplicate repeatability is seen.",
     stages: [
       S("sort", "Sorting & QC insertion", 0.5, "intake"),
@@ -1031,7 +1065,7 @@ const DEFAULT_ROUTES = [
       S("screen", "Screening at 75 µm & weighing fractions", 3, "prep", "Plus and minus fraction masses recorded; loss under 2%."),
       S("fuse", "Fire assay: all of +75 µm, 2 × 50 g of −75 µm", 8, "test", "Coarse fraction fused in full; fine fraction in duplicate.", true),
       S("finish", "Gravimetric / AAS finish", 4, "test"),
-      S("calc", "Weighted total gold calculation", 1, "test", "Total Au from mass-weighted coarse and fine grades; coarse gold % reported."),
+      S("calc", "AuFx: weighted total (coarse + fine)", 1, "test", "Total Au from mass-weighted coarse and fine grades; coarse gold % reported."),
       S("qc", "QA/QC review", 1, "qc")
     ],
     qc: "Screen mass balance loss under 2%; the two −75 µm assays agree within 10%; CRM and blank pass as for fire assay.",
@@ -1161,7 +1195,7 @@ const DEFAULT_ROUTES = [
     qc: "2 CRMs, 1 blank and 1 replicate per 40; key elements on CRMs within ±10%.",
     triggers: ["Cu, As, Zn or S above the upper limit: ore-grade dilution re-run", "CRM outside limits for key elements: repeat the batch"],
     retention: [{ item: "Pulp", days: 365, then: "Returned to geology" }, { item: "Coarse reject", days: 90, then: "Disposed" }] },
-  { code: "LECO", name: "Sulphur & carbon (LECO), sulphide S, organic C", tests: ["leco"], types: ["*"], purposes: [],
+  { code: "LECO", name: "Sulphur & carbon (LECO): total / sulphide S, organic C", tests: ["leco"], types: ["*"], purposes: [],
     desc: "Sulphur and carbon speciation to judge refractory and preg-robbing behaviour, and for acid-rock-drainage screening.",
     stages: [
       S("sort", "Sorting & QC insertion", 0.5, "intake"),
@@ -1299,7 +1333,7 @@ const DEFAULT_ROUTES = [
     qc: "Calibration check every 10 readings; spike recovery 90–110%; duplicate within 10%.",
     triggers: ["Barren above 0.02 mg/L Au: alert elution / plant", "Spike recovery outside 90–110%: repeat"],
     retention: [{ item: "Solution", days: 30, then: "Cyanide destroyed, disposed" }] },
-  { code: "CONC", two: true, transit: 2, name: "Concentrate assay (gravity / flotation)", tests: ["conc"], types: ["conc"], purposes: [],
+  { code: "CONC", two: true, transit: 2, name: "Gravity concentrate: AuFx, Hg & As", tests: ["conc"], types: ["conc"], purposes: [],
     desc: "High-grade concentrates handled under gold-room security and assayed in triplicate by gravimetric fire assay.",
     stages: [
       S("wet", "Witnessed wet weight & moisture", 0.5, "test", "Seal numbers recorded."),
@@ -1314,7 +1348,7 @@ const DEFAULT_ROUTES = [
     qc: "Triplicates within 5% relative; high-grade CRM per batch; two-person custody for all handling.",
     triggers: ["Triplicates differ by more than 5%: screen fire assay of the whole concentrate", "Mass at receipt differs from dispatch: hold and report to security"],
     retention: [{ item: "Concentrate remainder", days: 0, then: "Returned to gold room when results are released" }, { item: "Pulp", days: 365, then: "Kept in secure store" }] },
-  { code: "BULLION", two: true, transit: 2, name: "Bullion / doré fineness", tests: ["bullion"], types: ["bullion"], purposes: ["bullion"],
+  { code: "BULLION", two: true, transit: 2, name: "Bullion: Au & Ag fineness", tests: ["bullion"], types: ["bullion"], purposes: ["bullion"],
     desc: "Fineness of doré bars for export and settlement by fire assay with proof gold. The bar stays under escort throughout.",
     stages: [
       S("weigh", "Witnessed bar weighing, serial & photo", 0.5, "intake", "Two-person rule; bar number and gross mass recorded."),
@@ -1344,7 +1378,7 @@ const DEFAULT_ROUTES = [
     qc: "Cyanide check standard every batch; duplicates within 10%; field blank where supplied.",
     triggers: ["WAD cyanide above 50 mg/L at discharge or in the pond: alert Environment immediately", "Solids Au more than 20% above plant tails grade: repeat"],
     retention: [{ item: "Solids", days: 90, then: "Disposed" }, { item: "Solutions", days: 30, then: "Cyanide destroyed, disposed" }] },
-  { code: "ENV-W", name: "Environmental water quality", tests: ["water"], types: ["env_water", "solution", "tsf"], purposes: ["env", "hse"],
+  { code: "ENV-W", name: "Environmental water quality", tests: ["water"], types: ["env_water", "tsf"], purposes: ["env", "hse"],
     desc: "Surface, ground and discharge water against permit limits: cyanide, metals, pH, solids and anions.",
     stages: [
       S("chk", "Preservation & holding-time check", 0.5, "intake", "Cooler at 6 °C or below; CN bottle at pH above 12 (NaOH); metals bottle HNO₃ to pH below 2."),
@@ -1491,7 +1525,7 @@ const DEFAULT_ROUTES = [
     qc: "Calculated head within ±10% of the assayed head; product masses within 2% of feed.",
     triggers: ["Mass loss above 2%: repeat", "Gold recovery below 80% with sulphide left in tails: repeat at a finer grind or with a different collector"],
     retention: [{ item: "Flotation products", days: 180, then: "Disposed" }, { item: "Head reserve", days: 365, then: "Returned to MET" }] },
-  { code: "DENSITY", name: "Specific gravity & bulk density", tests: ["density"], types: ["core", "rom", "met_comp", "rc", "conc", "*"], purposes: ["exp", "met", "recon"],
+  { code: "DENSITY", name: "Specific gravity & bulk density", tests: ["density"], types: ["core", "rom", "rc", "conc", "*"], purposes: ["exp", "met", "recon"],
     desc: "Bulk density of core for tonnage in the resource model (water immersion, wax-coated if porous) and pulp SG by pycnometer for metallurgical calculations.",
     stages: [
       S("log", "Log core pieces & weigh", 1, "intake", "Competent pieces 10–20 cm long."),
@@ -1548,7 +1582,7 @@ const DEFAULT_ROUTES = [
     qc: "XRD standard each run; assays calculated from mineralogy reconcile with chemical assays within 10%.",
     triggers: ["Calculated assays more than 10% off chemical assays: re-check the sections", "Too few gold grains for a reliable result: prepare more sections"],
     retention: [{ item: "Polished sections & blocks", days: 365, then: "Archived in the mineralogy library" }, { item: "Pulp", days: 365, then: "Returned to MET" }] },
-  { code: "CN-SPEC", name: "Cyanide speciation (free, WAD, total, SCN)", tests: ["cn_spec"], types: ["solution", "tsf", "env_water", "plant_tails", "cil_slurry"], purposes: ["env", "plant", "hse"],
+  { code: "CN-SPEC", name: "Cyanide speciation (free, WAD, total, SCN)", tests: ["cn_spec"], types: ["tsf", "env_water"], purposes: ["env", "plant", "hse"],
     desc: "All the cyanide forms that matter for the plant and for Cyanide Code compliance: free, weak-acid dissociable (WAD), total, thiocyanate and cyanate, plus the metals that carry them.",
     stages: [
       S("chk", "Preservation & holding-time check", 0.5, "intake", "NaOH to pH above 12, cool and dark; free CN within 24 h, others within 14 days."),
@@ -1592,7 +1626,7 @@ const DEFAULT_ROUTES = [
     qc: "ARD reference material each batch; duplicate 1 in 20.",
     triggers: ["NAPP and NAG disagree (uncertain): run kinetic column testing", "Potentially acid-forming: notify Environment for waste-dump placement"],
     retention: [{ item: "Pulp", days: 365, then: "Disposed" }] },
-  { code: "AR-AU", name: "Low-level gold by aqua regia / BLEG (soils, sediments)", tests: ["ar_au"], types: ["soil_geo", "env_soil"], purposes: ["exp"],
+  { code: "AR-AU", name: "Soil gold: aqua regia / BLEG (low level)", tests: ["ar_au"], types: ["soil_geo", "env_soil"], purposes: ["exp"],
     desc: "Parts-per-billion gold for soil and stream-sediment geochemistry, from a large aqua regia digest or bulk cyanide leach (BLEG).",
     stages: [
       S("sort", "Sorting & QC insertion", 0.5, "intake"),
@@ -1606,7 +1640,7 @@ const DEFAULT_ROUTES = [
     qc: "Low-level CRM and blank every 20; field duplicates as supplied.",
     triggers: ["Au above 1 g/t: repeat by fire assay", "Duplicates differ by more than 30% at low levels: repeat"],
     retention: [{ item: "Sieved fraction", days: 365, then: "Returned to exploration" }, { item: "Oversize", days: 30, then: "Disposed" }] },
-  { code: "CHECK", name: "Check / umpire assay (external lab)", tests: ["check"], types: ["pulp", "*"], purposes: ["qc"],
+  { code: "CHECK", name: "AuFx: check / umpire assay (external lab)", tests: ["check"], types: ["pulp", "*"], purposes: ["qc"],
     desc: "A share of pulps re-assayed blind at an independent lab to prove the site lab has no bias, as resource reporting codes expect.",
     stages: [
       S("select", "Select pulps (5% of batch, all high grades) & renumber blind", 2, "intake", "Original IDs replaced with blind numbers; CRMs inserted."),
@@ -1620,7 +1654,7 @@ const DEFAULT_ROUTES = [
     retention: [{ item: "Pulp", days: 365, then: "Kept in secure store" }] },
   /* ---- Version 23: the routes the lab runs, in its own words. Plant samples are a slurry or a solution: a slurry is filtered, the
      solution read for AuSx and the solids dried, pulverised and fire assayed for AuFx; CCD and TSF samples add cyanide (NaCN and WAD). ---- */
-  { code: "AUFX-AUSX", transit: 2, name: "Slurry: AuFx & AuSx", tests: ["aufx_ausx"], types: ["plant_feed", "ccd", "tsf", "tw_slurry"], purposes: ["plant", "recon", "met"],
+  { code: "AUFX-AUSX", transit: 2, name: "Slurry: AuFx & AuSx", tests: ["aufx_ausx"], types: ["plant_feed", "ccd", "tsf"], purposes: ["plant", "recon", "met"],
     desc: "Plant slurry: filtered, the solution read for AuSx, the solids dried, pulverised and fire assayed for AuFx.",
     stages: [
       S("wet", "Weigh slurry & % solids", 0.25, "test", "pH and NaCN read now when asked: cyanide does not keep."),
@@ -1634,7 +1668,7 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["AuFx or AuSx far off the shift trend: repeat from the kept pulp or filtrate", "Plant CRM outside ±2 SD: repeat the shift set"],
     retention: [{ item: "Pulp", days: 30, then: "Disposed" }, { item: "Filtrate", days: 7, then: "Cyanide destroyed, disposed" }] },
-  { code: "AUFX", transit: 2, name: "Solids: AuFx", tests: ["aufx"], types: ["plant_feed", "ccd", "tsf", "belt", "tw_res"], purposes: ["plant", "recon", "met"],
+  { code: "AUFX", transit: 2, name: "Solids: AuFx", tests: ["aufx"], types: ["plant_feed", "ccd", "tsf", "belt"], purposes: ["plant", "recon", "met"],
     desc: "Head grade of a plant slurry or solids sample: dried, pulverised and fire assayed for AuFx.",
     stages: [
       S("wet", "Weigh & % solids", 0.25, "test"),
@@ -1661,7 +1695,7 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["AuFx far off the shift trend: repeat from the kept pulp"],
     retention: [{ item: "Pulp", days: 30, then: "Disposed" }, { item: "Coarse reject", days: 7, then: "Disposed" }] },
-  { code: "AUSX", transit: 2, name: "Solution: AuSx", tests: ["ausx"], types: ["plant_feed", "ccd", "tsf", "tw_sol"], purposes: ["plant", "recon", "met"],
+  { code: "AUSX", transit: 2, name: "Solution: AuSx", tests: ["ausx"], types: ["plant_feed", "ccd", "tsf"], purposes: ["plant", "recon", "met"],
     desc: "Plant solution: filtered and read for AuSx.",
     stages: [
       S("filter", "Filter 0.45 µm", 0.25, "prep", "Carbon fines and solids removed so they add no gold."),
@@ -1670,7 +1704,7 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["AuSx far off the shift trend: repeat from the kept solution"],
     retention: [{ item: "Solution", days: 7, then: "Cyanide destroyed, disposed" }] },
-  { code: "AUFX-AUSX-CN", transit: 2, name: "Slurry: AuFx, AuSx & cyanide", tests: ["aufx_ausx_cn"], types: ["ccd", "tsf", "tw_slurry"], purposes: ["plant", "env", "recon", "met"],
+  { code: "AUFX-AUSX-CN", transit: 2, name: "Slurry: AuFx, AuSx & cyanide", tests: ["aufx_ausx_cn"], types: ["ccd", "tsf"], purposes: ["plant", "env", "recon", "met"],
     desc: "CCD or TSF slurry: filtered, the solution read at once for cyanide (NaCN, WAD) and AuSx, the solids fire assayed for AuFx.",
     stages: [
       S("wet", "Weigh slurry & % solids", 0.25, "test"),
@@ -1685,7 +1719,7 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["WAD cyanide over 50 mg/L at the TSF: alert Environment and the plant at once", "AuSx or AuFx far off the shift trend: repeat from the kept filtrate or pulp"],
     retention: [{ item: "Pulp", days: 30, then: "Disposed" }, { item: "Filtrate", days: 7, then: "Cyanide destroyed, disposed" }] },
-  { code: "AUSX-CN", transit: 2, name: "Solution: AuSx & cyanide", tests: ["ausx_cn"], types: ["ccd", "tsf", "tw_sol"], purposes: ["plant", "env", "recon", "met"],
+  { code: "AUSX-CN", transit: 2, name: "Solution: AuSx & cyanide", tests: ["ausx_cn"], types: ["ccd", "tsf"], purposes: ["plant", "env", "recon", "met"],
     desc: "CCD overflow, decant pond or return water: cyanide (NaCN, WAD) read at once, then AuSx.",
     stages: [
       S("filter", "Filter 0.45 µm", 0.25, "prep"),
@@ -1695,7 +1729,7 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["WAD cyanide over 50 mg/L in the decant pond: alert Environment and the plant at once"],
     retention: [{ item: "Solution", days: 7, then: "Cyanide destroyed, disposed" }] },
-  { code: "CN", transit: 2, name: "Cyanide: NaCN, WAD & pH", tests: ["cn_only"], types: ["plant_feed", "ccd", "tsf", "tw_sol"], purposes: ["plant", "env", "met"],
+  { code: "CN", transit: 2, name: "Cyanide: NaCN, WAD & pH", tests: ["cn_only"], types: ["plant_feed", "ccd", "tsf"], purposes: ["plant", "env", "met"],
     desc: "Cyanide control on a tails grab, TSF spigot or pond: free cyanide (NaCN), WAD cyanide and pH.",
     stages: [
       S("filter", "Filter 0.45 µm", 0.25, "prep"),
@@ -1704,7 +1738,7 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["WAD cyanide over 50 mg/L at the TSF: alert Environment and the plant at once"],
     retention: [{ item: "Solution", days: 7, then: "Cyanide destroyed, disposed" }] },
-  { code: "C-LOAD", transit: 2, name: "Carbon: Au loading", tests: ["c_load"], types: ["carbon", "tw_carbon"], purposes: ["plant", "bullion", "met"],
+  { code: "C-LOAD", transit: 2, name: "Carbon: Au loading", tests: ["c_load"], types: ["carbon"], purposes: ["plant", "recon", "met"],
     desc: "Gold loading on CIL tank, loaded, eluted or regenerated carbon: ashed, digested and read by AAS.",
     stages: [
       S("wash", "Wash & screen carbon", 0.5, "prep", "Fines and grit removed; the bag opened under gold-room custody."),
@@ -1716,7 +1750,7 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["Eluted carbon above 100 g/t Au: repeat and notify the elution operator", "Repeat differs by more than 10%: repeat the loading"],
     retention: [{ item: "Carbon sample", days: 30, then: "Returned to gold room" }] },
-  { code: "ELU-AUSX", transit: 2, name: "Elution solution: AuSx, AgSx & Cu", tests: ["elu_sol"], types: ["elution", "tw_sol"], purposes: ["plant", "bullion", "met"],
+  { code: "ELU-AUSX", transit: 2, name: "Elution solution: AuSx, AgSx & Cu", tests: ["elu_sol"], types: ["elution"], purposes: ["plant", "recon", "met"],
     desc: "Pregnant solution, electrowinning head and tails and eluate: AuSx, AgSx and copper, with NaOH, NaCN and pH.",
     stages: [
       S("custody", "Custody check & log", 0.25, "intake", "Sealed bottle; strip number and time recorded."),
@@ -1748,13 +1782,13 @@ const SCREEN = () => A("scr", "Screen analysis, % retained", "", null, 0, { t: "
 const METALS = () => [["Cu", "Copper"], ["Fe", "Iron"], ["Ni", "Nickel"], ["Zn", "Zinc"]].map(([k, n]) => A(k, n, "mg/L", 0.01, 2, { opt: true }));
 const PICK = (n, opts) => A("pt", n, "", null, 0, { t: "pick", opts });
 const RESULTS = {
-  fa_aas:   { an: [A("Au", "Gold", "g/t", 0.005, 3, { ul: 10 })], over: "fa_grav" },
-  fa_grav:  { an: [A("Au", "Gold", "g/t", 0.05, 2)] },
-  sfa:      { an: [A("Au", "Gold, total (weighted)", "g/t", 0.01, 2, { calc: v => (v.m_c * v.Au_c + (100 - v.m_c) * (v.Au_f + v.Au_f2) / 2) / 100, from: ["m_c", "Au_c", "Au_f", "Au_f2"] }), A("Au_c", "Gold in +75 µm fraction", "g/t", 0.05, 2), A("Au_f", "Gold in −75 µm, assay 1", "g/t", 0.01, 2),
+  fa_aas:   { an: [A("Au", "AuFx, gold in solids", "g/t", 0.005, 3, { s: "AuFx", ul: 10 })], over: "fa_grav" },
+  fa_grav:  { an: [A("Au", "AuFx, gold in solids", "g/t", 0.05, 2, { s: "AuFx" })] },
+  sfa:      { an: [A("Au", "AuFx, total (weighted)", "g/t", 0.01, 2, { s: "AuFx", calc: v => (v.m_c * v.Au_c + (100 - v.m_c) * (v.Au_f + v.Au_f2) / 2) / 100, from: ["m_c", "Au_c", "Au_f", "Au_f2"] }), A("Au_c", "Gold in +75 µm fraction", "g/t", 0.05, 2), A("Au_f", "Gold in −75 µm, assay 1", "g/t", 0.01, 2),
                    A("Au_f2", "Gold in −75 µm, assay 2", "g/t", 0.01, 2), A("m_c", "+75 µm fraction", "% of mass", null, 1), A("loss", "Screen mass loss", "%", null, 2)],
               chk: [{ t: "max", k: "loss", max: 2, msg: "screen mass loss over 2%" }, { t: "pair", a: "Au_f", b: "Au_f2", tol: 10, msg: "the two −75 µm assays differ by more than 10%" }], qc: "Au_f" },
   ar_au:    { an: [A("Au", "Gold", "ppb", 1, 0, { ul: 10000 })] },
-  check:    { an: [A("Au", "Gold, external lab", "g/t", 0.005, 3), A("Au_o", "Gold, original result", "g/t", 0.005, 3)],
+  check:    { an: [A("Au", "AuFx, external lab", "g/t", 0.005, 3, { s: "AuFx" }), A("Au_o", "AuFx, original result", "g/t", 0.005, 3)],
               chk: [{ t: "pair", a: "Au", b: "Au_o", tol: 20, soft: true, msg: "the check assay differs from the original by more than ±10% (half absolute relative difference); the rule is that 90% of pairs agree" }] },
   cn_sol:   { an: [A("Au", "Cyanide-soluble gold", "g/t", 0.01, 2), A("Au_r", "Gold in residue", "g/t", 0.01, 2), A("rec", "Cyanide-soluble share", "%", null, 1, { calc: v => v.Au + v.Au_r > 0 ? v.Au / (v.Au + v.Au_r) * 100 : null, from: ["Au", "Au_r"] })] },
   bottle:   { an: [A("head", "Head grade (assayed)", "g/t", 0.01, 2), A("chead", "Head grade (calculated)", "g/t", 0.01, 2), A("res", "Residue grade", "g/t", 0.01, 2),
@@ -1811,7 +1845,7 @@ const RESULTS = {
               chk: [{ t: "pair", a: "cload", b: "load", tol: 10, msg: "gold balance (eluate + barren carbon) is more than 10% from the loaded carbon" }] },
   solution: { an: [A("pt", "Sampling point", "", null, 0, { t: "pick", opts: ["Pregnant solution", "Barren solution", "Process water", "Other"] }), A("Au", "Gold", "mg/L", 0.005, 3), A("Ag", "Silver", "mg/L", 0.01, 2, { opt: true }), A("Cu", "Copper", "mg/L", 0.1, 1, { opt: true }), A("cn", "Free cyanide", "mg/L", null, 0),
                    A("wad", "WAD cyanide", "mg/L", null, 0, { opt: true }), A("pH", "pH", "", null, 1)] },
-  conc:     { an: [A("Au", "Gold", "g/t", 0.05, 1), A("Ag", "Silver", "g/t", 0.5, 1, { opt: true }), A("Hg", "Mercury", "ppm", 0.1, 1), A("As", "Arsenic", "%", 0.01, 2), A("S", "Sulphur", "%", 0.01, 2, { opt: true })] },
+  conc:     { an: [A("Au", "AuFx, gold in concentrate", "g/t", 0.05, 1, { s: "AuFx" }), A("Ag", "Silver", "g/t", 0.5, 1, { opt: true }), A("Hg", "Mercury", "ppm", 0.1, 1), A("As", "Arsenic", "%", 0.01, 2), A("S", "Sulphur", "%", 0.01, 2, { opt: true })] },
   bullion:  { an: [A("Au", "Gold fineness", "‰", null, 1), A("Ag", "Silver", "‰", null, 1), A("base", "Base metals and other", "‰", null, 1), A("mass", "Bar mass", "g", null, 2), A("tb", "Top and bottom difference", "‰", null, 1)],
               chk: [{ t: "max", k: "tb", max: 2, msg: "top and bottom differ by more than 2 parts per thousand" }] },
   tsf:      { an: [A("wad", "WAD cyanide", "mg/L", 0.01, 1), A("Au_s", "Solution gold", "mg/L", 0.005, 3), A("Au", "Solids gold", "g/t", 0.01, 2), A("pH", "pH", "", null, 1), A("S", "Total sulphur", "%", 0.01, 2, { opt: true })], qc: "wad" },
@@ -2298,11 +2332,17 @@ const editedRoutes = routes => routes.filter(r => { const d = DEFAULT_ROUTES.fin
 const testRank = r => { const i = TESTS.findIndex(t => t.key === (r.tests || [])[0]); return i < 0 ? 999 : i; };
 const routeCat = r => testOf((r.tests || [])[0])?.cat || "Other";
 /* Recommended test for a sample type; the purpose can steer it (testwork, environmental, plant). */
+/* Testwork samples come from the main sites (v24c): for a testwork purpose any type also offers the leach products' analyses. */
+const TESTWORK_TESTS = ["aufx", "ausx", "aufx_ausx", "aufx_ausx_cn", "ausx_cn", "cn_only"];
 function defaultTest(typeKey, purposeKey){
-  const all = typeOf(typeKey)?.tests || ["fa_aas"], list = all.filter(testOn);
-  const pref = { met: ["bottle", "cil_test", "pri", "grg", "diag", "commin", "cn_sol"], env: ["water", "soil", "tsf", "aba"], hse: ["water", "soil"], qc: ["check"],
-    plant: ["plant_solids", "ccd", "eluate", "residue", "cil_survey", "carbon", "solution"], bullion: ["bullion", "c_load", "elu_sol"] }[purposeKey] || [];
-  return pref.find(x => list.includes(x)) || list[0] || all[0];
+  /* The same analyses the form lists for the type (v24c): its own, those a route in use names it for, and for testwork the leach products'. */
+  const t = typeOf(typeKey), own = t?.tests || ["fa_aas"];
+  const named = t ? liveRoutes().filter(r => (r.types || []).includes(t.key)).flatMap(r => r.tests || []) : [];
+  const list = [...new Set([...own, ...TESTS.map(x => x.key).filter(k => named.includes(k)), ...(purpBase(purposeKey) === "met" ? TESTWORK_TESTS : [])])].filter(testOn);
+  /* Environment may send a sample from any site (v24c). The older tests here only count when an admin has put their routes back in use. */
+  const pref = { met: ["bottle", "cil_test", "pri", "grg", "diag", "commin", "cn_sol"], env: ["tsf", "water", "soil", "aba", "cn_spec"], hse: ["water", "soil"], qc: ["check"],
+    plant: ["plant_solids", "ccd", "eluate", "residue", "cil_survey", "carbon", "solution"], bullion: ["bullion"] }[purposeKey] || [];
+  return pref.find(x => list.includes(x)) || list[0] || own[0];
 }
 /* The route must perform the test; among those, a purpose match counts most, then a sample-type match. Null when no route performs it. */
 function routeFor(typeKey, testKey, purposeKey){
@@ -2965,11 +3005,16 @@ function witnessField(id){
 }
 const meBox = label => `<label class="f"><span>${label}</span><div class="me-box">${esc(session.name)} <span class="muted small" style="font-weight:400">(you)</span></div></label>`;
 /* Tests a route in use performs: the sample type's own first, then the others by group. `sel` (a sample's own test) is always listed. */
-function testOptions(typeKey, sel = ""){
-  const on = x => x.key === sel || testOn(x.key), t = typeOf(typeKey), rec = (t?.tests || []).map(testOf).filter(x => x && on(x));
-  const opt = x => `<option value="${esc(x.key)}" ${x.key === sel ? "selected" : ""}>${esc(x.name)}</option>`;
-  const head = rec.length ? `<optgroup label="${esc(t.name)}">${rec.map(opt).join("")}</optgroup>` : `<option value="">Choose the sample type first…</option>`;
-  return head + TEST_CATS.map(c => { const xs = TESTS.filter(x => x.cat === c && on(x) && !rec.includes(x)); return xs.length ? `<optgroup label="${esc(c)}">${xs.map(opt).join("")}</optgroup>` : ""; }).join("");
+function testOptions(typeKey, sel = "", purposeKey = ""){
+  /* v24c: one plain list, the analyses this sample type gets (no catalogue sections): its own, then any other a route in use names it for,
+     then for testwork the leach products' analyses. Type "Other" lists every analysis in use. */
+  const t = typeOf(typeKey), on = x => x && (x.key === sel || testOn(x.key));
+  const named = () => liveRoutes().filter(r => (r.types || []).includes(t.key)).flatMap(r => r.tests || []);
+  const keys = !t ? [] : t.key === "other" ? TEST_CATS.flatMap(c => TESTS.filter(x => x.cat === c).map(x => x.key))
+    : [...(t.tests || []), ...TESTS.map(x => x.key).filter(k => named().includes(k)), ...(purpBase(purposeKey) === "met" ? TESTWORK_TESTS : [])];
+  const list = [...new Set([...keys, ...(sel ? [sel] : [])])].map(testOf).filter(on);
+  if (!list.length) return `<option value="">Choose the sample type first…</option>`;
+  return list.map(x => `<option value="${esc(x.key)}" ${x.key === sel ? "selected" : ""}>${esc(x.name)}</option>`).join("");
 }
 /* Route choices always follow the test: only routes that perform it are offered. */
 function syncRoutes(testSel, routeSel, s, infoEl){
@@ -2997,7 +3042,7 @@ function receiptForm(s){
       <label class="f"><span>Condition</span><select id="rcCond">${CONDITIONS.map(c => `<option>${esc(c)}</option>`).join("")}</select></label>
       ${t?.cool != null ? `<label class="f"><span>Cooler temperature on arrival (°C) <span class="req">*</span></span><input id="rcTemp" type="number" step="0.1" placeholder="Limit ${t.cool} °C"></label>` : ""}
       ${twoPerson(s) ? witnessField("rcWit") : ""}
-      <label class="f"><span>Test requested</span><select id="rcTest">${testOptions(s.typeKey, s.test)}</select></label>
+      <label class="f"><span>Test requested</span><select id="rcTest">${testOptions(s.typeKey, s.test, s.purposeKey)}</select></label>
       <label class="f"><span>Workflow route</span><select id="rcRoute"></select></label>
       <div class="full small" id="rcInfo"></div>
       <label class="f full"><span>Note <span style="font-weight:400">(needed to flag or reject, when the test changes, or when a receipt check fails)</span></span><input id="mvNote" data-clear placeholder="e.g. Bag code reads T-10422, not T-10421; bag torn"></label>
@@ -3074,7 +3119,7 @@ function moveForm(s){
     ${canRedo ? redoBox(s) : ""}
     ${ci >= 1 ? `<details class="more" id="rrBox"><summary>Change the test or workflow route</summary>
       <div class="stack" style="gap:8px;margin-top:8px">
-        <div class="form"><label class="f">Test<select class="inp" id="rrTest">${testOptions(s.typeKey, s.test)}</select></label><label class="f">Route<select class="inp" id="rrCode"></select></label></div>
+        <div class="form"><label class="f">Test<select class="inp" id="rrTest">${testOptions(s.typeKey, s.test, s.purposeKey)}</select></label><label class="f">Route<select class="inp" id="rrCode"></select></label></div>
         <p class="small muted" id="rrInfo" style="margin:0"></p>
         <div class="row"><button type="button" class="btn" id="rerouteBtn">Change route</button></div></div></details>
     <details class="more" id="cxBox"><summary>Stop testing and send the sample out</summary>
@@ -3477,10 +3522,10 @@ function renderBoard(){
   // Summary tiles, zeros included: a tile with samples filters the board to them, a tile with a tab opens it.
   const sums = [
     { k: "await", n: waiting.length, l: `Awaiting receipt${flagged ? `, ${flagged} flagged` : ""}`, tone: flagged ? "warn" : "info", pick: waiting },
-    { k: "lab", n: inProc.length, l: "In the lab, before results", tone: "", pick: inProc },
+    { k: "lab", n: inProc.length, l: "In the lab, before results", tone: "gold", pick: inProc },
     { k: "late", n: late.length, l: "Running late", tone: "bad", pick: late },
     { k: "redo", n: redo.length, l: "Being re-assayed", tone: "warn", pick: redo },
-    ...(canEdit() ? [batchesRequired() ? { k: "nobatch", n: noBatch.length, l: "Waiting for a lab batch", tone: "", pick: noBatch } : { k: "relready", n: relReady.length, l: "Ready for release", tone: relReady.length ? "info" : "", pick: relReady },
+    ...(canEdit() ? [batchesRequired() ? { k: "nobatch", n: noBatch.length, l: "Waiting for a lab batch", tone: "info", pick: noBatch } : { k: "relready", n: relReady.length, l: "Ready for release", tone: "ok", pick: relReady },
       ...(!relNow() ? [{ k: "qc", n: qcAct.length, l: "In a batch with QC to act on", tone: "warn", pick: qcAct }] : [])] : []),
     ...(isStaff() && !relNow() ? [{ k: "alerts", n: alerts.length, l: "Results past an action or permit limit, not yet recorded", tone: "bad", pick: alerts }] : []),
     ...(isStaff() && (!relNow() || canEval()) ? [{ k: "trends", n: trends.length, l: "Reference material trends", tone: "warn", go: "batches" }] : []),
@@ -3496,7 +3541,7 @@ function renderBoard(){
   const shown = cur ? new Set(cur.pick) : null;
   const sumHtml = sums.filter(x => !x.hide).map(x => {
     const act = !x.n ? "" : x.pick ? `data-bpick="${x.k}" aria-pressed="${boardPick === x.k}"` : x.go ? `data-goto="${x.go}"` : "", inner = `<span class="n">${x.n}</span><span class="l">${esc(x.l)}</span>`;
-    return act ? `<button type="button" class="stat tile ${x.tone}" ${act}>${inner}</button>` : `<div class="stat tile${x.n ? " " + x.tone : " zero"}">${inner}</div>`;
+    return act ? `<button type="button" class="stat tile ${x.tone}" ${act}>${inner}</button>` : `<div class="stat tile ${x.tone}${x.n ? "" : " zero"}">${inner}</div>`;
   }).join("");
   const filters = `<div class="bd-top bd-tools">
     <select class="inp" id="bdSec" style="width:auto;max-width:100%" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${boardSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
@@ -3573,7 +3618,8 @@ function purposeOptions(){
 /* The section a purpose usually comes from, offered until the submitter picks one. */
 const PURPOSE_SEC = { plant: "PLT", recon: "PLT", bullion: "GR", exp: "EXP", gc: "GC", met: "MET", env: "ENV", hse: "HSE", qc: "QC", other: "OTH" };
 /* Sample type groups get a colour of their own on the form, the board and the record. */
-const TYPE_TONE = { "Ore (exploration, geology, mine)": "ore", "Plant & gold room": "plant", "Other plant & gold room samples": "plant", "Metallurgical testwork": "met", "Environment": "env", "Quality control": "qc" };
+const TYPE_TONE = { "Ore (mine & exploration)": "ore", "Processing (crusher to TSF)": "plant", "Gold room": "gold", "Metallurgical testwork": "met", "Environment": "env", "Quality control": "qc",
+  "Ore (exploration, geology, mine)": "ore", "Plant & gold room": "plant", "Other plant & gold room samples": "plant" };
 const typeTone = k => TYPE_TONE[typeOf(k)?.group] || "other";
 function renderDetails(typeKey){
   const box = $("#rDetails"); if (!box) return;
@@ -3658,13 +3704,17 @@ function renderSampleForm(mode){
     if (pur && !pu.dataset.touched){ pu.value = pur; $("#rWhyBox", v).hidden = pu.value !== "other"; secFor(); }
     chip();
     const keep = te.dataset.touched ? te.value : "";
-    te.innerHTML = testOptions(ty.value);
+    te.innerHTML = testOptions(ty.value, "", pu.value);
     te.value = keep || defaultTest(ty.value, pu.value);
     if (!te.value) te.value = defaultTest(ty.value, pu.value);
     if (!hz.dataset.touched) HAZARDS.forEach(h => { $("#rHz_" + h.k, v).checked = (typeOf(ty.value)?.haz || []).includes(h.k); });
     renderDetails(ty.value); refreshFormRoute();
   };
-  pu.onchange = () => { pu.dataset.touched = "1"; $("#rWhyBox", v).hidden = pu.value !== "other"; secFor(); if (!te.dataset.touched && ty.value) te.value = defaultTest(ty.value, pu.value); refreshFormRoute(); };
+  pu.onchange = () => {
+    pu.dataset.touched = "1"; $("#rWhyBox", v).hidden = pu.value !== "other"; secFor();
+    if (ty.value){ const cur = te.value; te.innerHTML = testOptions(ty.value, "", pu.value); te.value = te.dataset.touched && [...te.options].some(o => o.value === cur) ? cur : defaultTest(ty.value, pu.value); }
+    refreshFormRoute();
+  };
   te.onchange = () => { te.dataset.touched = "1"; refreshFormRoute(); };
   hz.addEventListener("change", () => hz.dataset.touched = "1");
   $("#rRouteSel", v)?.addEventListener("change", refreshFormRoute);
@@ -3931,6 +3981,8 @@ const openRoutes = new Set();
 document.addEventListener("click", e => { const b = e.target.closest("[data-route]"); if (b){ routesFocus = b.dataset.route; setTab("routes"); } });
 let routeEditGo = "";
 document.addEventListener("click", e => { const b = e.target.closest("[data-edit-route]"); if (b){ routeEditGo = b.dataset.editRoute; setTab("stages"); } });
+/* Each catalogue group carries the colour of its sample types (v24c). */
+const CAT_TONE = { "Ore grade (AuFx)": "ore", "Processing": "plant", "Gold room": "gold", "Environment": "env", "Physical & chemistry": "qc" };
 function renderRoutes(){
   const v = $("#view-routes");
   if (routesFocus){ openRoutes.add(routesFocus); routesType = ""; routesQ = ""; }
@@ -3941,7 +3993,7 @@ function renderRoutes(){
       <div class="row" style="gap:6px"><span class="ph-tag ph-intake">Intake</span><span class="ph-tag ph-prep">Preparation</span><span class="ph-tag ph-test">Analysis / test</span><span class="ph-tag ph-qc">QA/QC</span></div>
     </div>
     <div class="panel stack" style="gap:10px"><h3>All ${liveTests.length} tests</h3>
-      ${TEST_CATS.filter(c => liveTests.some(t => t.cat === c)).map(c => `<div class="cat-row"><div class="cat-name">${esc(c)}</div><div class="cat-tests">${liveTests.filter(t => t.cat === c).map(t => { const r = routeFor("", t.key, ""); return r ? `<button type="button" class="tchip" data-route="${esc(r.code)}">${esc(t.name)}</button>` : ""; }).join("")}</div></div>`).join("")}
+      ${TEST_CATS.filter(c => liveTests.some(t => t.cat === c)).map(c => `<div class="cat-row t-${CAT_TONE[c] || "other"}"><div class="cat-name">${esc(c)}</div><div class="cat-tests">${liveTests.filter(t => t.cat === c).map(t => { const r = routeFor("", t.key, ""); return r ? `<button type="button" class="tchip" data-route="${esc(r.code)}">${esc(t.name)}</button>` : ""; }).join("")}</div></div>`).join("")}
     </div>
     <div class="row">
       <select class="inp" id="rtType" style="width:auto;max-width:100%"><option value="">All sample types</option>${TYPES.filter(t => typeOn(t.key) || t.key === routesType).map(t => `<option value="${esc(t.key)}" ${routesType === t.key ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select>
@@ -5737,8 +5789,8 @@ function renderStorage(){
       ${qaSlot()}
       <div class="panel row page-head"><h2 style="margin:0">Storage</h2><span class="small muted">Retained material, oldest due first</span></div>
       <div class="stats cstats">
-        <button type="button" class="stat c-blue" data-stshow="all" aria-pressed="${storeShow === "all"}"><div class="n">${stored.size}</div><div class="l">Samples in storage</div></button>
-        <button type="button" class="stat c-teal" data-stshow="all"><div class="n">${all.length}</div><div class="l">Materials kept</div></button>
+        <button type="button" class="stat c-blue${stored.size ? "" : " zero"}" data-stshow="all" aria-pressed="${storeShow === "all"}"><div class="n">${stored.size}</div><div class="l">Samples in storage</div></button>
+        <button type="button" class="stat c-teal${all.length ? "" : " zero"}" data-stshow="all"><div class="n">${all.length}</div><div class="l">Materials kept</div></button>
         <button type="button" class="stat c-red${past ? "" : " zero"}" data-stshow="past" aria-pressed="${storeShow === "past"}"><div class="n">${past}</div><div class="l">Past retention</div></button>
         <button type="button" class="stat c-amber${due ? "" : " zero"}" data-stshow="soon" aria-pressed="${storeShow === "soon"}"><div class="n">${due}</div><div class="l">Due within 30 days</div></button>
         <button type="button" class="stat c-violet${noLoc ? "" : " zero"}" data-stshow="noloc" aria-pressed="${storeShow === "noloc"}"><div class="n">${noLoc}</div><div class="l">No location</div></button>

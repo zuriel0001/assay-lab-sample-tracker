@@ -221,7 +221,7 @@ const next = async (page, n = 1) => { for (let i = 0; i < n; i++){ await page.cl
 
   // 16: a route code in use is locked in Settings
   await Ad.click('[data-tab="stages"]'); await Ad.waitForTimeout(300); await H.cfgTab(Ad, "routes");
-  await Ad.selectOption("#rtPick", { label: "EXP-FA · Exploration fire assay (50 g, AAS finish)" }).catch(() => {});
+  await Ad.selectOption("#rtPick", { label: "EXP-FA · AuFx: fire assay (50 g, AAS finish)" }).catch(() => {});
   R("16", await Ad.$eval('[data-rf="code"]', e => e.disabled).catch(() => false), "route code EXP-FA is locked while open samples use it");
 
   // J (bug 18): phone layout

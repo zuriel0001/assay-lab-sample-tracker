@@ -230,11 +230,16 @@ function witnessField(id){
 }
 const meBox = label => `<label class="f"><span>${label}</span><div class="me-box">${esc(session.name)} <span class="muted small" style="font-weight:400">(you)</span></div></label>`;
 /* Tests a route in use performs: the sample type's own first, then the others by group. `sel` (a sample's own test) is always listed. */
-function testOptions(typeKey, sel = ""){
-  const on = x => x.key === sel || testOn(x.key), t = typeOf(typeKey), rec = (t?.tests || []).map(testOf).filter(x => x && on(x));
-  const opt = x => `<option value="${esc(x.key)}" ${x.key === sel ? "selected" : ""}>${esc(x.name)}</option>`;
-  const head = rec.length ? `<optgroup label="${esc(t.name)}">${rec.map(opt).join("")}</optgroup>` : `<option value="">Choose the sample type first…</option>`;
-  return head + TEST_CATS.map(c => { const xs = TESTS.filter(x => x.cat === c && on(x) && !rec.includes(x)); return xs.length ? `<optgroup label="${esc(c)}">${xs.map(opt).join("")}</optgroup>` : ""; }).join("");
+function testOptions(typeKey, sel = "", purposeKey = ""){
+  /* v24c: one plain list, the analyses this sample type gets (no catalogue sections): its own, then any other a route in use names it for,
+     then for testwork the leach products' analyses. Type "Other" lists every analysis in use. */
+  const t = typeOf(typeKey), on = x => x && (x.key === sel || testOn(x.key));
+  const named = () => liveRoutes().filter(r => (r.types || []).includes(t.key)).flatMap(r => r.tests || []);
+  const keys = !t ? [] : t.key === "other" ? TEST_CATS.flatMap(c => TESTS.filter(x => x.cat === c).map(x => x.key))
+    : [...(t.tests || []), ...TESTS.map(x => x.key).filter(k => named().includes(k)), ...(purpBase(purposeKey) === "met" ? TESTWORK_TESTS : [])];
+  const list = [...new Set([...keys, ...(sel ? [sel] : [])])].map(testOf).filter(on);
+  if (!list.length) return `<option value="">Choose the sample type first…</option>`;
+  return list.map(x => `<option value="${esc(x.key)}" ${x.key === sel ? "selected" : ""}>${esc(x.name)}</option>`).join("");
 }
 /* Route choices always follow the test: only routes that perform it are offered. */
 function syncRoutes(testSel, routeSel, s, infoEl){
@@ -262,7 +267,7 @@ function receiptForm(s){
       <label class="f"><span>Condition</span><select id="rcCond">${CONDITIONS.map(c => `<option>${esc(c)}</option>`).join("")}</select></label>
       ${t?.cool != null ? `<label class="f"><span>Cooler temperature on arrival (°C) <span class="req">*</span></span><input id="rcTemp" type="number" step="0.1" placeholder="Limit ${t.cool} °C"></label>` : ""}
       ${twoPerson(s) ? witnessField("rcWit") : ""}
-      <label class="f"><span>Test requested</span><select id="rcTest">${testOptions(s.typeKey, s.test)}</select></label>
+      <label class="f"><span>Test requested</span><select id="rcTest">${testOptions(s.typeKey, s.test, s.purposeKey)}</select></label>
       <label class="f"><span>Workflow route</span><select id="rcRoute"></select></label>
       <div class="full small" id="rcInfo"></div>
       <label class="f full"><span>Note <span style="font-weight:400">(needed to flag or reject, when the test changes, or when a receipt check fails)</span></span><input id="mvNote" data-clear placeholder="e.g. Bag code reads T-10422, not T-10421; bag torn"></label>
@@ -341,7 +346,7 @@ function moveForm(s){
     ${canRedo ? redoBox(s) : ""}
     ${ci >= 1 ? `<details class="more" id="rrBox"><summary>Change the test or workflow route</summary>
       <div class="stack" style="gap:8px;margin-top:8px">
-        <div class="form"><label class="f">Test<select class="inp" id="rrTest">${testOptions(s.typeKey, s.test)}</select></label><label class="f">Route<select class="inp" id="rrCode"></select></label></div>
+        <div class="form"><label class="f">Test<select class="inp" id="rrTest">${testOptions(s.typeKey, s.test, s.purposeKey)}</select></label><label class="f">Route<select class="inp" id="rrCode"></select></label></div>
         <p class="small muted" id="rrInfo" style="margin:0"></p>
         <p class="small muted" style="margin:0">Only routes that perform the chosen test are listed. Steps already done stay in the chain of custody; the sample carries on from the same step in the new route if it has one.</p>
         <div class="row"><button type="button" class="btn" id="rerouteBtn">Change route</button></div></div></details>

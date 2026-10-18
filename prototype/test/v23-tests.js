@@ -49,15 +49,15 @@ const rv = (id, k) => doc(id).results?.rows?.[k]?.v;
   const head = await text(Tc, "#view-routes .panel h3");
   const cats = await Tc.$$eval("#view-routes .cat-name", xs => xs.map(x => x.textContent.trim()));
   check(/^All \d+ tests$/.test(head) && +head.match(/\d+/)[0] <= 26, "the test list is the analyses in use: " + head + " (" + cats.join(", ") + ")");
-  check(cats.includes("Process plant") && cats.includes("Gold room"), "tests sit under Process plant and Gold room");
+  check(cats.includes("Processing") && cats.includes("Gold room") && !cats.includes("Gold assay"), "tests sit under Processing and Gold room (v24c), no Gold assay group: " + cats.join(", "));
   const types = await Tc.$$eval("#rtType option", os => os.map(o => o.value).filter(Boolean));
-  check(["plant_feed", "ccd", "tsf", "carbon", "elution", "bullion", "rc", "core"].every(k => types.includes(k)) && types.includes("belt") && types.includes("tw_sol"), "sample types: those a route in use takes, Belt cut and testwork included (" + types.length + ")");
+  check(["plant_feed", "ccd", "tsf", "carbon", "elution", "bullion", "rc", "core"].every(k => types.includes(k)) && types.includes("belt") && !types.includes("tw_sol") && !types.includes("met_comp"), "sample types: those a route in use takes, Belt cut included, testwork types gone (v24c) (" + types.length + ")");
 
   log("Submit picks the analysis, purpose and route from the sample type");
   await H.tab(Tc, "register"); await Tc.waitForSelector("#rSubmit");
   let p = await picks(Tc, "plant_feed");
   check(p.test === "aufx_ausx" && p.purpose === "plant" && p.route === "AUFX-AUSX" && !p.choose, "Mill sample: Slurry AuFx & AuSx, purpose Process plant, route AUFX-AUSX with no route list: " + JSON.stringify([p.test, p.purpose, p.route, p.choose]));
-  check(p.first === "Mill sample" && ["aufx_ausx", "aufx", "ausx", "cn_only"].every(k => p.tests.includes(k)) && !p.tests.includes("plant_solids") && !p.tests.includes("o2"), "the analysis list starts with the mill sample's own and leaves out retired tests: " + p.tests.join(","));
+  check(p.first === "" && p.tests[0] === "aufx_ausx" && ["aufx_ausx", "aufx", "ausx", "cn_only"].every(k => p.tests.includes(k)) && !p.tests.includes("plant_solids") && !p.tests.includes("o2") && !p.tests.includes("fa_aas"), "the analysis list is the mill sample's own, one plain list with no sections (v24c): " + p.tests.join(","));
   p = await picks(Tc, "ccd");
   check(p.test === "aufx_ausx_cn" && p.route === "AUFX-AUSX-CN", "CCD sample: AuFx, AuSx & cyanide: " + p.route);
   p = await picks(Tc, "tsf");

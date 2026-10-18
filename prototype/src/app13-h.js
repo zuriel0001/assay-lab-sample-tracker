@@ -86,8 +86,8 @@ function renderStorage(){
       ${qaSlot()}
       <div class="panel row page-head"><h2 style="margin:0">Storage</h2><span class="small muted">Retained material, oldest due first</span></div>
       <div class="stats cstats">
-        <button type="button" class="stat c-blue" data-stshow="all" aria-pressed="${storeShow === "all"}"><div class="n">${stored.size}</div><div class="l">Samples in storage</div></button>
-        <button type="button" class="stat c-teal" data-stshow="all"><div class="n">${all.length}</div><div class="l">Materials kept</div></button>
+        <button type="button" class="stat c-blue${stored.size ? "" : " zero"}" data-stshow="all" aria-pressed="${storeShow === "all"}"><div class="n">${stored.size}</div><div class="l">Samples in storage</div></button>
+        <button type="button" class="stat c-teal${all.length ? "" : " zero"}" data-stshow="all"><div class="n">${all.length}</div><div class="l">Materials kept</div></button>
         <button type="button" class="stat c-red${past ? "" : " zero"}" data-stshow="past" aria-pressed="${storeShow === "past"}"><div class="n">${past}</div><div class="l">Past retention</div></button>
         <button type="button" class="stat c-amber${due ? "" : " zero"}" data-stshow="soon" aria-pressed="${storeShow === "soon"}"><div class="n">${due}</div><div class="l">Due within 30 days</div></button>
         <button type="button" class="stat c-violet${noLoc ? "" : " zero"}" data-stshow="noloc" aria-pressed="${storeShow === "noloc"}"><div class="n">${noLoc}</div><div class="l">No location</div></button>

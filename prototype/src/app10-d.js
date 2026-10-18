@@ -27,10 +27,10 @@ function renderBoard(){
   // Summary tiles, zeros included: a tile with samples filters the board to them, a tile with a tab opens it.
   const sums = [
     { k: "await", n: waiting.length, l: `Awaiting receipt${flagged ? `, ${flagged} flagged` : ""}`, tone: flagged ? "warn" : "info", pick: waiting },
-    { k: "lab", n: inProc.length, l: "In the lab, before results", tone: "", pick: inProc },
+    { k: "lab", n: inProc.length, l: "In the lab, before results", tone: "gold", pick: inProc },
     { k: "late", n: late.length, l: "Running late", tone: "bad", pick: late },
     { k: "redo", n: redo.length, l: "Being re-assayed", tone: "warn", pick: redo },
-    ...(canEdit() ? [batchesRequired() ? { k: "nobatch", n: noBatch.length, l: "Waiting for a lab batch", tone: "", pick: noBatch } : { k: "relready", n: relReady.length, l: "Ready for release", tone: relReady.length ? "info" : "", pick: relReady },
+    ...(canEdit() ? [batchesRequired() ? { k: "nobatch", n: noBatch.length, l: "Waiting for a lab batch", tone: "info", pick: noBatch } : { k: "relready", n: relReady.length, l: "Ready for release", tone: "ok", pick: relReady },
       ...(!relNow() ? [{ k: "qc", n: qcAct.length, l: "In a batch with QC to act on", tone: "warn", pick: qcAct }] : [])] : []),
     ...(isStaff() && !relNow() ? [{ k: "alerts", n: alerts.length, l: "Results past an action or permit limit, not yet recorded", tone: "bad", pick: alerts }] : []),
     ...(isStaff() && (!relNow() || canEval()) ? [{ k: "trends", n: trends.length, l: "Reference material trends", tone: "warn", go: "batches" }] : []),
@@ -46,7 +46,7 @@ function renderBoard(){
   const shown = cur ? new Set(cur.pick) : null;
   const sumHtml = sums.filter(x => !x.hide).map(x => {
     const act = !x.n ? "" : x.pick ? `data-bpick="${x.k}" aria-pressed="${boardPick === x.k}"` : x.go ? `data-goto="${x.go}"` : "", inner = `<span class="n">${x.n}</span><span class="l">${esc(x.l)}</span>`;
-    return act ? `<button type="button" class="stat tile ${x.tone}" ${act}>${inner}</button>` : `<div class="stat tile${x.n ? " " + x.tone : " zero"}">${inner}</div>`;
+    return act ? `<button type="button" class="stat tile ${x.tone}" ${act}>${inner}</button>` : `<div class="stat tile ${x.tone}${x.n ? "" : " zero"}">${inner}</div>`;
   }).join("");
   const filters = `<div class="bd-top bd-tools">
     <select class="inp" id="bdSec" style="width:auto;max-width:100%" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${boardSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
@@ -123,7 +123,8 @@ function purposeOptions(){
 /* The section a purpose usually comes from, offered until the submitter picks one. */
 const PURPOSE_SEC = { plant: "PLT", recon: "PLT", bullion: "GR", exp: "EXP", gc: "GC", met: "MET", env: "ENV", hse: "HSE", qc: "QC", other: "OTH" };
 /* Sample type groups get a colour of their own on the form, the board and the record. */
-const TYPE_TONE = { "Ore (exploration, geology, mine)": "ore", "Plant & gold room": "plant", "Other plant & gold room samples": "plant", "Metallurgical testwork": "met", "Environment": "env", "Quality control": "qc" };
+const TYPE_TONE = { "Ore (mine & exploration)": "ore", "Processing (crusher to TSF)": "plant", "Gold room": "gold", "Metallurgical testwork": "met", "Environment": "env", "Quality control": "qc",
+  "Ore (exploration, geology, mine)": "ore", "Plant & gold room": "plant", "Other plant & gold room samples": "plant" };
 const typeTone = k => TYPE_TONE[typeOf(k)?.group] || "other";
 function renderDetails(typeKey){
   const box = $("#rDetails"); if (!box) return;
@@ -208,13 +209,17 @@ function renderSampleForm(mode){
     if (pur && !pu.dataset.touched){ pu.value = pur; $("#rWhyBox", v).hidden = pu.value !== "other"; secFor(); }
     chip();
     const keep = te.dataset.touched ? te.value : "";
-    te.innerHTML = testOptions(ty.value);
+    te.innerHTML = testOptions(ty.value, "", pu.value);
     te.value = keep || defaultTest(ty.value, pu.value);
     if (!te.value) te.value = defaultTest(ty.value, pu.value);
     if (!hz.dataset.touched) HAZARDS.forEach(h => { $("#rHz_" + h.k, v).checked = (typeOf(ty.value)?.haz || []).includes(h.k); });
     renderDetails(ty.value); refreshFormRoute();
   };
-  pu.onchange = () => { pu.dataset.touched = "1"; $("#rWhyBox", v).hidden = pu.value !== "other"; secFor(); if (!te.dataset.touched && ty.value) te.value = defaultTest(ty.value, pu.value); refreshFormRoute(); };
+  pu.onchange = () => {
+    pu.dataset.touched = "1"; $("#rWhyBox", v).hidden = pu.value !== "other"; secFor();
+    if (ty.value){ const cur = te.value; te.innerHTML = testOptions(ty.value, "", pu.value); te.value = te.dataset.touched && [...te.options].some(o => o.value === cur) ? cur : defaultTest(ty.value, pu.value); }
+    refreshFormRoute();
+  };
   te.onchange = () => { te.dataset.touched = "1"; refreshFormRoute(); };
   hz.addEventListener("change", () => hz.dataset.touched = "1");
   $("#rRouteSel", v)?.addEventListener("change", refreshFormRoute);

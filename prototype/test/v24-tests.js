@@ -55,8 +55,24 @@ async function typeResults(page, id, vals){
   check(await Tc.$eval("#rSubBadge", e => e.closest(".pair") !== null) && await Tc.$eval("#rMore", d => !d.open), "the badge sits beside the name; the rest is under More details");
   await Tc.selectOption("#rType", "belt"); await Tc.waitForTimeout(250);
   check(await Tc.$eval("#rTest", e => e.value) === "aufx_m" && await Tc.$eval("#rPurpose", e => e.value) === "plant" && await Tc.$eval("#rSection", e => e.value) === "PLT",
-    "Belt cut sample: Belt cut: AuFx & moisture, Plant process control, section PLT");
-  check(/BELT/.test(await text(Tc, "#rRoute")) && /Plant/.test(await text(Tc, "#rTypeChip")), "the route BELT is shown and the type carries its group colour");
+    "Belt cut sample: Belt cut: AuFx & moisture, process control, section PLT");
+  check(/BELT/.test(await text(Tc, "#rRoute")) && await text(Tc, "#rTypeChip") === "Processing" && await Tc.$eval("#rTypeChip", e => e.classList.contains("t-plant")), "the route BELT is shown and the type carries its group (Processing) and colour");
+
+  log("v24c: sample types streamlined, AuFx named, one plain analysis list");
+  const tg = await Tc.$$eval("#rType optgroup", gs => gs.map(g => [g.label, [...g.querySelectorAll("option")].map(o => o.value)]));
+  const tgl = tg.map(g => g[0]), allT = tg.flatMap(g => g[1]);
+  check(tgl.join("|") === "Ore (mine & exploration)|Processing (crusher to TSF)|Gold room|Environment|Quality control|Other", "type groups: Ore, Processing, Gold room, Environment, QC, Other: " + tgl.join(", "));
+  check(JSON.stringify(tg.find(g => g[0] === "Gold room")[1]) === '["bullion"]', "the gold room sends bullion only");
+  check(["belt", "plant_feed", "ccd", "carbon", "elution", "tsf"].every(k => tg.find(g => g[0].startsWith("Processing"))[1].includes(k)), "carbon and elution are processing samples, with belt cut, mill, CCD and TSF");
+  check(!["met_comp", "tw_slurry", "tw_sol", "tw_res", "tw_carbon", "plant_tails", "cil_slurry", "solution", "waste"].some(k => allT.includes(k)) && new Set(allT).size === allT.length, "no testwork or duplicate types: " + allT.length + " types");
+  await Tc.selectOption("#rType", "rc"); await Tc.waitForTimeout(200);
+  const rcT = await Tc.$$eval("#rTest option", os => os.map(o => o.textContent));
+  check(!(await Tc.$("#rTest optgroup")) && rcT[0] === "AuFx: fire assay, AAS finish" && rcT.slice(0, 3).every(x => /^AuFx: /.test(x)) && !rcT.some(x => /Carbon|Bullion|Slurry/.test(x)), "ore: one plain list, fire assay named AuFx first, nothing from other sites: " + rcT.slice(0, 4).join(" | "));
+  await Tc.selectOption("#rType", "carbon"); await Tc.waitForTimeout(200);
+  check((await Tc.$$eval("#rTest option", os => os.map(o => o.value))).join() === "c_load,moisture", "carbon: Au loading and moisture only");
+  await Tc.selectOption("#rType", "tsf"); await Tc.selectOption("#rPurpose", "env"); await Tc.waitForTimeout(200);
+  check((await Tc.$$eval("#rPurpose option", os => os.map(o => o.textContent))).includes("Environmental compliance (any site)") && await Tc.$eval("#rTest", e => e.value) === "water" && /ENV-W/.test(await text(Tc, "#rRoute")), "Environment sends a sample from any site; on a TSF sample it gets water quality (ENV-W) first");
+  await Tc.selectOption("#rType", "belt"); await Tc.waitForTimeout(250);
   const groups = await Tc.$$eval("#rPurpose optgroup", gs => gs.map(g => g.label)), pur = await Tc.$$eval("#rPurpose option", os => os.map(o => o.textContent));
   check(groups.includes("Metallurgical testwork") && pur.includes("Bottle roll test") && pur.includes("CIL / CIP leach test"), "What it is for lists the testwork, grouped: " + groups.join(", "));
   await fillForm(Tc, "register", { section: "PLT", type: "belt", purpose: "plant", test: "aufx_m", submitter: "Shift boss", count: 1, tags: "BC-0601", details: { point: "Mill feed conveyor" } });
@@ -137,7 +153,7 @@ async function typeResults(page, id, vals){
   log("Board, Storage, Ledger, Routes");
   await H.tab(Tc, "board"); await Tc.waitForTimeout(400);
   const zeros = await Tc.$$eval("div.stat.tile", ts => ts.map(t => [t.classList.contains("zero"), +t.querySelector(".n").textContent]));
-  check(zeros.length && zeros.every(([z, n]) => z === (n === 0)), "board tiles with nothing in them are marked as empty (greyed), the others are not");
+  check(zeros.length && zeros.every(([z, n]) => z === (n === 0)), "board tiles with nothing in them are marked as empty, the others are not");
   check(!(await Tc.$('[data-bpick="qc"]')) && !/QC to act on/.test(await text(Tc, "#view-board")), "the lab's board has no QC-to-act-on tile");
   await H.tab(Tc, "storage"); await Tc.waitForTimeout(400);
   check((await Tc.$$("#view-storage .cstats .stat")).length === 5 && await Tc.$$eval("#view-storage [data-stshow]", b => b.length) === 5, "Storage: five coloured summary cards that filter");
@@ -157,10 +173,10 @@ async function typeResults(page, id, vals){
   const hd = await Tc.$$eval("#rtList > h3", hs => hs.map(h => h.textContent));
   check(new Set(hd).size === hd.length, "each route group appears once: " + hd.join(", "));
 
-  log("Testwork: the products of a bottle roll come in for assay, marked by what they are for");
-  await fillForm(Tc, "register", { section: "MET", type: "tw_sol", purpose: "met_br", test: "ausx", submitter: "Met lab", count: 1, tags: "BR-014-24H", details: { prog: "BR-014", tp: "24 h" } });
+  log("Testwork: the products of a bottle roll come in as the site's sample type, marked by what they are for");
+  await fillForm(Tc, "register", { section: "MET", type: "core", purpose: "met_br", test: "ausx", submitter: "Met lab", count: 1, tags: "BR-014-24H", details: { hole: "KDD-0231" } });
   const [w1] = await ids(Tc);
-  check(doc(w1).route === "AUSX" && doc(w1).purpose === "Bottle roll test" && doc(w1).purposeKey === "met_br", "a bottle roll solution goes on the AuSx route, its purpose Bottle roll test");
+  check(doc(w1).route === "AUSX" && doc(w1).purpose === "Bottle roll test" && doc(w1).purposeKey === "met_br" && doc(w1).typeKey === "core", "a bottle roll solution from drill core goes on the AuSx route, its purpose Bottle roll test");
 
   log("Font: a step larger");
   check(await Tc.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize)) === 16 && await Tc.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".small") || document.body).fontSize)) >= 14, "body text 16 px, small text 14 px");
