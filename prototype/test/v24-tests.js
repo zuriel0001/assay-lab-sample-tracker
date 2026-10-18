@@ -156,7 +156,7 @@ async function typeResults(page, id, vals){
   const sol = await ids(Tc);
   for (const id of sol) await toLast(Tc, id);
   await H.tab(Tc, "batches"); await Tc.waitForSelector('[data-attach="all"]');
-  check(/one run of samples/.test(await text(Tc, ".batch-hero")) && await Tc.$eval("#nbBox", d => !d.open) && !(await Tc.$("#chPanel")), "Batches: says what a batch is; making one by hand is folded away; no QC chart for a technician");
+  check(!(await Tc.$(".batch-hero")) && !/one run of samples/.test(await text(Tc, "#view-batches")) && !!(await Tc.$('#view-batches [data-attach="all"]')) && /\d+ waiting for results/.test(await text(Tc, ".batch-bar")) && /\d+ closed this month/.test(await text(Tc, ".batch-bar")) && await Tc.$eval("#nbBox", d => !d.open) && !(await Tc.$("#chPanel")), "Batches: no heading text, the counts (waiting, open, closed this month) and Attach results file (v24c); making one by hand is folded away; no QC chart for a technician");
   let ub = await H.attachFile(Tc, "all", "aas-run.csv", `Sample ID,AuSX (mg/L)\n${sol[0]},0.150\n${sol[1]},0.152\nBLANK,0.090\n`);
   await H.saveAttach(Tc); await waitFor(() => sol.every(id => doc(id).certs?.length), 8000);
   check(sol.every(id => (doc(id).certs || []).length === 1 && doc(id).certs[0].by === "tech1"), "both samples are released from the file at once: " + sol.map(id => doc(id).stageKey).join(","));
@@ -217,10 +217,12 @@ async function typeResults(page, id, vals){
   for (const b of btns.filter(b => b[0] !== "rel")){ await Tc.click(`[data-bpick="${b[0]}"]`); await Tc.waitForTimeout(200); const n = await Tc.$$eval("#bdPick tbody tr", rs => rs.length).catch(() => 0); check(n > 0, `the ${b[0]} tile opens a list of ${n}`); await Tc.click(`#bdPick [data-bpick="${b[0]}"]`).catch(() => {}); await Tc.waitForTimeout(150); }
   check(!(await Tc.$('[data-bpick="qc"]')) && !/QC to act on/.test(await text(Tc, "#view-board")), "the lab's board has no QC-to-act-on tile");
   await H.tab(Tc, "storage"); await Tc.waitForTimeout(400);
+  check(!/Retained material, oldest due first/.test(await text(Tc, "#view-storage")) && !(await Tc.$("#view-storage h2")), "v24c: Storage starts with its cards, no heading text");
   check((await Tc.$$("#view-storage .cstats .stat")).length === 5 && await Tc.$$eval("#view-storage [data-stshow]", b => b.length) === 5, "Storage: five coloured summary cards that filter");
   await Tc.click('#view-storage [data-stshow="past"]'); await Tc.waitForTimeout(300);
   check(await Tc.$eval("#stShow", e => e.value) === "past", "Past retention filters the list");
   await H.tab(Tc, "ledger"); await Tc.waitForTimeout(500);
+  check(!/Every sample received and every material/.test(await text(Tc, "#view-ledger")) && !(await Tc.$("#view-ledger h2")), "v24c: the Ledger starts with its cards, no heading text");
   check(/Received in/.test(await text(Tc, "#view-ledger .cstats")) && (await Tc.$$("#view-ledger .dirp.dir-in")).length >= 4, "Ledger: received and sent-out cards, IN shown as a pill");
   check(await Tc.$$eval("#view-ledger thead th", t => t.length) === 9, "the ledger fits in nine columns");
   await H.tab(Tc, "routes"); await Tc.waitForSelector("#rtList details.route");

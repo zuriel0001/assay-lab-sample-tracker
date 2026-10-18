@@ -114,8 +114,8 @@ function renderStaffResults(v){
   const due = toEvaluate().length, flagged = toEvaluate().filter(s => evalFlags(s).length).length;
   const keepFocus = document.activeElement?.id === "resQ";
   v.innerHTML = `<div class="stack">
-    <div class="panel stack res-head page-hero" style="gap:10px">
-      <div class="row" style="gap:10px"><div class="stack" style="gap:4px;min-width:0"><h2 style="margin:0">Results</h2><p class="small" style="margin:0">Results released in the last ${resDays} days, newest first. Open a sample for its certificate and results file.</p></div>${ev ? `<span class="grow"></span><span class="pill${flagged ? " bad" : ""}">${flagged} flagged</span><span class="pill${due ? " gold" : ""}">${due} to evaluate</span>` : ""}</div>
+    <div class="panel stack res-head" style="gap:10px">
+      <div class="row" style="gap:10px"><h2 style="margin:0">Results</h2><span class="small muted">Released in the last ${resDays} days</span>${ev ? `<span class="grow"></span><span class="pill${flagged ? " bad" : ""}">${flagged} flagged</span><span class="pill${due ? " gold" : ""}">${due} to evaluate</span>` : ""}</div>
       <div class="row bd-tools" style="gap:8px">
         <input class="inp" id="resQ" placeholder="Search ID, site code, purpose" value="${esc(resQ)}" style="flex:1 1 220px;width:auto">
         <select class="inp" id="resSec" style="width:auto" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${resSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>

@@ -206,8 +206,9 @@ the ledger's heading like Lab batches; "if there is anything to improve on the w
   under Awaiting receipt; tick it when the sample is in hand. The message after submitting says where the sample went.
 - **Home**: the header title and logo lead to the home tab (`homeTab()`: the board for lab staff), closing an open sample when home is the
   Sample tab; keyboard reachable.
-- **Page heads** (Ledger, Storage, Results, Workflow routes) are soft panels like the Lab batches head: the title, then what the page is
-  for (the ledger's rules moved up from the paragraph under the cards).
+- **Page heads**: Zuriel meant *remove* them (23:23: "they were not initially there… or not these long"). Ledger and Storage start with their
+  cards, no title or explanation; Lab batches keeps only its counts (waiting for results, open, closed this month) and *Attach results
+  file*; Results and Workflow routes are as before. The ledger keeps one short line: the month's movements.
 - Smaller fixes: board cards drop the route code under the sample ID instead of cutting it off; table headings wrap; the board keeps its
   tiles when no sample is in the lab (today's releases and past-retention material can still be opened); an empty card is not shown
   pressed; *Same details again* keeps *Received now* as it was.

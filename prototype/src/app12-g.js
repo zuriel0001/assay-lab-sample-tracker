@@ -983,14 +983,7 @@ function buildBatches(v){
     .map(c => { const k = `${c.id}|${c.an}|${c.u || ""}`; return `<option value="${esc(k)}" ${k === chartCrm ? "selected" : ""}>${esc(c.id)} · ${esc(c.an)}${c.u ? " " + esc(c.u) : ""} · ${esc(c.name)}</option>`; }).join("");
   const ev = !relNow() || canEval(), waitRes = open.filter(x => !x.qc).length;
   v.innerHTML = `<div class="stack">
-    <div class="panel batch-hero">
-      <div class="stack" style="gap:6px;min-width:0;flex:1 1 320px">
-        <h2 style="margin:0">Lab batches</h2>
-        <p class="small" style="margin:0">A batch is one run of samples through the furnace or AAS, with its standards, blanks and duplicates. Attach the run's results file: each sample is found by its ID or site sample code, and complete results are released.</p>
-        <div class="row" style="gap:6px"><span class="pill ${waitRes ? "gold" : ""}">${waitRes} waiting for results</span><span class="pill">${open.length} open</span><span class="pill">${closed.length} closed this month</span></div>
-      </div>
-      ${edit ? `<button type="button" class="btn primary big" data-attach="all">Attach results file</button>` : ""}
-    </div>
+    <div class="row batch-bar"><span class="pill ${waitRes ? "gold" : ""}">${waitRes} waiting for results</span><span class="pill">${open.length} open</span><span class="pill">${closed.length} closed this month</span><span class="grow"></span>${edit ? `<button type="button" class="btn primary big" data-attach="all">Attach results file</button>` : ""}</div>
     ${trends.length && ev ? `<div class="notice warn"><b>Reference material trends:</b> ${trends.map(t => `${esc(t.crm)}${t.k ? ` ${esc(t.k)}` : ""}: ${esc(t.msg)}`).join("; ")}. Check the control chart before the next batch.</div>` : ""}
     <div class="panel stack" style="gap:8px"><h3>Open batches</h3>
       ${open.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>Batch</th><th>Type</th><th>Samples</th><th>Status</th><th>Next step</th><th>Created</th><th>By</th></tr></thead><tbody>${open.map(row).join("")}</tbody></table></div>` : `<p class="small muted" style="margin:0">No open batches.</p>`}

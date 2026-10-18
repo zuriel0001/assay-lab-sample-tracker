@@ -95,9 +95,6 @@ details.recv-at[open] > summary{min-height:28px}
 
 /* Batches */
 .batch-hero{display:flex;flex-wrap:wrap;align-items:center;gap:14px;background:var(--info-soft);border-color:transparent}
-/* Page heads (Ledger, Storage, Results, Routes) look like the Lab batches head: a soft panel, the title, then what the page is for. */
-.page-hero{background:var(--info-soft);border-color:transparent}
-.page-hero p.small{max-width:80ch}
 header.top .brand{cursor:pointer;border-radius:8px}
 header.top .brand:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .batch-hero .btn.big{margin-left:auto}
@@ -152,3 +149,4 @@ details.route-mini .code{background:var(--panel)}
 .chip .cid .rc{white-space:nowrap}
 th{white-space:normal}
 .cstats .stat.zero[aria-pressed="true"]{outline:none}
+.batch-bar{gap:8px;align-items:center}

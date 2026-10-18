@@ -470,14 +470,10 @@ function renderLedger(){
   keepUiSimple(v, () => {
     v.innerHTML = `<div class="stack">
       ${qaSlot()}
-      <div class="panel page-hero"><div class="stack" style="gap:6px;min-width:0">
-        <h2 style="margin:0">In / out ledger</h2>
-        <p class="small" style="margin:0">Every sample received and every material that left the lab. A sample is written in once, when the lab receives it; each retained material is written out when it is returned, disposed, sent to another lab or archived. Mistakes are reversed with a visible entry, never deleted.</p>
-      </div></div>
       <div class="stats cstats">
         <button type="button" class="stat c-green${inN ? "" : " zero"}" data-lgdir="in" aria-pressed="${f.dir === "in"}"><div class="n">${inN}</div><div class="l">Received in ${esc(f.month)}</div></button>
         <button type="button" class="stat c-orange${outN ? "" : " zero"}" data-lgdir="out" aria-pressed="${f.dir === "out"}"><div class="n">${outN}</div><div class="l">Sent out (returned, disposed…)</div></button>
-        ${rc ? `<div class="stat c-blue"><div class="n">${rc.closing}</div><div class="l">On hand at month end</div></div>` : ""}
+        ${rc ? `<div class="stat c-blue${rc.closing ? "" : " zero"}"><div class="n">${rc.closing}</div><div class="l">On hand at month end</div></div>` : ""}
         ${revN ? `<div class="stat c-grey"><div class="n">${revN}</div><div class="l">Reversals</div></div>` : ""}
       </div>
       <div class="row">
