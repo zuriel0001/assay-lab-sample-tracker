@@ -157,7 +157,18 @@ const DEFAULT_CONFIG = {
     { id: "L37", route: "PRI",      k: "pri",  op: ">", val: 10,    act: "Moderate preg-robbing: recommend CIL or a blinding agent" },
     { id: "L38", route: "PRI",      k: "pri",  op: ">", val: 50,    act: "Severe preg-robbing: recommend roasting tests" },
     { id: "L39", route: "FLOT",     k: "rec",  op: "<", val: 80,    act: "Repeat at a finer grind or with a different collector" },
-    { id: "L40", route: "ABA",      k: "nag",  op: "<", val: 4.5,   act: "Potentially acid-forming: notify Environment for waste-dump placement" }
+    { id: "L40", route: "ABA",      k: "nag",  op: "<", val: 4.5,   act: "Potentially acid-forming: notify Environment for waste-dump placement" },
+    /* Version 23: the plant routes (EXAMPLE values: the lab sets its own). */
+    { id: "P01", route: "AUFX-AUSX",    k: "Au_s", op: ">", val: 0.02, when: "CIL tails", act: "Soluble gold loss: alert the plant metallurgist and repeat" },
+    { id: "P02", route: "AUFX-AUSX",    k: "Au",   op: ">", val: 0.2,  when: "CIL tails", act: "Gold loss in the tails solids: alert the plant metallurgist and repeat" },
+    { id: "P03", route: "AUSX",         k: "Au_s", op: ">", val: 0.02, when: "CIL tails", act: "Soluble gold loss: alert the plant metallurgist and repeat" },
+    { id: "P04", route: "AUFX-AUSX",    k: "Au_s", op: ">", val: 0.05, when: "CCD tails", act: "Soluble gold loss in the CCD tails: alert the plant metallurgist" },
+    { id: "P05", route: "AUFX-AUSX-CN", k: "Au_s", op: ">", val: 0.05, when: "CCD tails", act: "Soluble gold loss in the CCD tails: alert the plant metallurgist" },
+    { id: "P06", route: "AUFX-AUSX-CN", k: "wad",  op: ">", val: 50,   when: "TSF spigot", act: "WAD cyanide over 50 mg/L at the TSF: alert Environment and the plant at once" },
+    { id: "P07", route: "AUSX-CN",      k: "wad",  op: ">", val: 50,   when: "Decant pond", act: "WAD cyanide over 50 mg/L in the decant pond: alert Environment and the plant at once" },
+    { id: "P08", route: "CN",           k: "wad",  op: ">", val: 50,   when: "TSF spigot", act: "WAD cyanide over 50 mg/L at the TSF: alert Environment and the plant at once" },
+    { id: "P09", route: "C-LOAD",       k: "Au_c", op: ">", val: 100,  when: "Eluted carbon", act: "Repeat and notify the elution operator" },
+    { id: "P10", route: "ELU-AUSX",     k: "Au_s", op: ">", val: 5,    when: "Electrowinning tails", act: "Check the electrowinning cells and current" }
   ],
   /* Results are shown to signed-in staff only, unless an admin opens them to anyone with the sample ID. */
   resultsPublic: false,
@@ -165,6 +176,8 @@ const DEFAULT_CONFIG = {
   batchReq: false,
   /* Routes' QA/QC review step (off: the release follows the last analysis step; QA/QC is judged on the QA/QC sample sets and lab batches). */
   qcStep: false,
+  /* Routes the lab manager turned on or off (code: true / false); any other route is in use unless it is in RETIRED_ROUTES. */
+  routeUse: {},
   routes: DEFAULT_ROUTES
 };
 
@@ -269,7 +282,14 @@ const typeOf = k => TYPES.find(t => t.key === k) || null;
 const testOf = k => TESTS.find(t => t.key === k) || null;
 const purposeOf = k => PURPOSES.find(p => p.key === k) || null;
 const routeByCode = c => (cfg.routes || []).find(r => r.code === c) || null;
-const routesForTest = test => (cfg.routes || []).filter(r => (r.tests || []).includes(test));
+/* Routes in use: all but those retired in version 23, as the lab manager turned them on or off. Samples keep any route they are on. */
+const useOf = (r, use) => { const u = (use || {})[r.code]; return u != null ? !!u : !RETIRED_ROUTES.includes(r.code); };
+const routeOn = r => useOf(r, cfg.routeUse);
+const liveRoutes = () => (cfg.routes || []).filter(routeOn);
+const testOn = k => liveRoutes().some(r => (r.tests || []).includes(k));
+const typeOn = k => k === "other" || liveRoutes().some(r => (r.types || []).includes(k));
+/* Routes in use that perform a test, and `keep` (a sample's own route) even when it is no longer in use. */
+const routesForTest = (test, keep = "") => (cfg.routes || []).filter(r => (r.tests || []).includes(test) && (routeOn(r) || r.code === keep));
 /* Saved routes plus any default route the admin has not removed, so routes added in later versions still appear. */
 /* Settings store only routes an admin added or edited; every untouched default follows the latest version of the route library. */
 function mergeRoutes(saved, removed){
@@ -297,10 +317,10 @@ const testRank = r => { const i = TESTS.findIndex(t => t.key === (r.tests || [])
 const routeCat = r => testOf((r.tests || [])[0])?.cat || "Other";
 /* Recommended test for a sample type; the purpose can steer it (testwork, environmental, plant). */
 function defaultTest(typeKey, purposeKey){
-  const list = typeOf(typeKey)?.tests || ["fa_aas"];
+  const all = typeOf(typeKey)?.tests || ["fa_aas"], list = all.filter(testOn);
   const pref = { met: ["bottle", "cil_test", "pri", "grg", "diag", "commin", "cn_sol"], env: ["water", "soil", "tsf", "aba"], hse: ["water", "soil"], qc: ["check"],
-    plant: ["plant_solids", "ccd", "eluate", "residue", "cil_survey", "carbon", "solution"], bullion: ["bullion"] }[purposeKey] || [];
-  return pref.find(x => list.includes(x)) || list[0];
+    plant: ["plant_solids", "ccd", "eluate", "residue", "cil_survey", "carbon", "solution"], bullion: ["bullion", "c_load", "elu_sol"] }[purposeKey] || [];
+  return pref.find(x => list.includes(x)) || list[0] || all[0];
 }
 /* The route must perform the test; among those, a purpose match counts most, then a sample-type match. Null when no route performs it. */
 function routeFor(typeKey, testKey, purposeKey){

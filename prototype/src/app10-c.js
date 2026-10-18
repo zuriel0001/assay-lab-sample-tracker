@@ -228,15 +228,16 @@ function witnessField(id){
   return `<label class="f"><span>Witness (two-person custody) <span class="req">*</span></span><select id="${id}"><option value="">Choose the second person…</option>${others.map(x => `<option value="${esc(x.name)}">${esc(x.name)}</option>`).join("")}</select></label>`;
 }
 const meBox = label => `<label class="f"><span>${label}</span><div class="me-box">${esc(session.name)} <span class="muted small" style="font-weight:400">(you)</span></div></label>`;
+/* Tests a route in use performs: the sample type's own first, then the others by group. `sel` (a sample's own test) is always listed. */
 function testOptions(typeKey, sel = ""){
-  const t = typeOf(typeKey), rec = (t?.tests || []).map(testOf).filter(Boolean);
+  const on = x => x.key === sel || testOn(x.key), t = typeOf(typeKey), rec = (t?.tests || []).map(testOf).filter(x => x && on(x));
   const opt = x => `<option value="${esc(x.key)}" ${x.key === sel ? "selected" : ""}>${esc(x.name)}</option>`;
-  const head = rec.length ? `<optgroup label="Recommended for ${esc(t.name)}">${rec.map(opt).join("")}</optgroup>` : `<option value="">Choose the sample type first…</option>`;
-  return head + TEST_CATS.map(c => { const xs = TESTS.filter(x => x.cat === c && !rec.includes(x)); return xs.length ? `<optgroup label="${esc(c)}">${xs.map(opt).join("")}</optgroup>` : ""; }).join("");
+  const head = rec.length ? `<optgroup label="${esc(t.name)}">${rec.map(opt).join("")}</optgroup>` : `<option value="">Choose the sample type first…</option>`;
+  return head + TEST_CATS.map(c => { const xs = TESTS.filter(x => x.cat === c && on(x) && !rec.includes(x)); return xs.length ? `<optgroup label="${esc(c)}">${xs.map(opt).join("")}</optgroup>` : ""; }).join("");
 }
 /* Route choices always follow the test: only routes that perform it are offered. */
 function syncRoutes(testSel, routeSel, s, infoEl){
-  const test = testSel.value, list = routesForTest(test), keep = routeSel.value;
+  const test = testSel.value, list = routesForTest(test, s.route), keep = routeSel.value;
   const pick = list.some(r => r.code === keep) ? keep : list.some(r => r.code === s.route) ? s.route : routeFor(s.typeKey, test, s.purposeKey)?.code || "";
   routeSel.innerHTML = list.length ? routeOptions(pick, list) : `<option value="">No route performs this test</option>`;
   if (infoEl){

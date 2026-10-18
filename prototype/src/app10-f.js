@@ -103,6 +103,10 @@ function watchBatches(){
   if (monthBatchSub) monthBatchSub();
   monthBatchSub = db.collection("batches").where("month", "==", monthBatchKey).onSnapshot(snap => { monthBatches = snap.docs.map(d => d.data()).filter(b => b && b.id); rerenderSoon(); }, () => {});
 }
+/* Default limits added in version 23 (P01 on, for the new routes) join limits saved before them; once settings are saved again, a limit the
+   lab manager removed stays removed. */
+const LIMITS_V = 23;
+const newLimits = (saved, v) => [...clone(saved), ...(v >= LIMITS_V ? [] : clone(DEFAULT_CONFIG.limits.filter(l => /^P\d/.test(l.id) && !saved.some(x => x.id === l.id))))];
 let relSub = null, relDayWatched = "";
 function watchReleasedToday(){
   if (!db) return;
@@ -136,7 +140,7 @@ setTab(tab);
         routes: mergeRoutes(d.routes, d.removed), removed: Array.isArray(d.removed) ? d.removed.slice() : [],
         sections: Array.isArray(d.sections) && d.sections.length ? clone(d.sections) : clone(DEFAULT_CONFIG.sections),
         users, tz: d.tz && tzOk(d.tz) ? d.tz : DEFAULT_CONFIG.tz,
-        crms: Array.isArray(d.crms) && d.schema >= 12 ? clone(d.crms) : mergeCrms(d.crms), limits: Array.isArray(d.limits) ? clone(d.limits) : clone(DEFAULT_CONFIG.limits), resultsPublic: !!d.resultsPublic, batchReq: !!d.batchReq, qcStep: !!d.qcStep, work: workOf(d.work), logo: logoOf(d.logo),
+        crms: Array.isArray(d.crms) && d.schema >= 12 ? clone(d.crms) : mergeCrms(d.crms), limits: Array.isArray(d.limits) ? newLimits(d.limits, d.limitsV) : clone(DEFAULT_CONFIG.limits), routeUse: isMap(d.routeUse) ? clone(d.routeUse) : {}, resultsPublic: !!d.resultsPublic, batchReq: !!d.batchReq, qcStep: !!d.qcStep, work: workOf(d.work), logo: logoOf(d.logo),
         crmLog: Array.isArray(d.crmLog) ? d.crmLog.slice(0, CRM_LOG_MAX) : [], cols: Array.isArray(d.cols) ? clone(d.cols) : []
       };
     }

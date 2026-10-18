@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 c9ccc9a9d516) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 545c9c06fd47) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -722,13 +722,22 @@ const PURPOSES = [
   { key: "other",   name: "Other" }
 ];
 /* Test catalogue, grouped the way a mine assay lab groups its work. */
-const TEST_CATS = ["Gold assay", "Leach & recovery testwork", "Gravity & flotation", "Physical & comminution", "Chemistry & mineralogy", "Plant & gold room", "Environment & cyanide"];
+const TEST_CATS = ["Gold assay", "Process plant", "Gold room", "Leach & recovery testwork", "Gravity & flotation", "Physical & comminution", "Chemistry & mineralogy", "Plant & gold room", "Environment & cyanide"];
 const TESTS = [
   { key: "fa_aas",       cat: "Gold assay", name: "Gold by fire assay, AAS finish" },
   { key: "fa_grav",      cat: "Gold assay", name: "Gold by fire assay, gravimetric finish (high grade)" },
   { key: "sfa",          cat: "Gold assay", name: "Screen fire assay (coarse / nuggety gold)" },
   { key: "ar_au",        cat: "Gold assay", name: "Low-level gold by aqua regia / BLEG (soils, sediments)" },
   { key: "check",        cat: "Gold assay", name: "Check / umpire assay (external lab)" },
+  /* Version 23: the process plant and gold room tests in the lab's own words. AuFx: gold in the solids (fire assay); AuSx: gold in the solution. */
+  { key: "aufx_ausx",    cat: "Process plant", name: "Slurry: AuFx & AuSx" },
+  { key: "aufx",         cat: "Process plant", name: "Solids: AuFx" },
+  { key: "ausx",         cat: "Process plant", name: "Solution: AuSx" },
+  { key: "aufx_ausx_cn", cat: "Process plant", name: "Slurry: AuFx, AuSx & cyanide" },
+  { key: "ausx_cn",      cat: "Process plant", name: "Solution: AuSx & cyanide" },
+  { key: "cn_only",      cat: "Process plant", name: "Cyanide: NaCN, WAD & pH" },
+  { key: "c_load",       cat: "Gold room", name: "Carbon: Au loading" },
+  { key: "elu_sol",      cat: "Gold room", name: "Elution solution: AuSx, AgSx & Cu" },
   { key: "cn_sol",       cat: "Leach & recovery testwork", name: "Cyanide-soluble gold (LeachWELL)" },
   { key: "bottle",       cat: "Leach & recovery testwork", name: "Bottle roll cyanidation test" },
   { key: "cil_test",     cat: "Leach & recovery testwork", name: "CIL / CIP leach test with carbon" },
@@ -758,7 +767,7 @@ const TESTS = [
   { key: "elution",      cat: "Plant & gold room", name: "Carbon strip test (lab elution of loaded carbon)" },
   { key: "solution",     cat: "Plant & gold room", name: "Process solution assay (Au, Ag, Cu, cyanide)" },
   { key: "conc",         cat: "Plant & gold room", name: "Concentrate assay" },
-  { key: "bullion",      cat: "Plant & gold room", name: "Bullion fineness (doré)" },
+  { key: "bullion",      cat: "Gold room", name: "Bullion fineness (doré)" },
   { key: "tsf",          cat: "Environment & cyanide", name: "TSF sample characterisation (Au, CN, S, metals)" },
   { key: "cn_spec",      cat: "Environment & cyanide", name: "Cyanide speciation (free, WAD, total, SCN)" },
   { key: "detox",        cat: "Environment & cyanide", name: "Cyanide destruction (detox) test" },
@@ -767,69 +776,77 @@ const TESTS = [
   { key: "soil",         cat: "Environment & cyanide", name: "Soil / sediment (metals, Hg, As, CN)" }
 ];
 const SHIFT = { k: "shift", l: "Shift", o: ["Day", "Night"] };
-/* tests: recommended tests for the type, first = default. fields: extra details asked at submission. check: what the technician checks at receipt. */
+/* Sampling points, the same at submission (sample details) and on the results, so a limit for one point follows what the submitter chose. */
+const MILL_PTS = ["CIL feed", "Cyclone overflow", "Cyclone underflow", "CIL tank", "CIL tails", "Tails grab", "Other"];
+const CCD_PTS = ["CCD feed", "CCD overflow", "CCD underflow", "CCD tails", "Other"];
+const TSF_PTS = ["TSF spigot", "Decant pond", "Return water", "Seepage / underdrain", "Other"];
+const PLANT_PTS = [...new Set([...MILL_PTS, ...CCD_PTS, ...TSF_PTS].filter(x => x !== "Other")), "Other"];
+const CARBON_PTS = ["CIL tank carbon", "Loaded carbon (to elution)", "Eluted carbon", "Regenerated carbon", "Fresh carbon"];
+const ELU_PTS = ["Pregnant solution", "Electrowinning head", "Electrowinning tails", "Lean eluate", "Other"];
+/* tests: recommended tests for the type, first = default (the first one a route in use performs). pur: the usual purpose. fields: extra details
+   asked at submission. check: what the technician checks at receipt. */
 const TYPES = [
-  { key: "rc", group: "Exploration & mining", name: "RC chips (reverse circulation)", tests: ["fa_aas", "sfa", "fa_grav", "icp", "cn_sol", "leco", "bottle", "density", "delet", "aba"],
+  { key: "rc", group: "Ore (exploration, geology, mine)", pur: "exp", name: "RC chips (reverse circulation)", tests: ["fa_aas", "sfa", "fa_grav", "icp", "cn_sol", "leco", "bottle", "density", "delet", "aba"],
     fields: [{ k: "hole", l: "Hole ID", ph: "e.g. KRC-0412" }, { k: "from", l: "From (m)", t: "number" }, { k: "to", l: "To (m)", t: "number" }, { k: "cond", l: "Sample condition", o: ["Dry", "Moist", "Wet"] }],
     check: "Bag count and numbers match the sheet; wet or split bags noted." },
-  { key: "core", group: "Exploration & mining", name: "Diamond drill core", tests: ["fa_aas", "sfa", "fa_grav", "icp", "leco", "density", "bottle", "pri", "diag", "commin", "cn_sol", "mineral", "delet", "aba"],
+  { key: "core", group: "Ore (exploration, geology, mine)", pur: "exp", name: "Diamond drill core", tests: ["fa_aas", "sfa", "fa_grav", "icp", "leco", "density", "bottle", "pri", "diag", "commin", "cn_sol", "mineral", "delet", "aba"],
     fields: [{ k: "hole", l: "Hole ID", ph: "e.g. KDD-0231" }, { k: "from", l: "From (m)", t: "number" }, { k: "to", l: "To (m)", t: "number" }, { k: "size", l: "Core size", o: ["PQ", "HQ", "NQ", "BQ"] }, { k: "cut", l: "Core portion", o: ["Half core", "Quarter core", "Whole core"] }],
     check: "Bags or trays match the cut sheet; intervals continuous, no gaps or overlaps." },
-  { key: "gc_bh", group: "Exploration & mining", name: "Grade control blast-hole cuttings", tests: ["fa_aas", "fa_grav", "cn_sol", "moisture"],
+  { key: "gc_bh", group: "Ore (exploration, geology, mine)", pur: "gc", name: "Grade control blast-hole cuttings", tests: ["fa_aas", "fa_grav", "cn_sol", "moisture"],
     fields: [{ k: "pit", l: "Pit" }, { k: "bench", l: "Bench / RL" }, { k: "pattern", l: "Blast pattern", ph: "e.g. P2-1140-07" }, { k: "holeno", l: "Hole number(s)" }],
     check: "Pattern and hole numbers match the sheet; samples arrive before the dig plan deadline." },
-  { key: "channel", group: "Exploration & mining", name: "Channel / grab / trench sample", tests: ["fa_aas", "sfa", "icp", "density"],
+  { key: "channel", group: "Ore (exploration, geology, mine)", pur: "exp", name: "Channel / grab / trench sample", tests: ["fa_aas", "sfa", "icp", "density"],
     fields: [{ k: "loc", l: "Face / trench location" }, { k: "len", l: "Sample length (m)", t: "number" }],
     check: "Labels legible; sample length recorded." },
-  { key: "rom", group: "Exploration & mining", name: "ROM ore / stockpile", tests: ["fa_aas", "moisture", "psd", "cn_sol", "commin", "column", "density"],
+  { key: "rom", group: "Ore (exploration, geology, mine)", pur: "recon", name: "ROM ore / stockpile", tests: ["fa_aas", "moisture", "psd", "cn_sol", "commin", "column", "density"],
     fields: [{ k: "pile", l: "Stockpile / truck reference" }, SHIFT],
     check: "Stockpile or truck reference recorded." },
-  { key: "waste", group: "Exploration & mining", name: "Waste rock / overburden (acid rock drainage)", tests: ["aba", "leco", "icp", "density"],
+  { key: "waste", group: "Ore (exploration, geology, mine)", pur: "env", name: "Waste rock / overburden (acid rock drainage)", tests: ["aba", "leco", "icp", "density"],
     fields: [{ k: "dump", l: "Dump / pit location" }, { k: "lith", l: "Lithology" }],
     check: "Location and lithology labelled; bags sealed." },
-  { key: "soil_geo", group: "Exploration & mining", name: "Soil / stream sediment (geochemistry)", tests: ["ar_au", "icp", "fa_aas"],
+  { key: "soil_geo", group: "Ore (exploration, geology, mine)", pur: "exp", name: "Soil / stream sediment (geochemistry)", tests: ["ar_au", "icp", "fa_aas"],
     fields: [{ k: "station", l: "Grid / line / station" }, { k: "depth", l: "Depth (cm)", t: "number" }, { k: "hor", l: "Horizon", o: ["B horizon", "C horizon", "Laterite", "Stream sediment"] }],
     check: "Station numbers match the sheet; samples dry and not mixed." },
-  { key: "plant_feed", group: "Plant & gold room", name: "Mill sample", tests: ["plant_solids", "psd", "moisture", "cn_sol", "fa_aas", "o2", "settle", "reagent", "pri"],
-    fields: [{ k: "point", l: "Sampling point", o: ["Mill feed (belt cut / conveyor)", "Mill discharge", "Cyclone overflow", "Cyclone underflow", "Leach feed", "Gravity feed"] }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
+  { key: "plant_feed", group: "Plant & gold room", pur: "plant", name: "Mill sample", tests: ["aufx_ausx", "aufx", "ausx", "cn_only", "plant_solids", "psd", "moisture", "cn_sol", "fa_aas", "o2", "settle", "reagent", "pri"],
+    fields: [{ k: "point", l: "Sampling point", o: MILL_PTS }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
     check: "Shift and sampling point labelled; bucket sealed with no spillage." },
-  { key: "ccd", group: "Plant & gold room", name: "CCD sample", hold: 24, holdWhat: "solution gold (solution not separated)", haz: ["cn"], tests: ["ccd", "settle", "solution", "cn_spec", "residue"],
-    fields: [{ k: "stage", l: "CCD thickener / stage", ph: "e.g. CCD 3" }, { k: "stream", l: "Stream", o: ["Underflow", "Overflow", "Wash water", "Feed"] }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
+  { key: "ccd", group: "Plant & gold room", pur: "plant", name: "CCD sample", hold: 24, holdWhat: "solution gold (solution not separated)", haz: ["cn"], tests: ["aufx_ausx_cn", "ausx_cn", "cn_only", "aufx_ausx", "ausx", "ccd", "settle", "solution", "cn_spec", "residue"],
+    fields: [{ k: "point", l: "Sampling point", o: CCD_PTS }, { k: "stage", l: "CCD thickener", ph: "e.g. CCD 1" }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
     check: "One container per thickener and stream, labelled; solution not separated in transit; delivered promptly." },
-  { key: "tsf", group: "Plant & gold room", name: "TSF sample", hold: 336, holdWhat: "cyanide (NaOH-preserved)", cool: 6, haz: ["cn"], tests: ["tsf", "cn_spec", "settle", "aba", "psd", "leco", "icp"],
-    fields: [{ k: "cell", l: "TSF cell / location" }, { k: "kind", l: "Sample", o: ["Spigot discharge", "Supernatant pond", "Beach solids", "Seepage / underdrain"] }],
+  { key: "tsf", group: "Plant & gold room", pur: "plant", name: "TSF sample", hold: 336, holdWhat: "cyanide (NaOH-preserved)", cool: 6, haz: ["cn"], tests: ["aufx_ausx_cn", "ausx_cn", "cn_only", "aufx_ausx", "ausx", "tsf", "cn_spec", "settle", "aba", "psd", "leco", "icp"],
+    fields: [{ k: "point", l: "Sampling point", o: TSF_PTS }, { k: "cell", l: "TSF cell / location" }],
     check: "Cyanide bottles preserved; cooler temperature recorded." },
-  { key: "bullion", group: "Plant & gold room", name: "Bullion", unit: "g", tests: ["bullion"],
+  { key: "bullion", group: "Plant & gold room", pur: "bullion", name: "Bullion", unit: "g", tests: ["bullion"],
     fields: [{ k: "bar", l: "Pour / bar number" }, { k: "gross", l: "Gross bar mass (g)", t: "number" }, { k: "escort", l: "Escort / witness" }],
     check: "Bar number, gross mass and seal match the gold-room dispatch; two people present at all times." },
-  { key: "carbon", group: "Plant & gold room", name: "Carbon", haz: ["cn"], tests: ["carbon", "elution", "moisture"],
-    fields: [{ k: "ctype", l: "Carbon type", o: ["Loaded (pre-elution)", "Eluted", "Regenerated", "Fresh", "Tank carbon"] }, { k: "batch", l: "Tank / elution batch no." }],
+  { key: "carbon", group: "Plant & gold room", pur: "plant", name: "Carbon", haz: ["cn"], tests: ["c_load", "carbon", "elution", "moisture"],
+    fields: [{ k: "ctype", l: "Carbon type", o: CARBON_PTS }, { k: "batch", l: "Tank / elution batch no." }],
     check: "Seal intact; gold-room custody form signed." },
-  { key: "elution", group: "Plant & gold room", name: "Elution sample", hold: 168, holdWhat: "solution gold", haz: ["cn", "acid"], tests: ["eluate", "solution", "cn_spec"],
-    fields: [{ k: "batch", l: "Elution batch / strip no." }, { k: "sol", l: "Solution", o: ["Pregnant eluate", "End-of-strip eluate", "Electrowinning cell feed", "Electrowinning cell discharge", "Eluant make-up"] }, { k: "bv", l: "Bed volume or time", ph: "e.g. BV 4 or 02:30" }],
+  { key: "elution", group: "Plant & gold room", pur: "plant", name: "Elution sample", hold: 168, holdWhat: "solution gold", haz: ["cn", "acid"], tests: ["elu_sol", "eluate", "solution", "cn_spec"],
+    fields: [{ k: "sol", l: "Solution", o: ELU_PTS }, { k: "batch", l: "Elution batch / strip no." }, { k: "bv", l: "Time or bed volume", ph: "e.g. 02:30 or BV 4" }],
     check: "Sealed bottle; elution batch and bed volume labelled; gold-room custody form signed." },
-  { key: "plant_tails", group: "Other plant & gold room samples", name: "Plant tails / CIL residue", haz: ["cn"], tests: ["residue", "cn_sol", "psd", "diag", "leco", "settle", "detox", "cn_spec", "flot"],
+  { key: "plant_tails", group: "Other plant & gold room samples", pur: "plant", name: "Plant tails / CIL residue", haz: ["cn"], tests: ["residue", "cn_sol", "psd", "diag", "leco", "settle", "detox", "cn_spec", "flot"],
     fields: [{ k: "point", l: "Sampling point", o: ["Final tails", "Last CIL tank", "Thickener underflow", "Detox discharge"] }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
     check: "Shift and sampling point labelled; solution not separated in transit." },
-  { key: "cil_slurry", group: "Other plant & gold room samples", name: "CIL / CIP tank slurry", hold: 24, holdWhat: "free cyanide and solution gold", haz: ["cn"], tests: ["cil_survey", "solution", "cn_spec", "o2", "settle"],
+  { key: "cil_slurry", group: "Other plant & gold room samples", pur: "plant", name: "CIL / CIP tank slurry", hold: 24, holdWhat: "free cyanide and solution gold", haz: ["cn"], tests: ["cil_survey", "solution", "cn_spec", "o2", "settle"],
     fields: [{ k: "tanks", l: "Tank number(s)", ph: "e.g. Tanks 1–8" }, { k: "time", l: "Survey time", ph: "e.g. 08:00" }],
     check: "One container per tank, labelled; delivered promptly (cyanide degrades)." },
-  { key: "solution", group: "Other plant & gold room samples", name: "Process solution (leach, barren, process water)", hold: 336, holdWhat: "cyanide (NaOH-preserved)", haz: ["cn"], tests: ["solution", "cn_spec", "detox"],
+  { key: "solution", group: "Other plant & gold room samples", pur: "plant", name: "Process solution (leach, barren, process water)", hold: 336, holdWhat: "cyanide (NaOH-preserved)", haz: ["cn"], tests: ["solution", "cn_spec", "detox"],
     fields: [{ k: "sol", l: "Solution", o: ["Leach tank", "Barren solution", "Process water", "Detox discharge", "Other"] }, { k: "time", l: "Sampling time" }, { k: "pres", l: "Preserved with NaOH (pH > 11)", o: ["Yes", "No"] }],
     check: "Bottle sealed and labelled; preserved if cyanide is to be measured." },
-  { key: "conc", group: "Other plant & gold room samples", name: "Gravity / flotation concentrate", unit: "g", haz: ["hg", "as"], tests: ["conc", "ilr", "icp", "leco", "moisture", "mineral"],
+  { key: "conc", group: "Other plant & gold room samples", pur: "plant", name: "Gravity / flotation concentrate", unit: "g", haz: ["hg", "as"], tests: ["conc", "ilr", "icp", "leco", "moisture", "mineral"],
     fields: [{ k: "csrc", l: "Concentrate", o: ["Gravity (Knelson / table)", "Flotation", "Intensive leach (ILR) residue"] }, { k: "batch", l: "Batch / campaign no." }, { k: "mass", l: "Dispatch mass (g)", t: "number" }],
     check: "Seal numbers and mass match the dispatch note; two people present." },
-  { key: "env_water", group: "Environment", name: "Environmental water (surface, ground, discharge)", hold: 336, holdWhat: "cyanide (free cyanide within 24 h)", cool: 6, tests: ["water", "cn_spec"],
+  { key: "env_water", group: "Environment", pur: "env", name: "Environmental water (surface, ground, discharge)", hold: 336, holdWhat: "cyanide (free cyanide within 24 h)", cool: 6, tests: ["water", "cn_spec"],
     fields: [{ k: "point", l: "Monitoring point ID" }, { k: "ph", l: "Field pH", t: "number" }, { k: "ec", l: "Field EC (µS/cm)", t: "number" }, { k: "temp", l: "Water temperature (°C)", t: "number" }, { k: "pres", l: "Preservation", o: ["NaOH (cyanide) and HNO₃ (metals)", "NaOH only", "HNO₃ only", "None"] }, { k: "cool", l: "Cooler temperature at dispatch (°C)", t: "number" }],
     check: "Cooler at 6 °C or below, preservation correct, within holding time, chain-of-custody signed." },
-  { key: "env_soil", group: "Environment", name: "Environmental soil / sediment", hold: 336, holdWhat: "cyanide and mercury", cool: 6, tests: ["soil", "icp", "aba"],
+  { key: "env_soil", group: "Environment", pur: "env", name: "Environmental soil / sediment", hold: 336, holdWhat: "cyanide and mercury", cool: 6, tests: ["soil", "icp", "aba"],
     fields: [{ k: "point", l: "Monitoring point / grid ref" }, { k: "depth", l: "Depth (cm)", t: "number" }, { k: "use", l: "Setting", ph: "e.g. downstream of TSF, farmland" }],
     check: "Samples in sealed bags; monitoring point and depth labelled." },
-  { key: "met_comp", group: "Metallurgical testwork", name: "Metallurgical testwork composite", tests: ["bottle", "cil_test", "pri", "diag", "reagent", "grg", "o2", "column", "flot", "ilr", "commin", "mineral", "settle", "cn_sol", "leco", "delet", "icp", "psd", "density"],
+  { key: "met_comp", group: "Metallurgical testwork", pur: "met", name: "Metallurgical testwork composite", tests: ["bottle", "cil_test", "pri", "diag", "reagent", "grg", "o2", "column", "flot", "ilr", "commin", "mineral", "settle", "cn_sol", "leco", "delet", "icp", "psd", "density"],
     fields: [{ k: "prog", l: "Testwork programme" }, { k: "comp", l: "Composite ID / lithology" }, { k: "p80", l: "Target grind P80 (µm)", t: "number" }, { k: "kg", l: "Mass supplied (kg)", t: "number" }],
     check: "Mass is enough for the tests requested (GRG needs 90 kg or more); composite sheet attached." },
-  { key: "pulp", group: "Quality control", name: "Assay pulp (check / umpire / re-assay)", tests: ["check", "fa_aas", "fa_grav", "icp"],
+  { key: "pulp", group: "Quality control", pur: "qc", name: "Assay pulp (check / umpire / re-assay)", tests: ["check", "fa_aas", "fa_grav", "icp"],
     fields: [{ k: "orig", l: "Original sample ID" }, { k: "job", l: "Original lab batch / job no." }],
     check: "Pulp envelopes match the list; original IDs not written on blind samples." },
   { key: "other", group: "Other", name: "Other", tests: ["fa_aas", "icp", "moisture"], fields: [], check: "Sample matches the description on the submission." }
@@ -1478,7 +1495,102 @@ const DEFAULT_ROUTES = [
     ],
     qc: "90% of pairs within ±10% (half absolute relative difference); CRMs in the umpire batch pass.",
     triggers: ["Bias above 5% between labs: review the original batch and repeat", "Umpire CRMs fail: ask the umpire lab to repeat"],
-    retention: [{ item: "Pulp", days: 365, then: "Kept in secure store" }] }
+    retention: [{ item: "Pulp", days: 365, then: "Kept in secure store" }] },
+  /* ---- Version 23: the routes the lab runs, in its own words. Plant samples are a slurry or a solution: a slurry is filtered, the
+     solution read for AuSx and the solids dried, pulverised and fire assayed for AuFx; CCD and TSF samples add cyanide (NaCN and WAD). ---- */
+  { code: "AUFX-AUSX", transit: 2, name: "Slurry: AuFx & AuSx", tests: ["aufx_ausx"], types: ["plant_feed", "ccd", "tsf"], purposes: ["plant", "recon"],
+    desc: "Plant slurry: filtered, the solution read for AuSx, the solids dried, pulverised and fire assayed for AuFx.",
+    stages: [
+      S("wet", "Weigh slurry & % solids", 0.25, "test", "pH and NaCN read now when asked: cyanide does not keep."),
+      S("filter", "Filter: solution from solids", 0.5, "prep", "Pressure or vacuum filter; the filtrate is kept for AuSx."),
+      S("ausx", "AuSx: solution gold by AAS", 1, "test", "Solvent extraction (DIBK) for low levels."),
+      S("dry", "Drying the solids at 105 °C", 1.5, "prep", "Cake washed first so solution gold does not report to the solids."),
+      S("pulv", "Pulverising to 80% passing 75 µm", 0.75, "prep"),
+      S("fuse", "Fire assay: fusion & cupellation", 1.75, "test", "Lead collection, 50 g charge.", true),
+      S("aufx", "AuFx: AAS finish", 0.5, "test", "Solids gold in g/t."),
+      S("qc", "QA/QC review", 0.5, "qc")
+    ],
+    triggers: ["AuFx or AuSx far off the shift trend: repeat from the kept pulp or filtrate", "Plant CRM outside ±2 SD: repeat the shift set"],
+    retention: [{ item: "Pulp", days: 30, then: "Disposed" }, { item: "Filtrate", days: 7, then: "Cyanide destroyed, disposed" }] },
+  { code: "AUFX", transit: 2, name: "Solids: AuFx", tests: ["aufx"], types: ["plant_feed", "ccd", "tsf"], purposes: ["plant", "recon"],
+    desc: "Head grade of a plant slurry or solids sample: dried, pulverised and fire assayed for AuFx.",
+    stages: [
+      S("wet", "Weigh & % solids", 0.25, "test"),
+      S("dry", "Drying at 105 °C", 1.5, "prep", "Slurry filtered and the cake washed first."),
+      S("pulv", "Pulverising to 80% passing 75 µm", 0.75, "prep"),
+      S("fuse", "Fire assay: fusion & cupellation", 1.75, "test", "Lead collection, 50 g charge.", true),
+      S("aufx", "AuFx: AAS finish", 0.5, "test", "Solids gold in g/t."),
+      S("qc", "QA/QC review", 0.5, "qc")
+    ],
+    triggers: ["AuFx far off the shift trend: repeat from the kept pulp", "Plant CRM outside ±2 SD: repeat the shift set"],
+    retention: [{ item: "Pulp", days: 30, then: "Disposed" }] },
+  { code: "AUSX", transit: 2, name: "Solution: AuSx", tests: ["ausx"], types: ["plant_feed", "ccd", "tsf"], purposes: ["plant", "recon"],
+    desc: "Plant solution: filtered and read for AuSx.",
+    stages: [
+      S("filter", "Filter 0.45 µm", 0.25, "prep", "Carbon fines and solids removed so they add no gold."),
+      S("ausx", "AuSx: solution gold by AAS", 1, "test", "Solvent extraction (DIBK) for low levels.", true),
+      S("qc", "QA/QC review", 0.5, "qc")
+    ],
+    triggers: ["AuSx far off the shift trend: repeat from the kept solution"],
+    retention: [{ item: "Solution", days: 7, then: "Cyanide destroyed, disposed" }] },
+  { code: "AUFX-AUSX-CN", transit: 2, name: "Slurry: AuFx, AuSx & cyanide", tests: ["aufx_ausx_cn"], types: ["ccd", "tsf"], purposes: ["plant", "env", "recon"],
+    desc: "CCD or TSF slurry: filtered, the solution read at once for cyanide (NaCN, WAD) and AuSx, the solids fire assayed for AuFx.",
+    stages: [
+      S("wet", "Weigh slurry & % solids", 0.25, "test"),
+      S("filter", "Filter: solution from solids", 0.5, "prep", "Filtrate split at once: one part for cyanide, one for AuSx."),
+      S("cn", "Cyanide: NaCN, WAD & pH", 1.5, "test", "Free cyanide (NaCN) by AgNO₃ titration straight away; WAD by distillation or flow injection."),
+      S("ausx", "AuSx: solution gold by AAS", 1, "test", "Solvent extraction (DIBK)."),
+      S("dry", "Drying the solids at 105 °C", 1.5, "prep", "Cake washed first so solution gold does not report to the solids."),
+      S("pulv", "Pulverising to 80% passing 75 µm", 0.75, "prep"),
+      S("fuse", "Fire assay: fusion & cupellation", 1.75, "test", "Lead collection, 50 g charge.", true),
+      S("aufx", "AuFx: AAS finish", 0.5, "test", "Solids gold in g/t."),
+      S("qc", "QA/QC review", 0.5, "qc")
+    ],
+    triggers: ["WAD cyanide over 50 mg/L at the TSF: alert Environment and the plant at once", "AuSx or AuFx far off the shift trend: repeat from the kept filtrate or pulp"],
+    retention: [{ item: "Pulp", days: 30, then: "Disposed" }, { item: "Filtrate", days: 7, then: "Cyanide destroyed, disposed" }] },
+  { code: "AUSX-CN", transit: 2, name: "Solution: AuSx & cyanide", tests: ["ausx_cn"], types: ["ccd", "tsf"], purposes: ["plant", "env", "recon"],
+    desc: "CCD overflow, decant pond or return water: cyanide (NaCN, WAD) read at once, then AuSx.",
+    stages: [
+      S("filter", "Filter 0.45 µm", 0.25, "prep"),
+      S("cn", "Cyanide: NaCN, WAD & pH", 1.5, "test", "Free cyanide (NaCN) by AgNO₃ titration straight away; WAD by distillation or flow injection.", true),
+      S("ausx", "AuSx: solution gold by AAS", 1, "test", "Solvent extraction (DIBK)."),
+      S("qc", "QA/QC review", 0.5, "qc")
+    ],
+    triggers: ["WAD cyanide over 50 mg/L in the decant pond: alert Environment and the plant at once"],
+    retention: [{ item: "Solution", days: 7, then: "Cyanide destroyed, disposed" }] },
+  { code: "CN", transit: 2, name: "Cyanide: NaCN, WAD & pH", tests: ["cn_only"], types: ["plant_feed", "ccd", "tsf"], purposes: ["plant", "env"],
+    desc: "Cyanide control on a tails grab, TSF spigot or pond: free cyanide (NaCN), WAD cyanide and pH.",
+    stages: [
+      S("filter", "Filter 0.45 µm", 0.25, "prep"),
+      S("cn", "Cyanide: NaCN, WAD & pH", 1.5, "test", "Free cyanide (NaCN) by AgNO₃ titration straight away; WAD by distillation or flow injection.", true),
+      S("qc", "QA/QC review", 0.5, "qc")
+    ],
+    triggers: ["WAD cyanide over 50 mg/L at the TSF: alert Environment and the plant at once"],
+    retention: [{ item: "Solution", days: 7, then: "Cyanide destroyed, disposed" }] },
+  { code: "C-LOAD", transit: 2, name: "Carbon: Au loading", tests: ["c_load"], types: ["carbon"], purposes: ["plant", "bullion"],
+    desc: "Gold loading on CIL tank, loaded, eluted or regenerated carbon: ashed, digested and read by AAS.",
+    stages: [
+      S("wash", "Wash & screen carbon", 0.5, "prep", "Fines and grit removed; the bag opened under gold-room custody."),
+      S("dry", "Drying at 105 °C", 3, "prep"),
+      S("split", "Riffle split & weigh", 0.5, "prep"),
+      S("ash", "Ashing at 700 °C", 3, "test"),
+      S("load", "Au loading: aqua regia digest & AAS", 2, "test", "Carbon CRM with each run.", true),
+      S("qc", "QA/QC review", 0.5, "qc")
+    ],
+    triggers: ["Eluted carbon above 100 g/t Au: repeat and notify the elution operator", "Repeat differs by more than 10%: repeat the loading"],
+    retention: [{ item: "Carbon sample", days: 30, then: "Returned to gold room" }] },
+  { code: "ELU-AUSX", transit: 2, name: "Elution solution: AuSx, AgSx & Cu", tests: ["elu_sol"], types: ["elution"], purposes: ["plant", "bullion"],
+    desc: "Pregnant solution, electrowinning head and tails and eluate: AuSx, AgSx and copper, with NaOH, NaCN and pH.",
+    stages: [
+      S("custody", "Custody check & log", 0.25, "intake", "Sealed bottle; strip number and time recorded."),
+      S("filter", "Filter 0.45 µm", 0.25, "prep", "Carbon fines removed."),
+      S("dilute", "Dilution by weight (high-grade solutions)", 0.25, "prep"),
+      S("aas", "AuSx, AgSx & Cu by AAS", 1.5, "test", "Standards matched to the caustic-cyanide solution.", true),
+      S("chem", "NaOH, NaCN & pH", 0.5, "test", "Eluant strength."),
+      S("qc", "QA/QC review", 0.5, "qc")
+    ],
+    triggers: ["Electrowinning tails above 5 mg/L AuSx: check the cells and current", "Duplicate dilutions differ by more than 2%: repeat"],
+    retention: [{ item: "Solution", days: 30, then: "Returned to the gold room" }] }
 ];
 /* Results each test reports. k: analyte code, n: name, u: unit, dl: detection limit (lower values report as "<DL"), ul: upper limit of the
    method (higher values are over-range and need the re-assay route in `over`, else a dilution and re-assay), dp: decimals, t: "text" for a
@@ -1487,6 +1599,17 @@ const DEFAULT_ROUTES = [
    a failed check holds the release until the sample is re-assayed or a supervisor accepts it with a reason. qc: the analyte a lab batch checks
    when the route names no other (default the first). Action and permit limits are settings (Settings tab), not part of the method. */
 const A = (k, n, u, dl, dp, x = {}) => ({ k, n, u, ...(dl != null ? { dl } : {}), dp, ...x });
+/* The plant results, as the lab's reports name them (s: the short name). Detection limits are low enough for the report's smallest values. */
+const AUFX = (x = {}) => A("Au", "AuFx, gold in solids", "g/t", 0.01, 2, { s: "AuFx", ...x });
+const AUSX = (x = {}) => A("Au_s", "AuSx, gold in solution", "mg/L", 0.001, 3, { s: "AuSx", ...x });
+const AGSX = (x = {}) => A("Ag_s", "AgSx, silver in solution", "mg/L", 0.001, 3, { s: "AgSx", opt: true, ...x });
+const NACN = (x = {}) => A("cn", "NaCN, free cyanide", "mg/L", null, 0, { s: "NaCN", ...x });
+const CNWAD = (x = {}) => A("wad", "WAD cyanide", "mg/L", 0.01, 2, { s: "CNWAD", ...x });
+const PH = () => A("pH", "pH", "", null, 1, { opt: true });
+const SOLIDS = () => A("sol", "Solids", "%", null, 2, { s: "% solids", opt: true });
+const SCREEN = () => A("scr", "Screen analysis, % retained", "", null, 0, { t: "text", opt: true });
+const METALS = () => [["Cu", "Copper"], ["Fe", "Iron"], ["Ni", "Nickel"], ["Zn", "Zinc"]].map(([k, n]) => A(k, n, "mg/L", 0.01, 2, { opt: true }));
+const PICK = (n, opts) => A("pt", n, "", null, 0, { t: "pick", opts });
 const RESULTS = {
   fa_aas:   { an: [A("Au", "Gold", "g/t", 0.005, 3, { ul: 10 })], over: "fa_grav" },
   fa_grav:  { an: [A("Au", "Gold", "g/t", 0.05, 2)] },
@@ -1563,7 +1686,15 @@ const RESULTS = {
   aba:      { an: [A("np", "Neutralisation potential", "kg CaCO₃/t", null, 1), A("ap", "Acid potential", "kg CaCO₃/t", null, 1), A("nnp", "Net neutralisation potential (NP − AP)", "kg CaCO₃/t", null, 1, { calc: v => v.np - v.ap, from: ["np", "ap"] }), A("nag", "NAG pH", "", null, 1)] },
   water:    { an: [A("pH", "pH", "", null, 1), A("ec", "Conductivity", "µS/cm", null, 0), A("tss", "Suspended solids", "mg/L", 1, 0), A("wad", "WAD cyanide", "mg/L", 0.005, 3), A("free", "Free cyanide", "mg/L", 0.005, 3, { opt: true }),
                    A("As", "Arsenic", "mg/L", 0.001, 3), A("Hg", "Mercury", "mg/L", 0.0001, 4), A("Cu", "Copper", "mg/L", 0.001, 3), A("Fe", "Iron", "mg/L", 0.01, 2, { opt: true })], qc: "wad" },
-  soil:     { an: [A("As", "Arsenic", "mg/kg", 1, 0), A("Hg", "Mercury", "mg/kg", 0.01, 2), A("Pb", "Lead", "mg/kg", 1, 0), A("Cu", "Copper", "mg/kg", 1, 0), A("cn", "Total cyanide", "mg/kg", 0.5, 1), A("pH", "pH", "", null, 1)] }
+  soil:     { an: [A("As", "Arsenic", "mg/kg", 1, 0), A("Hg", "Mercury", "mg/kg", 0.01, 2), A("Pb", "Lead", "mg/kg", 1, 0), A("Cu", "Copper", "mg/kg", 1, 0), A("cn", "Total cyanide", "mg/kg", 0.5, 1), A("pH", "pH", "", null, 1)] },
+  aufx_ausx:    { an: [PICK("Sampling point", PLANT_PTS), AUFX(), AUSX(), AGSX(), PH(), NACN({ opt: true }), SOLIDS(), SCREEN()], qc: "Au" },
+  aufx:         { an: [PICK("Sampling point", PLANT_PTS), AUFX(), SOLIDS(), SCREEN()], qc: "Au" },
+  ausx:         { an: [PICK("Sampling point", PLANT_PTS), AUSX(), AGSX(), PH(), NACN({ opt: true })], qc: "Au_s" },
+  aufx_ausx_cn: { an: [PICK("Sampling point", PLANT_PTS), AUFX(), AUSX(), CNWAD(), NACN({ opt: true }), PH(), SOLIDS(), ...METALS()], qc: "Au" },
+  ausx_cn:      { an: [PICK("Sampling point", PLANT_PTS), AUSX(), CNWAD(), NACN({ opt: true }), PH(), ...METALS()], qc: "Au_s" },
+  cn_only:      { an: [PICK("Sampling point", PLANT_PTS), CNWAD(), NACN({ opt: true }), PH(), ...METALS()], qc: "wad" },
+  c_load:       { an: [PICK("Carbon type", CARBON_PTS), A("Au_c", "Au loading", "g/t", 1, 2, { s: "Au loading" })], qc: "Au_c" },
+  elu_sol:      { an: [PICK("Solution", ELU_PTS), AUSX({ ul: 2000 }), AGSX(), ...METALS(), A("naoh", "NaOH", "%", null, 2, { opt: true }), NACN({ opt: true }), PH()], qc: "Au_s" }
 };
 /* Lab QC batch profiles. size: routine samples per batch; ins: QC positions per batch (pb preparation blank, cd crusher duplicate,
    pd pulp duplicate, crm reference material, bl blank); all: every sample run again `all` times. crm rule: sd (±SD bands), pct (±% of the
@@ -1602,7 +1733,8 @@ const ROUTE_QC = {
   "CN-SOL": ["cnsol"], "ICP": ["icp"], "LECO": ["leco"], "MOIST": ["moist"], "PLT-HEAD": ["plant"], "PLT-TAIL": ["tail"],
   "CCD-SVY": ["soln"], "ELUATE": ["eluate"], "CIL-SVY": ["soln"],
   "CARBON": ["carbon"], "SOLN": ["soln"], "CONC": ["conc", "Two-person custody for all handling."], "BULLION": ["bull", "Top and bottom within 2 parts per thousand is checked on each bar's results."],
-  "TSF-CHAR": ["cyan", "Field blanks are reported as supplied."], "ENV-W": ["envw", "Field blank, trip blank and field duplicate per sampling round, reported as supplied."],
+  "TSF-CHAR": ["cyan", "Field blanks are reported as supplied."],
+  "AUFX-AUSX": ["plant"], "AUFX": ["plant"], "AUSX": ["soln"], "AUFX-AUSX-CN": ["tail"], "AUSX-CN": ["soln"], "CN": ["cyan"], "C-LOAD": ["carbon"], "ELU-AUSX": ["eluate"], "ENV-W": ["envw", "Field blank, trip blank and field duplicate per sampling round, reported as supplied."],
   "ENV-S": ["soil"], "DELET": ["multi"], "CN-SPEC": ["cnspec", "Free ≤ WAD ≤ total is checked on every sample's results."], "ABA": ["aba"], "DENSITY": ["dens"], "AR-AU": ["arau", "Field duplicates are reported as supplied."]
 };
 const QC_NAMES = { pb: ["preparation blank", "preparation blanks"], cd: ["crusher duplicate", "crusher duplicates"], pd: ["pulp duplicate", "pulp duplicates"], crm: ["CRM", "CRMs"], bl: ["blank", "blanks"] };
@@ -1626,7 +1758,10 @@ const ROUTE_GROUPS = {
   "PLT-TAIL": [["tail", ["Au"]], ["soln", ["Au_s"]]],
   "CCD-SVY": [["soln", ["Au_s"]], ["tail", ["Au"]]],
   "CIL-SVY": [["soln", ["Au_s"]], ["carbon", ["Au_c"]]],
-  "TSF-CHAR": [["cyan", ["wad"]], ["soln", ["Au_s"]], ["tail", ["Au"]]]
+  "TSF-CHAR": [["cyan", ["wad"]], ["soln", ["Au_s"]], ["tail", ["Au"]]],
+  "AUFX-AUSX": [["plant", ["Au"]], ["soln", ["Au_s"]]],
+  "AUFX-AUSX-CN": [["tail", ["Au"]], ["soln", ["Au_s"]], ["cyan", ["wad"]]],
+  "AUSX-CN": [["soln", ["Au_s"]], ["cyan", ["wad"]]]
 };
 /* The batches a route's samples join: [{ p: batch type, k: [results it checks] }]. A route keeps its listed batches while it performs its
    original test; another batch type chosen for it in Settings replaces the first one. */
@@ -1685,8 +1820,13 @@ function routeQcText(r, groups = routeGroups(r)){
 }
 DEFAULT_ROUTES.forEach(r => { const x = ROUTE_QC[r.code]; if (!x) return; r.qcp = x[0]; r.qcg = routeGroups(r); r.qc = routeQcText(r, r.qcg); });
 /* Steps that run unattended (ovens, leaches, curing, an outside lab) keep running outside the lab's working hours. */
-const CLOCK_STEP = /^(Drying|Fast drying|Oven drying|Air drying|Bottle roll leach|CIL leach|Accelerated cyanide leach|Intensive cyanide leach|Paired leach|Parallel bottle rolls|Stage [1-5]:|Cyanide irrigation|Rinse & drain|Agglomeration|Percolation|Net acid generation|Repeat after|Umpire lab analysis|Polished sections|Filter & dry products|Unload, dry|Spiked-solution test)/;
+const CLOCK_STEP = /^(Drying|Fast drying|Oven drying|Air drying|Bottle roll leach|CIL leach|Accelerated cyanide leach|Intensive cyanide leach|Paired leach|Parallel bottle rolls|Stage [1-5]:|Cyanide irrigation|Rinse & drain|Agglomeration|Percolation|Net acid generation|Repeat after|Umpire lab analysis|Polished sections|Filter & dry products|Unload, dry|Spiked-solution test|Ashing)/;
 DEFAULT_ROUTES.forEach(r => r.stages.forEach(x => { if (CLOCK_STEP.test(x.name)) x.clock = true; }));
+/* Routes kept for samples already on them but not in use since version 23: not offered at submission and not listed, until the lab manager
+   turns one back on under Settings › Workflow routes. */
+const RETIRED_ROUTES = ["CN-SOL", "BRT", "CIL-T", "GRG", "DIAG", "COMMIN", "ICP", "LECO", "MOIST", "PSD", "PLT-HEAD", "PLT-TAIL", "CCD-SVY", "ELUATE", "CIL-SVY",
+  "CARBON", "SOLN", "CONC", "TSF-CHAR", "ENV-W", "ENV-S", "PRI", "REAGENT", "O2-UPT", "COLUMN", "ILR", "C-STRIP", "FLOT", "DENSITY", "SETTLE", "DELET", "MINERAL",
+  "CN-SPEC", "DETOX", "ABA", "AR-AU", "CHECK"];
 /* ROUTES-END */
 const ADDONS = ["Ag", "Cu", "As", "Total sulphur", "Hg", "Moisture", "Particle size", "Specific gravity"];
 /* Hazards show on the record, the board card and the bag label. Each sample type pre-ticks its usual ones. */
@@ -1847,7 +1987,18 @@ const DEFAULT_CONFIG = {
     { id: "L37", route: "PRI",      k: "pri",  op: ">", val: 10,    act: "Moderate preg-robbing: recommend CIL or a blinding agent" },
     { id: "L38", route: "PRI",      k: "pri",  op: ">", val: 50,    act: "Severe preg-robbing: recommend roasting tests" },
     { id: "L39", route: "FLOT",     k: "rec",  op: "<", val: 80,    act: "Repeat at a finer grind or with a different collector" },
-    { id: "L40", route: "ABA",      k: "nag",  op: "<", val: 4.5,   act: "Potentially acid-forming: notify Environment for waste-dump placement" }
+    { id: "L40", route: "ABA",      k: "nag",  op: "<", val: 4.5,   act: "Potentially acid-forming: notify Environment for waste-dump placement" },
+    /* Version 23: the plant routes (EXAMPLE values: the lab sets its own). */
+    { id: "P01", route: "AUFX-AUSX",    k: "Au_s", op: ">", val: 0.02, when: "CIL tails", act: "Soluble gold loss: alert the plant metallurgist and repeat" },
+    { id: "P02", route: "AUFX-AUSX",    k: "Au",   op: ">", val: 0.2,  when: "CIL tails", act: "Gold loss in the tails solids: alert the plant metallurgist and repeat" },
+    { id: "P03", route: "AUSX",         k: "Au_s", op: ">", val: 0.02, when: "CIL tails", act: "Soluble gold loss: alert the plant metallurgist and repeat" },
+    { id: "P04", route: "AUFX-AUSX",    k: "Au_s", op: ">", val: 0.05, when: "CCD tails", act: "Soluble gold loss in the CCD tails: alert the plant metallurgist" },
+    { id: "P05", route: "AUFX-AUSX-CN", k: "Au_s", op: ">", val: 0.05, when: "CCD tails", act: "Soluble gold loss in the CCD tails: alert the plant metallurgist" },
+    { id: "P06", route: "AUFX-AUSX-CN", k: "wad",  op: ">", val: 50,   when: "TSF spigot", act: "WAD cyanide over 50 mg/L at the TSF: alert Environment and the plant at once" },
+    { id: "P07", route: "AUSX-CN",      k: "wad",  op: ">", val: 50,   when: "Decant pond", act: "WAD cyanide over 50 mg/L in the decant pond: alert Environment and the plant at once" },
+    { id: "P08", route: "CN",           k: "wad",  op: ">", val: 50,   when: "TSF spigot", act: "WAD cyanide over 50 mg/L at the TSF: alert Environment and the plant at once" },
+    { id: "P09", route: "C-LOAD",       k: "Au_c", op: ">", val: 100,  when: "Eluted carbon", act: "Repeat and notify the elution operator" },
+    { id: "P10", route: "ELU-AUSX",     k: "Au_s", op: ">", val: 5,    when: "Electrowinning tails", act: "Check the electrowinning cells and current" }
   ],
   /* Results are shown to signed-in staff only, unless an admin opens them to anyone with the sample ID. */
   resultsPublic: false,
@@ -1855,6 +2006,8 @@ const DEFAULT_CONFIG = {
   batchReq: false,
   /* Routes' QA/QC review step (off: the release follows the last analysis step; QA/QC is judged on the QA/QC sample sets and lab batches). */
   qcStep: false,
+  /* Routes the lab manager turned on or off (code: true / false); any other route is in use unless it is in RETIRED_ROUTES. */
+  routeUse: {},
   routes: DEFAULT_ROUTES
 };
 
@@ -1959,7 +2112,14 @@ const typeOf = k => TYPES.find(t => t.key === k) || null;
 const testOf = k => TESTS.find(t => t.key === k) || null;
 const purposeOf = k => PURPOSES.find(p => p.key === k) || null;
 const routeByCode = c => (cfg.routes || []).find(r => r.code === c) || null;
-const routesForTest = test => (cfg.routes || []).filter(r => (r.tests || []).includes(test));
+/* Routes in use: all but those retired in version 23, as the lab manager turned them on or off. Samples keep any route they are on. */
+const useOf = (r, use) => { const u = (use || {})[r.code]; return u != null ? !!u : !RETIRED_ROUTES.includes(r.code); };
+const routeOn = r => useOf(r, cfg.routeUse);
+const liveRoutes = () => (cfg.routes || []).filter(routeOn);
+const testOn = k => liveRoutes().some(r => (r.tests || []).includes(k));
+const typeOn = k => k === "other" || liveRoutes().some(r => (r.types || []).includes(k));
+/* Routes in use that perform a test, and `keep` (a sample's own route) even when it is no longer in use. */
+const routesForTest = (test, keep = "") => (cfg.routes || []).filter(r => (r.tests || []).includes(test) && (routeOn(r) || r.code === keep));
 /* Saved routes plus any default route the admin has not removed, so routes added in later versions still appear. */
 /* Settings store only routes an admin added or edited; every untouched default follows the latest version of the route library. */
 function mergeRoutes(saved, removed){
@@ -1987,10 +2147,10 @@ const testRank = r => { const i = TESTS.findIndex(t => t.key === (r.tests || [])
 const routeCat = r => testOf((r.tests || [])[0])?.cat || "Other";
 /* Recommended test for a sample type; the purpose can steer it (testwork, environmental, plant). */
 function defaultTest(typeKey, purposeKey){
-  const list = typeOf(typeKey)?.tests || ["fa_aas"];
+  const all = typeOf(typeKey)?.tests || ["fa_aas"], list = all.filter(testOn);
   const pref = { met: ["bottle", "cil_test", "pri", "grg", "diag", "commin", "cn_sol"], env: ["water", "soil", "tsf", "aba"], hse: ["water", "soil"], qc: ["check"],
-    plant: ["plant_solids", "ccd", "eluate", "residue", "cil_survey", "carbon", "solution"], bullion: ["bullion"] }[purposeKey] || [];
-  return pref.find(x => list.includes(x)) || list[0];
+    plant: ["plant_solids", "ccd", "eluate", "residue", "cil_survey", "carbon", "solution"], bullion: ["bullion", "c_load", "elu_sol"] }[purposeKey] || [];
+  return pref.find(x => list.includes(x)) || list[0] || all[0];
 }
 /* The route must perform the test; among those, a purpose match counts most, then a sample-type match. Null when no route performs it. */
 function routeFor(typeKey, testKey, purposeKey){
@@ -2647,15 +2807,16 @@ function witnessField(id){
   return `<label class="f"><span>Witness (two-person custody) <span class="req">*</span></span><select id="${id}"><option value="">Choose the second person…</option>${others.map(x => `<option value="${esc(x.name)}">${esc(x.name)}</option>`).join("")}</select></label>`;
 }
 const meBox = label => `<label class="f"><span>${label}</span><div class="me-box">${esc(session.name)} <span class="muted small" style="font-weight:400">(you)</span></div></label>`;
+/* Tests a route in use performs: the sample type's own first, then the others by group. `sel` (a sample's own test) is always listed. */
 function testOptions(typeKey, sel = ""){
-  const t = typeOf(typeKey), rec = (t?.tests || []).map(testOf).filter(Boolean);
+  const on = x => x.key === sel || testOn(x.key), t = typeOf(typeKey), rec = (t?.tests || []).map(testOf).filter(x => x && on(x));
   const opt = x => `<option value="${esc(x.key)}" ${x.key === sel ? "selected" : ""}>${esc(x.name)}</option>`;
-  const head = rec.length ? `<optgroup label="Recommended for ${esc(t.name)}">${rec.map(opt).join("")}</optgroup>` : `<option value="">Choose the sample type first…</option>`;
-  return head + TEST_CATS.map(c => { const xs = TESTS.filter(x => x.cat === c && !rec.includes(x)); return xs.length ? `<optgroup label="${esc(c)}">${xs.map(opt).join("")}</optgroup>` : ""; }).join("");
+  const head = rec.length ? `<optgroup label="${esc(t.name)}">${rec.map(opt).join("")}</optgroup>` : `<option value="">Choose the sample type first…</option>`;
+  return head + TEST_CATS.map(c => { const xs = TESTS.filter(x => x.cat === c && on(x) && !rec.includes(x)); return xs.length ? `<optgroup label="${esc(c)}">${xs.map(opt).join("")}</optgroup>` : ""; }).join("");
 }
 /* Route choices always follow the test: only routes that perform it are offered. */
 function syncRoutes(testSel, routeSel, s, infoEl){
-  const test = testSel.value, list = routesForTest(test), keep = routeSel.value;
+  const test = testSel.value, list = routesForTest(test, s.route), keep = routeSel.value;
   const pick = list.some(r => r.code === keep) ? keep : list.some(r => r.code === s.route) ? s.route : routeFor(s.typeKey, test, s.purposeKey)?.code || "";
   routeSel.innerHTML = list.length ? routeOptions(pick, list) : `<option value="">No route performs this test</option>`;
   if (infoEl){
@@ -3179,7 +3340,7 @@ function renderBoard(){
   }).join("");
   const filters = `<div class="bd-top bd-tools">
     <select class="inp" id="bdSec" style="width:auto;max-width:100%" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${boardSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
-    <select class="inp" id="bdRoute" style="width:auto;max-width:100%" aria-label="Test or route"><option value="">All tests and routes</option>${routeOptions(boardRoute)}</select>
+    <select class="inp" id="bdRoute" style="width:auto;max-width:100%" aria-label="Test or route"><option value="">All tests and routes</option>${routeOptions(boardRoute, boardRoutes())}</select>
     <span class="grow"></span>${isStaff() ? `<button type="button" class="btn ghost" id="bdWall">${wall ? "Exit wall screen" : "Wall screen"}</button>` : ""}</div>`;
   const wallHead = `<div class="wall-head"><h2>Assay Lab · Workflow board</h2><span class="clock" id="wallClock"></span><button type="button" class="btn" data-wall-exit>Exit</button></div>`;
   const bind = () => {
@@ -3233,12 +3394,15 @@ function renderBoard(){
   fitLanes(scrolled);
 }
 
+/* The board's route filter: routes in use, and any other route a sample in the lab is on. */
+function boardRoutes(){ const on = new Set([...samples.values()].map(s => s.route)); return (cfg.routes || []).filter(r => routeOn(r) || on.has(r.code) || r.code === boardRoute); }
 /* ---------- submit and register ---------- */
 function renderSubmit(){ renderSampleForm("submit"); }
 function renderRegister(){ renderSampleForm("register"); }
+/* Sample types a route in use is meant for. */
 function typeOptions(){
-  const groups = [...new Set(TYPES.map(t => t.group))];
-  return groups.map(g => `<optgroup label="${esc(g)}">${TYPES.filter(t => t.group === g).map(t => `<option value="${esc(t.key)}">${esc(t.name)}</option>`).join("")}</optgroup>`).join("");
+  const list = TYPES.filter(t => typeOn(t.key)), groups = [...new Set(list.map(t => t.group))];
+  return groups.map(g => `<optgroup label="${esc(g)}">${list.filter(t => t.group === g).map(t => `<option value="${esc(t.key)}">${esc(t.name)}</option>`).join("")}</optgroup>`).join("");
 }
 function renderDetails(typeKey){
   const box = $("#rDetails"); if (!box) return;
@@ -3258,6 +3422,7 @@ function refreshFormRoute(){
     const keep = sel.value, list = te ? routesForTest(te) : [];
     sel.innerHTML = `<option value="">${auto ? `Automatic: ${esc(auto.code)} · ${esc(auto.name)}` : "Automatic (choose the type and test first)"}</option>` + routeOptions(keep, list);
     sel.value = list.some(r => r.code === keep) ? keep : "";
+    sel.closest("label").hidden = list.length < 2;   // one route performs the test: nothing to choose
   }
   const r = formRoute();
   box.innerHTML = r ? `<details class="route-mini"><summary><span class="code">${esc(r.code)}</span> ${esc(r.name)} · results about <b>${hoursLabel(routeTat(r))}</b>${r.two ? ` <span class="pill warn">Two-person custody</span>` : ""}</summary>${routePreview(r)}</details>`
@@ -3280,20 +3445,19 @@ function renderSampleForm(mode){
     ${kindPicker()}
     <div class="form">
       <label class="f"><span>Sample type <span class="req">*</span></span><select id="rType" required><option value="">Choose…</option>${typeOptions()}</select></label>
-      <label class="f"><span>Assay purpose (why it is tested) <span class="req">*</span></span><select id="rPurpose" required><option value="">Choose…</option>${PURPOSES.map(p => `<option value="${esc(p.key)}">${esc(p.name)}</option>`).join("")}</select></label>
+      <label class="f"><span>Analysis <span class="req">*</span></span><select id="rTest" required>${testOptions("")}</select></label>
+      <label class="f"><span>Purpose <span class="req">*</span></span><select id="rPurpose" required><option value="">Choose…</option>${PURPOSES.map(p => `<option value="${esc(p.key)}">${esc(p.name)}</option>`).join("")}</select></label>
+      <label class="f"><span>Submitting section <span class="req">*</span></span><select id="rSection" required><option value="">Choose…</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select></label>
       <label class="f full" id="rWhyBox" hidden><span>Why it is being tested <span class="req">*</span></span><input id="rWhy" maxlength="200" placeholder="e.g. customer check sample, survey of old stockpile"></label>
-      <label class="f full"><span>Test requested <span class="req">*</span></span><select id="rTest" required>${testOptions("")}</select></label>
       ${staff ? `<label class="f full" data-lab><span>Workflow route (only routes that perform the test)</span><select id="rRouteSel"><option value="">Automatic</option></select></label>` : ""}
       <div class="full" id="rRoute"></div>
       <label class="f"><span>Submitted by (name) <span class="req">*</span></span><input id="rSubmitter" required placeholder="Person who sent the sample"></label>
       <label class="f"><span>Submitter's badge number</span><input id="rSubBadge" maxlength="20" autocomplete="off"></label>
-      <label class="f"><span>Submitting section <span class="req">*</span></span><select id="rSection" required><option value="">Choose…</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select></label>
       <label class="f" data-single>Site sample code<input id="rTag" placeholder="e.g. MILL-A-001" autocomplete="off" spellcheck="false"></label>
       <label class="f" data-hand><span>Handed to (lab technician)${walk ? req : ""}</span><input id="rHandTo" maxlength="60" list="rTechList" autocomplete="off"></label>
       <label class="f" data-hand><span>Technician's badge number${walk ? req : ""}</span><input id="rHandBadge" maxlength="20" autocomplete="off"></label>
       <datalist id="rTechList">${techs.map(n => `<option value="${esc(n)}">`).join("")}</datalist>
-      ${staff ? `${meBox("Received by (lab staff)").replace('<label class="f">', '<label class="f" data-lab>')}
-      <label class="f" data-lab><span>Date &amp; time received <span class="req">*</span></span><input id="rRecvAt" type="datetime-local" required value="${localInput(now)}"></label>
+      ${staff ? `<label class="f" data-lab><span>Date &amp; time received <span class="req">*</span></span><input id="rRecvAt" type="datetime-local" required value="${localInput(now)}"></label>
       <div id="rWitBox" data-lab hidden>${witnessField("rWit")}</div>` : ""}
       ${batchBlock()}
       <details class="form-more" id="rMore"><summary>More details</summary><div class="form">
@@ -3315,6 +3479,8 @@ function renderSampleForm(mode){
   </form>`;
   const ty = $("#rType", v), pu = $("#rPurpose", v), te = $("#rTest", v), hz = $("#rHaz", v);
   ty.onchange = () => {
+    const pur = typeOf(ty.value)?.pur;   // the usual purpose for the type, until the submitter picks one
+    if (pur && !pu.dataset.touched){ pu.value = pur; $("#rWhyBox", v).hidden = pu.value !== "other"; }
     const keep = te.dataset.touched ? te.value : "";
     te.innerHTML = testOptions(ty.value);
     te.value = keep || defaultTest(ty.value, pu.value);
@@ -3322,7 +3488,7 @@ function renderSampleForm(mode){
     if (!hz.dataset.touched) HAZARDS.forEach(h => { $("#rHz_" + h.k, v).checked = (typeOf(ty.value)?.haz || []).includes(h.k); });
     renderDetails(ty.value); refreshFormRoute();
   };
-  pu.onchange = () => { $("#rWhyBox", v).hidden = pu.value !== "other"; if (!te.dataset.touched && ty.value) te.value = defaultTest(ty.value, pu.value); refreshFormRoute(); };
+  pu.onchange = () => { pu.dataset.touched = "1"; $("#rWhyBox", v).hidden = pu.value !== "other"; if (!te.dataset.touched && ty.value) te.value = defaultTest(ty.value, pu.value); refreshFormRoute(); };
   te.onchange = () => { te.dataset.touched = "1"; refreshFormRoute(); };
   hz.addEventListener("change", () => hz.dataset.touched = "1");
   $("#rRouteSel", v)?.addEventListener("change", refreshFormRoute);
@@ -3585,16 +3751,17 @@ document.addEventListener("click", e => { const b = e.target.closest("[data-edit
 function renderRoutes(){
   const v = $("#view-routes");
   if (routesFocus){ openRoutes.add(routesFocus); routesType = ""; routesQ = ""; }
+  const liveTests = TESTS.filter(t => testOn(t.key));
   v.innerHTML = `<div class="stack">
     <div class="panel stack" style="gap:8px">
       <h2>Workflow routes</h2>
       <div class="row" style="gap:6px"><span class="ph-tag ph-intake">Intake</span><span class="ph-tag ph-prep">Preparation</span><span class="ph-tag ph-test">Analysis / test</span><span class="ph-tag ph-qc">QA/QC</span></div>
     </div>
-    <div class="panel stack" style="gap:10px"><h3>All ${TESTS.length} tests</h3>
-      ${TEST_CATS.map(c => `<div class="cat-row"><div class="cat-name">${esc(c)}</div><div class="cat-tests">${TESTS.filter(t => t.cat === c).map(t => { const r = routeFor("", t.key, ""); return r ? `<button type="button" class="tchip" data-route="${esc(r.code)}">${esc(t.name)}</button>` : ""; }).join("")}</div></div>`).join("")}
+    <div class="panel stack" style="gap:10px"><h3>All ${liveTests.length} tests</h3>
+      ${TEST_CATS.filter(c => liveTests.some(t => t.cat === c)).map(c => `<div class="cat-row"><div class="cat-name">${esc(c)}</div><div class="cat-tests">${liveTests.filter(t => t.cat === c).map(t => { const r = routeFor("", t.key, ""); return r ? `<button type="button" class="tchip" data-route="${esc(r.code)}">${esc(t.name)}</button>` : ""; }).join("")}</div></div>`).join("")}
     </div>
     <div class="row">
-      <select class="inp" id="rtType" style="width:auto;max-width:100%"><option value="">All sample types</option>${TYPES.map(t => `<option value="${esc(t.key)}" ${routesType === t.key ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select>
+      <select class="inp" id="rtType" style="width:auto;max-width:100%"><option value="">All sample types</option>${TYPES.filter(t => typeOn(t.key) || t.key === routesType).map(t => `<option value="${esc(t.key)}" ${routesType === t.key ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select>
       <input class="inp" id="rtQ" placeholder="Search route, test or step" style="flex:1 1 200px;width:auto" value="${esc(routesQ)}">
       <button class="btn ghost" id="rtAll" type="button">Expand all</button>
     </div>
@@ -3627,7 +3794,7 @@ function routeRows(r){
 function renderRouteList(){
   const box = $("#rtList"); if (!box) return;
   const q = routesQ.trim().toLowerCase(), t = typeOf(routesType);
-  const list = (cfg.routes || []).filter(r => (!t || (r.types || []).includes(t.key) || (t.tests || []).some(k => (r.tests || []).includes(k)))
+  const list = (cfg.routes || []).filter(r => (routeOn(r) || openRoutes.has(r.code)) && (!t || (r.types || []).includes(t.key) || (t.tests || []).some(k => (r.tests || []).includes(k)))
     && (!q || [r.code, r.name, r.desc, ...(r.stages || []).map(x => x.name), ...(r.tests || []).map(k => testOf(k)?.name)].join(" ").toLowerCase().includes(q)));
   list.sort((a, b) => testRank(a) - testRank(b));
   let lastCat = "";
@@ -3637,7 +3804,7 @@ function renderRouteList(){
     const types = (r.types || []).filter(k => k !== "*").map(k => typeOf(k)?.name).filter(Boolean);
     const purp = (r.purposes || []).map(k => purposeOf(k)?.name).filter(Boolean);
     return `${headHtml}<details class="route" id="route-${esc(r.code)}" data-code="${esc(r.code)}" ${openRoutes.has(r.code) ? "open" : ""}>
-      <summary><span class="code">${esc(r.code)}</span><b>${esc(r.name)}</b><span class="subtle" style="margin-left:auto">results about ${hoursLabel(routeTat(r))} after receipt</span></summary>
+      <summary><span class="code">${esc(r.code)}</span><b>${esc(r.name)}</b>${routeOn(r) ? "" : ` <span class="pill">Not in use</span>`}<span class="subtle" style="margin-left:auto">results about ${hoursLabel(routeTat(r))} after receipt</span></summary>
       <div class="body">
         ${r.desc ? `<p class="small" style="margin:0">${esc(r.desc)}</p>` : ""}
         ${r.two ? `<div class="small"><span class="pill warn">Two-person custody</span> A witness is recorded at receipt and at every step.</div>` : ""}
@@ -3676,6 +3843,7 @@ function renderStages(){
     draft.users.unshift({ u, name: "Lab Manager", role: "admin", em: window.__me.email, ...(viaMe ? { via: "email" } : {}) }); draftDirty = true;
   }
   draft.routes = draft.routes && draft.routes.length ? draft.routes : clone(DEFAULT_ROUTES);
+  draft.routeUse = draft.routeUse && typeof draft.routeUse === "object" ? draft.routeUse : {};
   const editable = isAdmin();
   if (!editable){ v.innerHTML = `<div class="notice warn">Only admins can change these settings.</div>`; return; }
   const userRows = draft.users.map((x, i) => `<tr>
@@ -3756,7 +3924,8 @@ function renderStages(){
 
     <h2 style="margin-top:12px">Action and permit limits</h2>
     <div class="mock"><b>Example values.</b><span>Replace them with the limits in the site's permit.</span></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Route</th><th>Result</th><th></th><th>Limit</th><th>Only when</th><th>Permit</th><th>Action</th><th></th></tr></thead><tbody>${limitRows()}</tbody></table></div>
+    ${limitTable(limitRows(true))}
+    ${limitsOff() ? `<details class="more" id="limOff" ${limOffOpen ? "open" : ""}><summary>Limits on routes not in use (${limitsOff()})</summary><div id="limOffBox">${limOffOpen ? limitTable(limitRows(false)) : ""}</div></details>` : ""}
     <div class="row"><button class="btn" id="limAdd">Add limit</button></div>
 
     <h2 style="margin-top:12px">Results files</h2>
@@ -3765,7 +3934,9 @@ function renderStages(){
     <div class="small muted">Built in: element symbols (Au, Ag, Cu…), symbols with a method code (AuFA, AuSX, AgSX), pH, NaCN (free cyanide), CNWAD, CNTOT, NaOH, %Solids, Moisture. Samples are found by tracker ID, site sample code or site reference.</div>
 
     <h2 style="margin-top:12px" id="rtEdit">Workflow routes</h2>
-    <div class="row"><select class="inp" id="rtPick" style="width:auto;max-width:100%" aria-label="Route to edit">${draft.routes.map((r, i) => `<option value="${i}" ${i === routeIdx ? "selected" : ""}>${esc(r.code)} · ${esc(r.name)}</option>`).join("")}</select>
+    <div class="row"><select class="inp" id="rtPick" style="width:auto;max-width:100%" aria-label="Route to edit">${[true, false].map(on => { const xs = draft.routes.map((r, i) => [r, i]).filter(([r]) => useOf(r, draft.routeUse) === on);
+        return xs.length ? `<optgroup label="${on ? "In use" : "Not in use"}">${xs.map(([r, i]) => `<option value="${i}" ${i === routeIdx ? "selected" : ""}>${esc(r.code)} · ${esc(r.name)}</option>`).join("")}</optgroup>` : ""; }).join("")}</select>
+      <label class="row" style="gap:6px"><input type="checkbox" id="rtUse" ${useOf(R, draft.routeUse) ? "checked" : ""}> In use</label>
       <button class="btn" id="rtCopy">Copy as new route</button><button class="btn ghost danger" id="rtDel">Remove route</button></div>
     <div class="panel stack">
       <div class="form">
@@ -3868,6 +4039,7 @@ function renderStages(){
   v.querySelectorAll("[data-krm]").forEach(b => b.onclick = () => { draft.cols.splice(+b.dataset.krm, 1); dirty(); });
   $("#colAdd").onclick = () => { draft.cols.push({ n: "", c: "" }); dirty(); };
   bindLimits(v, dirty);
+  $("#limOff")?.addEventListener("toggle", e => { const box = $("#limOffBox"); limOffOpen = e.target.open; if (limOffOpen && !box.firstChild){ box.innerHTML = limitTable(limitRows(false)); bindLimits(box, dirty); } });
   bindWork(v, dirty);
   bindLogo(v, dirty);
   $("#cfgTz").addEventListener("change", e => { const z = e.target.value.trim(); if (!tzOk(z)){ toast(`${z || "That"} is not a time zone name. Try Africa/Accra.`); renderStages(); return; } draft.tz = z; dirty(); });
@@ -3892,6 +4064,8 @@ function renderStages(){
   };
   // Routes
   $("#rtPick").onchange = e => { routeIdx = +e.target.value; renderStages(); };
+  const setUse = (code, on) => { draft.routeUse = { ...draft.routeUse }; if (on === !RETIRED_ROUTES.includes(code)) delete draft.routeUse[code]; else draft.routeUse[code] = on; };
+  $("#rtUse").onchange = e => { setUse(R.code, e.target.checked); dirty(); };
   v.querySelectorAll("[data-rf]").forEach(el => el.addEventListener("change", () => {
     const f = el.dataset.rf;
     if (f === "code"){
@@ -3899,7 +4073,8 @@ function renderStages(){
       if (c.length < 2){ toast("Use 2 to 10 letters, digits or dashes for a route code."); renderStages(); return; }
       if (draft.routes.some((y, j) => y.code === c && j !== routeIdx)){ toast(`${c} is already used by another route.`); renderStages(); return; }
       if (DEFAULT_ROUTES.some(d => d.code === R.code)) draft.removed = [...new Set([...(draft.removed || []), R.code])];
-      R.code = c;
+      const on = useOf(R, draft.routeUse); setUse(R.code, !RETIRED_ROUTES.includes(R.code));   // a new code keeps the route in or out of use
+      R.code = c; setUse(c, on);
     } else if (f === "triggers") R.triggers = el.value.split("\n").map(x => x.trim()).filter(Boolean);
     else if (f === "two") R.two = el.checked;
     else if (f === "transit") R.transit = Math.max(0, +el.value || 0);
@@ -3947,7 +4122,7 @@ function renderStages(){
     const locked = new Set([...[...samples.values()].map(s => s.route), ...[...stored.values()].map(x => x.route)]);
     draft.sections = clone(DEFAULT_CONFIG.sections);
     draft.routes = [...clone(DEFAULT_ROUTES), ...draft.routes.filter(r => locked.has(r.code) && !DEFAULT_ROUTES.some(d => d.code === r.code))];
-    draft.removed = []; routeIdx = 0; dirty(); toast("Default sections and routes restored (routes still used by open samples are kept). Save to apply.");
+    draft.removed = []; draft.routeUse = {}; routeIdx = 0; dirty(); toast("Default sections and routes restored (routes still used by open samples are kept). Save to apply.");
   };
   $("#cfgCancel").onclick = () => { draft = clone(cfg); draftDirty = false; renderStages(); };
   v.querySelectorAll("[data-uf]").forEach(el => el.addEventListener("change", () => {
@@ -4035,7 +4210,7 @@ function renderStages(){
     const mine = draft, crmLog = [...crmChanges(clone(cfg.crms || []), draft.crms), ...(cfg.crmLog || [])].slice(0, CRM_LOG_MAX);
     draftDirty = false;                      // our own save coming back is not "someone else's"
     try {
-      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users), crms: clone(draft.crms), crmLog, limits: clone(draft.limits), cols: (draft.cols || []).filter(x => x.n).map(x => ({ n: x.n, c: x.c || "" })), resultsPublic: !!draft.resultsPublic, batchReq: !!draft.batchReq, qcStep: !!draft.qcStep, work: workOf(draft.work), logo: logoOf(draft.logo), routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
+      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users), crms: clone(draft.crms), crmLog, limits: clone(draft.limits), cols: (draft.cols || []).filter(x => x.n).map(x => ({ n: x.n, c: x.c || "" })), resultsPublic: !!draft.resultsPublic, batchReq: !!draft.batchReq, qcStep: !!draft.qcStep, work: workOf(draft.work), logo: logoOf(draft.logo), routeUse: clone(draft.routeUse || {}), limitsV: LIMITS_V, routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
       draftDirty = false; draft = null; renderStages(); markAccessGiven(mine.users);
       toast(uncovered.length ? `Saved. No route performs: ${uncovered.slice(0, 3).join(", ")}${uncovered.length > 3 ? "…" : ""}` : "Settings saved for everyone.");
     }
@@ -4081,13 +4256,18 @@ function regenQc(R){
   if (!QC_PROFILES[R.qcp]) return;
   R.qc = routeQcText(R, R.qcg);
 }
-/* Limits table in Settings. */
-function limitRows(){
-  const routes = draft.routes.slice().sort((a, b) => a.code.localeCompare(b.code));
+/* Limits table in Settings. The limits on routes not in use are drawn only when their group is opened. */
+let limOffOpen = false;
+const limitTable = rows => `<div class="tbl-wrap"><table><thead><tr><th>Route</th><th>Result</th><th></th><th>Limit</th><th>Only when</th><th>Permit</th><th>Action</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+const limitsOff = () => draft.limits.filter(l => { const r = draft.routes.find(x => x.code === l.route); return r && !useOf(r, draft.routeUse); }).length;
+function limitRows(on){
+  const routes = draft.routes.filter(x => useOf(x, draft.routeUse)).sort((a, b) => a.code.localeCompare(b.code));
   return draft.limits.map((l, i) => {
-    const r = draft.routes.find(x => x.code === l.route), res = r ? RESULTS[(r.tests || [])[0]] : null, ans = (res?.an || []).filter(a => !a.t), pt = (res?.an || []).find(a => a.t === "pick");
+    const r = draft.routes.find(x => x.code === l.route);
+    if (!r ? !on : useOf(r, draft.routeUse) !== on) return "";   // a new limit (no route yet) sits with the routes in use
+    const res = r ? RESULTS[(r.tests || [])[0]] : null, ans = (res?.an || []).filter(a => !a.t), pt = (res?.an || []).find(a => a.t === "pick");
     return `<tr>
-      <td><select class="inp mono" style="width:auto" data-li="${i}" data-lf="route" aria-label="Route">${r ? "" : `<option value="" selected>Choose…</option>`}${routes.map(x => `<option value="${esc(x.code)}" ${x.code === l.route ? "selected" : ""}>${esc(x.code)}</option>`).join("")}</select></td>
+      <td><select class="inp mono" style="width:auto" data-li="${i}" data-lf="route" aria-label="Route">${r ? "" : `<option value="" selected>Choose…</option>`}${(r && !routes.includes(r) ? [r, ...routes] : routes).map(x => `<option value="${esc(x.code)}" ${x.code === l.route ? "selected" : ""}>${esc(x.code)}</option>`).join("")}</select></td>
       <td><select class="inp" style="width:auto;max-width:220px" data-li="${i}" data-lf="k" aria-label="Result">${ans.some(a => a.k === l.k) ? "" : `<option value="" selected>Choose…</option>`}${ans.map(a => `<option value="${esc(a.k)}" ${a.k === l.k ? "selected" : ""}>${esc(a.n)}${a.u ? ` (${esc(a.u)})` : ""}</option>`).join("")}</select></td>
       <td><select class="inp" style="width:auto" data-li="${i}" data-lf="op" aria-label="Above or below"><option value=">" ${l.op !== "<" ? "selected" : ""}>above</option><option value="<" ${l.op === "<" ? "selected" : ""}>below</option></select></td>
       <td><input class="inp mono" style="width:100px" type="number" step="any" data-li="${i}" data-lf="val" value="${esc(l.val)}" aria-label="Limit"></td>
@@ -4138,7 +4318,7 @@ function anOf(s){
   return res.an.map(a => a.k === s.grav ? { ...a, n: a.n + " (gravimetric finish)", dl: g.dl, dp: g.dp, ul: null } : dil.includes(a.k) ? { ...a, n: a.n + " (diluted re-run)", ul: null } : a);
 }
 const aAn = t => (/^[aeiou]/i.test(t) ? "an " : "a ") + t;
-const anShort = a => /^[A-Z][a-z]?$/.test(a.k) ? a.k : a.n;
+const anShort = a => a.s || (/^[A-Z][a-z]?$/.test(a.k) ? a.k : a.n);
 /* The database merges an update into the stored record, map by map, so a result, a batch membership or a field of one that goes away is
    written as null (patch: each new value replaces the old one whole, so a value typed over one read from a file loses src) and read as
    absent (live). */
@@ -4260,11 +4440,14 @@ function resultChecks(s, rows = s.results?.rows || {}){
 /* ---------- action and permit limits ---------- */
 /* The results being worked on: a proposed amendment, else the results on the record. */
 const effRows = s => s?.amend?.rows || s?.results?.rows || {};
+/* The sampling point (or carbon type, or solution) given at submission, when the results list it: the results start from it and the limits
+   for one point follow it until the results say otherwise. */
+function ptGiven(s){ const a = anOf(s).find(x => x.t === "pick"), v = a && (s.details || {})[a.n]; return v && (a.opts || []).includes(v) ? v : ""; }
 function limitHits(s, rows = effRows(s)){
-  const out = [];
+  const out = [], pt = rows.pt?.raw || ptGiven(s);
   for (const l of cfg.limits || []){
     if (l.route !== s.route || !rows[l.k]) continue;
-    if (l.when && rows.pt?.raw && rows.pt.raw !== l.when) continue;   // no sampling point chosen: the limit applies
+    if (l.when && pt && pt !== l.when) continue;   // no sampling point given: the limit applies
     const x = resNum(rows[l.k]); if (x == null) continue;
     if (l.op === "<" ? x < +l.val : x > +l.val) out.push({ ...l, raw: rows[l.k].raw, v: x, key: `${l.id}|${l.k}|${rows[l.k].raw}` });
   }
@@ -4274,7 +4457,7 @@ const ackOf = (s, h) => (s.acks || []).find(a => a.key === h.key) || null;
 const openAlerts = (s, rows) => limitHits(s, rows).filter(h => !ackOf(s, h));
 function alertLine(s, h){
   const a = anOf(s).find(x => x.k === h.k) || { k: h.k, n: h.k, u: "" };
-  return `${a.n} ${resText({ v: h.v, raw: h.raw, f: "" }, a)}${a.u ? " " + a.u : ""} is ${h.op === "<" ? "below" : "above"} the ${h.permit ? "permit limit" : "action limit"} of ${fmtNum(h.val)}${a.u ? " " + a.u : ""}${h.when ? ` (${h.when})` : ""}`;
+  return `${a.s || a.n} ${resText({ v: h.v, raw: h.raw, f: "" }, a)}${a.u ? " " + a.u : ""} is ${h.op === "<" ? "below" : "above"} the ${h.permit ? "permit limit" : "action limit"} of ${fmtNum(h.val)}${a.u ? " " + a.u : ""}${h.when ? ` (${h.when})` : ""}`;
 }
 /* What still stops a sample entering QA/QC review. */
 function qcEntryBlock(s){
@@ -4286,7 +4469,7 @@ function qcEntryBlock(s){
     if (!l.q || l.q === "pending") return `Enter the results for lab batch ${l.b} first.`;
   }
   const miss = missingRes(s);
-  if (miss.length) return `Enter the results before QA/QC review. Missing: ${miss.map(a => a.n).join(", ")}.`;
+  if (miss.length) return `Enter the results before QA/QC review. Missing: ${miss.map(a => a.s || a.n).join(", ")}.`;
   return "";
 }
 /* Next step the release, and nothing in the way of it but who releases. */
@@ -4294,9 +4477,9 @@ const readyRel = s => { const i = curIdx(s); return i >= 1 && !!planOf(s)[i + 1]
 /* What still stops a supervisor releasing the results (who may release is checked separately: selfCheck). */
 function releaseBlock(s){
   const miss = missingRes(s);
-  if (miss.length) return `Results missing: ${miss.map(a => a.n).join(", ")}.`;
+  if (miss.length) return `Results missing: ${miss.map(a => a.s || a.n).join(", ")}.`;
   const over = overRes(s);
-  if (over.length) return `${over.map(a => a.n).join(", ")} is over the method's range. Re-assay it first.`;
+  if (over.length) return `${over.map(a => a.s || a.n).join(", ")} is over the method's range. Re-assay it first.`;
   const bad = resultChecks(s).filter(c => !c.ok && !c.soft);
   if (bad.length && !s.resAcc) return `Results fail a check: ${bad.map(c => c.msg).join("; ")}. Re-assay, or a supervisor accepts it with a reason.`;
   const labs = labsOf(s);
@@ -4424,7 +4607,7 @@ function resultsForm(s){
     <details class="more" id="resBox"><summary>${s.results ? "Correct results" : "Type results instead"}</summary>
     <div class="stack" style="gap:8px;margin-top:8px">
       <p class="small muted" style="margin:0">${fromBatch.length ? `${esc(listAnd(fromBatch.map((a, i) => i ? lcName(a.n) : a.n)))} ${fromBatch.length > 1 ? "come" : "comes"} from lab batches with their QC. Enter the other results here.` : ""} Use <b>&lt;DL</b> below the detection limit; the dot is the decimal mark.</p>
-      <div class="form">${others.map(a => `<label class="f${a.t === "text" ? " full" : ""}"><span>${esc(a.n)}${a.u ? ` (${esc(a.u)})` : ""}${a.opt ? ` <span class="muted" style="font-weight:400">optional</span>` : ""}</span>${resInput("rs_" + a.k, a, rows[a.k]?.raw, rows)}</label>`).join("")}
+      <div class="form">${others.map(a => `<label class="f${a.t === "text" ? " full" : ""}"><span>${esc(a.n)}${a.u ? ` (${esc(a.u)})` : ""}${a.opt ? ` <span class="muted" style="font-weight:400">optional</span>` : ""}</span>${resInput("rs_" + a.k, a, rows[a.k]?.raw || (a.t === "pick" ? ptGiven(s) : ""), rows)}</label>`).join("")}
         <label class="f"><span>Instrument file or worksheet</span><input id="rsInst" data-live autocomplete="off" value="${esc(s.results?.inst || "")}" placeholder="e.g. AAS run 13-10-02"></label>
       </div>
       <div class="row"><button type="button" class="btn primary" id="rsSave">Save results</button></div></div></details>`;
@@ -5284,9 +5467,11 @@ function watchStore(){
     storeReady = true;
     if (tab === "storage") renderStorage();
     else if (tab === "ledger") renderLedger();
-    else if (tab === "stages" && !$("#view-stages").contains(document.activeElement)) renderStages();
+    else if (tab === "stages") stagesSoon();
   }, () => { storeReady = true; });
 }
+/* Settings shows open-sample counts; a burst of storage changes redraws it once. */
+function stagesSoon(){ clearTimeout(stagesSoon.t); stagesSoon.t = setTimeout(() => { if (tab === "stages" && !$("#view-stages").contains(document.activeElement)) renderStages(); }, 150); }
 /* Samples still open (in the lab or in storage) on a route or from a section, for Settings. */
 const openOn = f => [...samples.values()].filter(f).length + [...stored.values()].filter(x => !samples.has(x.id) && f({ route: x.route, section: x.sec })).length;
 
@@ -6121,6 +6306,10 @@ function colConcept(name){
   const m = t.match(/^([A-Z][a-z])[-_ ]?([A-Z]{1,6}\d{0,3}|[a-z]{2,5})$/) || t.match(/^([A-Z])[-_ ]([A-Z]{1,6}\d{0,3}|[a-z]{2,5})$/);
   return m && ELEMENTS.has(m[1]) ? m[1] : "";
 }
+/* A method code after the symbol says solids or solution: AuFA is fire assay (solids), AuSX solvent extraction (solution). */
+const colPhase = name => { const m = String(name || "").trim().match(/^[A-Z][a-z]?[-_ ]?([A-Za-z]{2,6})\d{0,3}$/); return !m ? "" : /^(sx|sol)/i.test(m[1]) ? "sol" : /^(fa|faa|grav|gr)$/i.test(m[1]) ? "solid" : ""; };
+const anPhase = a => { const u = unitNorm(a.u); return /_s$/.test(a.k) || u === "mg/l" ? "sol" : UNIT_GROUPS[0].includes(u) || u === "ppb" ? "solid" : ""; };
+const phaseFits = (name, a) => { const c = colPhase(name), p = anPhase(a); return !c || !p || c === p; };
 const nameIs = (col, a) => { const n = normCol(col); return !!n && (n === normCol(a.k) || n === normCol(anShort(a)) || n === normCol(a.n)); };
 /* Everything a result can be read as, for Settings: one entry per element or measurement, named after the first result that reports it. */
 function readAsList(){
@@ -6234,7 +6423,7 @@ function rowValues(rep, cells, defs, r = 1, clash){
     const exact = ok.filter(a => nameIs(c.name, a) && unitScore(c.unit, a.u) > 0);
     let pick = exact.length === 1 ? exact[0] : null;
     if (!pick && c.concept){
-      const sc = ok.filter(a => conceptOf(a) === c.concept).map(a => [a, unitScore(c.unit, a.u)]).filter(x => x[1] > 0), top = Math.max(0, ...sc.map(x => x[1])), b = sc.filter(x => x[1] === top);
+      const sc = ok.filter(a => conceptOf(a) === c.concept && phaseFits(c.name, a)).map(a => [a, unitScore(c.unit, a.u)]).filter(x => x[1] > 0), top = Math.max(0, ...sc.map(x => x[1])), b = sc.filter(x => x[1] === top);
       if (b.length === 1) pick = b[0][0];
     }
     if (!pick) continue;
@@ -7337,6 +7526,10 @@ function watchBatches(){
   if (monthBatchSub) monthBatchSub();
   monthBatchSub = db.collection("batches").where("month", "==", monthBatchKey).onSnapshot(snap => { monthBatches = snap.docs.map(d => d.data()).filter(b => b && b.id); rerenderSoon(); }, () => {});
 }
+/* Default limits added in version 23 (P01 on, for the new routes) join limits saved before them; once settings are saved again, a limit the
+   lab manager removed stays removed. */
+const LIMITS_V = 23;
+const newLimits = (saved, v) => [...clone(saved), ...(v >= LIMITS_V ? [] : clone(DEFAULT_CONFIG.limits.filter(l => /^P\d/.test(l.id) && !saved.some(x => x.id === l.id))))];
 let relSub = null, relDayWatched = "";
 function watchReleasedToday(){
   if (!db) return;
@@ -7370,7 +7563,7 @@ setTab(tab);
         routes: mergeRoutes(d.routes, d.removed), removed: Array.isArray(d.removed) ? d.removed.slice() : [],
         sections: Array.isArray(d.sections) && d.sections.length ? clone(d.sections) : clone(DEFAULT_CONFIG.sections),
         users, tz: d.tz && tzOk(d.tz) ? d.tz : DEFAULT_CONFIG.tz,
-        crms: Array.isArray(d.crms) && d.schema >= 12 ? clone(d.crms) : mergeCrms(d.crms), limits: Array.isArray(d.limits) ? clone(d.limits) : clone(DEFAULT_CONFIG.limits), resultsPublic: !!d.resultsPublic, batchReq: !!d.batchReq, qcStep: !!d.qcStep, work: workOf(d.work), logo: logoOf(d.logo),
+        crms: Array.isArray(d.crms) && d.schema >= 12 ? clone(d.crms) : mergeCrms(d.crms), limits: Array.isArray(d.limits) ? newLimits(d.limits, d.limitsV) : clone(DEFAULT_CONFIG.limits), routeUse: isMap(d.routeUse) ? clone(d.routeUse) : {}, resultsPublic: !!d.resultsPublic, batchReq: !!d.batchReq, qcStep: !!d.qcStep, work: workOf(d.work), logo: logoOf(d.logo),
         crmLog: Array.isArray(d.crmLog) ? d.crmLog.slice(0, CRM_LOG_MAX) : [], cols: Array.isArray(d.cols) ? clone(d.cols) : []
       };
     }

@@ -47,6 +47,7 @@ function certCode(sid, c){
     users: [{ u: "admin", name: "Lab Manager", role: "admin", pw: "admin123" }, { u: "super", name: "Lab Supervisor", role: "super", pw: "super123" }, { u: "tech1", name: "Lab Technician A", role: "tech", pw: "tech123" }, { u: "tech2", name: "Lab Technician B", role: "tech", pw: "tech123" }, { u: "viewer", name: "Site Viewer", role: "viewer", pw: "view123" }],
     crms: [{ id: "STD-AU-LOW", name: "Low-grade gold ore", an: "Au", u: "g/t", val: 0.52, sd: 0.025, use: "FA, GC, PT, SF" }, { id: "CN-WAD-10", name: "WAD cyanide check standard", an: "wad", u: "mg/L", val: 10, sd: 0, use: "CY" }] };
   const browser = await launch();
+  require("./harness").useOldRoutes();   // v23: this suite is written around the routes in use before version 23
   const P = await newUser(browser, { uid: "u_p", name: "Public", canEdit: true, names });
   const Tc = await newUser(browser, { uid: "u_t", name: "Tech", canEdit: true, names }); await signIn(Tc, "tech1");
   const Sv = await newUser(browser, { uid: "u_s", name: "Super", canEdit: true, names }); await signIn(Sv, "super");
@@ -267,18 +268,18 @@ function certCode(sid, c){
 
   log("Settings: limits and certified results");
   await Ad.click('[data-tab="stages"]'); await H.cfgTab(Ad, "limits"); await Ad.waitForSelector("[data-lf]");
-  const l1 = await Ad.$$eval('[data-lf="act"]', es => es.findIndex(e => /residue assay/.test(e.value)));
+  const l1 = await Ad.$$eval('[data-lf="act"]', es => es.find(e => /residue assay/.test(e.value)).dataset.li);
   await Ad.fill(`[data-li="${l1}"][data-lf="val"]`, "0.25"); await Ad.press(`[data-li="${l1}"][data-lf="val"]`, "Tab"); await Ad.waitForTimeout(150);
   await Ad.click("#limAdd"); await Ad.waitForTimeout(150);
   await Ad.click("#cfgSave"); await Ad.waitForTimeout(300);
   check(/choose a route/.test(await toastText(Ad)), "a limit without a route and result is refused");
-  const nl = await Ad.$$eval('[data-lf="route"]', e => e.length) - 1;
+  const nl = await Ad.$$eval('[data-lf="route"]', e => e.at(-1).dataset.li);   // v23: rows carry their place in the list (limits on routes not in use are drawn when opened)
   await Ad.selectOption(`[data-li="${nl}"][data-lf="route"]`, "ENV-W"); await Ad.waitForTimeout(150);
   await Ad.selectOption(`[data-li="${nl}"][data-lf="k"]`, "Fe"); await Ad.fill(`[data-li="${nl}"][data-lf="val"]`, "1"); await Ad.press(`[data-li="${nl}"][data-lf="val"]`, "Tab"); await Ad.waitForTimeout(150);
   await Ad.fill(`[data-li="${nl}"][data-lf="act"]`, "Notify Environment"); await Ad.press(`[data-li="${nl}"][data-lf="act"]`, "Tab"); await Ad.waitForTimeout(150);
   await Ad.click("#cfgSave"); await waitFor(() => store["settings/stages"].schema === 12);
   const sv = store["settings/stages"];
-  check(sv.schema === 12 && sv.limits.length === 41 && sv.limits.find(l => l.id === "L01").val === 0.25 && sv.limits.at(-1).k === "Fe" && sv.crms.length === 49, "limits are saved with the settings (schema 12)");
+  check(sv.schema === 12 && sv.limits.length === 51 && sv.limits.find(l => l.id === "L01").val === 0.25 && sv.limits.at(-1).k === "Fe" && sv.crms.length === 49, "limits are saved with the settings (schema 12)");   // v23: 40 + 10 plant limits + the new one
   await Ad.click('[data-tab="routes"]'); await Ad.waitForSelector("#rtList"); await Ad.click("#route-PLT-TAIL summary");
   const ptl = await Ad.textContent("#route-PLT-TAIL");
   check(/Lab batches:\s*Plant tails batch for Au.*Solution AAS run for solution tails gold/.test(ptl) && /Action limits:.*above 0\.25 g\/t/.test(ptl), "the routes tab shows each batch a route joins and its action limits");

@@ -21,6 +21,7 @@ if (fs.existsSync(CORE)){
 
 (async () => {
   const browser = await launch();
+  require("./harness").useOldRoutes();   // v23: this suite is written around the routes in use before version 23
   const P = await newUser(browser, { uid: "u_p", name: "Public", canEdit: true, names });
   const T = await newUser(browser, { uid: "u_t", name: "Tech", canEdit: true, names }); await signIn(T, "tech1");
   const A = await newUser(browser, { uid: "u_a", name: "Admin", canEdit: true, names }); await signIn(A, "admin");
@@ -68,7 +69,7 @@ if (fs.existsSync(CORE)){
 
   log("Submit when signed in");
   await H.tab(T, "submit"); await T.waitForSelector("#rRecvNow");
-  check(await T.$eval("#rRecvNow", c => c.checked) && await shown(T, "#rRouteSel") && await shown(T, "#rRecvAt") && !(await shown(T, "#rHandTo")) && (await T.textContent("#rSubmit")) === "Register and issue ID", "lab staff: Received now at the lab, by me is ticked; route and time received show");
+  check(await T.$eval("#rRecvNow", c => c.checked) && !!(await T.$("#rRoute")) && await shown(T, "#rRecvAt") && !(await shown(T, "#rHandTo")) && (await T.textContent("#rSubmit")) === "Register and issue ID", "lab staff: Received now at the lab, by me is ticked; route and time received show");   // v23: the route list shows only when there is a choice
   await T.setChecked("#rRecvNow", false); await T.waitForTimeout(100);
   check(!(await shown(T, "#rRouteSel")) && !(await shown(T, "#rRecvAt")) && await shown(T, "#rHandTo") && (await T.textContent("#rSubmit")) === "Submit and get sample ID" && !/\*/.test(await T.textContent('label:has(#rHandTo)')), "cleared: a submission for later, with optional hand-over fields");
   await fillForm(T, "submit", { section: "EXP", type: "core", purpose: "exp", submitter: "Ama" }); const [s1] = await ids(T);

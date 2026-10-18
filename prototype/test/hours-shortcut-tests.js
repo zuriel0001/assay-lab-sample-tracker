@@ -5,6 +5,7 @@ const { errors, newUser, launch, signIn } = H;
 const check = (c, m) => { console.log(c ? "  PASS" : "  FAIL", m); if (!c) process.exitCode = 1; };
 (async () => {
   const browser = await launch();
+  require("./harness").useOldRoutes();   // v23: this suite is written around the routes in use before version 23
   const Ad = await newUser(browser, { uid: "u_a", name: "Admin", canEdit: true, names: {} }); await signIn(Ad, "admin");
   const Tc = await newUser(browser, { uid: "u_t", name: "Tech", canEdit: true, names: {} }); await signIn(Tc, "tech1");
   await Tc.click('#tabs button[data-tab="routes"]'); await Tc.waitForSelector("details.route");

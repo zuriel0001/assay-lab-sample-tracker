@@ -7,17 +7,18 @@ document.addEventListener("click", e => { const b = e.target.closest("[data-edit
 function renderRoutes(){
   const v = $("#view-routes");
   if (routesFocus){ openRoutes.add(routesFocus); routesType = ""; routesQ = ""; }
+  const liveTests = TESTS.filter(t => testOn(t.key));
   v.innerHTML = `<div class="stack">
     <div class="panel stack" style="gap:8px">
       <h2>Workflow routes</h2>
       <p class="small muted" style="margin:0">Each sample follows the route for its sample type and the test requested. The route is picked automatically at submission and the lab technician confirms or changes it at receipt; only routes that perform the requested test can be chosen. Every route starts with <b>Submitted</b> and <b>Received &amp; logged</b>, and ends with <b>Results released</b> and retention in storage. Each retained material is then returned, sent out or disposed on its own date. Expected finish times add up the hours below and are estimates: queues can add to them.${isAdmin() ? " Admins edit routes on the Settings tab." : ""}</p>
       <div class="row" style="gap:6px"><span class="ph-tag ph-intake">Intake</span><span class="ph-tag ph-prep">Preparation</span><span class="ph-tag ph-test">Analysis / test</span><span class="ph-tag ph-qc">QA/QC</span></div>
     </div>
-    <div class="panel stack" style="gap:10px"><h3>All ${TESTS.length} tests</h3>
-      ${TEST_CATS.map(c => `<div class="cat-row"><div class="cat-name">${esc(c)}</div><div class="cat-tests">${TESTS.filter(t => t.cat === c).map(t => { const r = routeFor("", t.key, ""); return r ? `<button type="button" class="tchip" data-route="${esc(r.code)}">${esc(t.name)}</button>` : ""; }).join("")}</div></div>`).join("")}
+    <div class="panel stack" style="gap:10px"><h3>All ${liveTests.length} tests</h3>
+      ${TEST_CATS.filter(c => liveTests.some(t => t.cat === c)).map(c => `<div class="cat-row"><div class="cat-name">${esc(c)}</div><div class="cat-tests">${liveTests.filter(t => t.cat === c).map(t => { const r = routeFor("", t.key, ""); return r ? `<button type="button" class="tchip" data-route="${esc(r.code)}">${esc(t.name)}</button>` : ""; }).join("")}</div></div>`).join("")}
     </div>
     <div class="row">
-      <select class="inp" id="rtType" style="width:auto;max-width:100%"><option value="">All sample types</option>${TYPES.map(t => `<option value="${esc(t.key)}" ${routesType === t.key ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select>
+      <select class="inp" id="rtType" style="width:auto;max-width:100%"><option value="">All sample types</option>${TYPES.filter(t => typeOn(t.key) || t.key === routesType).map(t => `<option value="${esc(t.key)}" ${routesType === t.key ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select>
       <input class="inp" id="rtQ" placeholder="Search route, test or step" style="flex:1 1 200px;width:auto" value="${esc(routesQ)}">
       <button class="btn ghost" id="rtAll" type="button">Expand all</button>
     </div>
@@ -50,7 +51,7 @@ function routeRows(r){
 function renderRouteList(){
   const box = $("#rtList"); if (!box) return;
   const q = routesQ.trim().toLowerCase(), t = typeOf(routesType);
-  const list = (cfg.routes || []).filter(r => (!t || (r.types || []).includes(t.key) || (t.tests || []).some(k => (r.tests || []).includes(k)))
+  const list = (cfg.routes || []).filter(r => (routeOn(r) || openRoutes.has(r.code)) && (!t || (r.types || []).includes(t.key) || (t.tests || []).some(k => (r.tests || []).includes(k)))
     && (!q || [r.code, r.name, r.desc, ...(r.stages || []).map(x => x.name), ...(r.tests || []).map(k => testOf(k)?.name)].join(" ").toLowerCase().includes(q)));
   list.sort((a, b) => testRank(a) - testRank(b));
   let lastCat = "";
@@ -60,7 +61,7 @@ function renderRouteList(){
     const types = (r.types || []).filter(k => k !== "*").map(k => typeOf(k)?.name).filter(Boolean);
     const purp = (r.purposes || []).map(k => purposeOf(k)?.name).filter(Boolean);
     return `${headHtml}<details class="route" id="route-${esc(r.code)}" data-code="${esc(r.code)}" ${openRoutes.has(r.code) ? "open" : ""}>
-      <summary><span class="code">${esc(r.code)}</span><b>${esc(r.name)}</b><span class="subtle" style="margin-left:auto">results about ${hoursLabel(routeTat(r))} after receipt</span></summary>
+      <summary><span class="code">${esc(r.code)}</span><b>${esc(r.name)}</b>${routeOn(r) ? "" : ` <span class="pill">Not in use</span>`}<span class="subtle" style="margin-left:auto">results about ${hoursLabel(routeTat(r))} after receipt</span></summary>
       <div class="body">
         ${r.desc ? `<p class="small" style="margin:0">${esc(r.desc)}</p>` : ""}
         ${r.two ? `<div class="small"><span class="pill warn">Two-person custody</span> A witness is recorded at receipt and at every step.</div>` : ""}
@@ -94,6 +95,7 @@ function renderStages(){
   draft.limits = Array.isArray(draft.limits) ? draft.limits : clone(DEFAULT_CONFIG.limits);
   draft.users = draft.users || [];
   draft.routes = draft.routes && draft.routes.length ? draft.routes : clone(DEFAULT_ROUTES);
+  draft.routeUse = draft.routeUse && typeof draft.routeUse === "object" ? draft.routeUse : {};
   const editable = isAdmin();
   if (!editable){ v.innerHTML = `<div class="notice warn">Only admins can change these settings.</div>`; return; }
   const userRows = draft.users.map((x, i) => `<tr>
@@ -181,7 +183,8 @@ function renderStages(){
     <h2 style="margin-top:12px">Action and permit limits</h2>
     <div class="mock"><b>Example values.</b><span>The permit and guideline limits (marked Permit) are placeholders. Replace them with the limits in the site's environmental permit before go-live.</span></div>
     <p class="small muted" style="margin:0">A result past a limit raises an alert on the sample and on the board. The release waits until someone records what was done and who was told; the record is printed on the certificate. "Only when" limits a row to one sampling point.</p>
-    <div class="tbl-wrap"><table><thead><tr><th>Route</th><th>Result</th><th></th><th>Limit</th><th>Only when</th><th>Permit</th><th>Action</th><th></th></tr></thead><tbody>${limitRows()}</tbody></table></div>
+    ${limitTable(limitRows(true))}
+    ${limitsOff() ? `<details class="more" id="limOff" ${limOffOpen ? "open" : ""}><summary>Limits on routes not in use (${limitsOff()})</summary><div id="limOffBox">${limOffOpen ? limitTable(limitRows(false)) : ""}</div></details>` : ""}
     <div class="row"><button class="btn" id="limAdd">Add limit</button></div>
 
     <h2 style="margin-top:12px">Results files</h2>
@@ -191,7 +194,9 @@ function renderStages(){
 
     <h2 style="margin-top:12px" id="rtEdit">Workflow routes</h2>
     <p class="small muted" style="margin:0">A sample's route is chosen from its sample type, test and purpose when it is submitted. Changes apply to samples submitted after you save; samples already in the lab keep the steps they started with. Steps 1 and 2 (Submitted, Received &amp; logged) and the closing steps (Results released, storage, return or disposal) are shared by every route.</p>
-    <div class="row"><select class="inp" id="rtPick" style="width:auto;max-width:100%" aria-label="Route to edit">${draft.routes.map((r, i) => `<option value="${i}" ${i === routeIdx ? "selected" : ""}>${esc(r.code)} · ${esc(r.name)}</option>`).join("")}</select>
+    <div class="row"><select class="inp" id="rtPick" style="width:auto;max-width:100%" aria-label="Route to edit">${[true, false].map(on => { const xs = draft.routes.map((r, i) => [r, i]).filter(([r]) => useOf(r, draft.routeUse) === on);
+        return xs.length ? `<optgroup label="${on ? "In use" : "Not in use"}">${xs.map(([r, i]) => `<option value="${i}" ${i === routeIdx ? "selected" : ""}>${esc(r.code)} · ${esc(r.name)}</option>`).join("")}</optgroup>` : ""; }).join("")}</select>
+      <label class="row" style="gap:6px"><input type="checkbox" id="rtUse" ${useOf(R, draft.routeUse) ? "checked" : ""}> In use</label>
       <button class="btn" id="rtCopy">Copy as new route</button><button class="btn ghost danger" id="rtDel">Remove route</button></div>
     <div class="panel stack">
       <div class="form">
@@ -266,6 +271,7 @@ function renderStages(){
   v.querySelectorAll("[data-krm]").forEach(b => b.onclick = () => { draft.cols.splice(+b.dataset.krm, 1); dirty(); });
   $("#colAdd").onclick = () => { draft.cols.push({ n: "", c: "" }); dirty(); };
   bindLimits(v, dirty);
+  $("#limOff")?.addEventListener("toggle", e => { const box = $("#limOffBox"); limOffOpen = e.target.open; if (limOffOpen && !box.firstChild){ box.innerHTML = limitTable(limitRows(false)); bindLimits(box, dirty); } });
   bindWork(v, dirty);
   bindLogo(v, dirty);
   $("#cfgTz").addEventListener("change", e => { const z = e.target.value.trim(); if (!tzOk(z)){ toast(`${z || "That"} is not a time zone name. Try Africa/Accra.`); renderStages(); return; } draft.tz = z; dirty(); });
@@ -290,6 +296,8 @@ function renderStages(){
   };
   // Routes
   $("#rtPick").onchange = e => { routeIdx = +e.target.value; renderStages(); };
+  const setUse = (code, on) => { draft.routeUse = { ...draft.routeUse }; if (on === !RETIRED_ROUTES.includes(code)) delete draft.routeUse[code]; else draft.routeUse[code] = on; };
+  $("#rtUse").onchange = e => { setUse(R.code, e.target.checked); dirty(); };
   v.querySelectorAll("[data-rf]").forEach(el => el.addEventListener("change", () => {
     const f = el.dataset.rf;
     if (f === "code"){
@@ -297,7 +305,8 @@ function renderStages(){
       if (c.length < 2){ toast("Use 2 to 10 letters, digits or dashes for a route code."); renderStages(); return; }
       if (draft.routes.some((y, j) => y.code === c && j !== routeIdx)){ toast(`${c} is already used by another route.`); renderStages(); return; }
       if (DEFAULT_ROUTES.some(d => d.code === R.code)) draft.removed = [...new Set([...(draft.removed || []), R.code])];
-      R.code = c;
+      const on = useOf(R, draft.routeUse); setUse(R.code, !RETIRED_ROUTES.includes(R.code));   // a new code keeps the route in or out of use
+      R.code = c; setUse(c, on);
     } else if (f === "triggers") R.triggers = el.value.split("\n").map(x => x.trim()).filter(Boolean);
     else if (f === "two") R.two = el.checked;
     else if (f === "transit") R.transit = Math.max(0, +el.value || 0);
@@ -345,7 +354,7 @@ function renderStages(){
     const locked = new Set([...[...samples.values()].map(s => s.route), ...[...stored.values()].map(x => x.route)]);
     draft.sections = clone(DEFAULT_CONFIG.sections);
     draft.routes = [...clone(DEFAULT_ROUTES), ...draft.routes.filter(r => locked.has(r.code) && !DEFAULT_ROUTES.some(d => d.code === r.code))];
-    draft.removed = []; routeIdx = 0; dirty(); toast("Default sections and routes restored (routes still used by open samples are kept). Save to apply.");
+    draft.removed = []; draft.routeUse = {}; routeIdx = 0; dirty(); toast("Default sections and routes restored (routes still used by open samples are kept). Save to apply.");
   };
   $("#cfgCancel").onclick = () => { draft = clone(cfg); draftDirty = false; renderStages(); };
   v.querySelectorAll("[data-uf]").forEach(el => el.addEventListener("change", () => {
@@ -395,7 +404,7 @@ function renderStages(){
     const mine = draft, crmLog = [...crmChanges(clone(cfg.crms || []), draft.crms), ...(cfg.crmLog || [])].slice(0, CRM_LOG_MAX);
     draftDirty = false;                      // our own save coming back is not "someone else's"
     try {
-      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users), crms: clone(draft.crms), crmLog, limits: clone(draft.limits), cols: (draft.cols || []).filter(x => x.n).map(x => ({ n: x.n, c: x.c || "" })), resultsPublic: !!draft.resultsPublic, batchReq: !!draft.batchReq, qcStep: !!draft.qcStep, work: workOf(draft.work), logo: logoOf(draft.logo), routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
+      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users), crms: clone(draft.crms), crmLog, limits: clone(draft.limits), cols: (draft.cols || []).filter(x => x.n).map(x => ({ n: x.n, c: x.c || "" })), resultsPublic: !!draft.resultsPublic, batchReq: !!draft.batchReq, qcStep: !!draft.qcStep, work: workOf(draft.work), logo: logoOf(draft.logo), routeUse: clone(draft.routeUse || {}), limitsV: LIMITS_V, routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
       draftDirty = false; draft = null; renderStages();
       toast(uncovered.length ? `Saved. No route performs: ${uncovered.slice(0, 3).join(", ")}${uncovered.length > 3 ? "…" : ""}` : "Settings saved for everyone.");
     }
@@ -441,13 +450,18 @@ function regenQc(R){
   if (!QC_PROFILES[R.qcp]) return;
   R.qc = routeQcText(R, R.qcg);
 }
-/* Limits table in Settings. */
-function limitRows(){
-  const routes = draft.routes.slice().sort((a, b) => a.code.localeCompare(b.code));
+/* Limits table in Settings. The limits on routes not in use are drawn only when their group is opened. */
+let limOffOpen = false;
+const limitTable = rows => `<div class="tbl-wrap"><table><thead><tr><th>Route</th><th>Result</th><th></th><th>Limit</th><th>Only when</th><th>Permit</th><th>Action</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+const limitsOff = () => draft.limits.filter(l => { const r = draft.routes.find(x => x.code === l.route); return r && !useOf(r, draft.routeUse); }).length;
+function limitRows(on){
+  const routes = draft.routes.filter(x => useOf(x, draft.routeUse)).sort((a, b) => a.code.localeCompare(b.code));
   return draft.limits.map((l, i) => {
-    const r = draft.routes.find(x => x.code === l.route), res = r ? RESULTS[(r.tests || [])[0]] : null, ans = (res?.an || []).filter(a => !a.t), pt = (res?.an || []).find(a => a.t === "pick");
+    const r = draft.routes.find(x => x.code === l.route);
+    if (!r ? !on : useOf(r, draft.routeUse) !== on) return "";   // a new limit (no route yet) sits with the routes in use
+    const res = r ? RESULTS[(r.tests || [])[0]] : null, ans = (res?.an || []).filter(a => !a.t), pt = (res?.an || []).find(a => a.t === "pick");
     return `<tr>
-      <td><select class="inp mono" style="width:auto" data-li="${i}" data-lf="route" aria-label="Route">${r ? "" : `<option value="" selected>Choose…</option>`}${routes.map(x => `<option value="${esc(x.code)}" ${x.code === l.route ? "selected" : ""}>${esc(x.code)}</option>`).join("")}</select></td>
+      <td><select class="inp mono" style="width:auto" data-li="${i}" data-lf="route" aria-label="Route">${r ? "" : `<option value="" selected>Choose…</option>`}${(r && !routes.includes(r) ? [r, ...routes] : routes).map(x => `<option value="${esc(x.code)}" ${x.code === l.route ? "selected" : ""}>${esc(x.code)}</option>`).join("")}</select></td>
       <td><select class="inp" style="width:auto;max-width:220px" data-li="${i}" data-lf="k" aria-label="Result">${ans.some(a => a.k === l.k) ? "" : `<option value="" selected>Choose…</option>`}${ans.map(a => `<option value="${esc(a.k)}" ${a.k === l.k ? "selected" : ""}>${esc(a.n)}${a.u ? ` (${esc(a.u)})` : ""}</option>`).join("")}</select></td>
       <td><select class="inp" style="width:auto" data-li="${i}" data-lf="op" aria-label="Above or below"><option value=">" ${l.op !== "<" ? "selected" : ""}>above</option><option value="<" ${l.op === "<" ? "selected" : ""}>below</option></select></td>
       <td><input class="inp mono" style="width:100px" type="number" step="any" data-li="${i}" data-lf="val" value="${esc(l.val)}" aria-label="Limit"></td>

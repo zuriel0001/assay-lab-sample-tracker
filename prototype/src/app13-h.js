@@ -51,9 +51,11 @@ function watchStore(){
     storeReady = true;
     if (tab === "storage") renderStorage();
     else if (tab === "ledger") renderLedger();
-    else if (tab === "stages" && !$("#view-stages").contains(document.activeElement)) renderStages();
+    else if (tab === "stages") stagesSoon();
   }, () => { storeReady = true; });
 }
+/* Settings shows open-sample counts; a burst of storage changes redraws it once. */
+function stagesSoon(){ clearTimeout(stagesSoon.t); stagesSoon.t = setTimeout(() => { if (tab === "stages" && !$("#view-stages").contains(document.activeElement)) renderStages(); }, 150); }
 /* Samples still open (in the lab or in storage) on a route or from a section, for Settings. */
 const openOn = f => [...samples.values()].filter(f).length + [...stored.values()].filter(x => !samples.has(x.id) && f({ route: x.route, section: x.sec })).length;
 

@@ -1,19 +1,24 @@
 const fs = require("fs");
-eval(fs.readFileSync("routes-data.js", "utf8") + ";global.D={PURPOSES,TESTS,TYPES,DEFAULT_ROUTES,TEST_CATS,RESULTS,QC_PROFILES}");
-const { PURPOSES, TESTS, TYPES, DEFAULT_ROUTES: R0, TEST_CATS, RESULTS: RES, QC_PROFILES: QCP } = D;
+eval(fs.readFileSync("routes-data.js", "utf8") + ";global.D={PURPOSES,TESTS,TYPES,DEFAULT_ROUTES,TEST_CATS,RESULTS,QC_PROFILES,RETIRED_ROUTES}");
+const { PURPOSES, TESTS, TYPES, DEFAULT_ROUTES: R0, TEST_CATS, RESULTS: RES, QC_PROFILES: QCP, RETIRED_ROUTES: OFF } = D;
 // Action and permit limits are default settings in app10-a.js (src/ in the shared folder, or this folder).
 const appA = ["src/app10-a.js", "app10-a.js"].find(f => fs.existsSync(f));
 const LIMITS = appA ? eval("[" + fs.readFileSync(appA, "utf8").match(/limits: \[([\s\S]*?)\n  \],/)[1] + "]") : [];
 const sym = a => /^[A-Z][a-z]?$/.test(a.k) ? a.k : lcFirst(a.n);
 const lcFirst = t => /^[A-Z][a-z]/.test(t) ? t.charAt(0).toLowerCase() + t.slice(1) : t;
 const rank = r => TESTS.findIndex(t => t.key === r.tests[0]);
-const R = R0.slice().sort((a, b) => rank(a) - rank(b));
+const ALL = R0.slice().sort((a, b) => rank(a) - rank(b));
+// Since v23 the routes the lab runs are in use; the others are kept (old samples keep their steps) and an admin can turn one back on.
+const R = ALL.filter(r => !OFF.includes(r.code)), ROFF = ALL.filter(r => OFF.includes(r.code));
+const testOn = k => R.some(r => r.tests.includes(k)), typeOn = k => k === "other" || R.some(r => r.types.includes(k));
 const hl = h => h >= 48 ? `${+(h / 24).toFixed(1)} days` : `${+(+h).toFixed(2)} h`;
 const dl = d => d === 365 ? "12 months" : d >= 30 && d % 30 === 0 ? `${d / 30} month${d === 30 ? "" : "s"}` : d >= 7 && d % 7 === 0 ? `${d / 7} week${d === 7 ? "" : "s"}` : `${d} days`;
 const lc = t => t.charAt(0).toLowerCase() + t.slice(1);
 const ret = x => +x.days ? `${x.item}: kept ${dl(x.days)} after results, then ${lc(x.then)}` : `${x.item}: ${lc(x.then)}`;
 const PH = { intake: "Intake", prep: "Preparation", test: "Analysis / test", qc: "QA/QC" };
-const tat = r => 1 + r.stages.reduce((t, x) => t + x.hours, 0);
+// The QA/QC review step is left out while Settings › QA/QC review step is Not used (the default since v22), as on the page.
+const used = r => r.stages.filter(x => x.phase !== "qc");
+const tat = r => 1 + used(r).reduce((t, x) => t + x.hours, 0);
 const test = k => TESTS.find(t => t.key === k)?.name || k;
 const type = k => TYPES.find(t => t.key === k)?.name || k;
 const pur = k => PURPOSES.find(p => p.key === k)?.name || k;
@@ -35,13 +40,13 @@ const insText = p => [["pb", "prep blank"], ["cd", "crusher dup"], ["pd", p.all 
 for (const [k, p] of Object.entries(QCP)) o.push(`| ${cell(p.name)} | ${p.prefix} | ${p.size} | ${cell(insText(p))} | ${cell(crmRule(p))} | ${p.blank ? `< ${p.blank}× DL` : "—"}${p.pbBlank && p.pbBlank !== p.blank ? `; prep blank < ${p.pbBlank}× DL` : ""} | ${p.dupAbs ? `within ${p.dupAbs} absolute` : p.pd ? `${p.pd}%${p.cd ? ` (crusher ${p.cd}%)` : ""}${p.dupMin ? `, above ${p.dupMin}× DL` : ""}` : "—"} |`);
 o.push("", "The reference materials and their certified values are kept on the Settings tab. The prototype ships with example values that must be replaced with the lab's own certificates.", "");
 o.push("## Test catalogue", "");
-for (const c of TEST_CATS) o.push(`- **${c}:** ${TESTS.filter(t => t.cat === c).map(t => t.name).join("; ")}`);
+for (const c of TEST_CATS){ const ts = TESTS.filter(t => t.cat === c && testOn(t.key)); if (ts.length) o.push(`- **${c}:** ${ts.map(t => t.name).join("; ")}`); }
 o.push("", "## Summary", "");
 o.push("| Category | Route | Name | Lab steps | Results after receipt |", "|---|---|---|---|---|");
-for (const r of R) o.push(`| ${TESTS[rank(r)].cat} | ${r.code} | ${cell(r.name)} | ${r.stages.length} | ${hl(tat(r))} |`);
+for (const r of R) o.push(`| ${TESTS[rank(r)].cat} | ${r.code} | ${cell(r.name)} | ${used(r).length} | ${hl(tat(r))} |`);
 o.push("", "## Sample types, recommended tests and receipt checks", "");
 o.push("| Sample type | Recommended tests (first is the default) | Details asked at submission | Checked at receipt |", "|---|---|---|---|");
-for (const t of TYPES) o.push(`| ${cell(t.name)} | ${cell(t.tests.map(test).join("; "))} | ${cell(t.fields.map(f => f.l).join(", ") || "—")} | ${cell(t.check)} |`);
+for (const t of TYPES.filter(t => typeOn(t.key))) o.push(`| ${cell(t.name)} | ${cell(t.tests.filter(testOn).map(test).join("; "))} | ${cell(t.fields.map(f => f.l).join(", ") || "—")} | ${cell(t.check)} |`);
 o.push("", "Purposes: " + PURPOSES.map(p => p.name).join("; ") + ".", "");
 o.push("## Routes", "");
 let lastCat = "";
@@ -62,9 +67,13 @@ for (const r of R){
   if (lims.length) o.push(`- **Action limits${lims.some(l => l.permit) ? " (permit values are examples)" : ""}:** ${lims.map(l => `${an(l.k).n} ${l.op === "<" ? "below" : "above"} ${l.val}${an(l.k).u ? " " + an(l.k).u : ""}${l.when ? ` (${l.when})` : ""}${l.permit ? " (permit)" : ""}: ${lc(l.act)}`).join("; ")}`);
   o.push("");
   o.push("| # | Step | Phase | Time allowed | Method and checks |", "|---|---|---|---|---|");
-  r.stages.forEach((x, i) => o.push(`| ${i + 3} | ${cell(x.name)} | ${PH[x.phase]} | ${hl(x.hours)}${x.clock ? ", round the clock" : ""} | ${cell((x.note || "") + (x.redo ? `${x.note ? " " : ""}**Re-assays restart here.**` : ""))} |`));
+  used(r).forEach((x, i) => o.push(`| ${i + 3} | ${cell(x.name)} | ${PH[x.phase]} | ${hl(x.hours)}${x.clock ? ", round the clock" : ""} | ${cell((x.note || "") + (x.redo ? `${x.note ? " " : ""}**Re-assays restart here.**` : ""))} |`));
   o.push("", `**QA/QC:** ${r.qc}`, "", "**Re-assay triggers**", "", ...r.triggers.map(t => `- ${t}`), "", "**Retention and disposal**", "", ...r.retention.map(x => `- ${ret(x)}`), "");
 }
+o.push("## Routes not in use", "", "Kept so samples already on them keep their steps; not offered on Submit or listed on the Workflow routes tab. An admin turns one back on with **In use** in Settings › Workflow routes.", "");
+o.push("| Route | Name | Lab steps | Results after receipt |", "|---|---|---|---|");
+for (const r of ROFF) o.push(`| ${r.code} | ${cell(r.name)} | ${used(r).length} | ${hl(tat(r))} |`);
+o.push("");
 const out = process.env.OUT || "/mnt/project-files/sample-tracking/workflow-routes.md";
 fs.mkdirSync("/mnt/project-files/sample-tracking", { recursive: true });
 fs.writeFileSync(out, o.join("\n"));

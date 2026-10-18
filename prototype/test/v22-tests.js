@@ -34,6 +34,7 @@ async function setQcStep(Ad, on){
 
 (async () => {
   const browser = await launch();
+  require("./harness").useOldRoutes();   // v23: this suite is written around the routes in use before version 23
   const Tc = await newUser(browser, { uid: "u_t", name: "Tech", canEdit: true, names }); await signIn(Tc, "tech1");
   const Sv = await newUser(browser, { uid: "u_s", name: "Super", canEdit: true, names }); await signIn(Sv, "super");
   const Ad = await newUser(browser, { uid: "u_a", name: "Admin", canEdit: true, names }); await signIn(Ad, "admin");

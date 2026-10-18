@@ -32,6 +32,10 @@ function colConcept(name){
   const m = t.match(/^([A-Z][a-z])[-_ ]?([A-Z]{1,6}\d{0,3}|[a-z]{2,5})$/) || t.match(/^([A-Z])[-_ ]([A-Z]{1,6}\d{0,3}|[a-z]{2,5})$/);
   return m && ELEMENTS.has(m[1]) ? m[1] : "";
 }
+/* A method code after the symbol says solids or solution: AuFA is fire assay (solids), AuSX solvent extraction (solution). */
+const colPhase = name => { const m = String(name || "").trim().match(/^[A-Z][a-z]?[-_ ]?([A-Za-z]{2,6})\d{0,3}$/); return !m ? "" : /^(sx|sol)/i.test(m[1]) ? "sol" : /^(fa|faa|grav|gr)$/i.test(m[1]) ? "solid" : ""; };
+const anPhase = a => { const u = unitNorm(a.u); return /_s$/.test(a.k) || u === "mg/l" ? "sol" : UNIT_GROUPS[0].includes(u) || u === "ppb" ? "solid" : ""; };
+const phaseFits = (name, a) => { const c = colPhase(name), p = anPhase(a); return !c || !p || c === p; };
 const nameIs = (col, a) => { const n = normCol(col); return !!n && (n === normCol(a.k) || n === normCol(anShort(a)) || n === normCol(a.n)); };
 /* Everything a result can be read as, for Settings: one entry per element or measurement, named after the first result that reports it. */
 function readAsList(){
@@ -145,7 +149,7 @@ function rowValues(rep, cells, defs, r = 1, clash){
     const exact = ok.filter(a => nameIs(c.name, a) && unitScore(c.unit, a.u) > 0);
     let pick = exact.length === 1 ? exact[0] : null;
     if (!pick && c.concept){
-      const sc = ok.filter(a => conceptOf(a) === c.concept).map(a => [a, unitScore(c.unit, a.u)]).filter(x => x[1] > 0), top = Math.max(0, ...sc.map(x => x[1])), b = sc.filter(x => x[1] === top);
+      const sc = ok.filter(a => conceptOf(a) === c.concept && phaseFits(c.name, a)).map(a => [a, unitScore(c.unit, a.u)]).filter(x => x[1] > 0), top = Math.max(0, ...sc.map(x => x[1])), b = sc.filter(x => x[1] === top);
       if (b.length === 1) pick = b[0][0];
     }
     if (!pick) continue;

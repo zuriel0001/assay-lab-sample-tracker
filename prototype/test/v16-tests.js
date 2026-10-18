@@ -23,6 +23,7 @@ if (fs.existsSync(CORE)){
 
 (async () => {
   const browser = await launch();
+  require("./harness").useOldRoutes();   // v23: this suite is written around the routes in use before version 23
   const P = await newUser(browser, { uid: "u_p", name: "Public", canEdit: true, names });
   const T = await newUser(browser, { uid: "u_t", name: "Tech", canEdit: true, names }); await signIn(T, "tech1");
   const A = await newUser(browser, { uid: "u_a", name: "Admin", canEdit: true, names }); await signIn(A, "admin");
@@ -65,7 +66,7 @@ if (fs.existsSync(CORE)){
   await H.tab(E, "submit"); await E.waitForSelector("#regForm");
   check((await E.inputValue("#rSection")) === "EXP", "a section account's form starts on its own section");
   await H.tab(T, "register"); await T.waitForSelector("#regForm");
-  check(await T.isVisible("#rRouteSel") && await T.isVisible("#rRecvAt") && !(await T.$("#regForm .form-h .pill")), "lab staff still register straight in, as the receiver");
+  check(!!(await T.$("#rRoute")) && await T.isVisible("#rRecvAt") && !(await T.$("#regForm .form-h .pill")), "lab staff still register straight in, as the receiver");   // v23: the route list shows only when there is a choice
 
   log("Assay purpose Other");
   await H.tab(P, "register"); await P.waitForSelector("#regForm"); if (await P.$("#rAgain")) await P.click("#rAgain");

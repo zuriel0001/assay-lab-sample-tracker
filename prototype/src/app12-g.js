@@ -25,7 +25,7 @@ function anOf(s){
   return res.an.map(a => a.k === s.grav ? { ...a, n: a.n + " (gravimetric finish)", dl: g.dl, dp: g.dp, ul: null } : dil.includes(a.k) ? { ...a, n: a.n + " (diluted re-run)", ul: null } : a);
 }
 const aAn = t => (/^[aeiou]/i.test(t) ? "an " : "a ") + t;
-const anShort = a => /^[A-Z][a-z]?$/.test(a.k) ? a.k : a.n;
+const anShort = a => a.s || (/^[A-Z][a-z]?$/.test(a.k) ? a.k : a.n);
 /* The database merges an update into the stored record, map by map, so a result, a batch membership or a field of one that goes away is
    written as null (patch: each new value replaces the old one whole, so a value typed over one read from a file loses src) and read as
    absent (live). */
@@ -147,11 +147,14 @@ function resultChecks(s, rows = s.results?.rows || {}){
 /* ---------- action and permit limits ---------- */
 /* The results being worked on: a proposed amendment, else the results on the record. */
 const effRows = s => s?.amend?.rows || s?.results?.rows || {};
+/* The sampling point (or carbon type, or solution) given at submission, when the results list it: the results start from it and the limits
+   for one point follow it until the results say otherwise. */
+function ptGiven(s){ const a = anOf(s).find(x => x.t === "pick"), v = a && (s.details || {})[a.n]; return v && (a.opts || []).includes(v) ? v : ""; }
 function limitHits(s, rows = effRows(s)){
-  const out = [];
+  const out = [], pt = rows.pt?.raw || ptGiven(s);
   for (const l of cfg.limits || []){
     if (l.route !== s.route || !rows[l.k]) continue;
-    if (l.when && rows.pt?.raw && rows.pt.raw !== l.when) continue;   // no sampling point chosen: the limit applies
+    if (l.when && pt && pt !== l.when) continue;   // no sampling point given: the limit applies
     const x = resNum(rows[l.k]); if (x == null) continue;
     if (l.op === "<" ? x < +l.val : x > +l.val) out.push({ ...l, raw: rows[l.k].raw, v: x, key: `${l.id}|${l.k}|${rows[l.k].raw}` });
   }
@@ -161,7 +164,7 @@ const ackOf = (s, h) => (s.acks || []).find(a => a.key === h.key) || null;
 const openAlerts = (s, rows) => limitHits(s, rows).filter(h => !ackOf(s, h));
 function alertLine(s, h){
   const a = anOf(s).find(x => x.k === h.k) || { k: h.k, n: h.k, u: "" };
-  return `${a.n} ${resText({ v: h.v, raw: h.raw, f: "" }, a)}${a.u ? " " + a.u : ""} is ${h.op === "<" ? "below" : "above"} the ${h.permit ? "permit limit" : "action limit"} of ${fmtNum(h.val)}${a.u ? " " + a.u : ""}${h.when ? ` (${h.when})` : ""}`;
+  return `${a.s || a.n} ${resText({ v: h.v, raw: h.raw, f: "" }, a)}${a.u ? " " + a.u : ""} is ${h.op === "<" ? "below" : "above"} the ${h.permit ? "permit limit" : "action limit"} of ${fmtNum(h.val)}${a.u ? " " + a.u : ""}${h.when ? ` (${h.when})` : ""}`;
 }
 /* What still stops a sample entering QA/QC review. */
 function qcEntryBlock(s){
@@ -173,7 +176,7 @@ function qcEntryBlock(s){
     if (!l.q || l.q === "pending") return `Enter the results for lab batch ${l.b} first.`;
   }
   const miss = missingRes(s);
-  if (miss.length) return `Enter the results before QA/QC review. Missing: ${miss.map(a => a.n).join(", ")}.`;
+  if (miss.length) return `Enter the results before QA/QC review. Missing: ${miss.map(a => a.s || a.n).join(", ")}.`;
   return "";
 }
 /* Next step the release, and nothing in the way of it but who releases. */
@@ -181,9 +184,9 @@ const readyRel = s => { const i = curIdx(s); return i >= 1 && !!planOf(s)[i + 1]
 /* What still stops a supervisor releasing the results (who may release is checked separately: selfCheck). */
 function releaseBlock(s){
   const miss = missingRes(s);
-  if (miss.length) return `Results missing: ${miss.map(a => a.n).join(", ")}.`;
+  if (miss.length) return `Results missing: ${miss.map(a => a.s || a.n).join(", ")}.`;
   const over = overRes(s);
-  if (over.length) return `${over.map(a => a.n).join(", ")} is over the method's range. Re-assay it first.`;
+  if (over.length) return `${over.map(a => a.s || a.n).join(", ")} is over the method's range. Re-assay it first.`;
   const bad = resultChecks(s).filter(c => !c.ok && !c.soft);
   if (bad.length && !s.resAcc) return `Results fail a check: ${bad.map(c => c.msg).join("; ")}. Re-assay, or a supervisor accepts it with a reason.`;
   const labs = labsOf(s);
@@ -311,7 +314,7 @@ function resultsForm(s){
     <details class="more" id="resBox"><summary>${s.results ? "Correct results" : "Type results instead"}</summary>
     <div class="stack" style="gap:8px;margin-top:8px">
       <p class="small muted" style="margin:0">${fromBatch.length ? `${esc(listAnd(fromBatch.map((a, i) => i ? lcName(a.n) : a.n)))} ${fromBatch.length > 1 ? "come" : "comes"} from lab batches with their QC. Enter the other results here.` : "Type each result."} Use <b>&lt;DL</b> when a result is below the detection limit. The dot is the decimal mark; a number such as 1,500 is refused because it could mean 1500 or 1.5.</p>
-      <div class="form">${others.map(a => `<label class="f${a.t === "text" ? " full" : ""}"><span>${esc(a.n)}${a.u ? ` (${esc(a.u)})` : ""}${a.opt ? ` <span class="muted" style="font-weight:400">optional</span>` : ""}</span>${resInput("rs_" + a.k, a, rows[a.k]?.raw, rows)}</label>`).join("")}
+      <div class="form">${others.map(a => `<label class="f${a.t === "text" ? " full" : ""}"><span>${esc(a.n)}${a.u ? ` (${esc(a.u)})` : ""}${a.opt ? ` <span class="muted" style="font-weight:400">optional</span>` : ""}</span>${resInput("rs_" + a.k, a, rows[a.k]?.raw || (a.t === "pick" ? ptGiven(s) : ""), rows)}</label>`).join("")}
         <label class="f"><span>Instrument file or worksheet</span><input id="rsInst" data-live autocomplete="off" value="${esc(s.results?.inst || "")}" placeholder="e.g. AAS run 13-10-02"></label>
       </div>
       <div class="row"><button type="button" class="btn primary" id="rsSave">Save results</button></div></div></details>`;

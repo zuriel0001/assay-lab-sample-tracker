@@ -214,6 +214,18 @@ const log = t => console.log("• " + t);
   await W.waitForFunction(n => document.querySelectorAll("#view-track tbody tr .pill").length === n && ![...document.querySelectorAll("#view-track tbody tr .pill")].some(p => /awaiting/i.test(p.textContent)), 3, { timeout: 10000 }).catch(() => {});
   check(!/awaiting/i.test(await W.$eval("#view-track tbody", e => e.textContent).catch(() => "awaiting")), "the visitor's open batch page shows the receipt without reloading");
 
+  log("A sample on a route no longer in use");
+  const st0 = store["settings/stages"];
+  store["settings/stages"] = { ...st0, routeUse: { ...(st0.routeUse || {}), "CCD-SVY": true } }; await H.broadcast("settings/stages", store["settings/stages"]); await T.waitForTimeout(800);
+  await fillForm(T, "register", { section: "MET", type: "ccd", purpose: "plant", test: "ccd", submitter: "Plant metallurgist", count: 1, tags: "SVY-A1" });
+  const [svy] = await ids(T);
+  store["settings/stages"] = { ...store["settings/stages"], routeUse: st0.routeUse || {} }; await H.broadcast("settings/stages", store["settings/stages"]); await T.waitForTimeout(800);
+  check(doc(svy)?.route === "CCD-SVY" && doc(svy).stageKey === "received", "a CCD survey sample received while its old route was in use");
+  await open(T, svy);
+  const k0 = doc(svy).stageKey, rail0 = await T.$$eval(".rail li", ls => ls.map(l => l.textContent));
+  await T.click('[data-step="next"]').catch(() => {});
+  check(!!(await waitFor(() => doc(svy).stageKey !== k0, 6000)) && rail0.some(x => /Wash efficiency/.test(x)), `with the route no longer in use, it keeps its steps and moves on (${k0} → ${doc(svy).stageKey})`);
+
   log("Page errors");
   check(!errors.length, "no console errors" + (errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""));
   console.log(`\n${pass} PASS, ${fail} FAIL`);

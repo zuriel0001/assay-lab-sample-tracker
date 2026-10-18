@@ -48,7 +48,7 @@ function renderBoard(){
   }).join("");
   const filters = `<div class="bd-top bd-tools">
     <select class="inp" id="bdSec" style="width:auto;max-width:100%" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${boardSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
-    <select class="inp" id="bdRoute" style="width:auto;max-width:100%" aria-label="Test or route"><option value="">All tests and routes</option>${routeOptions(boardRoute)}</select>
+    <select class="inp" id="bdRoute" style="width:auto;max-width:100%" aria-label="Test or route"><option value="">All tests and routes</option>${routeOptions(boardRoute, boardRoutes())}</select>
     <span class="grow"></span>${isStaff() ? `<button type="button" class="btn ghost" id="bdWall">${wall ? "Exit wall screen" : "Wall screen"}</button>` : ""}</div>`;
   const wallHead = `<div class="wall-head"><h2>Assay Lab · Workflow board</h2><span class="clock" id="wallClock"></span><button type="button" class="btn" data-wall-exit>Exit</button></div>`;
   const bind = () => {
@@ -102,12 +102,15 @@ function renderBoard(){
   fitLanes(scrolled);
 }
 
+/* The board's route filter: routes in use, and any other route a sample in the lab is on. */
+function boardRoutes(){ const on = new Set([...samples.values()].map(s => s.route)); return (cfg.routes || []).filter(r => routeOn(r) || on.has(r.code) || r.code === boardRoute); }
 /* ---------- submit and register ---------- */
 function renderSubmit(){ renderSampleForm("submit"); }
 function renderRegister(){ renderSampleForm("register"); }
+/* Sample types a route in use is meant for. */
 function typeOptions(){
-  const groups = [...new Set(TYPES.map(t => t.group))];
-  return groups.map(g => `<optgroup label="${esc(g)}">${TYPES.filter(t => t.group === g).map(t => `<option value="${esc(t.key)}">${esc(t.name)}</option>`).join("")}</optgroup>`).join("");
+  const list = TYPES.filter(t => typeOn(t.key)), groups = [...new Set(list.map(t => t.group))];
+  return groups.map(g => `<optgroup label="${esc(g)}">${list.filter(t => t.group === g).map(t => `<option value="${esc(t.key)}">${esc(t.name)}</option>`).join("")}</optgroup>`).join("");
 }
 function renderDetails(typeKey){
   const box = $("#rDetails"); if (!box) return;
@@ -127,6 +130,7 @@ function refreshFormRoute(){
     const keep = sel.value, list = te ? routesForTest(te) : [];
     sel.innerHTML = `<option value="">${auto ? `Automatic: ${esc(auto.code)} · ${esc(auto.name)}` : "Automatic (choose the type and test first)"}</option>` + routeOptions(keep, list);
     sel.value = list.some(r => r.code === keep) ? keep : "";
+    sel.closest("label").hidden = list.length < 2;   // one route performs the test: nothing to choose
   }
   const r = formRoute();
   box.innerHTML = r ? `<details class="route-mini"><summary><span class="code">${esc(r.code)}</span> ${esc(r.name)} · results about <b>${hoursLabel(routeTat(r))}</b>${r.two ? ` <span class="pill warn">Two-person custody</span>` : ""}</summary>${routePreview(r)}</details>`
@@ -149,20 +153,19 @@ function renderSampleForm(mode){
     ${kindPicker()}
     <div class="form">
       <label class="f"><span>Sample type <span class="req">*</span></span><select id="rType" required><option value="">Choose…</option>${typeOptions()}</select></label>
-      <label class="f"><span>Assay purpose (why it is tested) <span class="req">*</span></span><select id="rPurpose" required><option value="">Choose…</option>${PURPOSES.map(p => `<option value="${esc(p.key)}">${esc(p.name)}</option>`).join("")}</select></label>
+      <label class="f"><span>Analysis <span class="req">*</span></span><select id="rTest" required>${testOptions("")}</select></label>
+      <label class="f"><span>Purpose <span class="req">*</span></span><select id="rPurpose" required><option value="">Choose…</option>${PURPOSES.map(p => `<option value="${esc(p.key)}">${esc(p.name)}</option>`).join("")}</select></label>
+      <label class="f"><span>Submitting section <span class="req">*</span></span><select id="rSection" required><option value="">Choose…</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select></label>
       <label class="f full" id="rWhyBox" hidden><span>Why it is being tested <span class="req">*</span></span><input id="rWhy" maxlength="200" placeholder="e.g. customer check sample, survey of old stockpile"></label>
-      <label class="f full"><span>Test requested <span class="req">*</span></span><select id="rTest" required>${testOptions("")}</select></label>
       ${staff ? `<label class="f full" data-lab><span>Workflow route (only routes that perform the test)</span><select id="rRouteSel"><option value="">Automatic</option></select></label>` : ""}
       <div class="full" id="rRoute"></div>
       <label class="f"><span>Submitted by (name) <span class="req">*</span></span><input id="rSubmitter" required placeholder="Person who sent the sample"></label>
       <label class="f"><span>Submitter's badge number</span><input id="rSubBadge" maxlength="20" autocomplete="off"></label>
-      <label class="f"><span>Submitting section <span class="req">*</span></span><select id="rSection" required><option value="">Choose…</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select></label>
       <label class="f" data-single>Site sample code<input id="rTag" placeholder="e.g. MILL-A-001" autocomplete="off" spellcheck="false"></label>
       <label class="f" data-hand><span>Handed to (lab technician)${walk ? req : ""}</span><input id="rHandTo" maxlength="60" list="rTechList" autocomplete="off"></label>
       <label class="f" data-hand><span>Technician's badge number${walk ? req : ""}</span><input id="rHandBadge" maxlength="20" autocomplete="off"></label>
       <datalist id="rTechList">${techs.map(n => `<option value="${esc(n)}">`).join("")}</datalist>
-      ${staff ? `${meBox("Received by (lab staff)").replace('<label class="f">', '<label class="f" data-lab>')}
-      <label class="f" data-lab><span>Date &amp; time received <span class="req">*</span></span><input id="rRecvAt" type="datetime-local" required value="${localInput(now)}"></label>
+      ${staff ? `<label class="f" data-lab><span>Date &amp; time received <span class="req">*</span></span><input id="rRecvAt" type="datetime-local" required value="${localInput(now)}"></label>
       <div id="rWitBox" data-lab hidden>${witnessField("rWit")}</div>` : ""}
       ${batchBlock()}
       <details class="form-more" id="rMore"><summary>More details</summary><div class="form">
@@ -184,6 +187,8 @@ function renderSampleForm(mode){
   </form>`;
   const ty = $("#rType", v), pu = $("#rPurpose", v), te = $("#rTest", v), hz = $("#rHaz", v);
   ty.onchange = () => {
+    const pur = typeOf(ty.value)?.pur;   // the usual purpose for the type, until the submitter picks one
+    if (pur && !pu.dataset.touched){ pu.value = pur; $("#rWhyBox", v).hidden = pu.value !== "other"; }
     const keep = te.dataset.touched ? te.value : "";
     te.innerHTML = testOptions(ty.value);
     te.value = keep || defaultTest(ty.value, pu.value);
@@ -191,7 +196,7 @@ function renderSampleForm(mode){
     if (!hz.dataset.touched) HAZARDS.forEach(h => { $("#rHz_" + h.k, v).checked = (typeOf(ty.value)?.haz || []).includes(h.k); });
     renderDetails(ty.value); refreshFormRoute();
   };
-  pu.onchange = () => { $("#rWhyBox", v).hidden = pu.value !== "other"; if (!te.dataset.touched && ty.value) te.value = defaultTest(ty.value, pu.value); refreshFormRoute(); };
+  pu.onchange = () => { pu.dataset.touched = "1"; $("#rWhyBox", v).hidden = pu.value !== "other"; if (!te.dataset.touched && ty.value) te.value = defaultTest(ty.value, pu.value); refreshFormRoute(); };
   te.onchange = () => { te.dataset.touched = "1"; refreshFormRoute(); };
   hz.addEventListener("change", () => hz.dataset.touched = "1");
   $("#rRouteSel", v)?.addEventListener("change", refreshFormRoute);

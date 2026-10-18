@@ -116,7 +116,7 @@ async function fillForm(page, tabName, { section, type = "core", purpose = "exp"
   if (why) await page.fill("#rWhy", why);
   if (test) await page.selectOption("#rTest", test);
   if (route) await page.selectOption("#rRouteSel", route);
-  for (const [k, val] of Object.entries(details)) await page.fill("#rD_" + k, val);
+  for (const [k, val] of Object.entries(details)){ const sel = "#rD_" + k; if (await page.$eval(sel, e => e.tagName) === "SELECT") await page.selectOption(sel, val); else await page.fill(sel, val); }   // v23: sampling points are a list
   await page.fill("#rSubmitter", submitter);
   // v20: Single sample or Batch. A batch lists its samples one row each; one code on the first row counts up for the rest.
   if (count > 1){
@@ -214,5 +214,13 @@ async function useQcStep(browser, on = true){
   if (!await waitFor(() => store["settings/stages"]?.qcStep === on, 6000)) throw new Error("could not set the QA/QC review step");
   pages.splice(pages.indexOf(p), 1); await p.context().close();
 }
+/* v23: the lab's own routes (AuFx, AuSx, cyanide, carbon loading) are in use and 38 older ones are retired. Suites written around the older
+   routes turn them all back on and the new ones off, as a lab manager can under Settings › Workflow routes. Call it before the first page opens. */
+const NEW_ROUTES = ["AUFX-AUSX", "AUFX", "AUSX", "AUFX-AUSX-CN", "AUSX-CN", "CN", "C-LOAD", "ELU-AUSX"];
+const OLD_ROUTES = ["CN-SOL", "BRT", "CIL-T", "GRG", "DIAG", "COMMIN", "ICP", "LECO", "MOIST", "PSD", "PLT-HEAD", "PLT-TAIL", "CCD-SVY", "ELUATE", "CIL-SVY",
+  "CARBON", "SOLN", "CONC", "TSF-CHAR", "ENV-W", "ENV-S", "PRI", "REAGENT", "O2-UPT", "COLUMN", "ILR", "C-STRIP", "FLOT", "DENSITY", "SETTLE", "DELET", "MINERAL",
+  "CN-SPEC", "DETOX", "ABA", "AR-AU", "CHECK"];
+const OLD_ROUTE_USE = Object.fromEntries([...OLD_ROUTES.map(c => [c, true]), ...NEW_ROUTES.map(c => [c, false])]);
+function useOldRoutes(){ store["settings/stages"] = { ...(store["settings/stages"] || { schema: 12 }), routeUse: clone(OLD_ROUTE_USE) }; }
 async function saveAttach(page){ await page.click("#upSave"); await page.waitForSelector("#upBox", { state: "detached", timeout: 15000 }); await page.waitForTimeout(600); }
-module.exports = { useQcStep, attachFile, saveAttach, openTyping, tab, cfgTab, batchDoc, waitFor, createBatch, fillBatch, saveBatch, runBatch, toasts, FILE, store, leases, pages, errors, stats, clone, broadcast, newUser, launch, T, visibleTabs, signIn, fillForm, ids, open, doc, ledger, toastText, localStr };
+module.exports = { useOldRoutes, OLD_ROUTE_USE, NEW_ROUTES, OLD_ROUTES, useQcStep, attachFile, saveAttach, openTyping, tab, cfgTab, batchDoc, waitFor, createBatch, fillBatch, saveBatch, runBatch, toasts, FILE, store, leases, pages, errors, stats, clone, broadcast, newUser, launch, T, visibleTabs, signIn, fillForm, ids, open, doc, ledger, toastText, localStr };

@@ -22,6 +22,7 @@ const next = async (page, n = 1) => { for (let i = 0; i < n; i++){ await page.cl
 
 (async () => {
   const browser = await launch();
+  require("./harness").useOldRoutes();   // v23: this suite is written around the routes in use before version 23
   await H.useQcStep(browser);   // v22: this suite is written around the QA/QC review step, which Settings now turn on
   const P = await newUser(browser, { uid: "u_p", name: "Public", canEdit: true, names });
   const Tc = await newUser(browser, { uid: "u_t", name: "Tech", canEdit: true, names });

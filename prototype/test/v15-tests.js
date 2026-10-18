@@ -15,6 +15,7 @@ const noScroll = page => page.evaluate(() => document.documentElement.scrollWidt
 
 (async () => {
   const browser = await launch();
+  require("./harness").useOldRoutes();   // v23: this suite is written around the routes in use before version 23
   const P = await newUser(browser, { uid: "u_p", name: "Public", canEdit: true, names });
   const A = await newUser(browser, { uid: "u_a", name: "Admin", canEdit: true, names }); await signIn(A, "admin");
   await P.waitForTimeout(800);

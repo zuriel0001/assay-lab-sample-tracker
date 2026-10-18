@@ -2,9 +2,10 @@
 
 > **In the GitHub repository** this folder is `prototype/`. Left out: the old version folders (`v9/`, `v10/` and so on; git history keeps versions from now on), and `test/v18-tests.js` and `test/shot18.js`, which read the lab's two real reports and quote their sample codes and values. Those two run only in the project folder, with the private reports present.
 
-This folder holds the **v22** source of the published prototype (Version 24 of the artifact)
+This folder holds the **v23** source of the published prototype (Version 25 of the artifact)
 (https://claude.ai/artifact/5JgoyE2wokT67u8TCtYDop). The build thread owns all edits;
-reviewers should read and run, not change these files. Earlier versions: `v21/` (Version 23, before the QA/QC review step
+reviewers should read and run, not change these files. Earlier versions: `v22/` (Version 24, before the routes were cut to the ones
+the lab runs; to rebuild it, copy `src/v9-backup.html` next to `v22/src/build20.py`), `v21/` (Version 23, before the QA/QC review step
 became a Settings switch; to rebuild it, copy `src/v9-backup.html` next to `v21/src/build20.py`), `v20/` (Version 22, before the polish pass: search
 suggestions, recently opened, the same details again, tables as cards on a phone; to rebuild it, copy `src/v9-backup.html` next to `v20/src/build19.py`), `v19/` (Version 21, before blind QA/QC, batch
 submission and the custody scroll; to rebuild it, copy `src/v9-backup.html` next to `v19/src/build18.py`), `v18/` (Version 20, before Zuriel's answers on QC,
@@ -21,13 +22,14 @@ and lab batches, the version the second review was done against; to rebuild it, 
 | File | What it is |
 |---|---|
 | `assay-lab-sample-tracker.html` | The whole page (HTML, CSS, JS in one file), exactly as published (called `met-lab-sample-tracker.html` before the rename). Uses the Artifact runtime `window.claude` db, user and downloads capabilities. |
-| `routes-data.js` | Tests, sample types, the 42 workflow routes, `RESULTS` (what each test reports, including picked and calculated results), `QC_PROFILES` (lab batch rules), `ROUTE_QC` and `ROUTE_GROUPS` (the batches each route's samples join, one per analytical method), `qcRuleText` / `routeQcText` (write each route's QA/QC text from the same numbers the batches enforce). |
+| `routes-data.js` | Tests, sample types, the 50 workflow routes (13 in use since v23; `RETIRED_ROUTES` lists the others), `RESULTS` (what each test reports, including picked and calculated results), `QC_PROFILES` (lab batch rules), `ROUTE_QC` and `ROUTE_GROUPS` (the batches each route's samples join, one per analytical method), `qcRuleText` / `routeQcText` (write each route's QA/QC text from the same numbers the batches enforce). |
 | `src/` | The page is built from these: `app10-a.js` … `app10-f.js`, `app12-g.js` (results, limits, four eyes, amendments, certificates, lab batches, section results), `app13-h.js` (stock records, Storage tab, the selected batch's samples), `app14-i.js` (lab working hours, Settings tabs, QR codes and bag labels), `app15-j.js` (navigation, theme, logo, wall screen, time left), `app16-k.js` (reference material change history and renames, board lanes that scroll), `app18-l.js` (reads a results file in the page: old Excel .xls, .xlsx, CSV and text; SHA-256; base64), `app18-m.js` (recognises a lab report, matches it to samples, batches and QC, the preview, saving and the kept file), `app19-n.js` (blind QA/QC re-assay, a batch or a single sample on the form, the batch page and its receipt, the custody scroll), `app20-o.js` (search suggestions, recently opened, the same details again, tables as cards on a phone, the tab title), `css10.css`, `css11.css`, `css12.css`, `css14.css`, `css15.css` (design refresh; its icon block is written by `tools/icons.py`), `css16.css`, `css18.css`, `css19.css`, `css20.css`, `v9-backup.html` (markup and base CSS). `cd src && python3 build20.py` writes the page into `src/`; it is byte for byte the published one. |
 | `tools/icons.py` | Prints the icon definitions at the top of `css15.css` (24 px stroke icons drawn as CSS masks). |
 | `checkroutes.js` | Validates the route data and prints turnaround per route. |
 | `genmd.js` | Regenerates `workflow-routes.md`: what each route reports (picked and calculated results marked), the batches it joins and its action limits. Run it from `src/`'s parent with `src/app10-a.js` present. |
 | `test/harness.js` | Shared mock of the db capability: several browser pages on one store, with `where` filters (including `array-contains`), `orderBy`, `limit`, recursive `update` merge, update-requires-existence, leases, frozen snapshots and deletes. Batch helpers (`createBatch`, `fillBatch` for one or many results per position, `saveBatch`). |
-| `test/v22-tests.js` | New: no QA/QC review step by default. Settings shows QA/QC review step: Not used and Lab batch before release; the route preview and the record have no QA/QC review; a CCD sample moves through every step to Wash efficiency unstopped; the technician sees "A lab supervisor releases the results."; the note asks only for solution and solids gold (not the sampling point); typed results lift it; the board's Ready for release tile and lane hold the sample; a supervisor releases it from Wash efficiency with no QA/QC review in its history; solution gold over the Final underflow limit with no sampling point holds the release, Thickener feed lifts it, Final underflow keeps it; a fire assay lab batch releases its samples from their last step; Before release brings the step back for unreleased samples only (entering it needs the results, not the sampling point; the board lane is QA/QC review again); turned off again, a sample already at QA/QC review is released from there. Last run: **29 PASS**, no console errors. |
+| `test/v23-tests.js` | New: the routes the lab runs. The Workflow routes tab lists 13 routes and only the tests and sample types they take; Submit picks the analysis, purpose and route from the sample type (mill sample AUFX-AUSX, CCD and TSF AUFX-AUSX-CN, carbon C-LOAD, elution ELU-AUSX, RC EXP-FA) and hides the route list when there is one route; a chosen purpose stays; sampling points are lists; a mill sample moves weigh, filter, AuSx, dry, pulverise, fusion, AuFx and needs "AuFx, AuSx"; the sampling point given at submission is the results' point and drives the limits; a CCD slurry reads cyanide straight after filtering and needs AuFx, AuSx and CNWAD; a results file with AuFA, AuSX, NaCN, CNWAD and pH fills it; carbon loading and its limit; elution needs AuSx; the board filter; In use in Settings brings CCD-SVY back and stores only the change, a sample on it keeps its steps after it is turned off; limits on routes not in use are drawn when opened; saved limits get the 10 plant limits once. A shift report laid out like the lab's (method, repeat and unit rows), attached on Lab batches, puts AuFA in the plant batch and AuSX in the solution batch with no clash. Last run: **53 PASS**, no console errors. |
+| `test/v22-tests.js` | No QA/QC review step by default. Settings shows QA/QC review step: Not used and Lab batch before release; the route preview and the record have no QA/QC review; a CCD sample moves through every step to Wash efficiency unstopped; the technician sees "A lab supervisor releases the results."; the note asks only for solution and solids gold (not the sampling point); typed results lift it; the board's Ready for release tile and lane hold the sample; a supervisor releases it from Wash efficiency with no QA/QC review in its history; solution gold over the Final underflow limit with no sampling point holds the release, Thickener feed lifts it, Final underflow keeps it; a fire assay lab batch releases its samples from their last step; Before release brings the step back for unreleased samples only (entering it needs the results, not the sampling point; the board lane is QA/QC review again); turned off again, a sample already at QA/QC review is released from there. Last run: **29 PASS**, no console errors. |
 | `test/v21-tests.js` | New: the polish pass. One sample, one ID on the button; Same details again after a submission and Same as last on a fresh form (staff batch and walk-in single; codes never copied); the site sample code on board cards; the receipt check without “tag none given”; 1 bag, not 1 bag(s); the browser tab named after the open sample or batch; the ledger search says site code; suggestions under the header search (site code, ID, batch reference, submitter; marked match; arrow keys, Enter, Escape, click; a whole ID with Enter still just opens it; / jumps to the search; signed out only your own recent samples); recently opened on the Sample tab (newest first, live status, one click, Clear, each person their own list, a walk-in's registered samples); the Sample tab pressed again goes back to its start page; the batch page's progress, expected finish and no empty Source column; on a phone the ledger and the batch page read as cards with no sideways scroll, IDs on one line; on a computer the ledger is still a table. Lab batches optional: Not required by default; an exploration fire assay sample goes through its steps, has its gold typed on the record, enters QA/QC review and is released with no batch; a results file attached on a record in no batch saves onto the record and makes no batch; Required brings back the batch rule. Last run: **60 PASS**, no console errors. |
 | `test/v20-tests.js` | Blind QA/QC re-assay (technicians can't pick; a supervisor picks from Storage and the Ledger, issues blind QC IDs, prints blind labels; the blind record holds nothing of the original; technicians see no link; receipt, batch and results of the blind samples; the comparison on both records, recorded in the link; admins see it; release; sign-out drops the link), the custody scroll (five entries, full in print and on the public lookup), a batch or a single sample (walk-in batch with paste from a spreadsheet, Enter, remove, duplicate codes; batch reference, IDs in row order; the batch page, Receive the whole batch, batch tracking link; a single sample; staff batch received at once), phone widths. Last run: **71 PASS**, no console errors. |
 | `test/v18-tests.js` | New: results files with the lab's two real SGS reports (old Excel): reading, matching by site sample code, moving samples on, new batches from the report with their repeats and the foot-table CRMs, QC, the kept file and its download, attaching twice, the uploader as result entrant, a draft completed by typing, Settings › Results files; batch steps and Next step; re-assay from Storage and the Ledger; the shorter form. The two reports hold real assay data, so they are not in this folder (it goes to GitHub): they are in `/mnt/project-files/sample-tracking-private/lab-reports/` (or set `LAB_REPORTS`); without them the parts that need them print SKIP. Since v19 also: Site sample code and the submitter's badge, No QC in this run (the elution report, a CSV with no QC rows, release and certificate), the screen line, values typed over file values. Last run: **71 PASS**, no console errors. |
@@ -67,6 +69,7 @@ NODE_PATH=$(npm root -g) timeout 590 node v18-tests.js
 NODE_PATH=$(npm root -g) timeout 590 node v20-tests.js
 NODE_PATH=$(npm root -g) timeout 590 node v21-tests.js
 NODE_PATH=$(npm root -g) timeout 590 node v22-tests.js
+NODE_PATH=$(npm root -g) timeout 590 node v23-tests.js
 node work-hours-unit.js
 NODE_PATH=$(npm root -g):/path/to/jsqr/node_modules timeout 400 node v14-tests.js
 ```
@@ -74,6 +77,64 @@ NODE_PATH=$(npm root -g):/path/to/jsqr/node_modules timeout 400 node v14-tests.j
 The tests write screenshots next to themselves. The Chromium path is in `harness.js`. Run the suites one
 at a time: scenario R in `review-tests-v11.js` times ID claims, and the batch tests wait on several writes per
 step, so they can miss their time budgets when several browsers share the CPU.
+
+## What v23 changes: the routes the lab runs, in its own words, and a cleaner Submit form (2026-10-17)
+
+Zuriel, 22:16Z: "the routes/workflow is very wrong in most cases. proces plant samples are either slurry or solution and whats
+check is AuFx/AuSx Gold in solid/Gold in solution, CCD and tsf SAMPLES AIM FOR cyanide alongside AuFx/AuSx. exploration and
+geology brings in ore samples and you know the work flow. for carbons, the analysis is loadings. [...] revise the workflow.
+[...] also, simplify thins in the page to make more clean but even more efficient".
+
+- **Eight new routes**, named as the lab's reports name the results:
+  - `AUFX-AUSX` Slurry: AuFx & AuSx (weigh and % solids, filter, AuSx by AAS, dry the washed cake, pulverise, fire assay, AuFx).
+  - `AUFX` Solids: AuFx, and `AUSX` Solution: AuSx (filter 0.45 µm, AAS).
+  - `AUFX-AUSX-CN` Slurry: AuFx, AuSx & cyanide, for CCD and TSF: the filtrate is read straight away for NaCN, WAD and pH,
+    then AuSx, then the solids. `AUSX-CN` Solution: AuSx & cyanide (CCD overflow, decant pond, return water). `CN` Cyanide:
+    NaCN, WAD & pH (tails grab, TSF spigot).
+  - `C-LOAD` Carbon: Au loading (wash and screen, dry, split, ash, aqua regia digest and AAS).
+  - `ELU-AUSX` Elution solution: AuSx, AgSx & Cu, with NaOH, NaCN and pH.
+  - Ore keeps `EXP-FA`, `GC-FA`, `FA-GRAV` and `SFA` (sort with QC inserts, dry, crush, split, pulverise, fire assay); the gold room
+    keeps `BULLION`.
+- **The other 37 routes are not in use**: not offered on Submit, at receipt or on a re-route, and not listed on the Workflow routes
+  tab. They stay in the data, so samples already on them keep their steps (the board filter, the record and the receipt still
+  show their route). Settings › Workflow routes splits the route list into In use and Not in use and has an **In use** box per
+  route; only changes from the default are saved (`routeUse`, a map of route code to true or false). The sample types and tests
+  offered follow the routes in use (an admin turning AR-AU back on brings back soil samples and the aqua regia test).
+- **Results** are named AuFx (gold in solids, g/t), AuSx (gold in solution, mg/L, detection limit 0.001), AgSx, NaCN, CNWAD,
+  pH, % solids and the screen analysis; hold notes and limit alerts use those short names ("Results missing: AuFx, AuSx.").
+  NaCN, pH, % solids, screen and metals are optional; CNWAD is required on the cyanide routes.
+- **Sampling points are lists** per sample type (mill: CIL feed, cyclone overflow and underflow, CIL tank, CIL tails, tails
+  grab; CCD: feed, overflow, underflow, tails; TSF: spigot, decant pond, return water, seepage; carbon: CIL tank, loaded,
+  eluted, regenerated, fresh; elution: pregnant solution, electrowinning head and tails, lean eluate). The point given at
+  submission fills the results' point, so the "only when" limits apply without retyping it.
+- **Ten example plant limits** (P01–P10: AuSx and AuFx in CIL tails, AuSx in CCD tails, WAD over 50 mg/L at the TSF spigot and
+  decant pond, eluted carbon over 100 g/t, electrowinning tails over 5 mg/L). They join limits saved before v23 once
+  (`limitsV: 23` is stored with the next save, so a removed one does not come back).
+- **Results files**: a method code after the symbol now tells solids from solution (AuFA fire assay, AuSX solvent extraction),
+  so a solution batch never takes the fire assay column. The lab's daily mill report reads into the new routes: AuFA as AuFx,
+  AuSX as AuSx (Rep 2 as repeats), NaCN, CNWAD, pH, % solids, metals and the screen line; carbon tanks as Au loading.
+- **Submit is shorter**: sample type and analysis first, then purpose and section on one row; the purpose follows the sample type
+  until the submitter changes it; the route list shows only when there is more than one route for the analysis (the route
+  preview always shows); the read-only "Received by" box is gone ("Received now at the lab, by me" already says it). The
+  analysis list starts with the sample type's own tests.
+- **Settings is about twice as fast to draw**: the limits on routes not in use sit in a closed group drawn when opened, a limit's
+  route list offers the routes in use, and a burst of storage changes redraws Settings once instead of once per change.
+
+For the Azure build:
+- Source: still `build20.py`, no new chunk. Changed: `routes-data.js` (tests, types, point lists, the eight routes, results,
+  `ROUTE_QC`, `ROUTE_GROUPS`, `RETIRED_ROUTES`), `app10-a.js` (`routeUse`, P limits, `useOf`, `routeOn`, `liveRoutes`, `testOn`,
+  `typeOn`, `routesForTest`, `defaultTest`), `app10-c.js` (analysis list, receipt routes), `app10-d.js` (Submit form, board
+  filter), `app10-e.js` (Workflow routes tab, Settings In use and limits), `app10-f.js` (loading `routeUse` and `limitsV`),
+  `app12-g.js` (short names, sampling point from the submission), `app13-h.js` (Settings redraw), `app18-m.js` (solids and
+  solution columns). The current `build.py` applied to this page with no misses.
+- **No server change.** `routeUse` and `limitsV` are two more Settings fields saved by an admin like the others; the server never
+  checked routes or limits.
+- On the live site, samples already on retired routes (for example PLT-HEAD or CCD-SVY) keep their steps and can be finished.
+
+Tests: new `v23-tests.js`. `harness.js` has `useOldRoutes()`, which seeds `routeUse` with the routes in use before v23; the
+older suites are written around those routes and call it first. `fillForm` picks list details. `v16`/`v17` check for the route
+area instead of the route list (hidden on a fresh form); `v12` and `run.js` count 10 more limits. A private check of the lab's daily mill report on
+the new routes (it names the report's sample codes) is kept in `sample-tracking-private/`, not here.
 
 ## What v22 changes: no QA/QC review step unless Settings use it (2026-10-16)
 

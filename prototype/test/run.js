@@ -19,6 +19,7 @@ const moves = id => ledger().filter(m => m.sid === id);
   store["samples/EXP-20261001-0002"] = { id: "EXP-20261001-0002", type: "RC chips", purpose: "Exploration", submitter: "Old", section: "EXP", createdAt: now0 - 30 * DAY, stageKey: "disposed", stageAt: now0 - 2 * DAY,
     history: [{ key: "received", at: now0 - 29 * DAY, tech: "Old tech" }, { key: "received", at: now0 - 28 * DAY, tech: "Old tech", note: "correction" }, { key: "released", at: now0 - 20 * DAY }, { key: "storage", at: now0 - 19 * DAY }, { key: "disposed", at: now0 - 2 * DAY, tech: "Old tech" }] };
   const browser = await launch();
+  require("./harness").useOldRoutes();   // v23: this suite is written around the routes in use before version 23
   const P = await newUser(browser, { uid: "u_z", name: "Zuriel", canEdit: true, names });
   await P.waitForTimeout(2200);   // one-off upgrade runs 1.5 s after load
   await H.useQcStep(browser);   // v22: this suite is written around the QA/QC review step, which Settings now turn on (after the upgrade)
@@ -336,7 +337,7 @@ const moves = id => ledger().filter(m => m.sid === id);
   check(/not a time zone/.test(await toastText(C)), "a bad time zone name is refused");
   await C.click("#cfgSave"); await C.waitForTimeout(500);
   const saved = store["settings/stages"];
-  check(saved && saved.schema === 12 && saved.crms?.length === 49 && saved.limits?.length === 40 && saved.resultsPublic === false && saved.tz === "Africa/Accra" && saved.routes.length === 2 && saved.routes.some(r => r.code === "GC-FA" && r.stages[1].hours === 5), "only edited routes are saved (" + (saved?.routes || []).map(r => r.code).join(",") + "); the rest follow the library");
+  check(saved && saved.schema === 12 && saved.crms?.length === 49 && saved.limits?.length === 50 && saved.resultsPublic === false && saved.tz === "Africa/Accra" && saved.routes.length === 2 && saved.routes.some(r => r.code === "GC-FA" && r.stages[1].hours === 5), "only edited routes are saved (" + (saved?.routes || []).map(r => r.code).join(",") + "); the rest follow the library");   // v23: 50 limits (10 plant limits added)
   await fillForm(P, "submit", { section: "GC", type: "gc_bh", purpose: "gc", submitter: "GC geologist" });
   const gcs = (await ids(P))[0];
   check(doc(gcs).plan.find(x => x.key === "dry").hours === 5, "new submissions use the edited route" + (process.env.DBG ? JSON.stringify({ r: doc(gcs).route, p: doc(gcs).plan.map(x => x.key + ":" + x.hours).join(" "), d: (await P.$$("details.route")).length }) : ""));
