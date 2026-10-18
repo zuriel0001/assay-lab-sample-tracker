@@ -178,9 +178,12 @@ const next = async (page, n = 1) => { for (let i = 0; i < n; i++){ await page.cl
   await signIn(B, "tech1");
   for (let i = 0; i < 300 && store["meta/schema"].v !== 13; i++) await B.waitForTimeout(200);
   await B.click('[data-tab="board"]'); await B.waitForTimeout(600);
-  const boardTxt = (await B.textContent("#view-board")).replace(/\s+/g, " ");
   const recs = Object.values(store).filter(x => x && x.id && store["samples/" + x.id] === x), labN = recs.filter(x => x.lab === true).length;
+  // v24c: wait for the board to settle rather than a fixed time (1,169 samples render slower under a full run)
+  for (let i = 0; i < 40 && !(+(await B.textContent("#cntActive")) === labN && /past retention, on \d+ sample/.test(await B.textContent("#view-board"))); i++) await B.waitForTimeout(250);
+  const boardTxt = (await B.textContent("#view-board")).replace(/\s+/g, " ");
   await B.click('[data-tab="storage"]'); await B.waitForTimeout(500);
+  for (let i = 0; i < 40 && !(await B.textContent("#view-storage")).includes("GC-20260801-0001"); i++) await B.waitForTimeout(250);
   const stTxt = (await B.textContent("#view-storage")).replace(/\s+/g, " ");
   if (process.env.DBG) console.log("DBG8", JSON.stringify({ schema: store["meta/schema"], notV13: recs.filter(x => x.v !== 13).length, cnt: await B.textContent("#cntActive"), labN, old: store["samples/GC-20260801-0001"]?.lab, oldStock: store["stock/GC-20260801-0001"], st: stTxt.slice(-400), board: (boardTxt.match(/\d+ ?Materials past retention[^0-9]*/) || [""])[0] }));
   R("8a", store["meta/schema"].v === 13 && recs.every(x => x.v === 13) && +(await B.textContent("#cntActive")) === labN && !(await B.textContent("#view-board")).includes("GC-20260801-0001") && stTxt.includes("GC-20260801-0001"),

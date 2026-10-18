@@ -334,12 +334,12 @@ put('''+${items.length - 40} more: use the filters or look a sample up by ID</di
 
 # Submit a sample / Register at lab
 put('''after the lab receives the sample (an estimate from the step times). ${(r.retention''', '''after receipt. ${(r.retention''')
-put(''' Write ${n === 1 ? "this ID" : "these IDs"} on the sample bag${n === 1 ? "" : "s"}, or print the label${n === 1 ? "" : "s"}${lab ? "" : walk ? ". It shows “Awaiting receipt” until a lab technician confirms it" : ", then bring or send the sample to the Assay Lab. Its status shows “Awaiting receipt” until a lab technician confirms it has arrived"}:''',
-    ''' Write ${n === 1 ? "this ID" : "these IDs"} on the bag${n === 1 ? "" : "s"} or print the label${n === 1 ? "" : "s"}:''')
+put(''' Write ${n === 1 ? "this ID" : "these IDs"} on the sample bag${n === 1 ? "" : "s"}, or print the label${n === 1 ? "" : "s"}${lab ? ". Received now: on the Board under “Received & logged”" : walk ? ". It shows “Awaiting receipt” on the Board until a lab technician confirms it" : ", then bring or send the sample to the Assay Lab. It shows “Awaiting receipt” on the Board until a lab technician confirms it has arrived"}:''',
+    ''' Write ${n === 1 ? "this ID" : "these IDs"} on the bag${n === 1 ? "" : "s"} or print the label${n === 1 ? "" : "s"}${lab ? " (received: on the Board under Received & logged)" : " (on the Board under Awaiting receipt until the lab receives it)"}:''')
 put('''after the lab receives ${n === 1 ? "it" : "them"} (an estimate).</div>''', '''after receipt.</div>''')
 
 # In / out ledger, Workflow routes
-put('''in ${esc(f.month)}. A sample is written in once, when the lab receives it. Each retained material is written out when it is returned, disposed, sent to another lab or archived. Mistakes are reversed with a visible entry, never deleted. Times are ${esc(TZ() || "this device's")} time.</p>''', '''in ${esc(f.month)}.</p>''')
+put('''in ${esc(f.month)}. Times are ${esc(TZ() || "this device's")} time.</p>''', '''in ${esc(f.month)}.</p>''')   # v24c: what the ledger is for now sits in its heading
 drop('''<p class="small muted" style="margin:0">Each sample follows the route for its sample type and the test requested. The route is picked automatically at submission and the lab technician confirms or changes it at receipt; only routes that perform the requested test can be chosen. Every route starts with <b>Submitted</b> and <b>Received &amp; logged</b>, and ends with <b>Results released</b> and retention in storage. Each retained material is then returned, sent out or disposed on its own date. Expected finish times add up the hours below and are estimates: queues can add to them.${isAdmin() ? " Admins edit routes on the Settings tab." : ""}</p>''')
 
 # Settings

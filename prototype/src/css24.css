@@ -95,6 +95,11 @@ details.recv-at[open] > summary{min-height:28px}
 
 /* Batches */
 .batch-hero{display:flex;flex-wrap:wrap;align-items:center;gap:14px;background:var(--info-soft);border-color:transparent}
+/* Page heads (Ledger, Storage, Results, Routes) look like the Lab batches head: a soft panel, the title, then what the page is for. */
+.page-hero{background:var(--info-soft);border-color:transparent}
+.page-hero p.small{max-width:80ch}
+header.top .brand{cursor:pointer;border-radius:8px}
+header.top .brand:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .batch-hero .btn.big{margin-left:auto}
 details.more-panel > summary{cursor:pointer;min-height:var(--tap);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 details.more-panel > summary h3{margin:0}
@@ -142,3 +147,8 @@ details.route-mini .code{background:var(--panel)}
 .pick-list .pick-note{flex-wrap:wrap}
 /* With the larger type a date and its pill no longer fit one line on a phone card: let card cells wrap. */
 @media (max-width:760px){table.cardy td{white-space:normal!important;overflow-wrap:anywhere}}
+/* Larger type, narrower room: a card's route code drops under the ID instead of being cut off, and long table headings wrap. */
+.chip .cid{white-space:normal;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;min-width:0}
+.chip .cid .rc{white-space:nowrap}
+th{white-space:normal}
+.cstats .stat.zero[aria-pressed="true"]{outline:none}

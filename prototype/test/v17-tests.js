@@ -69,7 +69,9 @@ if (fs.existsSync(CORE)){
 
   log("Submit when signed in");
   await H.tab(T, "submit"); await T.waitForSelector("#rRecvNow");
-  check(await T.$eval("#rRecvNow", c => c.checked) && !!(await T.$("#rRoute")) && await shown(T, "#rRecvAtBox") && !(await shown(T, "#rHandTo")) && (await T.textContent("#rSubmit")) === "Register and issue ID", "lab staff: Received now at the lab, by me is ticked; route and time received show");   // v23: the route list shows only when there is a choice
+  check(!(await T.$eval("#rRecvNow", c => c.checked)) && (await T.textContent("#rSubmit")) === "Submit and get sample ID", "v24c: lab staff's Received now starts unticked, so a submission waits for receipt (Awaiting receipt on the board)");
+  await T.setChecked("#rRecvNow", true); await T.waitForTimeout(100);
+  check(await T.$eval("#rRecvNow", c => c.checked) && !!(await T.$("#rRoute")) && await shown(T, "#rRecvAtBox") && !(await shown(T, "#rHandTo")) && (await T.textContent("#rSubmit")) === "Register and issue ID", "ticked: route and time received show, Register and issue ID");   // v23: the route list shows only when there is a choice
   await T.setChecked("#rRecvNow", false); await T.waitForTimeout(100);
   check(!(await shown(T, "#rRouteSel")) && !(await shown(T, "#rRecvAt")) && await shown(T, "#rHandTo") && (await T.textContent("#rSubmit")) === "Submit and get sample ID" && !/\*/.test(await T.textContent('label:has(#rHandTo)')), "cleared: a submission for later, with optional hand-over fields");
   await fillForm(T, "submit", { section: "EXP", type: "core", purpose: "exp", submitter: "Ama" }); const [s1] = await ids(T);

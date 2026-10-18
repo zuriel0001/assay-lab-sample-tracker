@@ -145,6 +145,7 @@ function formSnap(){
   o.hz = HAZARDS.filter(h => $("#rHz_" + h.k)?.checked).map(h => h.k);
   o.an = ADDONS.map((_, i) => i).filter(i => $("#rAn" + i)?.checked);
   if (o.kind === "batch") o.n = bRows.length;
+  if ($("#rRecvNow")) o.recv = $("#rRecvNow").checked;   // v24c: Same details again keeps "Received now" as it was
   lsSet(lastKey(), JSON.stringify(o));
   return o;
 }
@@ -156,6 +157,7 @@ function applySnap(o){
   const te = $("#rTest", v);
   if (o.rTest && te){ te.value = o.rTest; if (te.value === o.rTest) te.dispatchEvent(new Event("change", { bubbles: true })); }
   if (te && te.value === defaultTest(o.rType, o.rPurpose)) delete te.dataset.touched;   // the usual test for that type: a new type picks its own
+  const rn = $("#rRecvNow", v); if (rn && typeof o.recv === "boolean" && rn.checked !== o.recv){ rn.checked = o.recv; rn.dispatchEvent(new Event("change", { bubbles: true })); }
   set("rRouteSel", "change"); set("rSubmitter"); set("rSubBadge"); set("rSection", "change"); set("rHandTo"); set("rHandBadge"); set("rPriority"); set("rContainers");
   if (Array.isArray(o.hz)){ HAZARDS.forEach(h => { const c = $("#rHz_" + h.k, v); if (c) c.checked = o.hz.includes(h.k); }); if ($("#rHaz", v)) $("#rHaz", v).dataset.touched = "1"; }
   if (Array.isArray(o.an)) ADDONS.forEach((_, i) => { const c = $("#rAn" + i, v); if (c) c.checked = o.an.includes(i); });

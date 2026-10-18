@@ -199,6 +199,19 @@ purpose/sample type. eg: mill sample cannot come from GEO or EXP or MIN. only ap
 - **Type**: 18 px body, labels and fields 17 px, secondary text 16 px, table cells 17 px, pills and headings 15 px, tabs 18 px, the page 1240 px
   wide; on a phone 17 / 16 / 15 px.
 
+**22:43 (Zuriel): "New Sample submit are not adding to the count in 'Awaiting receipt'"; the title or logo should lead home (the board);
+the ledger's heading like Lab batches; "if there is anything to improve on the website, do it".** (v24c, fourth pass)
+- **Awaiting receipt**: nothing was lost. Lab staff's *Received now at the lab, by me* was ticked by default, so their submissions were
+  received on the spot and went to Received & logged. It now starts unticked: every submission waits for receipt (and its receipt checks)
+  under Awaiting receipt; tick it when the sample is in hand. The message after submitting says where the sample went.
+- **Home**: the header title and logo lead to the home tab (`homeTab()`: the board for lab staff), closing an open sample when home is the
+  Sample tab; keyboard reachable.
+- **Page heads** (Ledger, Storage, Results, Workflow routes) are soft panels like the Lab batches head: the title, then what the page is
+  for (the ledger's rules moved up from the paragraph under the cards).
+- Smaller fixes: board cards drop the route code under the sample ID instead of cutting it off; table headings wrap; the board keeps its
+  tiles when no sample is in the lab (today's releases and past-retention material can still be opened); an empty card is not shown
+  pressed; *Same details again* keeps *Received now* as it was.
+
 For the Azure build:
 - Source: `build24.py` replaces `build20.py` (adds `app24-p.js` before `app10-f.js`, and `css24.css`). `build.py`: eight example accounts
   (the metallurgist), the Department column in the account table, one paragraph no longer there.
@@ -220,7 +233,8 @@ its own analyses exactly, a testwork purpose adds nothing, every board tile with
 re-assay requested, each other tile), 17 px text; `run.js` and `results-tests.js` expect the AuFx route names and the plain list.
 Third pass: every type offers exactly its purposes (and Other) and its sections, a mill sample MET / PLT / ENV with PLT filled in and MET for
 a bottle roll, bullion GR only, a chosen section kept or replaced with the type; 18 px text. `azure-extra.js` registers its visitor batch as
-grade control blast holes from MIN.
+grade control blast holes from MIN. Fourth pass: `v17-tests.js` and `v21-tests.js` expect *Received now* unticked at first, and Same details again keeps it as it
+was; `review-tests-v11.js` check 8 waits for the 1,169-sample board to settle instead of a fixed time.
 
 ## What v23 changes: the routes the lab runs, in its own words, and a cleaner Submit form (2026-10-17)
 

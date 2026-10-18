@@ -77,9 +77,9 @@ function renderBoard(){
     wallClock();
   };
   if (!list.length && (boardSec || boardRoute)){ v.innerHTML = `<div class="stack">${wallHead}${filters}<div class="panel empty"><strong>No samples in the lab match these filters</strong></div></div>`; bind(); return; }
-  if (!list.length){
-    v.innerHTML = `${wallHead}${boardReqNote()}<div class="panel empty"><strong>No samples in the lab</strong>
-      <div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-goto="submit">Submit a sample</button>${allowedTabs().includes("storage") ? `<button class="btn" data-goto="storage">Storage</button>` : ""}</div></div>`;
+  if (!list.length){   // v24c: the tiles stay, so today's releases and anything past retention can still be opened
+    v.innerHTML = `${wallHead}<div class="stack"><div class="stats tiles">${sumHtml}</div>${pickHtml}${boardReqNote()}<div class="panel empty"><strong>No samples in the lab</strong>
+      <div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-goto="submit">Submit a sample</button>${allowedTabs().includes("storage") ? `<button class="btn" data-goto="storage">Storage</button>` : ""}</div></div></div>`;
     bind(); return;
   }
   // With no QA/QC review step, its lane holds the samples ready for release (and any still at a QA/QC review step).
@@ -183,9 +183,9 @@ function renderSampleForm(mode){
   // Signed out: Register at lab (a walk-in, received later by a technician). Signed in: Submit a sample; lab staff can receive it on the spot.
   const now = Date.now(), walk = mode === "register", staff = !walk && canEdit(), req = ` <span class="req">*</span>`;
   const techs = (cfg.users || []).filter(x => ["tech", "super", "admin"].includes(x.role)).map(x => x.name).filter(Boolean);
-  v.innerHTML = `<form class="panel stack sub-form${staff ? " recv-now" : ""}" id="regForm" data-mode="${mode}" autocomplete="off" novalidate>
+  v.innerHTML = `<form class="panel stack sub-form" id="regForm" data-mode="${mode}" autocomplete="off" novalidate>
     <div class="form-h sub-head"><h2>${walk ? "Register at lab" : "Submit a sample"}</h2>${kindPicker()}${walk ? `<span class="pill info">Waits for receipt by a lab technician</span>` : ""}
-      ${staff ? `<label class="recv-toggle"><input type="checkbox" id="rRecvNow" checked> Received now at the lab, by me</label>` : ""}</div>
+      ${staff ? `<label class="recv-toggle" title="Tick when the sample is in your hands: it is received at once and skips Awaiting receipt"><input type="checkbox" id="rRecvNow"> Received now at the lab, by me</label>` : ""}</div>
     <div class="sub-step s1"><div class="sub-t"><span class="num">1</span>Sample<span class="typechip" id="rTypeChip"></span></div><div class="form">
       <label class="f"><span>Sample type <span class="req">*</span></span><select id="rType" required><option value="">Choose…</option>${typeOptions()}</select></label>
       <label class="f"><span>Analysis <span class="req">*</span></span><select id="rTest" required>${testOptions("")}</select></label>
@@ -220,7 +220,7 @@ function renderSampleForm(mode){
         <fieldset class="full"><div class="legend">Add-on analyses</div><div class="checks">${ADDONS.map((a, i) => `<label><input type="checkbox" id="rAn${i}" value="${a}"> ${a}</label>`).join("")}</div></fieldset>
         <label class="f full">Notes<textarea id="rNotes"></textarea></label>
       </div></details>
-    <div class="row sticky-bar bar"><span class="small muted" id="rMsg"></span><button class="btn primary big" type="submit" id="rSubmit">${staff ? "Register and issue ID" : walk ? "Register and get sample ID" : "Submit and get sample ID"}</button></div>
+    <div class="row sticky-bar bar"><span class="small muted" id="rMsg"></span><button class="btn primary big" type="submit" id="rSubmit">${walk ? "Register and get sample ID" : "Submit and get sample ID"}</button></div>
     <div id="rResult"></div>
   </form>`;
   const ty = $("#rType", v), pu = $("#rPurpose", v), te = $("#rTest", v), hz = $("#rHaz", v), sc = $("#rSection", v);
@@ -380,7 +380,7 @@ async function register(){
     ids.forEach((id, i) => tagSets[i].forEach(tg => db.doc("tagidx/" + tagKey(tg)).set({ sid: id, tag: tg, at: now }).catch(() => {})));
     if (lab) ids.forEach(id => { flushLedger(id); syncStock(id); });
     msg.textContent = "";
-    $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? (mode === "register" ? "Sample registered." : "Sample submitted.") : `${n} samples ${mode === "register" ? "registered" : "submitted"}.`}</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>${batchName ? ` · ${esc(batchName)}` : ""}.` : ""} Write ${n === 1 ? "this ID" : "these IDs"} on the sample bag${n === 1 ? "" : "s"}, or print the label${n === 1 ? "" : "s"}${lab ? "" : walk ? ". It shows “Awaiting receipt” until a lab technician confirms it" : ", then bring or send the sample to the Assay Lab. Its status shows “Awaiting receipt” until a lab technician confirms it has arrived"}:
+    $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? (mode === "register" ? "Sample registered." : "Sample submitted.") : `${n} samples ${mode === "register" ? "registered" : "submitted"}.`}</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>${batchName ? ` · ${esc(batchName)}` : ""}.` : ""} Write ${n === 1 ? "this ID" : "these IDs"} on the sample bag${n === 1 ? "" : "s"}, or print the label${n === 1 ? "" : "s"}${lab ? ". Received now: on the Board under “Received & logged”" : walk ? ". It shows “Awaiting receipt” on the Board until a lab technician confirms it" : ", then bring or send the sample to the Assay Lab. It shows “Awaiting receipt” on the Board until a lab technician confirms it has arrived"}:
       <div class="label-strip" style="margin-top:8px">${ids.map((id, i) => `<code>${esc(id)}${tagSets[i].length ? ` · ${esc(tagSets[i].join(", "))}` : ""}</code>`).join("")}</div>
       <div class="small" style="margin-top:8px">Workflow: <span class="code">${esc(r.code)}</span> ${esc(r.name)}. Results about ${hoursLabel(routeTat(r))} after the lab receives ${n === 1 ? "it" : "them"} (an estimate).</div>
       <div class="row" style="margin-top:10px"><button type="button" class="btn primary" id="rLabels">Print ${n === 1 ? "label" : n + " labels"}</button><button type="button" class="btn" id="rCopy">Copy IDs</button>${n === 1 ? `<button type="button" class="btn" data-link="${esc(ids[0])}">Copy tracking link</button><button type="button" class="btn" data-open="${esc(ids[0])}">Track ${esc(ids[0])}</button>` : `<button type="button" class="btn" data-open="${esc(ref)}">Open the batch</button><button type="button" class="btn" data-link="${esc(ref)}">Copy batch link</button>`}<button type="button" class="btn" id="rSame">Same details again</button><button type="button" class="btn ghost" id="rAgain">${mode === "register" ? "Register more" : "Submit another"}</button></div></div>`;
@@ -470,7 +470,10 @@ function renderLedger(){
   keepUiSimple(v, () => {
     v.innerHTML = `<div class="stack">
       ${qaSlot()}
-      <div class="panel row page-head"><h2 style="margin:0">In / out ledger</h2><span class="small muted">Every sample received and every material that left the lab</span></div>
+      <div class="panel page-hero"><div class="stack" style="gap:6px;min-width:0">
+        <h2 style="margin:0">In / out ledger</h2>
+        <p class="small" style="margin:0">Every sample received and every material that left the lab. A sample is written in once, when the lab receives it; each retained material is written out when it is returned, disposed, sent to another lab or archived. Mistakes are reversed with a visible entry, never deleted.</p>
+      </div></div>
       <div class="stats cstats">
         <button type="button" class="stat c-green${inN ? "" : " zero"}" data-lgdir="in" aria-pressed="${f.dir === "in"}"><div class="n">${inN}</div><div class="l">Received in ${esc(f.month)}</div></button>
         <button type="button" class="stat c-orange${outN ? "" : " zero"}" data-lgdir="out" aria-pressed="${f.dir === "out"}"><div class="n">${outN}</div><div class="l">Sent out (returned, disposed…)</div></button>
@@ -485,7 +488,7 @@ function renderLedger(){
         <button class="btn" id="lgCsv">Export CSV</button>
       </div>
       ${rc ? `<div class="recon"><b>Month check:</b> ${rc.opening} on hand at the start + ${rc.ins} received − ${rc.outs} fully out = <b>${rc.closing}</b> on hand at the end${rc.now != null ? (rc.now === rc.closing ? ` <span class="pill ok">matches the ${rc.now} on hand now</span>` : ` <span class="pill bad">${rc.now} on hand now: check for missing movements</span>`) : ""}.</div>` : ""}
-      <p class="small muted" style="margin:0">${inN} inbound and ${outN} outbound movement${outN === 1 ? "" : "s"}${revN ? `, ${revN} reversal${revN === 1 ? "" : "s"}` : ""} in ${esc(f.month)}. A sample is written in once, when the lab receives it. Each retained material is written out when it is returned, disposed, sent to another lab or archived. Mistakes are reversed with a visible entry, never deleted. Times are ${esc(TZ() || "this device's")} time.</p>
+      <p class="small muted" style="margin:0">${inN} inbound and ${outN} outbound movement${outN === 1 ? "" : "s"}${revN ? `, ${revN} reversal${revN === 1 ? "" : "s"}` : ""} in ${esc(f.month)}. Times are ${esc(TZ() || "this device's")} time.</p>
       ${!ledgerReady && db ? `<div class="panel empty"><strong>Loading ${esc(f.month)}…</strong></div>` : rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>Date &amp; time</th><th>Dir.</th><th>Sample ID</th><th>Site code</th><th>Type</th><th>Material</th><th>From / to</th><th>Lab</th><th>Reference · note</th></tr></thead><tbody>${body}</tbody></table></div>`
         : `<div class="panel empty"><strong>No ledger entries${f.dir !== "all" || f.q || f.sec ? " match these filters" : ` in ${esc(f.month)}`}</strong>Entries appear when samples are received at the lab or leave it.</div>`}
     </div>`;

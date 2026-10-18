@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 7654577fdd2e) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 a3665ea3795c) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -744,6 +744,11 @@ details.recv-at[open] > summary{min-height:28px}
 
 /* Batches */
 .batch-hero{display:flex;flex-wrap:wrap;align-items:center;gap:14px;background:var(--info-soft);border-color:transparent}
+/* Page heads (Ledger, Storage, Results, Routes) look like the Lab batches head: a soft panel, the title, then what the page is for. */
+.page-hero{background:var(--info-soft);border-color:transparent}
+.page-hero p.small{max-width:80ch}
+header.top .brand{cursor:pointer;border-radius:8px}
+header.top .brand:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .batch-hero .btn.big{margin-left:auto}
 details.more-panel > summary{cursor:pointer;min-height:var(--tap);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 details.more-panel > summary h3{margin:0}
@@ -791,6 +796,11 @@ details.route-mini .code{background:var(--panel)}
 .pick-list .pick-note{flex-wrap:wrap}
 /* With the larger type a date and its pill no longer fit one line on a phone card: let card cells wrap. */
 @media (max-width:760px){table.cardy td{white-space:normal!important;overflow-wrap:anywhere}}
+/* Larger type, narrower room: a card's route code drops under the ID instead of being cut off, and long table headings wrap. */
+.chip .cid{white-space:normal;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;min-width:0}
+.chip .cid .rc{white-space:nowrap}
+th{white-space:normal}
+.cstats .stat.zero[aria-pressed="true"]{outline:none}
 </style>
 
 <div class="wrap">
@@ -3617,9 +3627,9 @@ function renderBoard(){
     wallClock();
   };
   if (!list.length && (boardSec || boardRoute)){ v.innerHTML = `<div class="stack">${wallHead}${filters}<div class="panel empty"><strong>No samples in the lab match these filters</strong></div></div>`; bind(); return; }
-  if (!list.length){
-    v.innerHTML = `${wallHead}${boardReqNote()}<div class="panel empty"><strong>No samples in the lab</strong>
-      <div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-goto="submit">Submit a sample</button>${allowedTabs().includes("storage") ? `<button class="btn" data-goto="storage">Storage</button>` : ""}</div></div>`;
+  if (!list.length){   // v24c: the tiles stay, so today's releases and anything past retention can still be opened
+    v.innerHTML = `${wallHead}<div class="stack"><div class="stats tiles">${sumHtml}</div>${pickHtml}${boardReqNote()}<div class="panel empty"><strong>No samples in the lab</strong>
+      <div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-goto="submit">Submit a sample</button>${allowedTabs().includes("storage") ? `<button class="btn" data-goto="storage">Storage</button>` : ""}</div></div></div>`;
     bind(); return;
   }
   // With no QA/QC review step, its lane holds the samples ready for release (and any still at a QA/QC review step).
@@ -3723,9 +3733,9 @@ function renderSampleForm(mode){
   // Signed out: Register at lab (a walk-in, received later by a technician). Signed in: Submit a sample; lab staff can receive it on the spot.
   const now = Date.now(), walk = mode === "register", staff = !walk && canEdit(), req = ` <span class="req">*</span>`;
   const techs = (cfg.users || []).filter(x => ["tech", "super", "admin"].includes(x.role)).map(x => x.name).filter(Boolean);
-  v.innerHTML = `<form class="panel stack sub-form${staff ? " recv-now" : ""}" id="regForm" data-mode="${mode}" autocomplete="off" novalidate>
+  v.innerHTML = `<form class="panel stack sub-form" id="regForm" data-mode="${mode}" autocomplete="off" novalidate>
     <div class="form-h sub-head"><h2>${walk ? "Register at lab" : "Submit a sample"}</h2>${kindPicker()}${walk ? `<span class="pill info">Waits for receipt by a lab technician</span>` : ""}
-      ${staff ? `<label class="recv-toggle"><input type="checkbox" id="rRecvNow" checked> Received now at the lab, by me</label>` : ""}</div>
+      ${staff ? `<label class="recv-toggle" title="Tick when the sample is in your hands: it is received at once and skips Awaiting receipt"><input type="checkbox" id="rRecvNow"> Received now at the lab, by me</label>` : ""}</div>
     <div class="sub-step s1"><div class="sub-t"><span class="num">1</span>Sample<span class="typechip" id="rTypeChip"></span></div><div class="form">
       <label class="f"><span>Sample type <span class="req">*</span></span><select id="rType" required><option value="">Choose…</option>${typeOptions()}</select></label>
       <label class="f"><span>Analysis <span class="req">*</span></span><select id="rTest" required>${testOptions("")}</select></label>
@@ -3760,7 +3770,7 @@ function renderSampleForm(mode){
         <fieldset class="full"><div class="legend">Add-on analyses</div><div class="checks">${ADDONS.map((a, i) => `<label><input type="checkbox" id="rAn${i}" value="${a}"> ${a}</label>`).join("")}</div></fieldset>
         <label class="f full">Notes<textarea id="rNotes"></textarea></label>
       </div></details>
-    <div class="row sticky-bar bar"><span class="small muted" id="rMsg"></span><button class="btn primary big" type="submit" id="rSubmit">${staff ? "Register and issue ID" : walk ? "Register and get sample ID" : "Submit and get sample ID"}</button></div>
+    <div class="row sticky-bar bar"><span class="small muted" id="rMsg"></span><button class="btn primary big" type="submit" id="rSubmit">${walk ? "Register and get sample ID" : "Submit and get sample ID"}</button></div>
     <div id="rResult"></div>
   </form>`;
   const ty = $("#rType", v), pu = $("#rPurpose", v), te = $("#rTest", v), hz = $("#rHaz", v), sc = $("#rSection", v);
@@ -3920,7 +3930,7 @@ async function register(){
     ids.forEach((id, i) => tagSets[i].forEach(tg => db.doc("tagidx/" + tagKey(tg)).set({ sid: id, tag: tg, at: now }).catch(() => {})));
     if (lab) ids.forEach(id => { flushLedger(id); syncStock(id); });
     msg.textContent = "";
-    $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? (mode === "register" ? "Sample registered." : "Sample submitted.") : `${n} samples ${mode === "register" ? "registered" : "submitted"}.`}</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>${batchName ? ` · ${esc(batchName)}` : ""}.` : ""} Write ${n === 1 ? "this ID" : "these IDs"} on the bag${n === 1 ? "" : "s"} or print the label${n === 1 ? "" : "s"}:
+    $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? (mode === "register" ? "Sample registered." : "Sample submitted.") : `${n} samples ${mode === "register" ? "registered" : "submitted"}.`}</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>${batchName ? ` · ${esc(batchName)}` : ""}.` : ""} Write ${n === 1 ? "this ID" : "these IDs"} on the bag${n === 1 ? "" : "s"} or print the label${n === 1 ? "" : "s"}${lab ? " (received: on the Board under Received & logged)" : " (on the Board under Awaiting receipt until the lab receives it)"}:
       <div class="label-strip" style="margin-top:8px">${ids.map((id, i) => `<code>${esc(id)}${tagSets[i].length ? ` · ${esc(tagSets[i].join(", "))}` : ""}</code>`).join("")}</div>
       <div class="small" style="margin-top:8px">Workflow: <span class="code">${esc(r.code)}</span> ${esc(r.name)}. Results about ${hoursLabel(routeTat(r))} after receipt.</div>
       <div class="row" style="margin-top:10px"><button type="button" class="btn primary" id="rLabels">Print ${n === 1 ? "label" : n + " labels"}</button><button type="button" class="btn" id="rCopy">Copy IDs</button>${n === 1 ? `<button type="button" class="btn" data-link="${esc(ids[0])}">Copy tracking link</button><button type="button" class="btn" data-open="${esc(ids[0])}">Track ${esc(ids[0])}</button>` : `<button type="button" class="btn" data-open="${esc(ref)}">Open the batch</button><button type="button" class="btn" data-link="${esc(ref)}">Copy batch link</button>`}<button type="button" class="btn" id="rSame">Same details again</button><button type="button" class="btn ghost" id="rAgain">${mode === "register" ? "Register more" : "Submit another"}</button></div></div>`;
@@ -4010,7 +4020,10 @@ function renderLedger(){
   keepUiSimple(v, () => {
     v.innerHTML = `<div class="stack">
       ${qaSlot()}
-      <div class="panel row page-head"><h2 style="margin:0">In / out ledger</h2><span class="small muted">Every sample received and every material that left the lab</span></div>
+      <div class="panel page-hero"><div class="stack" style="gap:6px;min-width:0">
+        <h2 style="margin:0">In / out ledger</h2>
+        <p class="small" style="margin:0">Every sample received and every material that left the lab. A sample is written in once, when the lab receives it; each retained material is written out when it is returned, disposed, sent to another lab or archived. Mistakes are reversed with a visible entry, never deleted.</p>
+      </div></div>
       <div class="stats cstats">
         <button type="button" class="stat c-green${inN ? "" : " zero"}" data-lgdir="in" aria-pressed="${f.dir === "in"}"><div class="n">${inN}</div><div class="l">Received in ${esc(f.month)}</div></button>
         <button type="button" class="stat c-orange${outN ? "" : " zero"}" data-lgdir="out" aria-pressed="${f.dir === "out"}"><div class="n">${outN}</div><div class="l">Sent out (returned, disposed…)</div></button>
@@ -4068,8 +4081,8 @@ function renderRoutes(){
   if (routesFocus){ openRoutes.add(routesFocus); routesType = ""; routesQ = ""; }
   const liveTests = TESTS.filter(t => testOn(t.key));
   v.innerHTML = `<div class="stack">
-    <div class="panel stack" style="gap:8px">
-      <h2>Workflow routes</h2>
+    <div class="panel stack page-hero" style="gap:8px">
+      <h2 style="margin:0">Workflow routes</h2>
       <div class="row" style="gap:6px"><span class="ph-tag ph-intake">Intake</span><span class="ph-tag ph-prep">Preparation</span><span class="ph-tag ph-test">Analysis / test</span><span class="ph-tag ph-qc">QA/QC</span></div>
     </div>
     <div class="panel stack" style="gap:10px"><h3>All ${liveTests.length} tests</h3>
@@ -5867,7 +5880,10 @@ function renderStorage(){
   keepUiSimple(v, () => {
     v.innerHTML = `<div class="stack">
       ${qaSlot()}
-      <div class="panel row page-head"><h2 style="margin:0">Storage</h2><span class="small muted">Retained material, oldest due first</span></div>
+      <div class="panel page-hero"><div class="stack" style="gap:6px;min-width:0">
+        <h2 style="margin:0">Storage</h2>
+        <p class="small" style="margin:0">Retained material, oldest due first. Each sample's pulp, coarse reject and other material is kept for its own period after the results are released, then returned or disposed and written out on the ledger.</p>
+      </div></div>
       <div class="stats cstats">
         <button type="button" class="stat c-blue${stored.size ? "" : " zero"}" data-stshow="all" aria-pressed="${storeShow === "all"}"><div class="n">${stored.size}</div><div class="l">Samples in storage</div></button>
         <button type="button" class="stat c-teal${all.length ? "" : " zero"}" data-stshow="all"><div class="n">${all.length}</div><div class="l">Materials kept</div></button>
@@ -7803,6 +7819,7 @@ function formSnap(){
   o.hz = HAZARDS.filter(h => $("#rHz_" + h.k)?.checked).map(h => h.k);
   o.an = ADDONS.map((_, i) => i).filter(i => $("#rAn" + i)?.checked);
   if (o.kind === "batch") o.n = bRows.length;
+  if ($("#rRecvNow")) o.recv = $("#rRecvNow").checked;   // v24c: Same details again keeps "Received now" as it was
   lsSet(lastKey(), JSON.stringify(o));
   return o;
 }
@@ -7814,6 +7831,7 @@ function applySnap(o){
   const te = $("#rTest", v);
   if (o.rTest && te){ te.value = o.rTest; if (te.value === o.rTest) te.dispatchEvent(new Event("change", { bubbles: true })); }
   if (te && te.value === defaultTest(o.rType, o.rPurpose)) delete te.dataset.touched;   // the usual test for that type: a new type picks its own
+  const rn = $("#rRecvNow", v); if (rn && typeof o.recv === "boolean" && rn.checked !== o.recv){ rn.checked = o.recv; rn.dispatchEvent(new Event("change", { bubbles: true })); }
   set("rRouteSel", "change"); set("rSubmitter"); set("rSubBadge"); set("rSection", "change"); set("rHandTo"); set("rHandBadge"); set("rPriority"); set("rContainers");
   if (Array.isArray(o.hz)){ HAZARDS.forEach(h => { const c = $("#rHz_" + h.k, v); if (c) c.checked = o.hz.includes(h.k); }); if ($("#rHaz", v)) $("#rHaz", v).dataset.touched = "1"; }
   if (Array.isArray(o.an)) ADDONS.forEach((_, i) => { const c = $("#rAn" + i, v); if (c) c.checked = o.an.includes(i); });
@@ -7971,8 +7989,8 @@ function renderStaffResults(v){
   const due = toEvaluate().length, flagged = toEvaluate().filter(s => evalFlags(s).length).length;
   const keepFocus = document.activeElement?.id === "resQ";
   v.innerHTML = `<div class="stack">
-    <div class="panel stack res-head" style="gap:10px">
-      <div class="row" style="gap:10px"><h2 style="margin:0">Results</h2><span class="small muted">Released in the last ${resDays} days</span>${ev ? `<span class="grow"></span><span class="pill${flagged ? " bad" : ""}">${flagged} flagged</span><span class="pill${due ? " gold" : ""}">${due} to evaluate</span>` : ""}</div>
+    <div class="panel stack res-head page-hero" style="gap:10px">
+      <div class="row" style="gap:10px"><div class="stack" style="gap:4px;min-width:0"><h2 style="margin:0">Results</h2><p class="small" style="margin:0">Results released in the last ${resDays} days, newest first. Open a sample for its certificate and results file.</p></div>${ev ? `<span class="grow"></span><span class="pill${flagged ? " bad" : ""}">${flagged} flagged</span><span class="pill${due ? " gold" : ""}">${due} to evaluate</span>` : ""}</div>
       <div class="row bd-tools" style="gap:8px">
         <input class="inp" id="resQ" placeholder="Search ID, site code, purpose" value="${esc(resQ)}" style="flex:1 1 220px;width:auto">
         <select class="inp" id="resSec" style="width:auto" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${resSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
@@ -7996,6 +8014,16 @@ function renderStaffResults(v){
   $("#resDays", v).onchange = e => { resDays = +e.target.value; watchStaffResults(); renderResultsTab(); };
   $("#resDue", v)?.addEventListener("change", e => { resDue = e.target.checked; renderResultsTab(); });
 }
+
+/* ---------- the title and logo in the header lead home: the board for lab staff (v24c) ---------- */
+function goHome(){
+  const h = homeTab();
+  if (h === "track" && current){ if (unsubCurrent){ unsubCurrent(); unsubCurrent = null; } openSeq++; current = null; $("#lookupInput").value = ""; try { history.replaceState(null, "", location.pathname + location.search); } catch {} }
+  setTab(h); window.scrollTo(0, 0);
+}
+document.addEventListener("click", e => { if (e.target.closest("header.top .brand")){ e.preventDefault(); goHome(); } });
+document.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.closest?.("header.top .brand")){ e.preventDefault(); goHome(); } });
+(() => { const b = document.querySelector("header.top .brand"); if (b){ b.setAttribute("role", "link"); b.tabIndex = 0; b.title = "Home"; b.setAttribute("aria-label", "Assay Lab Sample Tracker: home"); } })();
 
 /* ---------- upgrade of records written by earlier versions (runs once, under a lease) ---------- */
 function upgradeSample(s){

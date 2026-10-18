@@ -84,7 +84,10 @@ function renderStorage(){
   keepUiSimple(v, () => {
     v.innerHTML = `<div class="stack">
       ${qaSlot()}
-      <div class="panel row page-head"><h2 style="margin:0">Storage</h2><span class="small muted">Retained material, oldest due first</span></div>
+      <div class="panel page-hero"><div class="stack" style="gap:6px;min-width:0">
+        <h2 style="margin:0">Storage</h2>
+        <p class="small" style="margin:0">Retained material, oldest due first. Each sample's pulp, coarse reject and other material is kept for its own period after the results are released, then returned or disposed and written out on the ledger.</p>
+      </div></div>
       <div class="stats cstats">
         <button type="button" class="stat c-blue${stored.size ? "" : " zero"}" data-stshow="all" aria-pressed="${storeShow === "all"}"><div class="n">${stored.size}</div><div class="l">Samples in storage</div></button>
         <button type="button" class="stat c-teal${all.length ? "" : " zero"}" data-stshow="all"><div class="n">${all.length}</div><div class="l">Materials kept</div></button>

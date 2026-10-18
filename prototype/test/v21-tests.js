@@ -21,7 +21,9 @@ async function typeSearch(page, q){ await page.click("#lookupInput"); await page
 
   log("Wording: one sample, one ID");
   await H.tab(Tc, "submit"); await Tc.waitForSelector("#rSubmit");
-  check(await Tc.textContent("#rSubmit") === "Register and issue ID", "staff Single: Register and issue ID");
+  check(await Tc.textContent("#rSubmit") === "Submit and get sample ID" && !(await Tc.$eval("#rRecvNow", c => c.checked)), "staff Single, not yet received (v24c: Received now starts unticked): Submit and get sample ID");
+  await Tc.setChecked("#rRecvNow", true); await Tc.waitForTimeout(100);
+  check(await Tc.textContent("#rSubmit") === "Register and issue ID", "staff Single, received now: Register and issue ID");
   await Tc.check('input[name="rKind"][value="batch"]'); await Tc.fill("#rCount", "3"); await Tc.dispatchEvent("#rCount", "change"); await Tc.waitForTimeout(150);
   check(await Tc.textContent("#rSubmit") === "Register 3 samples and issue IDs", "staff Batch of 3: Register 3 samples and issue IDs");
   await Tc.check('input[name="rKind"][value="single"]');

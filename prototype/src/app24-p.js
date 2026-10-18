@@ -114,8 +114,8 @@ function renderStaffResults(v){
   const due = toEvaluate().length, flagged = toEvaluate().filter(s => evalFlags(s).length).length;
   const keepFocus = document.activeElement?.id === "resQ";
   v.innerHTML = `<div class="stack">
-    <div class="panel stack res-head" style="gap:10px">
-      <div class="row" style="gap:10px"><h2 style="margin:0">Results</h2><span class="small muted">Released in the last ${resDays} days</span>${ev ? `<span class="grow"></span><span class="pill${flagged ? " bad" : ""}">${flagged} flagged</span><span class="pill${due ? " gold" : ""}">${due} to evaluate</span>` : ""}</div>
+    <div class="panel stack res-head page-hero" style="gap:10px">
+      <div class="row" style="gap:10px"><div class="stack" style="gap:4px;min-width:0"><h2 style="margin:0">Results</h2><p class="small" style="margin:0">Results released in the last ${resDays} days, newest first. Open a sample for its certificate and results file.</p></div>${ev ? `<span class="grow"></span><span class="pill${flagged ? " bad" : ""}">${flagged} flagged</span><span class="pill${due ? " gold" : ""}">${due} to evaluate</span>` : ""}</div>
       <div class="row bd-tools" style="gap:8px">
         <input class="inp" id="resQ" placeholder="Search ID, site code, purpose" value="${esc(resQ)}" style="flex:1 1 220px;width:auto">
         <select class="inp" id="resSec" style="width:auto" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${resSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
@@ -139,3 +139,13 @@ function renderStaffResults(v){
   $("#resDays", v).onchange = e => { resDays = +e.target.value; watchStaffResults(); renderResultsTab(); };
   $("#resDue", v)?.addEventListener("change", e => { resDue = e.target.checked; renderResultsTab(); });
 }
+
+/* ---------- the title and logo in the header lead home: the board for lab staff (v24c) ---------- */
+function goHome(){
+  const h = homeTab();
+  if (h === "track" && current){ if (unsubCurrent){ unsubCurrent(); unsubCurrent = null; } openSeq++; current = null; $("#lookupInput").value = ""; try { history.replaceState(null, "", location.pathname + location.search); } catch {} }
+  setTab(h); window.scrollTo(0, 0);
+}
+document.addEventListener("click", e => { if (e.target.closest("header.top .brand")){ e.preventDefault(); goHome(); } });
+document.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.closest?.("header.top .brand")){ e.preventDefault(); goHome(); } });
+(() => { const b = document.querySelector("header.top .brand"); if (b){ b.setAttribute("role", "link"); b.tabIndex = 0; b.title = "Home"; b.setAttribute("aria-label", "Assay Lab Sample Tracker: home"); } })();
