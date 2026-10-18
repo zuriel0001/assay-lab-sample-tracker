@@ -111,9 +111,9 @@ async function fillForm(page, tabName, { section, type = "core", purpose = "exp"
     await page.fill("#rHandBadge", badge ?? (walk ? "B-101" : ""));
   }
   if (subBadge) await page.fill("#rSubBadge", subBadge);   // v18: the submitter's badge number (the old "tag number" is the site sample code)
-  await page.selectOption("#rSection", section);
-  await page.selectOption("#rType", type);
+  await page.selectOption("#rType", type);   // v24c: the type first; it decides the purposes and sections offered
   await page.selectOption("#rPurpose", purpose);
+  await page.selectOption("#rSection", section);
   if (why) await page.fill("#rWhy", why);
   if (test) await page.selectOption("#rTest", test);
   if (route) await page.selectOption("#rRouteSel", route);

@@ -179,8 +179,25 @@ small".** (v24c, second pass)
   where it is (step, release time, who asked for the re-assay and why, which material is past retention); Open Storage / Open Lab batches
   where it helps; Close. Lab samples among them also narrow the lanes. A tile at zero is not a button. On the Sample tab the Today tiles
   open the same lists (Results released today included); a zero one is disabled.
-- **Type larger again**: body 17 px, labels 16 px, secondary text 15 px, table cells 16 px, pills and table headings 14 px, tabs 17 px,
+- **Type larger again** (then 18 px in the third pass): body 17 px, labels 16 px, secondary text 15 px, table cells 16 px, pills and table headings 14 px, tabs 17 px,
   form fields 16 px, board cards 16 / 15 px, route steps 15 px. Card cells on a phone wrap, so a date and its pill fit.
+
+**21:48–21:53 (Zuriel): "'What it is for' should match up with the sample type"; "the 'section' under 'what it is for' should match with the
+purpose/sample type. eg: mill sample cannot come from GEO or EXP or MIN. only applicable sections must pop-up"; the font again.** (v24c, third pass)
+- **What it is for** lists only `TYPE_PURPOSES[type]` and Other (routes-data.js): ore types exploration / grade control / the ore testwork
+  (bottle roll, CIL, GRG, diagnostic, preg-robbing, reagent, column, flotation, other) / environmental compliance; grade control blast holes
+  grade control, reconciliation, environmental; belt cut and mill sample process control, reconciliation, the plant-feed testwork, environmental;
+  CCD process control, reconciliation, reagent and detox tests; carbon process control, carbon strip and CIL tests; elution process control and
+  carbon strip; gravity concentrate process control, reconciliation, bullion, intensive leach and GRG; TSF process control, reconciliation,
+  detox and bottle roll; bullion only Bullion; environmental types environmental and health & safety; assay pulp QC. A chosen purpose stays
+  when the new type takes it, otherwise the type's usual one is filled in. Types not listed (Other, the retired ones) take any purpose.
+- **Section** lists only `TYPE_SECTIONS[type]`: e.g. mill sample MET · PLT · ENV; belt cut and CCD the same; carbon, elution and concentrate
+  add GR; TSF adds TSF; bullion GR; ore types EXP / GEO / GC / MET / ENV / QC / EXT (grade control and ROM add MIN, ROM PLT); environmental
+  ENV / HSE; assay pulp QC / EXP / GEO / GC / MET / EXT. OTH only for sample type Other; a code the list doesn't know (an admin's own section)
+  is always offered; a section account keeps its own section and sees only the types its section sends. The section is filled in from the
+  purpose and follows it (bottle roll → MET) until the submitter picks one; a lone choice is taken.
+- **Type**: 18 px body, labels and fields 17 px, secondary text 16 px, table cells 17 px, pills and headings 15 px, tabs 18 px, the page 1240 px
+  wide; on a phone 17 / 16 / 15 px.
 
 For the Azure build:
 - Source: `build24.py` replaces `build20.py` (adds `app24-p.js` before `app10-f.js`, and `css24.css`). `build.py`: eight example accounts
@@ -201,6 +218,9 @@ Processing, no testwork or duplicate types), the plain AuFx-first analysis list,
 sent as a mill sample; `v23-tests.js` expects the Processing group and a plain list. Second pass: every type's list equals
 its own analyses exactly, a testwork purpose adds nothing, every board tile with a number is a button whose list opens (released today,
 re-assay requested, each other tile), 17 px text; `run.js` and `results-tests.js` expect the AuFx route names and the plain list.
+Third pass: every type offers exactly its purposes (and Other) and its sections, a mill sample MET / PLT / ENV with PLT filled in and MET for
+a bottle roll, bullion GR only, a chosen section kept or replaced with the type; 18 px text. `azure-extra.js` registers its visitor batch as
+grade control blast holes from MIN.
 
 ## What v23 changes: the routes the lab runs, in its own words, and a cleaner Submit form (2026-10-17)
 

@@ -92,6 +92,28 @@ const PLANT_PTS = [...new Set([...MILL_PTS, ...CCD_PTS, ...TSF_PTS].filter(x => 
 const CARBON_PTS = ["CIL tank carbon", "Loaded carbon (to elution)", "Eluted carbon", "Regenerated carbon", "Fresh carbon"];
 const ELU_PTS = ["Pregnant solution", "Electrowinning head", "Electrowinning tails", "Lean eluate", "Other"];
 const BELT_PTS = ["Mill feed conveyor", "Crusher product conveyor", "Stockpile reclaim conveyor", "Other"];
+/* What each sample type can be sent for (v24c): "What it is for" lists only these purposes, and Other. Environment can send a sample from
+   any site (env); a testwork purpose is offered only on the samples that test is run on (bottle roll on ore and mill feed, carbon strip on
+   carbon, intensive leach on gravity concentrate …; met is "Other metallurgical testwork"). Types not listed (Other, the retired ones) take any. */
+const ORE_MET = ["met_br", "met_cil", "met_grg", "met_diag", "met_pri", "met_reag", "met_col", "met_flot", "met"];
+const TYPE_PURPOSES = {
+  rc: ["exp", "gc", ...ORE_MET, "env"], core: ["exp", "gc", ...ORE_MET, "env"], gc_bh: ["gc", "recon", "env"], channel: ["exp", "gc", "env"],
+  rom: ["recon", "gc", ...ORE_MET, "env"], soil_geo: ["exp", "env"],
+  belt: ["plant", "recon", "met_br", "met_cil", "met_grg", "met_diag", "met_pri", "met_reag", "met_flot", "met", "env"],
+  plant_feed: ["plant", "recon", "met_br", "met_cil", "met_grg", "met_diag", "met_pri", "met_reag", "met_flot", "met", "env"],
+  ccd: ["plant", "recon", "met_reag", "met_detox", "met", "env"], carbon: ["plant", "met_strip", "met_cil", "met", "env"], elution: ["plant", "met_strip", "met", "env"],
+  conc: ["plant", "recon", "bullion", "met_ilr", "met_grg", "met", "env"], tsf: ["plant", "recon", "met_detox", "met_br", "met", "env"],
+  bullion: ["bullion"], env_water: ["env", "hse"], env_soil: ["env", "hse"], pulp: ["qc"]
+};
+/* The sections a sample type can come from (v24c): Section lists only these. A mill sample comes from the plant, Metallurgy or Environment,
+   never from geology, exploration or mining. A section code not named here (one an admin added) is always offered; Other takes any. */
+const TYPE_SECTIONS = {
+  rc: ["EXP", "GEO", "GC", "MET", "ENV", "QC", "EXT"], core: ["EXP", "GEO", "GC", "MET", "ENV", "QC", "EXT"], gc_bh: ["GC", "GEO", "MIN", "ENV", "QC"],
+  channel: ["EXP", "GEO", "GC", "ENV", "EXT"], rom: ["GC", "GEO", "MIN", "PLT", "MET", "ENV"], soil_geo: ["EXP", "GEO", "ENV", "EXT"],
+  belt: ["PLT", "MET", "ENV"], plant_feed: ["PLT", "MET", "ENV"], ccd: ["PLT", "MET", "ENV"], carbon: ["PLT", "GR", "MET", "ENV"],
+  elution: ["PLT", "GR", "MET", "ENV"], conc: ["PLT", "GR", "MET", "ENV"], tsf: ["TSF", "PLT", "MET", "ENV"],
+  bullion: ["GR"], env_water: ["ENV", "HSE"], env_soil: ["ENV", "HSE"], pulp: ["QC", "EXP", "GEO", "GC", "MET", "EXT"]
+};
 /* tests: recommended tests for the type, first = default (the first one a route in use performs). pur: the usual purpose. fields: extra details
    asked at submission. check: what the technician checks at receipt. */
 const TYPES = [

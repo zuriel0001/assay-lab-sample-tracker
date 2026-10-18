@@ -205,7 +205,7 @@ const log = t => console.log("• " + t);
 
   log("A batch registered by a visitor");
   const W = await newUser(browser, { uid: "w2", name: "Walk-in" });
-  await fillForm(W, "register", { section: "MIN", submitter: "Kojo", count: 3, tags: "MNB-1" });
+  await fillForm(W, "register", { section: "MIN", type: "gc_bh", purpose: "gc", submitter: "Kojo", count: 3, tags: "MNB-1" });   // v24c: drill core does not come from Mining
   const bids = await ids(W), bref = doc(bids[0])?.batchId;
   check(bids.length === 3 && bref === "B-" + bids[0] && bids.every(x => doc(x)?.batchId === bref && doc(x).createdBy === "public"), "a signed-out visitor registers a batch of 3; each sample carries the batch reference");
   await open(W, bref);

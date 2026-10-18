@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 720e018e98cc) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 7654577fdd2e) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -648,31 +648,39 @@ details.route-mini .route-box{margin:0}
 }
 @media print{.sug,.recent{display:none!important}}
 /* v24: a size larger, restrained colour, and the new pieces (departments, evaluation, Results tab, concise routes). */
-/* Type larger again (v24c: "the page font looks too small"): 17 px body, secondary text 15 px, nothing that carries meaning under 13 px. */
-body{font-size:17px;line-height:1.5}
-.small,.subtle,.st-note,.st-meta,.hist time,.prog-t,.mock,.daychip,td.note,.muted.small,.pick-note,.recon{font-size:15px}
-label,label.f,.legend{font-size:16px}
-dl.facts dt,.stat .l,.stat.tile .l,.today .l,.cat-name{font-size:15px}
-.who,header.top .who{font-size:15px}
-.notice{font-size:15px}
-.pill{font-size:14px;padding:3px 10px;max-width:100%;white-space:normal}
-th{font-size:14px}
-td{font-size:16px}
-.chip .cid{font-size:16px}
+/* Type larger again (v24c, asked twice: "the page font looks too small"): 18 px body, labels 17 px, secondary text 16 px, nothing under 13 px;
+   the page is wider (1240 px) so the larger type keeps its room. A phone keeps a step smaller so nothing runs off the screen. */
+.wrap{max-width:1240px}
+body{font-size:18px;line-height:1.5}
+.small,.subtle,.st-note,.st-meta,.hist time,.prog-t,.mock,.daychip,td.note,.muted.small,.pick-note,.recon{font-size:16px}
+label,label.f,.legend{font-size:17px}
+dl.facts dt,.stat .l,.stat.tile .l,.today .l,.cat-name{font-size:16px}
+.who,header.top .who{font-size:16px}
+.notice{font-size:16px}
+.pill{font-size:15px;padding:3px 10px;max-width:100%;white-space:normal}
+th{font-size:15px}
+td{font-size:17px}
+.chip .cid{font-size:17px}
 .chip .cmeta{font-size:15px}
-.lane h4{font-size:17px}
-.code{font-size:14px}
-ol.steps li,.tchip{font-size:15px}
-.btn.small{font-size:15px}
-input:not([type=checkbox]):not([type=radio]),.f select,.f textarea,.inp,select{font-size:16px}
+.lane h4{font-size:18px}
+.code{font-size:15px}
+ol.steps li,.tchip{font-size:16px}
+.btn.small{font-size:16px}
+input:not([type=checkbox]):not([type=radio]),.f select,.f textarea,.inp,select{font-size:17px}
 .ph-tag{font-size:13px}
 .haz,.chip .rc,.chip .urg{font-size:13px}
-.numhint,.qa-pick{font-size:14px}
-small{font-size:13px}
-h4{font-size:14px}
-@media (max-width:760px){.stat.tile .l{font-size:14px}header.top .pill,header.top .who{font-size:14px}.chip .cmeta{font-size:14px}}
+.numhint,.qa-pick{font-size:15px}
+small{font-size:14px}
+h4{font-size:15px}
+@media (max-width:760px){
+  body{font-size:17px}
+  .small,.subtle,.st-note,.st-meta,.muted.small,.pick-note,.notice{font-size:15px}
+  label,label.f,.legend{font-size:16px}
+  .stat.tile .l{font-size:14px}header.top .pill,header.top .who{font-size:14px}.chip .cmeta{font-size:14px}
+  td{font-size:16px}.pill{font-size:14px}
+}
 
-nav.tabs button{padding:10px 12px;font-size:17px}
+nav.tabs button{padding:10px 12px;font-size:18px}
 nav.tabs .count.flag{background:var(--bad-soft);color:var(--bad)}
 
 /* Colour, v24c: the Sample tab's way. Panels stay white; meaning is carried by soft tints (as the released box), coloured pills and dots,
@@ -705,18 +713,18 @@ button.stat.tile:hover,.cstats button.stat:hover{border-color:var(--t,var(--mute
 #view-storage tr.st-soon td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
 #view-storage tr.st-noloc td:first-child{box-shadow:inset 4px 0 0 var(--c-violet)}
 #view-storage tr.st-ok td:first-child{box-shadow:inset 4px 0 0 var(--ok)}
-.dirp{display:inline-block;font-family:var(--f-mono);font-size:13px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em}
+.dirp{display:inline-block;font-family:var(--f-mono);font-size:14px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em}
 .dirp.dir-in{background:var(--ok-soft);color:var(--ok)}.dirp.dir-out{background:var(--warn-soft);color:var(--warn)}.dirp.dir-rev{background:var(--soft);color:var(--muted)}
 
 /* Submit / Register: three short steps on white cards; the step number is solid gold, as the Track button, and the sample type shows its group's colour. */
 .sub-form{gap:14px}
 .sub-head h2{margin:0}
 .sub-step{border:1px solid var(--line);border-radius:10px;padding:12px 14px 14px;background:var(--panel)}
-.sub-t{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;font-size:18px;margin-bottom:10px}
+.sub-t{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;font-size:20px;margin-bottom:10px}
 .sub-t .num{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:15px;flex:none}
 .sub-step .form{margin:0}
 .sub-form select,.sub-form input:not([type=checkbox]):not([type=radio]){min-height:46px}
-.typechip{display:inline-block;font-family:var(--f-body);font-weight:600;font-size:14px;margin-left:auto;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--muted)}
+.typechip{display:inline-block;font-family:var(--f-body);font-weight:600;font-size:15px;margin-left:auto;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--muted)}
 .typechip:empty{display:none}
 .typechip.t-ore{background:var(--c-ore-soft);color:var(--c-ore)}
 .typechip.t-plant{background:var(--c-plant-soft);color:var(--c-plant)}
@@ -746,11 +754,11 @@ details.more-panel > summary h3{margin:0}
 /* Evaluation, re-assay requests and the Results tab */
 .evalbox{border:1px solid transparent;border-radius:10px;padding:12px 14px;background:var(--info-soft);gap:10px}
 ul.flags{margin:0;padding:0;list-style:none;display:grid;gap:4px}
-ul.flags li{font-size:15px;padding:4px 10px;border-radius:6px;background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn)}
+ul.flags li{font-size:16px;padding:4px 10px;border-radius:6px;background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn)}
 ul.flags li.bad{background:var(--bad-soft);border-left-color:var(--bad)}
 .seg .ev-ok input:checked+span{color:var(--ok)}.seg .ev-query input:checked+span{color:var(--warn)}.seg .ev-redo input:checked+span{color:var(--bad)}
 ul.evlist{margin:0;padding:0;list-style:none;display:grid;gap:6px}
-ul.evlist li{font-size:16px}
+ul.evlist li{font-size:17px}
 .evform{display:grid;gap:8px}
 .evform .seg span{padding:0 14px}
 table.restbl tr.due td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
@@ -758,8 +766,8 @@ table.restbl tr.due td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
 /* Routes: facts in a few lines, the steps as a row of soft chips coloured by phase (as the legend). */
 .rt-facts{display:grid;gap:3px}
 ol.flow{list-style:none;margin:6px 0 2px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
-ol.flow li{position:relative;display:inline-flex;align-items:baseline;gap:6px;font-size:15px;padding:4px 10px;border-radius:6px;background:var(--soft);border-left:4px solid var(--line)}
-ol.flow li i{font-style:normal;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+ol.flow li{position:relative;display:inline-flex;align-items:baseline;gap:6px;font-size:16px;padding:4px 10px;border-radius:6px;background:var(--soft);border-left:4px solid var(--line)}
+ol.flow li i{font-style:normal;color:var(--muted);font-size:15px;font-variant-numeric:tabular-nums}
 ol.flow li.ph-intake{background:var(--info-soft)}
 ol.flow li.ph-prep{background:var(--warn-soft)}
 ol.flow li.ph-test{background:var(--accent-soft)}
@@ -937,6 +945,28 @@ const PLANT_PTS = [...new Set([...MILL_PTS, ...CCD_PTS, ...TSF_PTS].filter(x => 
 const CARBON_PTS = ["CIL tank carbon", "Loaded carbon (to elution)", "Eluted carbon", "Regenerated carbon", "Fresh carbon"];
 const ELU_PTS = ["Pregnant solution", "Electrowinning head", "Electrowinning tails", "Lean eluate", "Other"];
 const BELT_PTS = ["Mill feed conveyor", "Crusher product conveyor", "Stockpile reclaim conveyor", "Other"];
+/* What each sample type can be sent for (v24c): "What it is for" lists only these purposes, and Other. Environment can send a sample from
+   any site (env); a testwork purpose is offered only on the samples that test is run on (bottle roll on ore and mill feed, carbon strip on
+   carbon, intensive leach on gravity concentrate …; met is "Other metallurgical testwork"). Types not listed (Other, the retired ones) take any. */
+const ORE_MET = ["met_br", "met_cil", "met_grg", "met_diag", "met_pri", "met_reag", "met_col", "met_flot", "met"];
+const TYPE_PURPOSES = {
+  rc: ["exp", "gc", ...ORE_MET, "env"], core: ["exp", "gc", ...ORE_MET, "env"], gc_bh: ["gc", "recon", "env"], channel: ["exp", "gc", "env"],
+  rom: ["recon", "gc", ...ORE_MET, "env"], soil_geo: ["exp", "env"],
+  belt: ["plant", "recon", "met_br", "met_cil", "met_grg", "met_diag", "met_pri", "met_reag", "met_flot", "met", "env"],
+  plant_feed: ["plant", "recon", "met_br", "met_cil", "met_grg", "met_diag", "met_pri", "met_reag", "met_flot", "met", "env"],
+  ccd: ["plant", "recon", "met_reag", "met_detox", "met", "env"], carbon: ["plant", "met_strip", "met_cil", "met", "env"], elution: ["plant", "met_strip", "met", "env"],
+  conc: ["plant", "recon", "bullion", "met_ilr", "met_grg", "met", "env"], tsf: ["plant", "recon", "met_detox", "met_br", "met", "env"],
+  bullion: ["bullion"], env_water: ["env", "hse"], env_soil: ["env", "hse"], pulp: ["qc"]
+};
+/* The sections a sample type can come from (v24c): Section lists only these. A mill sample comes from the plant, Metallurgy or Environment,
+   never from geology, exploration or mining. A section code not named here (one an admin added) is always offered; Other takes any. */
+const TYPE_SECTIONS = {
+  rc: ["EXP", "GEO", "GC", "MET", "ENV", "QC", "EXT"], core: ["EXP", "GEO", "GC", "MET", "ENV", "QC", "EXT"], gc_bh: ["GC", "GEO", "MIN", "ENV", "QC"],
+  channel: ["EXP", "GEO", "GC", "ENV", "EXT"], rom: ["GC", "GEO", "MIN", "PLT", "MET", "ENV"], soil_geo: ["EXP", "GEO", "ENV", "EXT"],
+  belt: ["PLT", "MET", "ENV"], plant_feed: ["PLT", "MET", "ENV"], ccd: ["PLT", "MET", "ENV"], carbon: ["PLT", "GR", "MET", "ENV"],
+  elution: ["PLT", "GR", "MET", "ENV"], conc: ["PLT", "GR", "MET", "ENV"], tsf: ["TSF", "PLT", "MET", "ENV"],
+  bullion: ["GR"], env_water: ["ENV", "HSE"], env_soil: ["ENV", "HSE"], pulp: ["QC", "EXP", "GEO", "GC", "MET", "EXT"]
+};
 /* tests: recommended tests for the type, first = default (the first one a route in use performs). pur: the usual purpose. fields: extra details
    asked at submission. check: what the technician checks at receipt. */
 const TYPES = [
@@ -3634,15 +3664,23 @@ function boardRoutes(){ const on = new Set([...samples.values()].map(s => s.rout
 /* ---------- submit and register ---------- */
 function renderSubmit(){ renderSampleForm("submit"); }
 function renderRegister(){ renderSampleForm("register"); }
-/* Sample types a route in use is meant for. */
+/* Sections a sample type can come from (v24c, TYPE_SECTIONS). A code the mapping doesn't know (added by an admin) is always offered, and a
+   section account always keeps its own section. */
+const knownSec = c => c === "OTH" || Object.values(TYPE_SECTIONS).some(l => l.includes(c));   // Other: only for sample type Other
+const mySec = () => session?.role === "section" && session.sec ? session.sec : "";
+const sectionOk = (typeKey, code) => { const ok = TYPE_SECTIONS[typeKey]; return !ok || !knownSec(code) || ok.includes(code) || code === mySec(); };
+const sectionOptions = (typeKey = "") => (cfg.sections || []).filter(x => sectionOk(typeKey, x.code)).map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("");
+/* Sample types a route in use is meant for; a section account sees the types its section sends (v24c). */
 function typeOptions(){
-  const list = TYPES.filter(t => typeOn(t.key)), groups = [...new Set(list.map(t => t.group))];
+  const sec = mySec(), mine = t => !sec || !knownSec(sec) || t.key === "other" || !TYPE_SECTIONS[t.key] || TYPE_SECTIONS[t.key].includes(sec);
+  const list = TYPES.filter(t => typeOn(t.key) && mine(t)), groups = [...new Set(list.map(t => t.group))];
   return groups.map(g => `<optgroup label="${esc(g)}">${list.filter(t => t.group === g).map(t => `<option value="${esc(t.key)}">${esc(t.name)}</option>`).join("")}</optgroup>`).join("");
 }
-/* What the analysis is for, grouped (v24). */
-function purposeOptions(){
-  const groups = [...new Set(PURPOSES.map(p => p.g || ""))];
-  return groups.map(g => { const o = PURPOSES.filter(p => (p.g || "") === g).map(p => `<option value="${esc(p.key)}">${esc(p.name)}</option>`).join(""); return g ? `<optgroup label="${esc(g)}">${o}</optgroup>` : o; }).join("");
+/* What the analysis is for, grouped (v24), and only what the sample type can be sent for (v24c, TYPE_PURPOSES); Other is always there. */
+const purposeOk = (typeKey, p) => { const ok = TYPE_PURPOSES[typeKey]; return !ok || p.key === "other" || ok.includes(p.key); };
+function purposeOptions(typeKey = ""){
+  const list = PURPOSES.filter(p => purposeOk(typeKey, p)), groups = [...new Set(list.map(p => p.g || ""))];
+  return groups.map(g => { const o = list.filter(p => (p.g || "") === g).map(p => `<option value="${esc(p.key)}">${esc(p.name)}</option>`).join(""); return g ? `<optgroup label="${esc(g)}">${o}</optgroup>` : o; }).join("");
 }
 /* The section a purpose usually comes from, offered until the submitter picks one. */
 const PURPOSE_SEC = { plant: "PLT", recon: "PLT", bullion: "GR", exp: "EXP", gc: "GC", met: "MET", env: "ENV", hse: "HSE", qc: "QC", other: "OTH" };
@@ -3696,7 +3734,7 @@ function renderSampleForm(mode){
     </div></div>
     <div class="sub-step s2"><div class="sub-t"><span class="num">2</span>What it is for</div><div class="form">
       <label class="f"><span>Purpose <span class="req">*</span></span><select id="rPurpose" required><option value="">Choose…</option>${purposeOptions()}</select></label>
-      <label class="f"><span>Section <span class="req">*</span></span><select id="rSection" required><option value="">Choose…</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select></label>
+      <label class="f"><span>Section <span class="req">*</span></span><select id="rSection" required><option value="">Choose…</option>${sectionOptions()}</select></label>
       <label class="f full" id="rWhyBox" hidden><span>Why it is being tested <span class="req">*</span></span><input id="rWhy" maxlength="200" placeholder="e.g. customer check sample, survey of old stockpile"></label>
     </div></div>
     <div class="sub-step s3"><div class="sub-t"><span class="num">3</span>${walk ? "Who brought it" : "Who sent it"}</div><div class="form">
@@ -3726,11 +3764,24 @@ function renderSampleForm(mode){
     <div id="rResult"></div>
   </form>`;
   const ty = $("#rType", v), pu = $("#rPurpose", v), te = $("#rTest", v), hz = $("#rHaz", v), sc = $("#rSection", v);
-  const secFor = () => { const c = PURPOSE_SEC[purpBase(pu.value)]; if (c && !sc.dataset.touched && !sc.value && (cfg.sections || []).some(x => x.code === c)){ sc.value = c; refreshFormRoute(); } };
+  // The section a purpose usually comes from, filled in (and changed with the purpose) until the submitter picks one; a lone choice is taken.
+  const secFor = () => {
+    if (sc.dataset.touched || (sc.value && !sc.dataset.auto)) return;
+    const opts = [...sc.options].map(o => o.value).filter(Boolean), c = PURPOSE_SEC[purpBase(pu.value)];
+    const pick = opts.includes(c) ? c : opts.length === 1 ? opts[0] : "";
+    if (pick && pick !== sc.value){ sc.value = pick; sc.dataset.auto = "1"; refreshFormRoute(); }
+  };
   const chip = () => { const t = typeOf(ty.value), c = $("#rTypeChip", v); if (c){ c.className = "typechip" + (t ? " t-" + typeTone(t.key) : ""); c.textContent = t ? t.group.replace(/ \(.*\)$/, "") : ""; } };
   ty.onchange = () => {
+    // The purposes this type can be sent for; a chosen purpose stays if the new type takes it, otherwise the type's usual one is filled in.
+    const was = pu.value; pu.innerHTML = `<option value="">Choose…</option>${purposeOptions(ty.value)}`;
+    if (was && [...pu.options].some(o => o.value === was)) pu.value = was; else { pu.value = ""; delete pu.dataset.touched; $("#rWhyBox", v).hidden = true; }
+    // The sections this type comes from; a chosen section stays if it is one of them.
+    const wasS = sc.value; sc.innerHTML = `<option value="">Choose…</option>${sectionOptions(ty.value)}`;
+    if (wasS && [...sc.options].some(o => o.value === wasS)) sc.value = wasS; else { sc.value = ""; delete sc.dataset.touched; delete sc.dataset.auto; }
     const pur = typeOf(ty.value)?.pur;   // the usual purpose for the type, until the submitter picks one
-    if (pur && !pu.dataset.touched){ pu.value = pur; $("#rWhyBox", v).hidden = pu.value !== "other"; secFor(); }
+    if (pur && !pu.dataset.touched){ pu.value = pur; $("#rWhyBox", v).hidden = pu.value !== "other"; }
+    secFor();
     chip();
     const keep = te.dataset.touched ? te.value : "";
     te.innerHTML = testOptions(ty.value);
@@ -3747,7 +3798,7 @@ function renderSampleForm(mode){
   te.onchange = () => { te.dataset.touched = "1"; refreshFormRoute(); };
   hz.addEventListener("change", () => hz.dataset.touched = "1");
   $("#rRouteSel", v)?.addEventListener("change", refreshFormRoute);
-  sc.addEventListener("change", () => { sc.dataset.touched = "1"; refreshFormRoute(); });
+  sc.addEventListener("change", () => { sc.dataset.touched = "1"; delete sc.dataset.auto; refreshFormRoute(); });
   const ra = $("#rRecvAt", v);
   if (ra) ra.addEventListener("change", () => { const t = Date.parse(ra.value), txt = $("#rRecvAtTxt", v); if (txt) txt.textContent = t && Math.abs(t - Date.now()) > 5 * 60000 ? fmt(t) : "now"; });
   if (session && !walk && !staff){ $("#rSubmitter", v).value = session.name || ""; if (session.role === "section" && session.sec) $("#rSection", v).value = session.sec; }
@@ -4508,7 +4559,7 @@ function renderStages(){
 function refreshRegisterOptions(){
   const sel = $("#rSection"); if (!sel) return;
   const keep = sel.value;
-  sel.innerHTML = `<option value="">Choose…</option>` + (cfg.sections || []).map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("");
+  sel.innerHTML = `<option value="">Choose…</option>` + sectionOptions($("#rType")?.value || "");
   sel.value = keep;
 }
 function setSync(state){

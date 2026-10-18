@@ -124,15 +124,23 @@ function boardRoutes(){ const on = new Set([...samples.values()].map(s => s.rout
 /* ---------- submit and register ---------- */
 function renderSubmit(){ renderSampleForm("submit"); }
 function renderRegister(){ renderSampleForm("register"); }
-/* Sample types a route in use is meant for. */
+/* Sections a sample type can come from (v24c, TYPE_SECTIONS). A code the mapping doesn't know (added by an admin) is always offered, and a
+   section account always keeps its own section. */
+const knownSec = c => c === "OTH" || Object.values(TYPE_SECTIONS).some(l => l.includes(c));   // Other: only for sample type Other
+const mySec = () => session?.role === "section" && session.sec ? session.sec : "";
+const sectionOk = (typeKey, code) => { const ok = TYPE_SECTIONS[typeKey]; return !ok || !knownSec(code) || ok.includes(code) || code === mySec(); };
+const sectionOptions = (typeKey = "") => (cfg.sections || []).filter(x => sectionOk(typeKey, x.code)).map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("");
+/* Sample types a route in use is meant for; a section account sees the types its section sends (v24c). */
 function typeOptions(){
-  const list = TYPES.filter(t => typeOn(t.key)), groups = [...new Set(list.map(t => t.group))];
+  const sec = mySec(), mine = t => !sec || !knownSec(sec) || t.key === "other" || !TYPE_SECTIONS[t.key] || TYPE_SECTIONS[t.key].includes(sec);
+  const list = TYPES.filter(t => typeOn(t.key) && mine(t)), groups = [...new Set(list.map(t => t.group))];
   return groups.map(g => `<optgroup label="${esc(g)}">${list.filter(t => t.group === g).map(t => `<option value="${esc(t.key)}">${esc(t.name)}</option>`).join("")}</optgroup>`).join("");
 }
-/* What the analysis is for, grouped (v24). */
-function purposeOptions(){
-  const groups = [...new Set(PURPOSES.map(p => p.g || ""))];
-  return groups.map(g => { const o = PURPOSES.filter(p => (p.g || "") === g).map(p => `<option value="${esc(p.key)}">${esc(p.name)}</option>`).join(""); return g ? `<optgroup label="${esc(g)}">${o}</optgroup>` : o; }).join("");
+/* What the analysis is for, grouped (v24), and only what the sample type can be sent for (v24c, TYPE_PURPOSES); Other is always there. */
+const purposeOk = (typeKey, p) => { const ok = TYPE_PURPOSES[typeKey]; return !ok || p.key === "other" || ok.includes(p.key); };
+function purposeOptions(typeKey = ""){
+  const list = PURPOSES.filter(p => purposeOk(typeKey, p)), groups = [...new Set(list.map(p => p.g || ""))];
+  return groups.map(g => { const o = list.filter(p => (p.g || "") === g).map(p => `<option value="${esc(p.key)}">${esc(p.name)}</option>`).join(""); return g ? `<optgroup label="${esc(g)}">${o}</optgroup>` : o; }).join("");
 }
 /* The section a purpose usually comes from, offered until the submitter picks one. */
 const PURPOSE_SEC = { plant: "PLT", recon: "PLT", bullion: "GR", exp: "EXP", gc: "GC", met: "MET", env: "ENV", hse: "HSE", qc: "QC", other: "OTH" };
@@ -186,7 +194,7 @@ function renderSampleForm(mode){
     </div></div>
     <div class="sub-step s2"><div class="sub-t"><span class="num">2</span>What it is for</div><div class="form">
       <label class="f"><span>Purpose <span class="req">*</span></span><select id="rPurpose" required><option value="">Choose…</option>${purposeOptions()}</select></label>
-      <label class="f"><span>Section <span class="req">*</span></span><select id="rSection" required><option value="">Choose…</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select></label>
+      <label class="f"><span>Section <span class="req">*</span></span><select id="rSection" required><option value="">Choose…</option>${sectionOptions()}</select></label>
       <label class="f full" id="rWhyBox" hidden><span>Why it is being tested <span class="req">*</span></span><input id="rWhy" maxlength="200" placeholder="e.g. customer check sample, survey of old stockpile"></label>
     </div></div>
     <div class="sub-step s3"><div class="sub-t"><span class="num">3</span>${walk ? "Who brought it" : "Who sent it"}</div><div class="form">
@@ -216,11 +224,24 @@ function renderSampleForm(mode){
     <div id="rResult"></div>
   </form>`;
   const ty = $("#rType", v), pu = $("#rPurpose", v), te = $("#rTest", v), hz = $("#rHaz", v), sc = $("#rSection", v);
-  const secFor = () => { const c = PURPOSE_SEC[purpBase(pu.value)]; if (c && !sc.dataset.touched && !sc.value && (cfg.sections || []).some(x => x.code === c)){ sc.value = c; refreshFormRoute(); } };
+  // The section a purpose usually comes from, filled in (and changed with the purpose) until the submitter picks one; a lone choice is taken.
+  const secFor = () => {
+    if (sc.dataset.touched || (sc.value && !sc.dataset.auto)) return;
+    const opts = [...sc.options].map(o => o.value).filter(Boolean), c = PURPOSE_SEC[purpBase(pu.value)];
+    const pick = opts.includes(c) ? c : opts.length === 1 ? opts[0] : "";
+    if (pick && pick !== sc.value){ sc.value = pick; sc.dataset.auto = "1"; refreshFormRoute(); }
+  };
   const chip = () => { const t = typeOf(ty.value), c = $("#rTypeChip", v); if (c){ c.className = "typechip" + (t ? " t-" + typeTone(t.key) : ""); c.textContent = t ? t.group.replace(/ \(.*\)$/, "") : ""; } };
   ty.onchange = () => {
+    // The purposes this type can be sent for; a chosen purpose stays if the new type takes it, otherwise the type's usual one is filled in.
+    const was = pu.value; pu.innerHTML = `<option value="">Choose…</option>${purposeOptions(ty.value)}`;
+    if (was && [...pu.options].some(o => o.value === was)) pu.value = was; else { pu.value = ""; delete pu.dataset.touched; $("#rWhyBox", v).hidden = true; }
+    // The sections this type comes from; a chosen section stays if it is one of them.
+    const wasS = sc.value; sc.innerHTML = `<option value="">Choose…</option>${sectionOptions(ty.value)}`;
+    if (wasS && [...sc.options].some(o => o.value === wasS)) sc.value = wasS; else { sc.value = ""; delete sc.dataset.touched; delete sc.dataset.auto; }
     const pur = typeOf(ty.value)?.pur;   // the usual purpose for the type, until the submitter picks one
-    if (pur && !pu.dataset.touched){ pu.value = pur; $("#rWhyBox", v).hidden = pu.value !== "other"; secFor(); }
+    if (pur && !pu.dataset.touched){ pu.value = pur; $("#rWhyBox", v).hidden = pu.value !== "other"; }
+    secFor();
     chip();
     const keep = te.dataset.touched ? te.value : "";
     te.innerHTML = testOptions(ty.value);
@@ -237,7 +258,7 @@ function renderSampleForm(mode){
   te.onchange = () => { te.dataset.touched = "1"; refreshFormRoute(); };
   hz.addEventListener("change", () => hz.dataset.touched = "1");
   $("#rRouteSel", v)?.addEventListener("change", refreshFormRoute);
-  sc.addEventListener("change", () => { sc.dataset.touched = "1"; refreshFormRoute(); });
+  sc.addEventListener("change", () => { sc.dataset.touched = "1"; delete sc.dataset.auto; refreshFormRoute(); });
   const ra = $("#rRecvAt", v);
   if (ra) ra.addEventListener("change", () => { const t = Date.parse(ra.value), txt = $("#rRecvAtTxt", v); if (txt) txt.textContent = t && Math.abs(t - Date.now()) > 5 * 60000 ? fmt(t) : "now"; });
   if (session && !walk && !staff){ $("#rSubmitter", v).value = session.name || ""; if (session.role === "section" && session.sec) $("#rSection", v).value = session.sec; }

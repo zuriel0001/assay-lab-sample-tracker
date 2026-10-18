@@ -439,7 +439,7 @@ function renderStages(){
 function refreshRegisterOptions(){
   const sel = $("#rSection"); if (!sel) return;
   const keep = sel.value;
-  sel.innerHTML = `<option value="">Choose…</option>` + (cfg.sections || []).map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("");
+  sel.innerHTML = `<option value="">Choose…</option>` + sectionOptions($("#rType")?.value || "");
   sel.value = keep;
 }
 function setSync(state){

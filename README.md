@@ -189,7 +189,7 @@ admin is added to the account list on their first visit to Settings; upgrades an
 member signs in; permission errors from the server are shown as such; the header says *Test system*; the prototype's
 explanatory paragraphs are taken out (labels, warnings, status lines and each route's own description stay).
 
-### Test results (2026-10-18, v26 with the evening's sample type, analysis, board and type-size changes)
+### Test results (2026-10-18, v26 with the evening's sample type, analysis, purpose, section, board and type-size changes)
 
 | Suite | Result |
 |---|---|
@@ -213,10 +213,10 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 | Prototype `v20-tests.js` | 71 / 71 (blind QA/QC re-assay: picks, blind IDs, what technicians see, comparisons on both records; a batch or a single sample on Submit and Register; the batch page and receiving a batch; the custody log scrolling) |
 | Prototype `v21-tests.js` | 60 / 60 (lab batches optional, header search suggestions, recently opened, same details again, phone tables as cards, batch progress, wording) |
 | Prototype `v22-tests.js` | 29 / 29 (no QA/QC review step unless Settings use it: release from the last analysis step, Ready for release on the board, picked results not missing, sampling-point limits) |
-| Prototype `v24-tests.js` | 75 / 75 on the prototype and on this build (release at once, any results file accepted (a PDF, a file naming no samples), departments and evaluation, Results tab, re-assay requests, Belt cut sample, testwork as purpose, the new Submit form, Batches, Storage, Ledger, concise Routes, 16 px text, sign-off still selectable; v24c: sample types in Ore, Processing, Gold room, Environment and QC with no testwork or duplicate types, AuFx-named fire assay, an analysis list of exactly the sample type's own analyses, Environment from any site, every board tile with a number opening its list, 17 px text) |
+| Prototype `v24-tests.js` | 86 / 86 on the prototype and on this build (release at once, any results file accepted (a PDF, a file naming no samples), departments and evaluation, Results tab, re-assay requests, Belt cut sample, testwork as purpose, the new Submit form, Batches, Storage, Ledger, concise Routes, 16 px text, sign-off still selectable; v24c: sample types in Ore, Processing, Gold room, Environment and QC with no testwork or duplicate types, AuFx-named fire assay, an analysis list of exactly the sample type's own analyses, Environment from any site, every board tile with a number opening its list, What it is for and Section limited to what fits the sample type, 18 px text) |
 | Prototype `v23-tests.js` | 53 / 53 (the routes the lab runs: AuFx/AuSx, cyanide, carbon loading, elution, ore fire assay; routes not in use hidden but kept; sampling point lists; example plant limits; the shorter Submit form) |
 
-For v26 (with the evening's sample type, analysis, colour, board and type-size changes) every prototype suite was run on the prototype page and passes (run.js 107, results-tests 93, v12 71, v13 26, v14 27, v15 46, v16 42, v17 24, v20 71, v21 60, v22 29, v23 53, v24 75, review 41 + 5, hours 7, work hours 14); on this build `v24-tests.js` (75), `azure-extra.js` (68), `api-tests.js`, `auth-tests.js` and `store-tests.js` were run; the older suites' rows above are from the v25 run of this build.
+For v26 (with the evening's sample type, analysis, purpose, section, colour, board and type-size changes) every prototype suite was run on the prototype page and passes (run.js 107, results-tests 93, v12 71, v13 26, v14 27, v15 46, v16 42, v17 24, v20 71, v21 60, v22 29, v23 53, v24 86, review 41 + 5, hours 7, work hours 14); on this build `v24-tests.js` (86), `azure-extra.js` (68), `api-tests.js`, `auth-tests.js` and `store-tests.js` were run; the older suites' rows above are from the v25 run of this build.
 
 No console errors in any suite. The 4 prototype checks that don't pass all expect a page **nobody is signed in to** to
 upgrade older records (3) or finish a lab batch a crashed device left half-made (1). On Azure the public can't

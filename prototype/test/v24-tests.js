@@ -80,12 +80,45 @@ async function typeResults(page, id, vals){
       const got = [...document.querySelectorAll("#rTest option")].map(x => x.value).join(); if (got !== want[o.value]) out.push(o.value + ": " + got + " / " + want[o.value]); }
     return out.length ? out : n; }, want);
   check(typeof mism === "number" && mism === 17, "v24c: every sample type lists exactly its own analyses and nothing else: " + JSON.stringify(mism));
-  await Tc.selectOption("#rType", "bullion"); await Tc.selectOption("#rPurpose", "met_br"); await Tc.waitForTimeout(200);
-  check((await Tc.$$eval("#rTest option", os => os.map(o => o.value))).join() === "bullion", "a testwork purpose adds nothing: bullion still offers bullion fineness only");
+  await Tc.selectOption("#rType", "plant_feed"); await Tc.selectOption("#rPurpose", "met_br"); await Tc.waitForTimeout(200);
+  check((await Tc.$$eval("#rTest option", os => os.map(o => o.value))).join() === want.plant_feed, "a testwork purpose adds no analyses: a mill sample for a bottle roll offers the mill sample's own");
+  log("v24c: What it is for matches the sample type");
+  const TP = new Function(pageSrc.slice(pageSrc.indexOf("/* ROUTES-BEGIN"), pageSrc.indexOf("/* ROUTES-END */")) + ";return TYPE_PURPOSES;")();
+  const pmis = await Tc.evaluate(TP => { const out = [], ty = document.querySelector("#rType"); let n = 0;
+    for (const o of [...ty.options].filter(o => o.value && o.value !== "other")){ ty.value = o.value; ty.dispatchEvent(new Event("change")); n++;
+      const got = [...document.querySelectorAll("#rPurpose option")].map(x => x.value).filter(Boolean).sort().join(), exp = [...TP[o.value], "other"].sort().join(); if (got !== exp) out.push(o.value + ": " + got + " / " + exp); }
+    return out.length ? out : n; }, TP);
+  check(pmis === 17, "every sample type offers only the purposes it can be sent for, and Other: " + JSON.stringify(pmis));
+  await Tc.selectOption("#rType", "bullion"); await Tc.waitForTimeout(150);
+  check((await Tc.$$eval("#rPurpose option", os => os.map(o => o.value).filter(Boolean))).join() === "bullion,other" && await Tc.$eval("#rPurpose", e => e.value) === "bullion", "bullion: Bullion (gold pour), or Other");
+  await Tc.selectOption("#rType", "carbon"); await Tc.waitForTimeout(150);
+  const cp = await Tc.$$eval("#rPurpose option", os => os.map(o => o.textContent));
+  check(cp.includes("Carbon strip / elution test") && !cp.includes("Bottle roll test") && !cp.includes("Exploration / resource definition"), "carbon: carbon strip test, no bottle roll and no exploration");
+  await Tc.selectOption("#rType", "rc"); await Tc.selectOption("#rPurpose", "gc"); await Tc.selectOption("#rType", "core"); await Tc.waitForTimeout(150);
+  check(await Tc.$eval("#rPurpose", e => e.value) === "gc", "a chosen purpose the new type also takes stays");
+  await Tc.selectOption("#rType", "bullion"); await Tc.waitForTimeout(150);
+  check(await Tc.$eval("#rPurpose", e => e.value) === "bullion", "one the new type does not take gives way to the type's usual purpose");
   await Tc.selectOption("#rType", "core"); await Tc.waitForTimeout(200);
   check(!(await Tc.$$eval("#rTest option", os => os.map(o => o.value))).some(k => /ausx|aufx|cn_only|c_load|bullion|water/.test(k)), "drill core offers no plant, gold room or environment analyses");
-  await Tc.selectOption("#rPurpose", "plant");
+  log("v24c: Section matches the sample type");
+  const TS = new Function(pageSrc.slice(pageSrc.indexOf("/* ROUTES-BEGIN"), pageSrc.indexOf("/* ROUTES-END */")) + ";return TYPE_SECTIONS;")();
+  const smis = await Tc.evaluate(TS => { const out = [], ty = document.querySelector("#rType"); let n = 0;
+    ty.value = ""; ty.dispatchEvent(new Event("change")); const all = [...document.querySelectorAll("#rSection option")].map(o => o.value).filter(Boolean);
+    for (const o of [...ty.options].filter(o => o.value && o.value !== "other")){ ty.value = o.value; ty.dispatchEvent(new Event("change")); n++;
+      const got = [...document.querySelectorAll("#rSection option")].map(x => x.value).filter(Boolean).join(), exp = all.filter(c => TS[o.value].includes(c)).join(); if (got !== exp) out.push(o.value + ": " + got + " / " + exp); }
+    return out.length ? out : n; }, TS);
+  check(smis === 17, "every sample type offers only the sections it comes from: " + JSON.stringify(smis));
+  await Tc.selectOption("#rType", "plant_feed"); await Tc.waitForTimeout(150);
+  const ms = await Tc.$$eval("#rSection option", os => os.map(o => o.value).filter(Boolean));
+  check(ms.join() === "MET,PLT,ENV" && await Tc.$eval("#rSection", e => e.value) === "PLT", "a mill sample comes from MET, PLT or ENV (not GEO, EXP or MIN), PLT filled in: " + ms.join() + " / " + await Tc.$eval("#rSection", e => e.value));
+  await Tc.selectOption("#rPurpose", "met_br"); await Tc.waitForTimeout(150);
+  check(await Tc.$eval("#rSection", e => e.value) === "MET", "choosing a testwork purpose moves the section it filled in to MET");
+  await Tc.selectOption("#rType", "bullion"); await Tc.waitForTimeout(150);
+  check((await Tc.$$eval("#rSection option", os => os.map(o => o.value).filter(Boolean))).join() === "GR" && await Tc.$eval("#rSection", e => e.value) === "GR", "bullion comes from the gold room only");
+  await Tc.selectOption("#rType", "rc"); await Tc.selectOption("#rSection", "GEO"); await Tc.selectOption("#rType", "core"); await Tc.waitForTimeout(150);
+  check(await Tc.$eval("#rSection", e => e.value) === "GEO", "a section the submitter chose stays when the new type also comes from it");
   await Tc.selectOption("#rType", "belt"); await Tc.waitForTimeout(250);
+  check(await Tc.$eval("#rSection", e => e.value) === "PLT", "and gives way when it does not (GEO → PLT for a belt cut)");
   const groups = await Tc.$$eval("#rPurpose optgroup", gs => gs.map(g => g.label)), pur = await Tc.$$eval("#rPurpose option", os => os.map(o => o.textContent));
   check(groups.includes("Metallurgical testwork") && pur.includes("Bottle roll test") && pur.includes("CIL / CIP leach test"), "What it is for lists the testwork, grouped: " + groups.join(", "));
   await fillForm(Tc, "register", { section: "PLT", type: "belt", purpose: "plant", test: "aufx_m", submitter: "Shift boss", count: 1, tags: "BC-0601", details: { point: "Mill feed conveyor" } });
@@ -207,8 +240,8 @@ async function typeResults(page, id, vals){
   check(doc(w1).route === "AUSX" && doc(w1).purpose === "Bottle roll test" && doc(w1).purposeKey === "met_br" && doc(w1).typeKey === "plant_feed", "a bottle roll solution on mill feed goes on the AuSx route, its purpose Bottle roll test");
 
   log("Font: larger again (v24c)");
-  check(await Tc.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize)) === 17 && await Tc.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".small") || document.body).fontSize)) >= 15
-    && await Tc.evaluate(() => parseFloat(getComputedStyle(document.querySelector("label.f") || document.body).fontSize)) >= 16, "v24c: body text 17 px, labels 16 px, small text 15 px");
+  check(await Tc.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize)) === 18 && await Tc.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".small") || document.body).fontSize)) >= 16
+    && await Tc.evaluate(() => parseFloat(getComputedStyle(document.querySelector("label.f") || document.body).fontSize)) >= 17, "v24c: body text 18 px, labels 17 px, small text 16 px");
 
   log("Any file is accepted: a PDF on a sample still in preparation, a CSV that names no samples");
   await fillForm(Tc, "register", { section: "PLT", type: "belt", purpose: "plant", test: "aufx_m", submitter: "Shift boss", count: 1, tags: "BC-0700", details: { point: "Mill feed conveyor" } });
