@@ -328,13 +328,15 @@ const editedRoutes = routes => routes.filter(r => { const d = DEFAULT_ROUTES.fin
 const testRank = r => { const i = TESTS.findIndex(t => t.key === (r.tests || [])[0]); return i < 0 ? 999 : i; };
 const routeCat = r => testOf((r.tests || [])[0])?.cat || "Other";
 /* Recommended test for a sample type; the purpose can steer it (testwork, environmental, plant). */
-/* Testwork samples come from the main sites (v24c): for a testwork purpose any type also offers the leach products' analyses. */
-const TESTWORK_TESTS = ["aufx", "ausx", "aufx_ausx", "aufx_ausx_cn", "ausx_cn", "cn_only"];
+/* The analyses that apply to a sample type: its own list, plus any analysis an admin's own route (or a route put back in use) names the type for.
+   The routes in use by default name only types whose list already has their analysis, so by default this is exactly the type's list (v24c). */
+function typeTests(t){
+  const std = new Set(DEFAULT_ROUTES.filter(d => !RETIRED_ROUTES.includes(d.code)).map(d => d.code));
+  const named = liveRoutes().filter(r => (r.types || []).includes(t.key) && (!std.has(r.code) || JSON.stringify(r.types) !== JSON.stringify(DEFAULT_ROUTES.find(d => d.code === r.code)?.types))).flatMap(r => r.tests || []);
+  return [...new Set([...(t.tests || []), ...TESTS.map(x => x.key).filter(k => named.includes(k))])];
+}
 function defaultTest(typeKey, purposeKey){
-  /* The same analyses the form lists for the type (v24c): its own, those a route in use names it for, and for testwork the leach products'. */
-  const t = typeOf(typeKey), own = t?.tests || ["fa_aas"];
-  const named = t ? liveRoutes().filter(r => (r.types || []).includes(t.key)).flatMap(r => r.tests || []) : [];
-  const list = [...new Set([...own, ...TESTS.map(x => x.key).filter(k => named.includes(k)), ...(purpBase(purposeKey) === "met" ? TESTWORK_TESTS : [])])].filter(testOn);
+  const t = typeOf(typeKey), own = t?.tests || ["fa_aas"], list = (t ? typeTests(t) : own).filter(testOn);
   /* Environment may send a sample from any site (v24c). The older tests here only count when an admin has put their routes back in use. */
   const pref = { met: ["bottle", "cil_test", "pri", "grg", "diag", "commin", "cn_sol"], env: ["tsf", "water", "soil", "aba", "cn_spec"], hse: ["water", "soil"], qc: ["check"],
     plant: ["plant_solids", "ccd", "eluate", "residue", "cil_survey", "carbon", "solution"], bullion: ["bullion"] }[purposeKey] || [];

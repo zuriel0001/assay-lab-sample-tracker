@@ -95,19 +95,19 @@ const BELT_PTS = ["Mill feed conveyor", "Crusher product conveyor", "Stockpile r
 /* tests: recommended tests for the type, first = default (the first one a route in use performs). pur: the usual purpose. fields: extra details
    asked at submission. check: what the technician checks at receipt. */
 const TYPES = [
-  { key: "rc", group: "Ore (mine & exploration)", pur: "exp", name: "RC chips (reverse circulation)", tests: ["fa_aas", "fa_grav", "sfa", "cn_sol", "icp", "leco", "moisture", "density"],
+  { key: "rc", group: "Ore (mine & exploration)", pur: "exp", name: "RC chips (reverse circulation)", tests: ["fa_aas", "fa_grav", "sfa", "cn_sol", "icp", "leco"],
     fields: [{ k: "hole", l: "Hole ID", ph: "e.g. KRC-0412" }, { k: "from", l: "From (m)", t: "number" }, { k: "to", l: "To (m)", t: "number" }, { k: "cond", l: "Sample condition", o: ["Dry", "Moist", "Wet"] }],
     check: "Bag count and numbers match the sheet; wet or split bags noted." },
   { key: "core", group: "Ore (mine & exploration)", pur: "exp", name: "Diamond drill core", tests: ["fa_aas", "fa_grav", "sfa", "cn_sol", "icp", "leco", "moisture", "density", "delet"],
     fields: [{ k: "hole", l: "Hole ID", ph: "e.g. KDD-0231" }, { k: "from", l: "From (m)", t: "number" }, { k: "to", l: "To (m)", t: "number" }, { k: "size", l: "Core size", o: ["PQ", "HQ", "NQ", "BQ"] }, { k: "cut", l: "Core portion", o: ["Half core", "Quarter core", "Whole core"] }],
     check: "Bags or trays match the cut sheet; intervals continuous, no gaps or overlaps." },
-  { key: "gc_bh", group: "Ore (mine & exploration)", pur: "gc", name: "Grade control blast-hole cuttings", tests: ["fa_aas", "fa_grav", "moisture"],
+  { key: "gc_bh", group: "Ore (mine & exploration)", pur: "gc", name: "Grade control blast-hole cuttings", tests: ["fa_aas", "fa_grav"],
     fields: [{ k: "pit", l: "Pit" }, { k: "bench", l: "Bench / RL" }, { k: "pattern", l: "Blast pattern", ph: "e.g. P2-1140-07" }, { k: "holeno", l: "Hole number(s)" }],
     check: "Pattern and hole numbers match the sheet; samples arrive before the dig plan deadline." },
-  { key: "channel", group: "Ore (mine & exploration)", pur: "exp", name: "Channel / grab / trench sample", tests: ["fa_aas", "fa_grav", "sfa", "icp", "density"],
+  { key: "channel", group: "Ore (mine & exploration)", pur: "exp", name: "Channel / grab / trench sample", tests: ["fa_aas", "fa_grav", "sfa", "icp"],
     fields: [{ k: "loc", l: "Face / trench location" }, { k: "len", l: "Sample length (m)", t: "number" }],
     check: "Labels legible; sample length recorded." },
-  { key: "rom", group: "Ore (mine & exploration)", pur: "recon", name: "ROM ore / stockpile", tests: ["fa_aas", "fa_grav", "moisture", "psd", "cn_sol", "density", "delet"],
+  { key: "rom", group: "Ore (mine & exploration)", pur: "recon", name: "ROM ore / stockpile", tests: ["fa_aas", "fa_grav", "moisture", "psd", "density"],
     fields: [{ k: "pile", l: "Stockpile / truck reference" }, SHIFT],
     check: "Stockpile or truck reference recorded." },
   { key: "soil_geo", group: "Ore (mine & exploration)", pur: "exp", name: "Soil / stream sediment (geochemistry)", tests: ["ar_au", "fa_aas", "icp"],
@@ -116,7 +116,7 @@ const TYPES = [
   { key: "belt", group: "Processing (crusher to TSF)", pur: "plant", name: "Belt cut sample (crusher / conveyor)", tests: ["aufx_m", "aufx", "moisture", "psd"],
     fields: [{ k: "point", l: "Conveyor", o: BELT_PTS }, SHIFT, { k: "time", l: "Cut time", ph: "e.g. 14:30" }],
     check: "Full cut in a sealed bag, conveyor and time labelled; weighed wet on arrival." },
-  { key: "plant_feed", group: "Processing (crusher to TSF)", pur: "plant", name: "Mill sample", tests: ["aufx_ausx", "aufx", "ausx", "cn_only", "psd", "moisture"],
+  { key: "plant_feed", group: "Processing (crusher to TSF)", pur: "plant", name: "Mill sample", tests: ["aufx_ausx", "aufx", "ausx", "cn_only", "psd"],
     fields: [{ k: "point", l: "Sampling point", o: MILL_PTS }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
     check: "Shift and sampling point labelled; bucket sealed with no spillage." },
   { key: "ccd", group: "Processing (crusher to TSF)", pur: "plant", name: "CCD sample", hold: 24, holdWhat: "solution gold (solution not separated)", haz: ["cn"], tests: ["aufx_ausx_cn", "ausx_cn", "cn_only", "aufx_ausx", "ausx", "aufx"],
@@ -548,7 +548,7 @@ const DEFAULT_ROUTES = [
     qc: "Cyanide check standard every batch; duplicates within 10%; field blank where supplied.",
     triggers: ["WAD cyanide above 50 mg/L at discharge or in the pond: alert Environment immediately", "Solids Au more than 20% above plant tails grade: repeat"],
     retention: [{ item: "Solids", days: 90, then: "Disposed" }, { item: "Solutions", days: 30, then: "Cyanide destroyed, disposed" }] },
-  { code: "ENV-W", name: "Environmental water quality", tests: ["water"], types: ["env_water", "tsf"], purposes: ["env", "hse"],
+  { code: "ENV-W", name: "Environmental water quality", tests: ["water"], types: ["env_water"], purposes: ["env", "hse"],
     desc: "Surface, ground and discharge water against permit limits: cyanide, metals, pH, solids and anions.",
     stages: [
       S("chk", "Preservation & holding-time check", 0.5, "intake", "Cooler at 6 °C or below; CN bottle at pH above 12 (NaOH); metals bottle HNO₃ to pH below 2."),
@@ -695,7 +695,7 @@ const DEFAULT_ROUTES = [
     qc: "Calculated head within ±10% of the assayed head; product masses within 2% of feed.",
     triggers: ["Mass loss above 2%: repeat", "Gold recovery below 80% with sulphide left in tails: repeat at a finer grind or with a different collector"],
     retention: [{ item: "Flotation products", days: 180, then: "Disposed" }, { item: "Head reserve", days: 365, then: "Returned to MET" }] },
-  { code: "DENSITY", name: "Specific gravity & bulk density", tests: ["density"], types: ["core", "rom", "rc", "conc", "*"], purposes: ["exp", "met", "recon"],
+  { code: "DENSITY", name: "Specific gravity & bulk density", tests: ["density"], types: ["core", "rom", "*"], purposes: ["exp", "met", "recon"],
     desc: "Bulk density of core for tonnage in the resource model (water immersion, wax-coated if porous) and pulp SG by pycnometer for metallurgical calculations.",
     stages: [
       S("log", "Log core pieces & weigh", 1, "intake", "Competent pieces 10–20 cm long."),
@@ -796,7 +796,7 @@ const DEFAULT_ROUTES = [
     qc: "ARD reference material each batch; duplicate 1 in 20.",
     triggers: ["NAPP and NAG disagree (uncertain): run kinetic column testing", "Potentially acid-forming: notify Environment for waste-dump placement"],
     retention: [{ item: "Pulp", days: 365, then: "Disposed" }] },
-  { code: "AR-AU", name: "Soil gold: aqua regia / BLEG (low level)", tests: ["ar_au"], types: ["soil_geo", "env_soil"], purposes: ["exp"],
+  { code: "AR-AU", name: "Soil gold: aqua regia / BLEG (low level)", tests: ["ar_au"], types: ["soil_geo"], purposes: ["exp"],
     desc: "Parts-per-billion gold for soil and stream-sediment geochemistry, from a large aqua regia digest or bulk cyanide leach (BLEG).",
     stages: [
       S("sort", "Sorting & QC insertion", 0.5, "intake"),
@@ -824,7 +824,7 @@ const DEFAULT_ROUTES = [
     retention: [{ item: "Pulp", days: 365, then: "Kept in secure store" }] },
   /* ---- Version 23: the routes the lab runs, in its own words. Plant samples are a slurry or a solution: a slurry is filtered, the
      solution read for AuSx and the solids dried, pulverised and fire assayed for AuFx; CCD and TSF samples add cyanide (NaCN and WAD). ---- */
-  { code: "AUFX-AUSX", transit: 2, name: "Slurry: AuFx & AuSx", tests: ["aufx_ausx"], types: ["plant_feed", "ccd", "tsf"], purposes: ["plant", "recon", "met"],
+  { code: "AUFX-AUSX", transit: 2, name: "Slurry: AuFx & AuSx", tests: ["aufx_ausx"], types: ["plant_feed", "ccd"], purposes: ["plant", "recon", "met"],
     desc: "Plant slurry: filtered, the solution read for AuSx, the solids dried, pulverised and fire assayed for AuFx.",
     stages: [
       S("wet", "Weigh slurry & % solids", 0.25, "test", "pH and NaCN read now when asked: cyanide does not keep."),

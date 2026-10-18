@@ -67,11 +67,24 @@ async function typeResults(page, id, vals){
   check(!["met_comp", "tw_slurry", "tw_sol", "tw_res", "tw_carbon", "plant_tails", "cil_slurry", "solution", "waste"].some(k => allT.includes(k)) && new Set(allT).size === allT.length, "no testwork or duplicate types: " + allT.length + " types");
   await Tc.selectOption("#rType", "rc"); await Tc.waitForTimeout(200);
   const rcT = await Tc.$$eval("#rTest option", os => os.map(o => o.textContent));
-  check(!(await Tc.$("#rTest optgroup")) && rcT[0] === "AuFx: fire assay, AAS finish" && rcT.slice(0, 3).every(x => /^AuFx: /.test(x)) && !rcT.some(x => /Carbon|Bullion|Slurry/.test(x)), "ore: one plain list, fire assay named AuFx first, nothing from other sites: " + rcT.slice(0, 4).join(" | "));
+  check(!(await Tc.$("#rTest optgroup")) && rcT[0] === "AuFx: fire assay, AAS finish" && rcT.slice(0, 3).every(x => /^AuFx: /.test(x)) && !rcT.some(x => /Carbon|Bullion|Slurry|Moisture|Specific gravity/.test(x)), "ore: one plain list, fire assay named AuFx first, nothing that does not apply to RC chips: " + rcT.join(" | "));
   await Tc.selectOption("#rType", "carbon"); await Tc.waitForTimeout(200);
   check((await Tc.$$eval("#rTest option", os => os.map(o => o.value))).join() === "c_load,moisture", "carbon: Au loading and moisture only");
   await Tc.selectOption("#rType", "tsf"); await Tc.selectOption("#rPurpose", "env"); await Tc.waitForTimeout(200);
-  check((await Tc.$$eval("#rPurpose option", os => os.map(o => o.textContent))).includes("Environmental compliance (any site)") && await Tc.$eval("#rTest", e => e.value) === "water" && /ENV-W/.test(await text(Tc, "#rRoute")), "Environment sends a sample from any site; on a TSF sample it gets water quality (ENV-W) first");
+  check((await Tc.$$eval("#rPurpose option", os => os.map(o => o.textContent))).includes("Environmental compliance (any site)") && await Tc.$eval("#rTest", e => e.value) === "cn_spec" && /CN-SPEC/.test(await text(Tc, "#rRoute")), "Environment sends a sample from any site; on a TSF sample it gets cyanide speciation first");
+  const pageSrc = await Tc.evaluate(() => [...document.scripts].map(x => x.textContent).find(t => t.includes("/* ROUTES-BEGIN")) || "");   // the page's own data, on any build
+  const RD = new Function(pageSrc.slice(pageSrc.indexOf("/* ROUTES-BEGIN"), pageSrc.indexOf("/* ROUTES-END */")) + ";return { TYPES, DEFAULT_ROUTES, RETIRED_ROUTES };")();
+  const liveR = RD.DEFAULT_ROUTES.filter(r => !RD.RETIRED_ROUTES.includes(r.code)), want = Object.fromEntries(RD.TYPES.map(t => [t.key, t.tests.filter(k => liveR.some(r => r.tests.includes(k))).join()]));
+  const mism = await Tc.evaluate(want => { const out = [], ty = document.querySelector("#rType"); let n = 0;
+    for (const o of [...ty.options].filter(o => o.value && o.value !== "other")){ ty.value = o.value; ty.dispatchEvent(new Event("change")); n++;
+      const got = [...document.querySelectorAll("#rTest option")].map(x => x.value).join(); if (got !== want[o.value]) out.push(o.value + ": " + got + " / " + want[o.value]); }
+    return out.length ? out : n; }, want);
+  check(typeof mism === "number" && mism === 17, "v24c: every sample type lists exactly its own analyses and nothing else: " + JSON.stringify(mism));
+  await Tc.selectOption("#rType", "bullion"); await Tc.selectOption("#rPurpose", "met_br"); await Tc.waitForTimeout(200);
+  check((await Tc.$$eval("#rTest option", os => os.map(o => o.value))).join() === "bullion", "a testwork purpose adds nothing: bullion still offers bullion fineness only");
+  await Tc.selectOption("#rType", "core"); await Tc.waitForTimeout(200);
+  check(!(await Tc.$$eval("#rTest option", os => os.map(o => o.value))).some(k => /ausx|aufx|cn_only|c_load|bullion|water/.test(k)), "drill core offers no plant, gold room or environment analyses");
+  await Tc.selectOption("#rPurpose", "plant");
   await Tc.selectOption("#rType", "belt"); await Tc.waitForTimeout(250);
   const groups = await Tc.$$eval("#rPurpose optgroup", gs => gs.map(g => g.label)), pur = await Tc.$$eval("#rPurpose option", os => os.map(o => o.textContent));
   check(groups.includes("Metallurgical testwork") && pur.includes("Bottle roll test") && pur.includes("CIL / CIP leach test"), "What it is for lists the testwork, grouped: " + groups.join(", "));
@@ -137,6 +150,10 @@ async function typeResults(page, id, vals){
   log("The lab sees the request; re-assaying clears it");
   await H.tab(Tc, "board"); await Tc.waitForSelector("#bdReq", { timeout: 8000 }).catch(() => {});
   check((await text(Tc, "#bdReq")).includes(t1) && /repeat from the kept solution/.test(await text(Tc, "#bdReq")), "the board lists the re-assay request: " + await text(Tc, "#bdReq"));
+  await Tc.click('[data-bpick="req"]'); await Tc.waitForSelector("#bdPick", { timeout: 5000 }).catch(() => {});
+  check((await text(Tc, "#bdPick")).includes(t1) && /Requested by Plant Metallurgist/.test(await text(Tc, "#bdPick")) && !!(await Tc.$(`#bdPick [data-open="${t1}"]`)), "v24c: the Re-assay requested tile opens its list, each sample a link: " + (await text(Tc, "#bdPick")).slice(0, 160));
+  await Tc.click('#bdPick [data-bpick="req"]'); await Tc.waitForTimeout(200);
+  check(!(await Tc.$("#bdPick")), "Close puts the board back");
   await open(Tc, t1);
   check(/Re-assay requested by Plant Metallurgist \(Metallurgy\)/.test(await text(Tc, "#reqNote")) && await Tc.$eval("#redoBox", d => d.open) && await Tc.$eval("#redoWhy", s => s.value) === "Requested on evaluation",
     "the record shows the request and opens Re-assay with its reason");
@@ -153,7 +170,18 @@ async function typeResults(page, id, vals){
   log("Board, Storage, Ledger, Routes");
   await H.tab(Tc, "board"); await Tc.waitForTimeout(400);
   const zeros = await Tc.$$eval("div.stat.tile", ts => ts.map(t => [t.classList.contains("zero"), +t.querySelector(".n").textContent]));
-  check(zeros.length && zeros.every(([z, n]) => z === (n === 0)), "board tiles with nothing in them are marked as empty, the others are not");
+  check(zeros.length && zeros.every(([z, n]) => z && n === 0), "only tiles with nothing in them are not buttons, and they are marked empty");
+  const btns = await Tc.$$eval("button.stat.tile", ts => ts.map(t => [t.dataset.bpick || "", +t.querySelector(".n").textContent]));
+  check(btns.length && btns.every(([k, n]) => k && n > 0), "every tile with a number is a button that opens its list: " + btns.map(b => b.join("=")).join(", "));
+  const relT = btns.find(b => b[0] === "rel");
+  check(relT && relT[1] > 0, "Results released today counts today's releases: " + JSON.stringify(relT));
+  await Tc.click('[data-bpick="rel"]'); await Tc.waitForSelector("#bdPick", { timeout: 5000 }).catch(() => {});
+  const pk = await Tc.$$eval("#bdPick tbody tr", rs => rs.length);
+  check(pk === relT[1] && /Released /.test(await text(Tc, "#bdPick")) && (await text(Tc, "#bdPick")).includes(b1), "clicking it lists every sample released today, with the time (" + pk + ")");
+  await Tc.click(`#bdPick [data-open="${b1}"]`); await Tc.waitForTimeout(400);
+  check(/Sample ID|Workflow/i.test(await text(Tc, "#view-track")) && (await text(Tc, "#view-track")).includes(b1), "a sample in the list opens its record");
+  await H.tab(Tc, "board"); await Tc.waitForTimeout(300);
+  for (const b of btns.filter(b => b[0] !== "rel")){ await Tc.click(`[data-bpick="${b[0]}"]`); await Tc.waitForTimeout(200); const n = await Tc.$$eval("#bdPick tbody tr", rs => rs.length).catch(() => 0); check(n > 0, `the ${b[0]} tile opens a list of ${n}`); await Tc.click(`#bdPick [data-bpick="${b[0]}"]`).catch(() => {}); await Tc.waitForTimeout(150); }
   check(!(await Tc.$('[data-bpick="qc"]')) && !/QC to act on/.test(await text(Tc, "#view-board")), "the lab's board has no QC-to-act-on tile");
   await H.tab(Tc, "storage"); await Tc.waitForTimeout(400);
   check((await Tc.$$("#view-storage .cstats .stat")).length === 5 && await Tc.$$eval("#view-storage [data-stshow]", b => b.length) === 5, "Storage: five coloured summary cards that filter");
@@ -173,13 +201,14 @@ async function typeResults(page, id, vals){
   const hd = await Tc.$$eval("#rtList > h3", hs => hs.map(h => h.textContent));
   check(new Set(hd).size === hd.length, "each route group appears once: " + hd.join(", "));
 
-  log("Testwork: the products of a bottle roll come in as the site's sample type, marked by what they are for");
-  await fillForm(Tc, "register", { section: "MET", type: "core", purpose: "met_br", test: "ausx", submitter: "Met lab", count: 1, tags: "BR-014-24H", details: { hole: "KDD-0231" } });
+  log("Testwork: the products of a bottle roll come in as a sample type the lab has, marked by what they are for");
+  await fillForm(Tc, "register", { section: "MET", type: "plant_feed", purpose: "met_br", test: "ausx", submitter: "Met lab", count: 1, tags: "BR-014-24H", details: { point: "CIL feed" } });
   const [w1] = await ids(Tc);
-  check(doc(w1).route === "AUSX" && doc(w1).purpose === "Bottle roll test" && doc(w1).purposeKey === "met_br" && doc(w1).typeKey === "core", "a bottle roll solution from drill core goes on the AuSx route, its purpose Bottle roll test");
+  check(doc(w1).route === "AUSX" && doc(w1).purpose === "Bottle roll test" && doc(w1).purposeKey === "met_br" && doc(w1).typeKey === "plant_feed", "a bottle roll solution on mill feed goes on the AuSx route, its purpose Bottle roll test");
 
-  log("Font: a step larger");
-  check(await Tc.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize)) === 16 && await Tc.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".small") || document.body).fontSize)) >= 14, "body text 16 px, small text 14 px");
+  log("Font: larger again (v24c)");
+  check(await Tc.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize)) === 17 && await Tc.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".small") || document.body).fontSize)) >= 15
+    && await Tc.evaluate(() => parseFloat(getComputedStyle(document.querySelector("label.f") || document.body).fontSize)) >= 16, "v24c: body text 17 px, labels 16 px, small text 15 px");
 
   log("Any file is accepted: a PDF on a sample still in preparation, a CSV that names no samples");
   await fillForm(Tc, "register", { section: "PLT", type: "belt", purpose: "plant", test: "aufx_m", submitter: "Shift boss", count: 1, tags: "BC-0700", details: { point: "Mill feed conveyor" } });

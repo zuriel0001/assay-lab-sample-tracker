@@ -1,22 +1,29 @@
 /* v24: a size larger, restrained colour, and the new pieces (departments, evaluation, Results tab, concise routes). */
-/* Type a step larger: 16 px body, nothing that carries meaning under 13 px. */
-body{font-size:16px;line-height:1.5}
-.small,.subtle,.st-note,.st-meta,.hist time,.prog-t,.mock,.daychip,td.note{font-size:14px}
-label.f,.legend,dl.facts dt,.stat .l,.stat.tile .l{font-size:14px}
-.who,header.top .who{font-size:14px}
-.pill{font-size:13px;padding:3px 10px;max-width:100%;white-space:normal}
-th{font-size:13px}
-.chip .cid{font-size:14px}
-.chip .cmeta{font-size:13px}
-.code{font-size:13px}
-ol.steps li,.tchip{font-size:14px}
-.btn.small{font-size:14px}
-.ph-tag{font-size:12px}
-.haz,.chip .rc,.chip .urg{font-size:12px}
-.numhint,.qa-pick{font-size:13px}
-@media (max-width:760px){.stat.tile .l{font-size:13px}header.top .pill,header.top .who{font-size:13px}}
+/* Type larger again (v24c: "the page font looks too small"): 17 px body, secondary text 15 px, nothing that carries meaning under 13 px. */
+body{font-size:17px;line-height:1.5}
+.small,.subtle,.st-note,.st-meta,.hist time,.prog-t,.mock,.daychip,td.note,.muted.small,.pick-note,.recon{font-size:15px}
+label,label.f,.legend{font-size:16px}
+dl.facts dt,.stat .l,.stat.tile .l,.today .l,.cat-name{font-size:15px}
+.who,header.top .who{font-size:15px}
+.notice{font-size:15px}
+.pill{font-size:14px;padding:3px 10px;max-width:100%;white-space:normal}
+th{font-size:14px}
+td{font-size:16px}
+.chip .cid{font-size:16px}
+.chip .cmeta{font-size:15px}
+.lane h4{font-size:17px}
+.code{font-size:14px}
+ol.steps li,.tchip{font-size:15px}
+.btn.small{font-size:15px}
+input:not([type=checkbox]):not([type=radio]),.f select,.f textarea,.inp,select{font-size:16px}
+.ph-tag{font-size:13px}
+.haz,.chip .rc,.chip .urg{font-size:13px}
+.numhint,.qa-pick{font-size:14px}
+small{font-size:13px}
+h4{font-size:14px}
+@media (max-width:760px){.stat.tile .l{font-size:14px}header.top .pill,header.top .who{font-size:14px}.chip .cmeta{font-size:14px}}
 
-nav.tabs button{padding:10px 12px}
+nav.tabs button{padding:10px 12px;font-size:17px}
 nav.tabs .count.flag{background:var(--bad-soft);color:var(--bad)}
 
 /* Colour, v24c: the Sample tab's way. Panels stay white; meaning is carried by soft tints (as the released box), coloured pills and dots,
@@ -49,7 +56,7 @@ button.stat.tile:hover,.cstats button.stat:hover{border-color:var(--t,var(--mute
 #view-storage tr.st-soon td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
 #view-storage tr.st-noloc td:first-child{box-shadow:inset 4px 0 0 var(--c-violet)}
 #view-storage tr.st-ok td:first-child{box-shadow:inset 4px 0 0 var(--ok)}
-.dirp{display:inline-block;font-family:var(--f-mono);font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em}
+.dirp{display:inline-block;font-family:var(--f-mono);font-size:13px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em}
 .dirp.dir-in{background:var(--ok-soft);color:var(--ok)}.dirp.dir-out{background:var(--warn-soft);color:var(--warn)}.dirp.dir-rev{background:var(--soft);color:var(--muted)}
 
 /* Submit / Register: three short steps on white cards; the step number is solid gold, as the Track button, and the sample type shows its group's colour. */
@@ -60,7 +67,7 @@ button.stat.tile:hover,.cstats button.stat:hover{border-color:var(--t,var(--mute
 .sub-t .num{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:15px;flex:none}
 .sub-step .form{margin:0}
 .sub-form select,.sub-form input:not([type=checkbox]):not([type=radio]){min-height:46px}
-.typechip{display:inline-block;font-family:var(--f-body);font-weight:600;font-size:13px;margin-left:auto;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--muted)}
+.typechip{display:inline-block;font-family:var(--f-body);font-weight:600;font-size:14px;margin-left:auto;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--muted)}
 .typechip:empty{display:none}
 .typechip.t-ore{background:var(--c-ore-soft);color:var(--c-ore)}
 .typechip.t-plant{background:var(--c-plant-soft);color:var(--c-plant)}
@@ -90,11 +97,11 @@ details.more-panel > summary h3{margin:0}
 /* Evaluation, re-assay requests and the Results tab */
 .evalbox{border:1px solid transparent;border-radius:10px;padding:12px 14px;background:var(--info-soft);gap:10px}
 ul.flags{margin:0;padding:0;list-style:none;display:grid;gap:4px}
-ul.flags li{font-size:14px;padding:4px 10px;border-radius:6px;background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn)}
+ul.flags li{font-size:15px;padding:4px 10px;border-radius:6px;background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn)}
 ul.flags li.bad{background:var(--bad-soft);border-left-color:var(--bad)}
 .seg .ev-ok input:checked+span{color:var(--ok)}.seg .ev-query input:checked+span{color:var(--warn)}.seg .ev-redo input:checked+span{color:var(--bad)}
 ul.evlist{margin:0;padding:0;list-style:none;display:grid;gap:6px}
-ul.evlist li{font-size:15px}
+ul.evlist li{font-size:16px}
 .evform{display:grid;gap:8px}
 .evform .seg span{padding:0 14px}
 table.restbl tr.due td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
@@ -102,8 +109,8 @@ table.restbl tr.due td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
 /* Routes: facts in a few lines, the steps as a row of soft chips coloured by phase (as the legend). */
 .rt-facts{display:grid;gap:3px}
 ol.flow{list-style:none;margin:6px 0 2px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
-ol.flow li{position:relative;display:inline-flex;align-items:baseline;gap:6px;font-size:14px;padding:4px 10px;border-radius:6px;background:var(--soft);border-left:4px solid var(--line)}
-ol.flow li i{font-style:normal;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+ol.flow li{position:relative;display:inline-flex;align-items:baseline;gap:6px;font-size:15px;padding:4px 10px;border-radius:6px;background:var(--soft);border-left:4px solid var(--line)}
+ol.flow li i{font-style:normal;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
 ol.flow li.ph-intake{background:var(--info-soft)}
 ol.flow li.ph-prep{background:var(--warn-soft)}
 ol.flow li.ph-test{background:var(--accent-soft)}
@@ -119,3 +126,11 @@ details.route > summary .subtle{white-space:nowrap}
 .cat-row .tchip:hover{border-color:var(--muted)}
 details.route-mini{background:var(--accent-soft);border-color:transparent}
 details.route-mini .code{background:var(--panel)}
+.today button.zero{cursor:default;box-shadow:none}
+.today button.zero .n{color:var(--muted)}
+.today button.zero:hover{border-color:var(--line)}
+/* Board: the list a tile opens */
+.pick-list{gap:8px}
+.pick-list .pick-note{flex-wrap:wrap}
+/* With the larger type a date and its pill no longer fit one line on a phone card: let card cells wrap. */
+@media (max-width:760px){table.cardy td{white-space:normal!important;overflow-wrap:anywhere}}

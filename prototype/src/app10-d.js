@@ -17,13 +17,17 @@ function renderBoard(){
   const qcAct = inProc.filter(s => Object.values(labsOf(s)).some(l => l.q === "fail" || l.q === "warn"));
   // Release at once: limits and QC are for the people who evaluate (Results tab); the lab's board shows only the lab's work.
   const alerts = isStaff() && !relNow() ? list.filter(s => (s.results || s.amend) && openAlerts(s).length) : [], trends = isStaff() && (!relNow() || canEval()) ? crmTrendFlags() : [];
-  const relN = [...releasedToday.values()].filter(pass).length;
   const unstored = list.filter(s => s.stageKey === "released" && stageDue(s) && Date.now() > stageDue(s)), notStored = unstored.length;
-  const dueNow = Date.now(), dueL = [...list.filter(s => overdueMaterials(s).length).map(s => ({ sec: s.section, route: s.route || "", n: overdueMaterials(s).length })),
-    ...[...storeDue.values()].filter(x => !samples.has(x.id)).map(x => ({ sec: x.sec, route: x.route, n: x.m.filter(m => m.dueAt && dueNow > m.dueAt).length }))]
+  const dueNow = Date.now(), dueL = [...list.filter(s => overdueMaterials(s).length).map(s => ({ id: s.id, s, sec: s.section, route: s.route || "", items: overdueMaterials(s).map(m => m.item), n: overdueMaterials(s).length })),
+    ...[...storeDue.values()].filter(x => !samples.has(x.id)).map(x => { const ms = (x.m || []).filter(m => m.dueAt && dueNow > m.dueAt); return { id: x.id, sec: x.sec, route: x.route, type: x.type, items: ms.map(m => m.item || "Material"), n: ms.length }; })]
     .filter(x => x.n && (!boardSec || x.sec === boardSec) && (!boardRoute || x.route === boardRoute));
   const dueS = dueL, dueM = dueL.reduce((n, x) => n + x.n, 0);
   const flagged = waiting.filter(s => s.flag).length;
+  const relL = [...releasedToday.values()].filter(pass), reqL = isStaff() ? [...reqs.values()].filter(pass) : [];
+  // v24c: every tile with a number opens the list of what it counts (and the lanes narrow to those samples when they are in the lab).
+  const stName = s => { try { return stage(s, s.stageKey)?.name || ""; } catch { return ""; } };
+  const sRow = (s, where) => ({ id: s.id, type: s.type || typeOf(s.typeKey)?.name || "", what: [testOf(s.test)?.name, s.route].filter(Boolean).join(" · "), where: where ?? stName(s) });
+  const lastRedo = s => (s.evals || []).filter(x => x.v === "redo").at(-1);
   // Summary tiles, zeros included: a tile with samples filters the board to them, a tile with a tab opens it.
   const sums = [
     { k: "await", n: waiting.length, l: `Awaiting receipt${flagged ? `, ${flagged} flagged` : ""}`, tone: flagged ? "warn" : "info", pick: waiting },
@@ -33,19 +37,29 @@ function renderBoard(){
     ...(canEdit() ? [batchesRequired() ? { k: "nobatch", n: noBatch.length, l: "Waiting for a lab batch", tone: "info", pick: noBatch } : { k: "relready", n: relReady.length, l: "Ready for release", tone: "ok", pick: relReady },
       ...(!relNow() ? [{ k: "qc", n: qcAct.length, l: "In a batch with QC to act on", tone: "warn", pick: qcAct }] : [])] : []),
     ...(isStaff() && !relNow() ? [{ k: "alerts", n: alerts.length, l: "Results past an action or permit limit, not yet recorded", tone: "bad", pick: alerts }] : []),
-    ...(isStaff() && (!relNow() || canEval()) ? [{ k: "trends", n: trends.length, l: "Reference material trends", tone: "warn", go: "batches" }] : []),
-    ...(isStaff() ? [{ k: "req", n: reqs.size, l: "Re-assay requested", tone: "bad" }] : []),
-    { k: "rel", n: relN, l: "Results released today", tone: "ok" },
+    ...(isStaff() && (!relNow() || canEval()) ? [{ k: "trends", n: trends.length, l: "Reference material trends", tone: "warn", link: ["batches", "Open Lab batches"],
+      rows: trends.map(t => ({ id: "", type: t.crm + (t.k ? " " + t.k : ""), what: t.b ? "Batch " + t.b : "", where: t.msg })) }] : []),
+    ...(isStaff() ? [{ k: "req", n: reqL.length, l: "Re-assay requested", tone: "bad", rows: reqL.map(s => { const e = lastRedo(s); return sRow(s, "Requested" + (e ? ` by ${e.tech}${e.note ? ": " + e.note : ""}` : "")); }) }] : []),
+    { k: "rel", n: relL.length, l: "Results released today", tone: "ok", rows: relL.map(s => sRow(s, "Released " + fmt(s.relAt))) },
     { k: "unstored", n: notStored, l: "Released, not yet put in storage", tone: "warn", pick: unstored },
-    { k: "retention", n: dueM, l: `Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}`, tone: "warn", go: allowedTabs().includes("storage") ? "storage" : "" },
+    { k: "retention", n: dueM, l: `Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}`, tone: "warn", link: ["storage", "Open Storage"],
+      rows: dueS.map(x => x.s ? sRow(x.s, x.items.join(", ") + " past retention") : { id: x.id, type: x.type || "", what: x.route || "", where: x.items.join(", ") + " past retention" }) },
     { k: "recvToday", n: list.filter(s => isToday(recvOf(s))).length, l: "Received today", tone: "", pick: list.filter(s => isToday(recvOf(s))), hide: true },
     { k: "dueToday", n: list.filter(dueToday).length, l: "Results due today", tone: "", pick: list.filter(dueToday), hide: true }
   ];
-  const cur = sums.find(x => x.k === boardPick && x.pick);
+  sums.forEach(x => { if (!x.rows) x.rows = (x.pick || []).map(s => sRow(s)); if (x.link && !allowedTabs().includes(x.link[0])) delete x.link; });
+  const cur = sums.find(x => x.k === boardPick && x.n);
   if (boardPick && !cur) boardPick = "";
-  const shown = cur ? new Set(cur.pick) : null;
+  const shown = cur && cur.pick ? new Set(cur.pick) : null;
+  const pickHtml = !cur ? "" : `<div class="panel pick-list stack" id="bdPick">
+      <div class="pick-note"><span>Showing <b>${esc(cur.l)}</b>: ${cur.n}</span>${cur.link ? `<button type="button" class="btn small" data-goto="${cur.link[0]}">${esc(cur.link[1])}</button>` : ""}<span class="grow"></span><button type="button" class="btn ghost small" data-bpick="${cur.k}">Close</button></div>
+      ${cur.rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>${cur.k === "trends" ? "Reference material" : "Sample"}</th>${cur.k === "trends" ? "" : "<th>Type</th>"}<th>${cur.k === "trends" ? "Batch" : "Analysis · route"}</th><th>${cur.k === "trends" ? "Trend" : "Where it is"}</th></tr></thead><tbody>${cur.rows.slice(0, 100).map(r => cur.k === "trends"
+        ? `<tr><td>${esc(r.type)}</td><td class="mono">${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`
+        : `<tr><td>${r.id ? `<button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>` : "—"}</td><td>${esc(r.type)}</td><td>${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="small muted">Nothing to list on this device yet.</div>`}
+      ${cur.rows.length > 100 ? `<div class="small muted">+${cur.rows.length - 100} more: use the filters or look a sample up by ID</div>` : ""}
+      ${shown ? `<div class="small muted">The lanes below show only these samples.</div>` : ""}</div>`;
   const sumHtml = sums.filter(x => !x.hide).map(x => {
-    const act = !x.n ? "" : x.pick ? `data-bpick="${x.k}" aria-pressed="${boardPick === x.k}"` : x.go ? `data-goto="${x.go}"` : "", inner = `<span class="n">${x.n}</span><span class="l">${esc(x.l)}</span>`;
+    const act = !x.n ? "" : `data-bpick="${x.k}" aria-pressed="${boardPick === x.k}"`, inner = `<span class="n">${x.n}</span><span class="l">${esc(x.l)}</span>`;
     return act ? `<button type="button" class="stat tile ${x.tone}" ${act}>${inner}</button>` : `<div class="stat tile ${x.tone}${x.n ? "" : " zero"}">${inner}</div>`;
   }).join("");
   const filters = `<div class="bd-top bd-tools">
@@ -97,7 +111,7 @@ function renderBoard(){
     ${filters}
     <div class="stats tiles">${sumHtml}</div>
     ${boardReqNote()}
-    ${cur ? `<div class="pick-note"><span>Showing <b>${esc(cur.l.toLowerCase())}</b>: ${cur.n}</span><button type="button" class="btn ghost small" data-bpick="${cur.k}">Show all</button></div>` : ""}
+    ${pickHtml}
     ${alerts.length ? `<div class="notice bad" id="bdAlerts"><b>Past a limit:</b> ${alerts.slice(0, 12).map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button> <span class="small">${esc(openAlerts(s).map(h => alertLine(s, h)).join("; "))}</span>`).join("<br>")}${alerts.length > 12 ? `<br>+${alerts.length - 12} more` : ""}<div class="small">Open each sample, act as the limit says and record what was done and who was told. In the production system these also go out by email or SMS.</div></div>` : ""}
     ${trends.length ? `<div class="notice warn" id="bdTrends"><b>Reference material trends:</b> ${esc(trends.map(t => `${t.crm}${t.k ? " " + t.k : ""}: ${t.msg}`).join("; "))}. See the control chart on the <button type="button" class="linkish" data-goto="batches">Lab batches</button> tab.</div>` : ""}
     <div class="lanes">${lanes}</div></div>`;
@@ -209,7 +223,7 @@ function renderSampleForm(mode){
     if (pur && !pu.dataset.touched){ pu.value = pur; $("#rWhyBox", v).hidden = pu.value !== "other"; secFor(); }
     chip();
     const keep = te.dataset.touched ? te.value : "";
-    te.innerHTML = testOptions(ty.value, "", pu.value);
+    te.innerHTML = testOptions(ty.value);
     te.value = keep || defaultTest(ty.value, pu.value);
     if (!te.value) te.value = defaultTest(ty.value, pu.value);
     if (!hz.dataset.touched) HAZARDS.forEach(h => { $("#rHz_" + h.k, v).checked = (typeOf(ty.value)?.haz || []).includes(h.k); });
@@ -217,7 +231,7 @@ function renderSampleForm(mode){
   };
   pu.onchange = () => {
     pu.dataset.touched = "1"; $("#rWhyBox", v).hidden = pu.value !== "other"; secFor();
-    if (ty.value){ const cur = te.value; te.innerHTML = testOptions(ty.value, "", pu.value); te.value = te.dataset.touched && [...te.options].some(o => o.value === cur) ? cur : defaultTest(ty.value, pu.value); }
+    if (ty.value && !te.dataset.touched) te.value = defaultTest(ty.value, pu.value);
     refreshFormRoute();
   };
   te.onchange = () => { te.dataset.touched = "1"; refreshFormRoute(); };

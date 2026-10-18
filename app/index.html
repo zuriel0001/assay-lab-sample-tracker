@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 fdd60bbf3ad2) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 720e018e98cc) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -648,24 +648,31 @@ details.route-mini .route-box{margin:0}
 }
 @media print{.sug,.recent{display:none!important}}
 /* v24: a size larger, restrained colour, and the new pieces (departments, evaluation, Results tab, concise routes). */
-/* Type a step larger: 16 px body, nothing that carries meaning under 13 px. */
-body{font-size:16px;line-height:1.5}
-.small,.subtle,.st-note,.st-meta,.hist time,.prog-t,.mock,.daychip,td.note{font-size:14px}
-label.f,.legend,dl.facts dt,.stat .l,.stat.tile .l{font-size:14px}
-.who,header.top .who{font-size:14px}
-.pill{font-size:13px;padding:3px 10px;max-width:100%;white-space:normal}
-th{font-size:13px}
-.chip .cid{font-size:14px}
-.chip .cmeta{font-size:13px}
-.code{font-size:13px}
-ol.steps li,.tchip{font-size:14px}
-.btn.small{font-size:14px}
-.ph-tag{font-size:12px}
-.haz,.chip .rc,.chip .urg{font-size:12px}
-.numhint,.qa-pick{font-size:13px}
-@media (max-width:760px){.stat.tile .l{font-size:13px}header.top .pill,header.top .who{font-size:13px}}
+/* Type larger again (v24c: "the page font looks too small"): 17 px body, secondary text 15 px, nothing that carries meaning under 13 px. */
+body{font-size:17px;line-height:1.5}
+.small,.subtle,.st-note,.st-meta,.hist time,.prog-t,.mock,.daychip,td.note,.muted.small,.pick-note,.recon{font-size:15px}
+label,label.f,.legend{font-size:16px}
+dl.facts dt,.stat .l,.stat.tile .l,.today .l,.cat-name{font-size:15px}
+.who,header.top .who{font-size:15px}
+.notice{font-size:15px}
+.pill{font-size:14px;padding:3px 10px;max-width:100%;white-space:normal}
+th{font-size:14px}
+td{font-size:16px}
+.chip .cid{font-size:16px}
+.chip .cmeta{font-size:15px}
+.lane h4{font-size:17px}
+.code{font-size:14px}
+ol.steps li,.tchip{font-size:15px}
+.btn.small{font-size:15px}
+input:not([type=checkbox]):not([type=radio]),.f select,.f textarea,.inp,select{font-size:16px}
+.ph-tag{font-size:13px}
+.haz,.chip .rc,.chip .urg{font-size:13px}
+.numhint,.qa-pick{font-size:14px}
+small{font-size:13px}
+h4{font-size:14px}
+@media (max-width:760px){.stat.tile .l{font-size:14px}header.top .pill,header.top .who{font-size:14px}.chip .cmeta{font-size:14px}}
 
-nav.tabs button{padding:10px 12px}
+nav.tabs button{padding:10px 12px;font-size:17px}
 nav.tabs .count.flag{background:var(--bad-soft);color:var(--bad)}
 
 /* Colour, v24c: the Sample tab's way. Panels stay white; meaning is carried by soft tints (as the released box), coloured pills and dots,
@@ -698,7 +705,7 @@ button.stat.tile:hover,.cstats button.stat:hover{border-color:var(--t,var(--mute
 #view-storage tr.st-soon td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
 #view-storage tr.st-noloc td:first-child{box-shadow:inset 4px 0 0 var(--c-violet)}
 #view-storage tr.st-ok td:first-child{box-shadow:inset 4px 0 0 var(--ok)}
-.dirp{display:inline-block;font-family:var(--f-mono);font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em}
+.dirp{display:inline-block;font-family:var(--f-mono);font-size:13px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em}
 .dirp.dir-in{background:var(--ok-soft);color:var(--ok)}.dirp.dir-out{background:var(--warn-soft);color:var(--warn)}.dirp.dir-rev{background:var(--soft);color:var(--muted)}
 
 /* Submit / Register: three short steps on white cards; the step number is solid gold, as the Track button, and the sample type shows its group's colour. */
@@ -709,7 +716,7 @@ button.stat.tile:hover,.cstats button.stat:hover{border-color:var(--t,var(--mute
 .sub-t .num{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:15px;flex:none}
 .sub-step .form{margin:0}
 .sub-form select,.sub-form input:not([type=checkbox]):not([type=radio]){min-height:46px}
-.typechip{display:inline-block;font-family:var(--f-body);font-weight:600;font-size:13px;margin-left:auto;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--muted)}
+.typechip{display:inline-block;font-family:var(--f-body);font-weight:600;font-size:14px;margin-left:auto;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--muted)}
 .typechip:empty{display:none}
 .typechip.t-ore{background:var(--c-ore-soft);color:var(--c-ore)}
 .typechip.t-plant{background:var(--c-plant-soft);color:var(--c-plant)}
@@ -739,11 +746,11 @@ details.more-panel > summary h3{margin:0}
 /* Evaluation, re-assay requests and the Results tab */
 .evalbox{border:1px solid transparent;border-radius:10px;padding:12px 14px;background:var(--info-soft);gap:10px}
 ul.flags{margin:0;padding:0;list-style:none;display:grid;gap:4px}
-ul.flags li{font-size:14px;padding:4px 10px;border-radius:6px;background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn)}
+ul.flags li{font-size:15px;padding:4px 10px;border-radius:6px;background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn)}
 ul.flags li.bad{background:var(--bad-soft);border-left-color:var(--bad)}
 .seg .ev-ok input:checked+span{color:var(--ok)}.seg .ev-query input:checked+span{color:var(--warn)}.seg .ev-redo input:checked+span{color:var(--bad)}
 ul.evlist{margin:0;padding:0;list-style:none;display:grid;gap:6px}
-ul.evlist li{font-size:15px}
+ul.evlist li{font-size:16px}
 .evform{display:grid;gap:8px}
 .evform .seg span{padding:0 14px}
 table.restbl tr.due td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
@@ -751,8 +758,8 @@ table.restbl tr.due td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
 /* Routes: facts in a few lines, the steps as a row of soft chips coloured by phase (as the legend). */
 .rt-facts{display:grid;gap:3px}
 ol.flow{list-style:none;margin:6px 0 2px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
-ol.flow li{position:relative;display:inline-flex;align-items:baseline;gap:6px;font-size:14px;padding:4px 10px;border-radius:6px;background:var(--soft);border-left:4px solid var(--line)}
-ol.flow li i{font-style:normal;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+ol.flow li{position:relative;display:inline-flex;align-items:baseline;gap:6px;font-size:15px;padding:4px 10px;border-radius:6px;background:var(--soft);border-left:4px solid var(--line)}
+ol.flow li i{font-style:normal;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
 ol.flow li.ph-intake{background:var(--info-soft)}
 ol.flow li.ph-prep{background:var(--warn-soft)}
 ol.flow li.ph-test{background:var(--accent-soft)}
@@ -768,6 +775,14 @@ details.route > summary .subtle{white-space:nowrap}
 .cat-row .tchip:hover{border-color:var(--muted)}
 details.route-mini{background:var(--accent-soft);border-color:transparent}
 details.route-mini .code{background:var(--panel)}
+.today button.zero{cursor:default;box-shadow:none}
+.today button.zero .n{color:var(--muted)}
+.today button.zero:hover{border-color:var(--line)}
+/* Board: the list a tile opens */
+.pick-list{gap:8px}
+.pick-list .pick-note{flex-wrap:wrap}
+/* With the larger type a date and its pill no longer fit one line on a phone card: let card cells wrap. */
+@media (max-width:760px){table.cardy td{white-space:normal!important;overflow-wrap:anywhere}}
 </style>
 
 <div class="wrap">
@@ -925,19 +940,19 @@ const BELT_PTS = ["Mill feed conveyor", "Crusher product conveyor", "Stockpile r
 /* tests: recommended tests for the type, first = default (the first one a route in use performs). pur: the usual purpose. fields: extra details
    asked at submission. check: what the technician checks at receipt. */
 const TYPES = [
-  { key: "rc", group: "Ore (mine & exploration)", pur: "exp", name: "RC chips (reverse circulation)", tests: ["fa_aas", "fa_grav", "sfa", "cn_sol", "icp", "leco", "moisture", "density"],
+  { key: "rc", group: "Ore (mine & exploration)", pur: "exp", name: "RC chips (reverse circulation)", tests: ["fa_aas", "fa_grav", "sfa", "cn_sol", "icp", "leco"],
     fields: [{ k: "hole", l: "Hole ID", ph: "e.g. KRC-0412" }, { k: "from", l: "From (m)", t: "number" }, { k: "to", l: "To (m)", t: "number" }, { k: "cond", l: "Sample condition", o: ["Dry", "Moist", "Wet"] }],
     check: "Bag count and numbers match the sheet; wet or split bags noted." },
   { key: "core", group: "Ore (mine & exploration)", pur: "exp", name: "Diamond drill core", tests: ["fa_aas", "fa_grav", "sfa", "cn_sol", "icp", "leco", "moisture", "density", "delet"],
     fields: [{ k: "hole", l: "Hole ID", ph: "e.g. KDD-0231" }, { k: "from", l: "From (m)", t: "number" }, { k: "to", l: "To (m)", t: "number" }, { k: "size", l: "Core size", o: ["PQ", "HQ", "NQ", "BQ"] }, { k: "cut", l: "Core portion", o: ["Half core", "Quarter core", "Whole core"] }],
     check: "Bags or trays match the cut sheet; intervals continuous, no gaps or overlaps." },
-  { key: "gc_bh", group: "Ore (mine & exploration)", pur: "gc", name: "Grade control blast-hole cuttings", tests: ["fa_aas", "fa_grav", "moisture"],
+  { key: "gc_bh", group: "Ore (mine & exploration)", pur: "gc", name: "Grade control blast-hole cuttings", tests: ["fa_aas", "fa_grav"],
     fields: [{ k: "pit", l: "Pit" }, { k: "bench", l: "Bench / RL" }, { k: "pattern", l: "Blast pattern", ph: "e.g. P2-1140-07" }, { k: "holeno", l: "Hole number(s)" }],
     check: "Pattern and hole numbers match the sheet; samples arrive before the dig plan deadline." },
-  { key: "channel", group: "Ore (mine & exploration)", pur: "exp", name: "Channel / grab / trench sample", tests: ["fa_aas", "fa_grav", "sfa", "icp", "density"],
+  { key: "channel", group: "Ore (mine & exploration)", pur: "exp", name: "Channel / grab / trench sample", tests: ["fa_aas", "fa_grav", "sfa", "icp"],
     fields: [{ k: "loc", l: "Face / trench location" }, { k: "len", l: "Sample length (m)", t: "number" }],
     check: "Labels legible; sample length recorded." },
-  { key: "rom", group: "Ore (mine & exploration)", pur: "recon", name: "ROM ore / stockpile", tests: ["fa_aas", "fa_grav", "moisture", "psd", "cn_sol", "density", "delet"],
+  { key: "rom", group: "Ore (mine & exploration)", pur: "recon", name: "ROM ore / stockpile", tests: ["fa_aas", "fa_grav", "moisture", "psd", "density"],
     fields: [{ k: "pile", l: "Stockpile / truck reference" }, SHIFT],
     check: "Stockpile or truck reference recorded." },
   { key: "soil_geo", group: "Ore (mine & exploration)", pur: "exp", name: "Soil / stream sediment (geochemistry)", tests: ["ar_au", "fa_aas", "icp"],
@@ -946,7 +961,7 @@ const TYPES = [
   { key: "belt", group: "Processing (crusher to TSF)", pur: "plant", name: "Belt cut sample (crusher / conveyor)", tests: ["aufx_m", "aufx", "moisture", "psd"],
     fields: [{ k: "point", l: "Conveyor", o: BELT_PTS }, SHIFT, { k: "time", l: "Cut time", ph: "e.g. 14:30" }],
     check: "Full cut in a sealed bag, conveyor and time labelled; weighed wet on arrival." },
-  { key: "plant_feed", group: "Processing (crusher to TSF)", pur: "plant", name: "Mill sample", tests: ["aufx_ausx", "aufx", "ausx", "cn_only", "psd", "moisture"],
+  { key: "plant_feed", group: "Processing (crusher to TSF)", pur: "plant", name: "Mill sample", tests: ["aufx_ausx", "aufx", "ausx", "cn_only", "psd"],
     fields: [{ k: "point", l: "Sampling point", o: MILL_PTS }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
     check: "Shift and sampling point labelled; bucket sealed with no spillage." },
   { key: "ccd", group: "Processing (crusher to TSF)", pur: "plant", name: "CCD sample", hold: 24, holdWhat: "solution gold (solution not separated)", haz: ["cn"], tests: ["aufx_ausx_cn", "ausx_cn", "cn_only", "aufx_ausx", "ausx", "aufx"],
@@ -1378,7 +1393,7 @@ const DEFAULT_ROUTES = [
     qc: "Cyanide check standard every batch; duplicates within 10%; field blank where supplied.",
     triggers: ["WAD cyanide above 50 mg/L at discharge or in the pond: alert Environment immediately", "Solids Au more than 20% above plant tails grade: repeat"],
     retention: [{ item: "Solids", days: 90, then: "Disposed" }, { item: "Solutions", days: 30, then: "Cyanide destroyed, disposed" }] },
-  { code: "ENV-W", name: "Environmental water quality", tests: ["water"], types: ["env_water", "tsf"], purposes: ["env", "hse"],
+  { code: "ENV-W", name: "Environmental water quality", tests: ["water"], types: ["env_water"], purposes: ["env", "hse"],
     desc: "Surface, ground and discharge water against permit limits: cyanide, metals, pH, solids and anions.",
     stages: [
       S("chk", "Preservation & holding-time check", 0.5, "intake", "Cooler at 6 °C or below; CN bottle at pH above 12 (NaOH); metals bottle HNO₃ to pH below 2."),
@@ -1525,7 +1540,7 @@ const DEFAULT_ROUTES = [
     qc: "Calculated head within ±10% of the assayed head; product masses within 2% of feed.",
     triggers: ["Mass loss above 2%: repeat", "Gold recovery below 80% with sulphide left in tails: repeat at a finer grind or with a different collector"],
     retention: [{ item: "Flotation products", days: 180, then: "Disposed" }, { item: "Head reserve", days: 365, then: "Returned to MET" }] },
-  { code: "DENSITY", name: "Specific gravity & bulk density", tests: ["density"], types: ["core", "rom", "rc", "conc", "*"], purposes: ["exp", "met", "recon"],
+  { code: "DENSITY", name: "Specific gravity & bulk density", tests: ["density"], types: ["core", "rom", "*"], purposes: ["exp", "met", "recon"],
     desc: "Bulk density of core for tonnage in the resource model (water immersion, wax-coated if porous) and pulp SG by pycnometer for metallurgical calculations.",
     stages: [
       S("log", "Log core pieces & weigh", 1, "intake", "Competent pieces 10–20 cm long."),
@@ -1626,7 +1641,7 @@ const DEFAULT_ROUTES = [
     qc: "ARD reference material each batch; duplicate 1 in 20.",
     triggers: ["NAPP and NAG disagree (uncertain): run kinetic column testing", "Potentially acid-forming: notify Environment for waste-dump placement"],
     retention: [{ item: "Pulp", days: 365, then: "Disposed" }] },
-  { code: "AR-AU", name: "Soil gold: aqua regia / BLEG (low level)", tests: ["ar_au"], types: ["soil_geo", "env_soil"], purposes: ["exp"],
+  { code: "AR-AU", name: "Soil gold: aqua regia / BLEG (low level)", tests: ["ar_au"], types: ["soil_geo"], purposes: ["exp"],
     desc: "Parts-per-billion gold for soil and stream-sediment geochemistry, from a large aqua regia digest or bulk cyanide leach (BLEG).",
     stages: [
       S("sort", "Sorting & QC insertion", 0.5, "intake"),
@@ -1654,7 +1669,7 @@ const DEFAULT_ROUTES = [
     retention: [{ item: "Pulp", days: 365, then: "Kept in secure store" }] },
   /* ---- Version 23: the routes the lab runs, in its own words. Plant samples are a slurry or a solution: a slurry is filtered, the
      solution read for AuSx and the solids dried, pulverised and fire assayed for AuFx; CCD and TSF samples add cyanide (NaCN and WAD). ---- */
-  { code: "AUFX-AUSX", transit: 2, name: "Slurry: AuFx & AuSx", tests: ["aufx_ausx"], types: ["plant_feed", "ccd", "tsf"], purposes: ["plant", "recon", "met"],
+  { code: "AUFX-AUSX", transit: 2, name: "Slurry: AuFx & AuSx", tests: ["aufx_ausx"], types: ["plant_feed", "ccd"], purposes: ["plant", "recon", "met"],
     desc: "Plant slurry: filtered, the solution read for AuSx, the solids dried, pulverised and fire assayed for AuFx.",
     stages: [
       S("wet", "Weigh slurry & % solids", 0.25, "test", "pH and NaCN read now when asked: cyanide does not keep."),
@@ -2332,13 +2347,15 @@ const editedRoutes = routes => routes.filter(r => { const d = DEFAULT_ROUTES.fin
 const testRank = r => { const i = TESTS.findIndex(t => t.key === (r.tests || [])[0]); return i < 0 ? 999 : i; };
 const routeCat = r => testOf((r.tests || [])[0])?.cat || "Other";
 /* Recommended test for a sample type; the purpose can steer it (testwork, environmental, plant). */
-/* Testwork samples come from the main sites (v24c): for a testwork purpose any type also offers the leach products' analyses. */
-const TESTWORK_TESTS = ["aufx", "ausx", "aufx_ausx", "aufx_ausx_cn", "ausx_cn", "cn_only"];
+/* The analyses that apply to a sample type: its own list, plus any analysis an admin's own route (or a route put back in use) names the type for.
+   The routes in use by default name only types whose list already has their analysis, so by default this is exactly the type's list (v24c). */
+function typeTests(t){
+  const std = new Set(DEFAULT_ROUTES.filter(d => !RETIRED_ROUTES.includes(d.code)).map(d => d.code));
+  const named = liveRoutes().filter(r => (r.types || []).includes(t.key) && (!std.has(r.code) || JSON.stringify(r.types) !== JSON.stringify(DEFAULT_ROUTES.find(d => d.code === r.code)?.types))).flatMap(r => r.tests || []);
+  return [...new Set([...(t.tests || []), ...TESTS.map(x => x.key).filter(k => named.includes(k))])];
+}
 function defaultTest(typeKey, purposeKey){
-  /* The same analyses the form lists for the type (v24c): its own, those a route in use names it for, and for testwork the leach products'. */
-  const t = typeOf(typeKey), own = t?.tests || ["fa_aas"];
-  const named = t ? liveRoutes().filter(r => (r.types || []).includes(t.key)).flatMap(r => r.tests || []) : [];
-  const list = [...new Set([...own, ...TESTS.map(x => x.key).filter(k => named.includes(k)), ...(purpBase(purposeKey) === "met" ? TESTWORK_TESTS : [])])].filter(testOn);
+  const t = typeOf(typeKey), own = t?.tests || ["fa_aas"], list = (t ? typeTests(t) : own).filter(testOn);
   /* Environment may send a sample from any site (v24c). The older tests here only count when an admin has put their routes back in use. */
   const pref = { met: ["bottle", "cil_test", "pri", "grg", "diag", "commin", "cn_sol"], env: ["tsf", "water", "soil", "aba", "cn_spec"], hse: ["water", "soil"], qc: ["check"],
     plant: ["plant_solids", "ccd", "eluate", "residue", "cil_survey", "carbon", "solution"], bullion: ["bullion"] }[purposeKey] || [];
@@ -2827,7 +2844,7 @@ function renderTrack(){
       ["in", "recvToday", list.filter(s => isToday(recvOf(s))).length, "Received today"],
       ["due", "dueToday", list.filter(dueToday).length, "Results due today"],
       ["late", "late", list.filter(s => { const i = curIdx(s); return i > 0 && i < targetIdx(s) && status(s).late; }).length, "Running late"],
-      ["rel", "rel", releasedToday.size, "Results released today"]
+      ["rel", "rel", releasedToday.size, "Results released today"]   // each opens its list on the board (v24c); a zero does nothing
     ] : [];
     v.innerHTML = `<div class="stack">
       <div class="panel hero"><h2>Find a sample</h2>
@@ -2837,11 +2854,11 @@ function renderTrack(){
           ${session ? `<button class="btn" data-goto="submit">Submit a sample</button>` : `<button class="btn" data-goto="register">Register at lab</button>`}
         </div></div>
       ${staff ? `<div class="today-h"><h3>Today</h3><span class="small muted">${esc(fmtDate(Date.now()))}</span></div>
-        <div class="today">${today.map(([c, k, n, l]) => `<button type="button" class="t-${c}" data-today="${k}"><span class="n">${n}</span><span class="l">${l}</span></button>`).join("")}</div>` : ""}
+        <div class="today">${today.map(([c, k, n, l]) => `<button type="button" class="t-${c}${n ? "" : " zero"}" data-today="${k}" ${n ? "" : "disabled"}><span class="n">${n}</span><span class="l">${l}</span></button>`).join("")}</div>` : ""}
       ${recentPanel()}
     </div>`;
     $("#heroForm", v).onsubmit = e => { e.preventDefault(); openSample($("#heroInput", v).value); };
-    v.querySelectorAll("[data-today]").forEach(b => b.onclick = () => { boardPick = b.dataset.today === "rel" ? "" : b.dataset.today; setTab("board"); });
+    v.querySelectorAll("[data-today]").forEach(b => b.onclick = () => { boardPick = b.dataset.today; setTab("board"); });
     bindRecent(v); pageTitle("");
     return;
   }
@@ -3005,13 +3022,11 @@ function witnessField(id){
 }
 const meBox = label => `<label class="f"><span>${label}</span><div class="me-box">${esc(session.name)} <span class="muted small" style="font-weight:400">(you)</span></div></label>`;
 /* Tests a route in use performs: the sample type's own first, then the others by group. `sel` (a sample's own test) is always listed. */
-function testOptions(typeKey, sel = "", purposeKey = ""){
-  /* v24c: one plain list, the analyses this sample type gets (no catalogue sections): its own, then any other a route in use names it for,
-     then for testwork the leach products' analyses. Type "Other" lists every analysis in use. */
+function testOptions(typeKey, sel = ""){
+  /* v24c: one plain list of the analyses that apply to this sample type, nothing else (no catalogue sections, nothing from other sites).
+     Type "Other" lists every analysis in use. A record keeps its own analysis in the list even if it is no longer offered. */
   const t = typeOf(typeKey), on = x => x && (x.key === sel || testOn(x.key));
-  const named = () => liveRoutes().filter(r => (r.types || []).includes(t.key)).flatMap(r => r.tests || []);
-  const keys = !t ? [] : t.key === "other" ? TEST_CATS.flatMap(c => TESTS.filter(x => x.cat === c).map(x => x.key))
-    : [...(t.tests || []), ...TESTS.map(x => x.key).filter(k => named().includes(k)), ...(purpBase(purposeKey) === "met" ? TESTWORK_TESTS : [])];
+  const keys = !t ? [] : t.key === "other" ? TEST_CATS.flatMap(c => TESTS.filter(x => x.cat === c).map(x => x.key)) : typeTests(t);
   const list = [...new Set([...keys, ...(sel ? [sel] : [])])].map(testOf).filter(on);
   if (!list.length) return `<option value="">Choose the sample type first…</option>`;
   return list.map(x => `<option value="${esc(x.key)}" ${x.key === sel ? "selected" : ""}>${esc(x.name)}</option>`).join("");
@@ -3042,7 +3057,7 @@ function receiptForm(s){
       <label class="f"><span>Condition</span><select id="rcCond">${CONDITIONS.map(c => `<option>${esc(c)}</option>`).join("")}</select></label>
       ${t?.cool != null ? `<label class="f"><span>Cooler temperature on arrival (°C) <span class="req">*</span></span><input id="rcTemp" type="number" step="0.1" placeholder="Limit ${t.cool} °C"></label>` : ""}
       ${twoPerson(s) ? witnessField("rcWit") : ""}
-      <label class="f"><span>Test requested</span><select id="rcTest">${testOptions(s.typeKey, s.test, s.purposeKey)}</select></label>
+      <label class="f"><span>Test requested</span><select id="rcTest">${testOptions(s.typeKey, s.test)}</select></label>
       <label class="f"><span>Workflow route</span><select id="rcRoute"></select></label>
       <div class="full small" id="rcInfo"></div>
       <label class="f full"><span>Note <span style="font-weight:400">(needed to flag or reject, when the test changes, or when a receipt check fails)</span></span><input id="mvNote" data-clear placeholder="e.g. Bag code reads T-10422, not T-10421; bag torn"></label>
@@ -3119,7 +3134,7 @@ function moveForm(s){
     ${canRedo ? redoBox(s) : ""}
     ${ci >= 1 ? `<details class="more" id="rrBox"><summary>Change the test or workflow route</summary>
       <div class="stack" style="gap:8px;margin-top:8px">
-        <div class="form"><label class="f">Test<select class="inp" id="rrTest">${testOptions(s.typeKey, s.test, s.purposeKey)}</select></label><label class="f">Route<select class="inp" id="rrCode"></select></label></div>
+        <div class="form"><label class="f">Test<select class="inp" id="rrTest">${testOptions(s.typeKey, s.test)}</select></label><label class="f">Route<select class="inp" id="rrCode"></select></label></div>
         <p class="small muted" id="rrInfo" style="margin:0"></p>
         <div class="row"><button type="button" class="btn" id="rerouteBtn">Change route</button></div></div></details>
     <details class="more" id="cxBox"><summary>Stop testing and send the sample out</summary>
@@ -3512,13 +3527,17 @@ function renderBoard(){
   const qcAct = inProc.filter(s => Object.values(labsOf(s)).some(l => l.q === "fail" || l.q === "warn"));
   // Release at once: limits and QC are for the people who evaluate (Results tab); the lab's board shows only the lab's work.
   const alerts = isStaff() && !relNow() ? list.filter(s => (s.results || s.amend) && openAlerts(s).length) : [], trends = isStaff() && (!relNow() || canEval()) ? crmTrendFlags() : [];
-  const relN = [...releasedToday.values()].filter(pass).length;
   const unstored = list.filter(s => s.stageKey === "released" && stageDue(s) && Date.now() > stageDue(s)), notStored = unstored.length;
-  const dueNow = Date.now(), dueL = [...list.filter(s => overdueMaterials(s).length).map(s => ({ sec: s.section, route: s.route || "", n: overdueMaterials(s).length })),
-    ...[...storeDue.values()].filter(x => !samples.has(x.id)).map(x => ({ sec: x.sec, route: x.route, n: x.m.filter(m => m.dueAt && dueNow > m.dueAt).length }))]
+  const dueNow = Date.now(), dueL = [...list.filter(s => overdueMaterials(s).length).map(s => ({ id: s.id, s, sec: s.section, route: s.route || "", items: overdueMaterials(s).map(m => m.item), n: overdueMaterials(s).length })),
+    ...[...storeDue.values()].filter(x => !samples.has(x.id)).map(x => { const ms = (x.m || []).filter(m => m.dueAt && dueNow > m.dueAt); return { id: x.id, sec: x.sec, route: x.route, type: x.type, items: ms.map(m => m.item || "Material"), n: ms.length }; })]
     .filter(x => x.n && (!boardSec || x.sec === boardSec) && (!boardRoute || x.route === boardRoute));
   const dueS = dueL, dueM = dueL.reduce((n, x) => n + x.n, 0);
   const flagged = waiting.filter(s => s.flag).length;
+  const relL = [...releasedToday.values()].filter(pass), reqL = isStaff() ? [...reqs.values()].filter(pass) : [];
+  // v24c: every tile with a number opens the list of what it counts (and the lanes narrow to those samples when they are in the lab).
+  const stName = s => { try { return stage(s, s.stageKey)?.name || ""; } catch { return ""; } };
+  const sRow = (s, where) => ({ id: s.id, type: s.type || typeOf(s.typeKey)?.name || "", what: [testOf(s.test)?.name, s.route].filter(Boolean).join(" · "), where: where ?? stName(s) });
+  const lastRedo = s => (s.evals || []).filter(x => x.v === "redo").at(-1);
   // Summary tiles, zeros included: a tile with samples filters the board to them, a tile with a tab opens it.
   const sums = [
     { k: "await", n: waiting.length, l: `Awaiting receipt${flagged ? `, ${flagged} flagged` : ""}`, tone: flagged ? "warn" : "info", pick: waiting },
@@ -3528,19 +3547,29 @@ function renderBoard(){
     ...(canEdit() ? [batchesRequired() ? { k: "nobatch", n: noBatch.length, l: "Waiting for a lab batch", tone: "info", pick: noBatch } : { k: "relready", n: relReady.length, l: "Ready for release", tone: "ok", pick: relReady },
       ...(!relNow() ? [{ k: "qc", n: qcAct.length, l: "In a batch with QC to act on", tone: "warn", pick: qcAct }] : [])] : []),
     ...(isStaff() && !relNow() ? [{ k: "alerts", n: alerts.length, l: "Results past an action or permit limit, not yet recorded", tone: "bad", pick: alerts }] : []),
-    ...(isStaff() && (!relNow() || canEval()) ? [{ k: "trends", n: trends.length, l: "Reference material trends", tone: "warn", go: "batches" }] : []),
-    ...(isStaff() ? [{ k: "req", n: reqs.size, l: "Re-assay requested", tone: "bad" }] : []),
-    { k: "rel", n: relN, l: "Results released today", tone: "ok" },
+    ...(isStaff() && (!relNow() || canEval()) ? [{ k: "trends", n: trends.length, l: "Reference material trends", tone: "warn", link: ["batches", "Open Lab batches"],
+      rows: trends.map(t => ({ id: "", type: t.crm + (t.k ? " " + t.k : ""), what: t.b ? "Batch " + t.b : "", where: t.msg })) }] : []),
+    ...(isStaff() ? [{ k: "req", n: reqL.length, l: "Re-assay requested", tone: "bad", rows: reqL.map(s => { const e = lastRedo(s); return sRow(s, "Requested" + (e ? ` by ${e.tech}${e.note ? ": " + e.note : ""}` : "")); }) }] : []),
+    { k: "rel", n: relL.length, l: "Results released today", tone: "ok", rows: relL.map(s => sRow(s, "Released " + fmt(s.relAt))) },
     { k: "unstored", n: notStored, l: "Released, not yet put in storage", tone: "warn", pick: unstored },
-    { k: "retention", n: dueM, l: `Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}`, tone: "warn", go: allowedTabs().includes("storage") ? "storage" : "" },
+    { k: "retention", n: dueM, l: `Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}`, tone: "warn", link: ["storage", "Open Storage"],
+      rows: dueS.map(x => x.s ? sRow(x.s, x.items.join(", ") + " past retention") : { id: x.id, type: x.type || "", what: x.route || "", where: x.items.join(", ") + " past retention" }) },
     { k: "recvToday", n: list.filter(s => isToday(recvOf(s))).length, l: "Received today", tone: "", pick: list.filter(s => isToday(recvOf(s))), hide: true },
     { k: "dueToday", n: list.filter(dueToday).length, l: "Results due today", tone: "", pick: list.filter(dueToday), hide: true }
   ];
-  const cur = sums.find(x => x.k === boardPick && x.pick);
+  sums.forEach(x => { if (!x.rows) x.rows = (x.pick || []).map(s => sRow(s)); if (x.link && !allowedTabs().includes(x.link[0])) delete x.link; });
+  const cur = sums.find(x => x.k === boardPick && x.n);
   if (boardPick && !cur) boardPick = "";
-  const shown = cur ? new Set(cur.pick) : null;
+  const shown = cur && cur.pick ? new Set(cur.pick) : null;
+  const pickHtml = !cur ? "" : `<div class="panel pick-list stack" id="bdPick">
+      <div class="pick-note"><span>Showing <b>${esc(cur.l)}</b>: ${cur.n}</span>${cur.link ? `<button type="button" class="btn small" data-goto="${cur.link[0]}">${esc(cur.link[1])}</button>` : ""}<span class="grow"></span><button type="button" class="btn ghost small" data-bpick="${cur.k}">Close</button></div>
+      ${cur.rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>${cur.k === "trends" ? "Reference material" : "Sample"}</th>${cur.k === "trends" ? "" : "<th>Type</th>"}<th>${cur.k === "trends" ? "Batch" : "Analysis · route"}</th><th>${cur.k === "trends" ? "Trend" : "Where it is"}</th></tr></thead><tbody>${cur.rows.slice(0, 100).map(r => cur.k === "trends"
+        ? `<tr><td>${esc(r.type)}</td><td class="mono">${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`
+        : `<tr><td>${r.id ? `<button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>` : "—"}</td><td>${esc(r.type)}</td><td>${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="small muted">Nothing to list on this device yet.</div>`}
+      ${cur.rows.length > 100 ? `<div class="small muted">+${cur.rows.length - 100} more: use the filters or look a sample up by ID</div>` : ""}
+      ${shown ? `<div class="small muted">The lanes below show only these samples.</div>` : ""}</div>`;
   const sumHtml = sums.filter(x => !x.hide).map(x => {
-    const act = !x.n ? "" : x.pick ? `data-bpick="${x.k}" aria-pressed="${boardPick === x.k}"` : x.go ? `data-goto="${x.go}"` : "", inner = `<span class="n">${x.n}</span><span class="l">${esc(x.l)}</span>`;
+    const act = !x.n ? "" : `data-bpick="${x.k}" aria-pressed="${boardPick === x.k}"`, inner = `<span class="n">${x.n}</span><span class="l">${esc(x.l)}</span>`;
     return act ? `<button type="button" class="stat tile ${x.tone}" ${act}>${inner}</button>` : `<div class="stat tile ${x.tone}${x.n ? "" : " zero"}">${inner}</div>`;
   }).join("");
   const filters = `<div class="bd-top bd-tools">
@@ -3592,7 +3621,7 @@ function renderBoard(){
     ${filters}
     <div class="stats tiles">${sumHtml}</div>
     ${boardReqNote()}
-    ${cur ? `<div class="pick-note"><span>Showing <b>${esc(cur.l.toLowerCase())}</b>: ${cur.n}</span><button type="button" class="btn ghost small" data-bpick="${cur.k}">Show all</button></div>` : ""}
+    ${pickHtml}
     ${alerts.length ? `<div class="notice bad" id="bdAlerts"><b>Past a limit:</b> ${alerts.slice(0, 12).map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button> <span class="small">${esc(openAlerts(s).map(h => alertLine(s, h)).join("; "))}</span>`).join("<br>")}${alerts.length > 12 ? `<br>+${alerts.length - 12} more` : ""}</div>` : ""}
     ${trends.length ? `<div class="notice warn" id="bdTrends"><b>Reference material trends:</b> ${esc(trends.map(t => `${t.crm}${t.k ? " " + t.k : ""}: ${t.msg}`).join("; "))}. See the control chart on the <button type="button" class="linkish" data-goto="batches">Lab batches</button> tab.</div>` : ""}
     <div class="lanes">${lanes}</div></div>`;
@@ -3704,7 +3733,7 @@ function renderSampleForm(mode){
     if (pur && !pu.dataset.touched){ pu.value = pur; $("#rWhyBox", v).hidden = pu.value !== "other"; secFor(); }
     chip();
     const keep = te.dataset.touched ? te.value : "";
-    te.innerHTML = testOptions(ty.value, "", pu.value);
+    te.innerHTML = testOptions(ty.value);
     te.value = keep || defaultTest(ty.value, pu.value);
     if (!te.value) te.value = defaultTest(ty.value, pu.value);
     if (!hz.dataset.touched) HAZARDS.forEach(h => { $("#rHz_" + h.k, v).checked = (typeOf(ty.value)?.haz || []).includes(h.k); });
@@ -3712,7 +3741,7 @@ function renderSampleForm(mode){
   };
   pu.onchange = () => {
     pu.dataset.touched = "1"; $("#rWhyBox", v).hidden = pu.value !== "other"; secFor();
-    if (ty.value){ const cur = te.value; te.innerHTML = testOptions(ty.value, "", pu.value); te.value = te.dataset.touched && [...te.options].some(o => o.value === cur) ? cur : defaultTest(ty.value, pu.value); }
+    if (ty.value && !te.dataset.touched) te.value = defaultTest(ty.value, pu.value);
     refreshFormRoute();
   };
   te.onchange = () => { te.dataset.touched = "1"; refreshFormRoute(); };

@@ -132,7 +132,8 @@ const lanes = page => page.textContent(".lanes").catch(() => "");
   await L.screenshot({ path: OUT + "/v13-storage.png", fullPage: false });
   const M = await newUser(browser, { uid: "u_m", name: "Phone", canEdit: true, names }, { width: 375, height: 760 }); await signIn(M, "tech1");
   await H.tab(M, "storage"); await M.waitForTimeout(1500);
-  check(await M.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "Storage has no sideways page scroll on a phone");
+  const wide = await M.evaluate(() => [...document.querySelectorAll("body *")].filter(e => e.offsetParent && e.getBoundingClientRect().right > window.innerWidth + 1 && ![...e.querySelectorAll("*")].some(c => c.getBoundingClientRect().right > window.innerWidth + 1)).slice(0, 6).map(e => e.tagName + "." + [...e.classList].join(".") + " " + Math.round(e.getBoundingClientRect().right) + " " + (e.textContent || "").trim().slice(0, 30)));
+  check(await M.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "Storage has no sideways page scroll on a phone" + (wide.length ? ": " + wide.join(" | ") : ""));
   await M.screenshot({ path: OUT + "/v13-storage-phone.png", fullPage: false });
 
   console.log("Console errors:", errors.length ? errors.join("\n") : "none");

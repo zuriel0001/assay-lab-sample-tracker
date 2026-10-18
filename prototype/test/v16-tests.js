@@ -140,7 +140,7 @@ if (fs.existsSync(CORE)){
   await fillForm(P, "register", { section: "PLT", type: "carbon", purpose: "plant", submitter: "Kojo 2" }); await ids(P); await A.waitForTimeout(700);
   check(await A.$eval(".lane.ph-await .cards", c => c.scrollTop > 0), "a live update of the board keeps the lane where it was scrolled");
   await A.click('[data-bpick="lab"]'); await A.waitForTimeout(200);
-  check(/Showing/.test(await A.textContent(".pick-note")) && await A.$eval('[data-bpick="lab"]', b => b.getAttribute("aria-pressed")) === "true" && (await A.$$eval(".lanes .chip", cs => cs.map(c => c.dataset.open))).join() === wk[0], "clicking a tile opens its list");
+  check(/In the lab, before results/.test(await A.textContent(".pick-note")) && (await A.textContent("#bdPick")).includes(wk[0]) && await A.$eval('.stats.tiles [data-bpick="lab"]', b => b.getAttribute("aria-pressed")) === "true" && (await A.$$eval(".lanes .chip", cs => cs.map(c => c.dataset.open))).join() === wk[0], "clicking a tile opens its list (v24c: the samples listed above the lanes) and narrows the lanes");
   const late = await A.$$eval(".lane .chip .left", ls => ls.map(l => l.textContent));
   check(late.length > 0 && late.every(t => /(late|left)$/.test(t)) && await A.$eval(".lane .chip .left", l => l === l.parentElement.lastElementChild), "time left or late is on the card's last line, as on the earlier cards");
   await A.click('.pick-note [data-bpick="lab"]'); await A.waitForTimeout(150);
