@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="44dbe954a56d"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 cc6626af5580) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="32e5bc187d96"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 c5b23e9da5e3) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2497,6 +2497,9 @@ function blockedBy(s, toIdx){
 const stageName = (s, h) => stage(s, h.key)?.name || h.sn || h.key;
 const routeStageNote = (s, key) => routeByCode(s.route)?.stages?.find(x => x.key === key)?.note || "";
 function lastEntry(s, key){ const h = s.history || []; for (let i = h.length - 1; i >= 0; i--) if (h[i].key === key) return h[i]; return null; }
+/* v24d: the last lab step is done and the sample waits for its results on the Results released step (rw: the step it was on and when).
+   A stale mark (the sample has moved since, or came back to that step later) means nothing. */
+const waitingRes = s => !!s?.rw && s.rw.key === s.stageKey && +s.rw.at >= +s.stageAt && curIdx(s) === targetIdx(s) - 1 && !stage(s, s.stageKey)?.final;
 /* Skipped steps since the sample last entered them, with the reason. */
 function skipInfo(s, key){
   const h = s.history || [];
@@ -2541,6 +2544,7 @@ function status(s){
     if (notStored) return { label: "Results released; material not yet put in storage", cls: "warn", closed: false, late: true, post: true };
     return i === t ? { label: "Results released", cls: "ok", closed: false, late: false, post: true } : { label: "In storage", cls: "info", closed: false, late: false, post: true };
   }
+  if (waitingRes(s)) return { label: late ? "Waiting for results (overdue)" : "Waiting for results", cls: late ? "warn" : "info", closed: false, late };
   return { label: late ? `Overdue at ${st.name}` : `In progress: ${st.name}`, cls: late ? "bad" : "gold", closed: false, late };
 }
 /* Projected start time of every stage up to and including results released. */
@@ -2981,10 +2985,17 @@ function buildTrack(v, s){
   /* v24d: released results are done (ticked, with when and who), though the sample stays at that step until its material is on the shelf:
      what is left, putting the material away and its due time, shows on the storage step. A closed sample's closing step is done too. */
   const tKey = plan[tIdx]?.key, relDone = s.stageKey === tKey && !!(released || s.relAt), nextKey = relDone ? plan[tIdx + 1]?.key || "" : "";
+  const wRes = waitingRes(s);   // the last lab step is done and the sample waits for its results: Results released is the open step
   const rail = railStages.map(x => {
     const i = stageIdx(s, x.key), e = lastEntry(s, x.key), by = byOf(x, e);
     let cls = "upcoming", meta = "", note = "", mark = "";
     if (relDone && x.key === tKey){ cls = "done"; mark = "✓"; meta = `${fmt(released?.at || s.relAt)}${by ? ` · ${esc(by)}` : ""}`; }
+    else if (wRes && x.key === s.stageKey){ cls = "done"; mark = "✓"; const d = (s.history || []).filter(h => h.rw && h.key === x.key).at(-1); meta = `${fmt(d?.at || s.rw.at)}${d?.tech ? ` · ${esc(d.tech)}` : ""}`; }
+    else if (wRes && x.key === tKey){
+      cls = "current" + (st.late ? " late" : "");
+      meta = resMissing(s) ? `Waiting for the results: attach the results file or type them · since ${fmt(s.rw.at)}`
+        : relNow() ? "Results saved: release them below" : "Results saved: waiting for a lab supervisor to release them";
+    }
     else if (x.key === nextKey){
       cls = "current" + (st.late ? " late" : "");
       const due = stageDue(s), left = keptMaterials(s).filter(m => !m.loc), t = plan[tIdx];
@@ -3054,8 +3065,8 @@ function buildTrack(v, s){
   const facts = factList.filter(f => !blank(f)).map(row).join(""), factsMore = factList.filter(blank).map(row).join("");
   // Progress along the route up to the release of results, in the same colours as the board.
   const tone = !st.closed && !st.post ? { "t-ok": "ok", "t-soon": "warn", "t-late": "bad", "t-wait": "info" }[cardTime(s).cls] || st.cls : st.cls;
-  const stepNo = Math.min(Math.max(curI, 0), tIdx) + 1, pct = curI >= tIdx ? 100 : Math.round(Math.max(curI, 0) / tIdx * 100);
-  const prog = st.closed ? "" : `<div class="prog${st.late && !st.post ? " late" : awaiting(s) ? " wait" : ""}"><div class="prog-t"><span>${curI >= tIdx ? "<b>Results released</b>" : `Step <b>${stepNo}</b> of ${tIdx + 1}`}</span><span>${curI < tIdx && cardTime(s).left ? esc(cardTime(s).left) + " on this step" : ""}</span></div><div class="prog-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div></div>`;
+  const stepNo = wRes ? tIdx + 1 : Math.min(Math.max(curI, 0), tIdx) + 1, pct = curI >= tIdx ? 100 : wRes ? Math.round((tIdx - 0.5) / tIdx * 100) : Math.round(Math.max(curI, 0) / tIdx * 100);
+  const prog = st.closed ? "" : `<div class="prog${st.late && !st.post ? " late" : awaiting(s) ? " wait" : ""}"><div class="prog-t"><span>${curI >= tIdx ? "<b>Results released</b>" : `Step <b>${stepNo}</b> of ${tIdx + 1}${wRes ? ": waiting for the results" : ""}`}</span><span>${curI < tIdx && cardTime(s).left ? esc(cardTime(s).left) + " on this step" : ""}</span></div><div class="prog-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div></div>`;
 
   const showQc = !relNow() || canEval();   // v24: QC rules are for the people who evaluate
   const ret = s.retention || r?.retention || [], qcText = showQc ? s.qc || r?.qc || "" : "", trig = showQc ? s.triggers || r?.triggers || [] : [];
@@ -3192,12 +3203,16 @@ function redoBox(s){
 function moveForm(s){
   const p = planOf(s), ci = curIdx(s), ti = targetIdx(s), ri = redoIdx(s), next = p[ci + 1] || null;
   const canRedo = ri >= 0 && ci > ri && ci <= ti;
-  const back = p.map((x, j) => [x, j]).filter(([, j]) => j >= 1 && j < ci);
+  const release0 = next && next.target, waitRes = release0 && waitingRes(s), noRes = release0 && resMissing(s);
+  const back = p.map((x, j) => [x, j]).filter(([, j]) => j >= 1 && (j < ci || (waitRes && j === ci)));
   const ahead = canApprove() ? p.map((x, j) => [x, j]).filter(([, j]) => j > ci + 1 && j < ti && !blockedBy(s, j)) : [];
   const release = next && next.target;
   const self = release && canRelease() ? relSelf(s) : "";
-  const hold = release ? releaseBlock(s) || (self === "blocked" ? SELF_MSG : "") : next && next.phase === "qc" && p[ci].phase !== "qc" ? qcEntryBlock(s) : "";
+  /* v24d: with no results yet the last lab step is not "on hold": it moves on to Results released, where the sample waits for its results
+     file or typed results (released when they are saved, or by a supervisor in the sign-off mode). */
+  const hold = release ? (noRes ? "" : releaseBlock(s) || (self === "blocked" ? SELF_MSG : "")) : next && next.phase === "qc" && p[ci].phase !== "qc" ? qcEntryBlock(s) : "";
   return `<div id="moveForm" class="stack" style="gap:10px">
+    ${waitRes && noRes ? `<div class="notice" id="waitNote"><b>Waiting for the results${missingRes(s).length ? `: ${esc(missingRes(s).map(a => a.s || a.n).join(", "))}` : ""}.</b> Attach the results file, or type the results, under <b>Results</b>. ${relNow() ? `They are released when you save them${twoPerson(s) ? " (with the witness chosen there)" : ""}.` : "A lab supervisor then releases them."}</div>` : ""}
     ${hold ? `<div class="notice warn" id="holdNote"><b>${release ? "Release on hold" : "Before QA/QC review"}:</b> ${esc(hold)}</div>` : ""}
     <div class="form">
       ${meBox("Recorded by")}
@@ -3208,13 +3223,14 @@ function moveForm(s){
       ${self === "admin" && !hold ? `<label class="f full"><span>You entered results on this sample: reason for releasing them yourself (printed on the certificate) <span class="req">*</span></span><input id="selfWhy" data-clear></label>` : ""}
     </div>
     <div class="row">
-      ${release ? (canRelease() ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Release results and issue certificate</button>` : `<span class="small muted">A lab supervisor releases the results${qcStepOn() ? " after the QA/QC review" : ""}.</span>`)
+      ${release && noRes ? (waitRes ? "" : `<button type="button" class="btn primary" data-step="wait">Move to: Results released</button>`)
+        : release ? (canRelease() ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Release results and issue certificate</button>` : `<span class="small muted">A lab supervisor releases the results${qcStepOn() ? " after the QA/QC review" : ""}.</span>`)
         : next ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Move to: ${esc(next.name)}</button>` : ""}
       <button type="button" class="btn" data-step="note">Save note only</button>
     </div>
     ${back.length || ahead.length ? `<details class="more" id="corrBox"><summary>Correct the stage or skip a step</summary>
       <div class="stack" style="gap:8px;margin-top:8px">
-        <label class="f">Move to<select class="inp" id="mvKey">${back.map(([x]) => `<option value="${esc(x.key)}">Back to ${esc(x.name)} (correction)</option>`).join("")}${ahead.map(([x]) => `<option value="${esc(x.key)}">Skip ahead to ${esc(x.name)}</option>`).join("")}</select></label>
+        <label class="f">Move to<select class="inp" id="mvKey">${back.map(([x, j]) => `<option value="${esc(x.key)}">Back to ${esc(x.name)}${j === ci ? " (not done yet)" : ""} (correction)</option>`).join("")}${ahead.map(([x]) => `<option value="${esc(x.key)}">Skip ahead to ${esc(x.name)}</option>`).join("")}</select></label>
         <label class="f">Reason (required)<input id="corrWhy" data-clear placeholder="e.g. Recorded against the wrong sample"></label>
         <div class="row"><button type="button" class="btn" id="corrBtn">Record correction</button></div></div></details>` : ""}
     ${canRedo ? redoBox(s) : ""}
@@ -3256,7 +3272,7 @@ function materialsPanel(s){
       // v24d: on the shelf, the route's return or disposal is offered once the retention period is over; before that, nothing that can't be undone is chosen for you.
       const def = m.loc && od ? m.dispo : "store";
       ctl = `<div class="row mat-row" style="gap:6px;margin-top:6px;flex-wrap:wrap">
-        <select class="inp" id="mx_${m.k}" style="flex:0 1 auto;min-width:0;width:auto;max-width:100%">${[["store", m.loc ? "Move to another location" : "Put away in storage"], ["returned", "Return"], ["disposed", "Dispose"], ["external", "Send to external lab"], ["archived", "Move to long-term archive"]].map(([k, l]) => `<option value="${k}" ${k === def ? "selected" : ""}>${l}${k === m.dispo ? " (route says)" : ""}</option>`).join("")}</select>
+        <select class="inp" id="mx_${m.k}" style="flex:1 1 170px;min-width:0;width:auto">${[["store", m.loc ? "Move to another location" : "Put away in storage"], ["returned", "Return"], ["disposed", "Dispose"], ["external", "Send to external lab"], ["archived", "Move to long-term archive"]].map(([k, l]) => `<option value="${k}" ${k === def ? "selected" : ""}>${l}${k === m.dispo ? " (route says)" : ""}</option>`).join("")}</select>
         <input class="inp" id="mr_${m.k}" data-clear style="flex:1 1 110px;min-width:0;width:auto" placeholder="Location or ref.">
         <button type="button" class="btn" data-mat="${m.k}">Record</button></div>`;
     } else if (m.status !== "kept" && canApprove()){
@@ -3406,6 +3422,18 @@ async function doStep(kind){
   const s0 = current?.body; if (!s0) return;
   const p = planOf(s0), ci = curIdx(s0), note = val("#mvNote"), ref = val("#mvRef"), loc = val("#mvLoc");
   let key = s0.stageKey, wit = "";
+  if (kind === "wait"){
+    // v24d: the last lab step is done; the sample waits for its results on the Results released step.
+    if ((wit = needWitness(s0, "#mvWit")) === null) return;
+    await act(s => {
+      if (curIdx(s) !== targetIdx(s) - 1 || waitingRes(s) || !resMissing(s)) return null;
+      const at = nowAfter(s), name = stage(s, s.stageKey)?.name || s.stageKey;
+      const upd = { rw: { key: s.stageKey, at }, history: [...(s.history || []), { key: s.stageKey, sn: name, at, by: session.u, tech: session.name, ref, ...(loc ? { loc } : {}), ...(wit ? { wit } : {}), rw: true, note: note || "Done: waiting for the results" }] };
+      if (loc) upd.location = loc;
+      return { upd, msg: `${s.id}: ${name} done; waiting for the results` };
+    }, { clear: ["mvNote", "mvRef", "mvLoc", "mvWit"] });
+    return;
+  }
   if (kind === "next"){
     const nx = p[ci + 1]; if (!nx) return;
     if (nx.target && !canRelease()){ toast("Only a lab supervisor can release results."); return; }
@@ -3447,11 +3475,12 @@ async function doCorrection(){
   const wit = needWitness(s0, "#mvWit"); if (wit === null) return;
   await act(s => {
     const p = planOf(s), ci = curIdx(s), j = p.findIndex(x => x.key === key);
-    if (j < 1 || j === ci || ci >= targetIdx(s)) return null;
+    if (j < 1 || (j === ci && !waitingRes(s)) || ci >= targetIdx(s)) return null;
     if (j > ci){ const b = blockedBy(s, j); if (b){ toast(`${b.name} can only be reached step by step.`); return null; } }
     const at = nowAfter(s), skipped = j > ci + 1 ? p.slice(ci + 1, j).map(x => x.key) : null;
     const entry = { key, sn: p[j].name, at, by: session.u, tech: session.name, ref: val("#mvRef"), why, ...(wit ? { wit } : {}),
       ...(j < ci ? { corr: true, note: "Correction: " + why } : { skipped, note: `Skipped ${p.slice(ci + 1, j).map(x => x.name).join(", ")}: ${why}` }) };
+    if (j === ci) return { upd: { rw: null, history: [...(s.history || []), entry] }, msg: `${s.id} is back at ${p[j].name}, not done yet` };   // v24d
     return { upd: { stageKey: key, stageAt: at, history: [...(s.history || []), entry] }, msg: j < ci ? `${s.id} corrected to ${p[j].name}` : `${s.id} moved to ${p[j].name}; skipped steps recorded` };
   });
 }
@@ -4819,6 +4848,9 @@ const resSummary = (ans, rows) => ans.filter(a => rows[a.k]).slice(0, 4).map(a =
    batch QC still does, as that mode is chosen for. */
 const hasResFile = s => !!(s?.results?.att || s?.results?.file);
 const missingRes = (s, rows = s.results?.rows || {}) => hasResFile(s) ? [] : anOf(s).filter(a => !a.opt && !a.calc && a.t !== "pick" && !rows[a.k]);
+/* v24d: no results yet to release (no file, or values still to come). The step before release then offers "Move to: Results released",
+   where the sample waits for them, instead of a release on hold. */
+const resMissing = s => !s.results || missingRes(s).length > 0;
 const overRes = (s, rows = s.results?.rows || {}) => anOf(s).filter(a => rows[a.k]?.f === "over");
 /* Results worked out from others are never typed: they are set, or cleared, from their inputs whenever results are saved ("<DL" counts as 0). */
 function withCalc(s, rows){
@@ -4951,17 +4983,19 @@ function releaseUpdate(s, at, note, wit, ref, selfWhy){
       note: (note ? note + ". " : "") + `Certificate ${cert.no} issued${cert.amends ? `, amending ${cert.amends}: ${cert.why}` : ""}${selfWhy ? `. Released by the person who entered the results: ${selfWhy}` : ""}` }] };
 }
 /* v24, release at once: when saved results complete a sample in analysis, the analysis steps left are recorded as done and the results are
-   released in the same write, under the name of the person who saved them. Two-person custody samples wait for their release with a witness. */
+   released in the same write, under the name of the person who saved them. A two-person custody sample is released so only when the
+   results were saved with a witness (v24d: the results file dialog and the results form ask for one); that witness signs the release. */
 function withRelease(s, res){
   if (!res || !relNow() || !canRelease()) return res;
   const upd = res.upd || res, h = upd.history, last = h && h.at(-1);
   if (!upd.results || !last || !last.res || last.redo || h.length <= (s.history || []).length) return res;
   const m = { ...s, ...upd }, p = planOf(m), ci = curIdx(m), ti = targetIdx(m), ph = stage(m, m.stageKey)?.phase;
-  if (awaiting(m) || twoPerson(m) || !(ci >= 1 && ci < ti && (ph === "test" || ph === "qc" || hasResFile(upd))) || releaseBlock(m)) return res;
+  const wit = twoPerson(m) ? last.wit || "" : "";
+  if (awaiting(m) || (twoPerson(m) && !wit) || !(ci >= 1 && ci < ti && (ph === "test" || ph === "qc" || hasResFile(upd))) || releaseBlock(m)) return res;
   let at = Math.max(...h.map(e => +e.at || 0)) + 1000;
   const hist = [...h];
-  for (let i = ci + 1; i < ti; i++){ hist.push({ key: p[i].key, sn: p[i].name, at, by: session.u, tech: session.name, note: "Done: results saved" }); at += 1000; }
-  const rel = releaseUpdate({ ...m, history: hist }, at, "Released when the results were saved", "", "", "");
+  for (let i = ci + 1; i < ti; i++){ hist.push({ key: p[i].key, sn: p[i].name, at, by: session.u, tech: session.name, note: "Done: results saved", ...(wit ? { wit } : {}) }); at += 1000; }
+  const rel = releaseUpdate({ ...m, history: hist }, at, "Released when the results were saved", wit, "", "");
   Object.assign(upd, rel);
   if (res.upd && res.msg) res.msg += `. Released: certificate ${rel.certs.at(-1).no}`;
   return res;
@@ -5102,9 +5136,10 @@ async function doSaveResults(){
     const keep = Object.fromEntries(Object.entries(rowsOf(s)).filter(([k]) => batchKeys(s).has(k)));
     const at = nowAfter(s), all = withCalc(s, { ...keep, ...rows });
     const next = { v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: patch(s.results?.rows, all), batch: s.results?.batch || "", inst };
+    const wit = twoPerson(s) ? val("#mvWit") : "";   // v24d: two-person custody: the witness chosen on the record signs the release
     return { upd: { results: next, resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null,
-      history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, note: `Results ${s.results ? "updated" : "entered"}: ${resSummary(anOf(s), all)}` }] },
-      msg: `Results saved on ${s.id}` };
+      history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, ...(wit ? { wit } : {}), note: `Results ${s.results ? "updated" : "entered"}: ${resSummary(anOf(s), all)}` }] },
+      msg: `Results saved on ${s.id}${twoPerson(s) && !wit && relNow() ? ". Two-person custody: choose the witness and press Release results" : ""}` };
   }, { anyStage: true, clear: ["resBox"] });
 }
 async function doAcceptChecks(){
@@ -5405,12 +5440,13 @@ async function batchTrends(b, qc, p){
   return out;
 }
 /* Writes one sample under its lease from anywhere (batch actions). fn(s) returns the update, { upd, moves }, or null to skip. */
-async function sampleWrite(id, fn){
+async function sampleWrite(id, fn, after){
   const ref = db.doc("samples/" + id);
   try {
     const s = await leased(ref, true); if (!s) return false;
     const res = withRelease(s, fn(s)); if (!res) return false;
     const upd = res.upd || res, moves = res.moves || [];
+    if (after) after(upd);   // v24d: lets the caller see what was written (was it released?)
     upd.updatedAt = Date.now();
     if (moves.length){ upd.ledgerPending = [...(s.ledgerPending || []), ...moves]; upd.lp = true; }
     const sync = derive(s, upd);
@@ -7068,6 +7104,7 @@ function renderUpload(){
     ${r.error && !loose ? `<div class="notice bad">${esc(r.error)}</div>` : ""}
     ${save.length ? `<div class="up-sec"><h4>Saves</h4><ul class="up-list">${save.join("")}</ul></div>` : P && !any && !P.notReady.length && !loose ? `<div class="notice warn"><b>Nothing to save from this file.</b></div>` : ""}
     ${loose ? uploadTargetsHtml(u, tg) : ""}
+    ${loose && tg.some(id => twoPerson(bs(id))) ? `<div class="form" id="upWitBox"><div class="full">${witnessField("upWit", `Witness to the release (two-person custody: ${esc(listAnd(tg.filter(id => twoPerson(bs(id)))))})`)}</div></div>` : ""}
     ${check.length ? `<div class="up-sec"><h4>Check</h4><ul class="up-list">${check.join("")}</ul></div>` : ""}
     ${unused.length ? `<div class="up-sec"><h4>Not used</h4><ul class="up-list">${unused.join("")}</ul></div>` : ""}
     ${rowsRead.length ? `<details class="more" id="upRead"><summary>Values read (${rowsRead.length})</summary><div class="tbl-wrap"><table><thead><tr><th>Sample or QC</th><th>Goes to</th><th>Results</th></tr></thead><tbody>${rowsRead.slice(0, 400).map(x => `<tr><td class="mono">${esc(x[0])}</td><td class="mono">${esc(x[1])}</td><td>${esc(x[2])}</td></tr>`).join("")}</tbody></table></div></details>` : ""}
@@ -7075,6 +7112,7 @@ function renderUpload(){
   </div>`;
   $("#upClose", box).onclick = closeUpload; $("#upCancel", box).onclick = closeUpload;
   $("#upSave", box).onclick = saveUpload;
+  const uw = $("#upWit", box); if (uw){ uw.value = u.wit || ""; uw.onchange = () => { u.wit = uw.value; }; }   // kept when the dialog is drawn again
   $("#upMove", box)?.addEventListener("click", moveToAnalysis);
   bindUploadTargets(box);
   $("#upBatches", box)?.addEventListener("click", () => { closeUpload(); setTab("batches"); });
@@ -7108,11 +7146,11 @@ function bindUploadTargets(box){
   const q = $("#upQ", box); if (q){ q.oninput = () => { if (upState){ upState.q = q.value; renderUpload(); const n = $("#upQ"); if (n){ n.focus(); n.setSelectionRange(n.value.length, n.value.length); } } }; }
 }
 /* The file as a sample's results: what was read stays, the file is named as where the rest are. */
-function fileResults(s, f, inst){
+function fileResults(s, f, inst, wit = ""){
   const at = nowAfter(s);
   return { results: { ...(s.results || {}), v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: s.results?.rows || {}, inst: inst || s.results?.inst || "", file: fileTag(f), att: true },
     resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), fids: [...new Set([...(s.fids || []), f.id])],
-    history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, note: `Results file ${f.name} attached` }] };
+    history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, ...(wit && twoPerson(s) ? { wit } : {}), note: `Results file ${f.name} attached` }] };
 }
 /* Samples still in preparation when their results arrive move to their first analysis step, one step at a time, each step recorded. */
 async function moveToAnalysis(){
@@ -7155,6 +7193,8 @@ const fileTag = f => f ? { id: f.id, name: f.name } : null;
 async function saveUpload(){
   const u = upState; if (!u || u.busy || !canEdit() || (!u.plan && !relNow())) return;
   const loose = relNow(), targets = loose ? uploadTargets(u) : [];
+  const two = targets.filter(id => twoPerson(bs(id))), wit = val("#upWit");
+  if (two.length && !wit){ toast(`Two-person custody: choose the witness to the release of ${listAnd(two)}.`); $("#upWit")?.focus(); return; }
   u.busy = true; document.querySelectorAll("#upBox button").forEach(b => b.disabled = true);
   const msg = t => { const m = $("#upMsg"); if (m) m.textContent = t; };
   // Release at once: samples the file names that are still in preparation move on to analysis first, each step recorded.
@@ -7208,8 +7248,10 @@ async function saveUpload(){
       // Every sample the file is for and not released yet: the file is its results, and it is released (withRelease).
       msg("Releasing…");
       const inst = f.labRef || f.name;
-      const rel = await pool(targets, 4, sid => sampleWrite(sid, s => canTakeFile(s) ? fileResults(s, f, inst) : null));
-      if (rel) done.push(`${rel} released with the file`);
+      const relIds = [], keptIds = [];   // v24d: say what happened to each: released, or results kept but not released
+      await pool(targets, 4, sid => sampleWrite(sid, s => canTakeFile(s) ? fileResults(s, f, inst, wit) : null, upd => (upd.relAt ? relIds : keptIds).push(sid)));
+      if (relIds.length) done.push(`${relIds.length} released with the file`);
+      if (keptIds.length) done.push(`results kept on ${listAnd(keptIds)}, not released yet`);
       for (const b of new Set(targets.flatMap(id => Object.values(labsOf(bs(id) || {})).map(l => l.b)))) await closeBatchIfDone(b);
     }
     toast(`Saved: ${done.join("; ") || "the file is kept"}.`);

@@ -238,10 +238,11 @@ const log = t => console.log("• " + t);
   const hide = () => T.evaluate(() => { Object.defineProperty(document, "hidden", { configurable: true, get: () => true }); document.dispatchEvent(new Event("visibilitychange")); });
   await hide(); await T.waitForTimeout(600);
   check(await T.evaluate(() => window.__stillHere === 1).catch(() => false), "with a note typed and not saved, it does not reload, even in the background");
+  // Still in the background: once the note is cleared it reloads (at once when hidden again, or on its own next check), so listen first.
+  const reloaded = T.waitForNavigation({ timeout: 20000 }).then(() => true, () => false);
   await T.fill("#mvNote", ""); await T.waitForTimeout(3100);
-  const reloaded = T.waitForNavigation({ timeout: 8000 }).then(() => true, () => false);
   await hide().catch(() => {});
-  check(await reloaded, "with nothing unsaved it reloads itself once the page is in the background");
+  check(await reloaded, "with nothing unsaved it reloads itself once the page is in the background" + (await T.evaluate(() => window.__unsavedWhy && window.__unsavedWhy()).then(w => w ? " (held: " + w + ")" : "", () => "")));
   await T.unroute(/version\.json/);
   await T.waitForSelector(".sid", { timeout: 8000 }).catch(() => {});
   check(await T.evaluate(() => window.__stillHere).catch(() => 1) === undefined && await T.textContent(".sid").catch(() => "") === svy && !(await T.$("#newVersion")), "after the reload the same sample is open again, on the new version");

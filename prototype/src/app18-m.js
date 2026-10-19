@@ -350,6 +350,7 @@ function renderUpload(){
     ${r.error && !loose ? `<div class="notice bad">${esc(r.error)}</div>` : ""}
     ${save.length ? `<div class="up-sec"><h4>Saves</h4><ul class="up-list">${save.join("")}</ul></div>` : P && !any && !P.notReady.length && !loose ? `<div class="notice warn"><b>Nothing to save from this file.</b></div>` : ""}
     ${loose ? uploadTargetsHtml(u, tg) : ""}
+    ${loose && tg.some(id => twoPerson(bs(id))) ? `<div class="form" id="upWitBox"><div class="full">${witnessField("upWit", `Witness to the release (two-person custody: ${esc(listAnd(tg.filter(id => twoPerson(bs(id)))))})`)}</div></div>` : ""}
     ${check.length ? `<div class="up-sec"><h4>Check</h4><ul class="up-list">${check.join("")}</ul></div>` : ""}
     ${unused.length ? `<div class="up-sec"><h4>Not used</h4><ul class="up-list">${unused.join("")}</ul></div>` : ""}
     ${rowsRead.length ? `<details class="more" id="upRead"><summary>Values read (${rowsRead.length})</summary><div class="tbl-wrap"><table><thead><tr><th>Sample or QC</th><th>Goes to</th><th>Results</th></tr></thead><tbody>${rowsRead.slice(0, 400).map(x => `<tr><td class="mono">${esc(x[0])}</td><td class="mono">${esc(x[1])}</td><td>${esc(x[2])}</td></tr>`).join("")}</tbody></table></div></details>` : ""}
@@ -357,6 +358,7 @@ function renderUpload(){
   </div>`;
   $("#upClose", box).onclick = closeUpload; $("#upCancel", box).onclick = closeUpload;
   $("#upSave", box).onclick = saveUpload;
+  const uw = $("#upWit", box); if (uw){ uw.value = u.wit || ""; uw.onchange = () => { u.wit = uw.value; }; }   // kept when the dialog is drawn again
   $("#upMove", box)?.addEventListener("click", moveToAnalysis);
   bindUploadTargets(box);
   $("#upBatches", box)?.addEventListener("click", () => { closeUpload(); setTab("batches"); });
@@ -390,11 +392,11 @@ function bindUploadTargets(box){
   const q = $("#upQ", box); if (q){ q.oninput = () => { if (upState){ upState.q = q.value; renderUpload(); const n = $("#upQ"); if (n){ n.focus(); n.setSelectionRange(n.value.length, n.value.length); } } }; }
 }
 /* The file as a sample's results: what was read stays, the file is named as where the rest are. */
-function fileResults(s, f, inst){
+function fileResults(s, f, inst, wit = ""){
   const at = nowAfter(s);
   return { results: { ...(s.results || {}), v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: s.results?.rows || {}, inst: inst || s.results?.inst || "", file: fileTag(f), att: true },
     resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), fids: [...new Set([...(s.fids || []), f.id])],
-    history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, note: `Results file ${f.name} attached` }] };
+    history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, ...(wit && twoPerson(s) ? { wit } : {}), note: `Results file ${f.name} attached` }] };
 }
 /* Samples still in preparation when their results arrive move to their first analysis step, one step at a time, each step recorded. */
 async function moveToAnalysis(){
@@ -437,6 +439,8 @@ const fileTag = f => f ? { id: f.id, name: f.name } : null;
 async function saveUpload(){
   const u = upState; if (!u || u.busy || !canEdit() || (!u.plan && !relNow())) return;
   const loose = relNow(), targets = loose ? uploadTargets(u) : [];
+  const two = targets.filter(id => twoPerson(bs(id))), wit = val("#upWit");
+  if (two.length && !wit){ toast(`Two-person custody: choose the witness to the release of ${listAnd(two)}.`); $("#upWit")?.focus(); return; }
   u.busy = true; document.querySelectorAll("#upBox button").forEach(b => b.disabled = true);
   const msg = t => { const m = $("#upMsg"); if (m) m.textContent = t; };
   // Release at once: samples the file names that are still in preparation move on to analysis first, each step recorded.
@@ -490,8 +494,10 @@ async function saveUpload(){
       // Every sample the file is for and not released yet: the file is its results, and it is released (withRelease).
       msg("Releasing…");
       const inst = f.labRef || f.name;
-      const rel = await pool(targets, 4, sid => sampleWrite(sid, s => canTakeFile(s) ? fileResults(s, f, inst) : null));
-      if (rel) done.push(`${rel} released with the file`);
+      const relIds = [], keptIds = [];   // v24d: say what happened to each: released, or results kept but not released
+      await pool(targets, 4, sid => sampleWrite(sid, s => canTakeFile(s) ? fileResults(s, f, inst, wit) : null, upd => (upd.relAt ? relIds : keptIds).push(sid)));
+      if (relIds.length) done.push(`${relIds.length} released with the file`);
+      if (keptIds.length) done.push(`results kept on ${listAnd(keptIds)}, not released yet`);
       for (const b of new Set(targets.flatMap(id => Object.values(labsOf(bs(id) || {})).map(l => l.b)))) await closeBatchIfDone(b);
     }
     toast(`Saved: ${done.join("; ") || "the file is kept"}.`);

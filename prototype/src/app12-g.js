@@ -113,6 +113,9 @@ const resSummary = (ans, rows) => ans.filter(a => rows[a.k]).slice(0, 4).map(a =
    batch QC still does, as that mode is chosen for. */
 const hasResFile = s => !!(s?.results?.att || s?.results?.file);
 const missingRes = (s, rows = s.results?.rows || {}) => hasResFile(s) ? [] : anOf(s).filter(a => !a.opt && !a.calc && a.t !== "pick" && !rows[a.k]);
+/* v24d: no results yet to release (no file, or values still to come). The step before release then offers "Move to: Results released",
+   where the sample waits for them, instead of a release on hold. */
+const resMissing = s => !s.results || missingRes(s).length > 0;
 const overRes = (s, rows = s.results?.rows || {}) => anOf(s).filter(a => rows[a.k]?.f === "over");
 /* Results worked out from others are never typed: they are set, or cleared, from their inputs whenever results are saved ("<DL" counts as 0). */
 function withCalc(s, rows){
@@ -245,17 +248,19 @@ function releaseUpdate(s, at, note, wit, ref, selfWhy){
       note: (note ? note + ". " : "") + `Certificate ${cert.no} issued${cert.amends ? `, amending ${cert.amends}: ${cert.why}` : ""}${selfWhy ? `. Released by the person who entered the results: ${selfWhy}` : ""}` }] };
 }
 /* v24, release at once: when saved results complete a sample in analysis, the analysis steps left are recorded as done and the results are
-   released in the same write, under the name of the person who saved them. Two-person custody samples wait for their release with a witness. */
+   released in the same write, under the name of the person who saved them. A two-person custody sample is released so only when the
+   results were saved with a witness (v24d: the results file dialog and the results form ask for one); that witness signs the release. */
 function withRelease(s, res){
   if (!res || !relNow() || !canRelease()) return res;
   const upd = res.upd || res, h = upd.history, last = h && h.at(-1);
   if (!upd.results || !last || !last.res || last.redo || h.length <= (s.history || []).length) return res;
   const m = { ...s, ...upd }, p = planOf(m), ci = curIdx(m), ti = targetIdx(m), ph = stage(m, m.stageKey)?.phase;
-  if (awaiting(m) || twoPerson(m) || !(ci >= 1 && ci < ti && (ph === "test" || ph === "qc" || hasResFile(upd))) || releaseBlock(m)) return res;
+  const wit = twoPerson(m) ? last.wit || "" : "";
+  if (awaiting(m) || (twoPerson(m) && !wit) || !(ci >= 1 && ci < ti && (ph === "test" || ph === "qc" || hasResFile(upd))) || releaseBlock(m)) return res;
   let at = Math.max(...h.map(e => +e.at || 0)) + 1000;
   const hist = [...h];
-  for (let i = ci + 1; i < ti; i++){ hist.push({ key: p[i].key, sn: p[i].name, at, by: session.u, tech: session.name, note: "Done: results saved" }); at += 1000; }
-  const rel = releaseUpdate({ ...m, history: hist }, at, "Released when the results were saved", "", "", "");
+  for (let i = ci + 1; i < ti; i++){ hist.push({ key: p[i].key, sn: p[i].name, at, by: session.u, tech: session.name, note: "Done: results saved", ...(wit ? { wit } : {}) }); at += 1000; }
+  const rel = releaseUpdate({ ...m, history: hist }, at, "Released when the results were saved", wit, "", "");
   Object.assign(upd, rel);
   if (res.upd && res.msg) res.msg += `. Released: certificate ${rel.certs.at(-1).no}`;
   return res;
@@ -396,9 +401,10 @@ async function doSaveResults(){
     const keep = Object.fromEntries(Object.entries(rowsOf(s)).filter(([k]) => batchKeys(s).has(k)));
     const at = nowAfter(s), all = withCalc(s, { ...keep, ...rows });
     const next = { v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: patch(s.results?.rows, all), batch: s.results?.batch || "", inst };
+    const wit = twoPerson(s) ? val("#mvWit") : "";   // v24d: two-person custody: the witness chosen on the record signs the release
     return { upd: { results: next, resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null,
-      history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, note: `Results ${s.results ? "updated" : "entered"}: ${resSummary(anOf(s), all)}` }] },
-      msg: `Results saved on ${s.id}` };
+      history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, ...(wit ? { wit } : {}), note: `Results ${s.results ? "updated" : "entered"}: ${resSummary(anOf(s), all)}` }] },
+      msg: `Results saved on ${s.id}${twoPerson(s) && !wit && relNow() ? ". Two-person custody: choose the witness and press Release results" : ""}` };
   }, { anyStage: true, clear: ["resBox"] });
 }
 async function doAcceptChecks(){
@@ -699,12 +705,13 @@ async function batchTrends(b, qc, p){
   return out;
 }
 /* Writes one sample under its lease from anywhere (batch actions). fn(s) returns the update, { upd, moves }, or null to skip. */
-async function sampleWrite(id, fn){
+async function sampleWrite(id, fn, after){
   const ref = db.doc("samples/" + id);
   try {
     const s = await leased(ref, true); if (!s) return false;
     const res = withRelease(s, fn(s)); if (!res) return false;
     const upd = res.upd || res, moves = res.moves || [];
+    if (after) after(upd);   // v24d: lets the caller see what was written (was it released?)
     upd.updatedAt = Date.now();
     if (moves.length){ upd.ledgerPending = [...(s.ledgerPending || []), ...moves]; upd.lp = true; }
     const sync = derive(s, upd);

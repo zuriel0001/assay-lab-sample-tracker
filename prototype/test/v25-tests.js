@@ -187,6 +187,50 @@ const JSQR = [path.join(__dirname, "..", "..", "app", "jsqr.js"), process.env.AZ
   await open(Tc, r1); await Tc.waitForTimeout(200); rr = await rail(Tc);
   check(/done stop/.test(rr.at(-1).c) && rr.at(-1).m === "✕" && /^Rejected/.test(rr.at(-1).n), "a rejected sample's last step is marked as stopped (✕), not left open");
 
+  log("From the last lab step the sample waits on Results released; saving the results releases it (v24d, 11:29: 'the brown circle should be on the result release whiles waiting for result file upload or type in')");
+  const walk = async (page, id) => { for (let g = 0; g < 25; g++){ await open(page, id); await page.waitForTimeout(120); const t = await page.$eval('#moveForm [data-step="next"]', b => b.textContent.trim()).catch(() => ""); if (!/^Move to:/.test(t)) return; if (await page.$("#mvWit")) await page.selectOption("#mvWit", { index: 1 }); const k = doc(id).stageKey; await page.click('#moveForm [data-step="next"]'); await waitFor(() => doc(id).stageKey !== k, 5000); } };
+  const railOf = async page => (await rail(page)).map(x => ({ ...x, c: x.c.trim() }));
+  await fillForm(Tc, "register", { section: "PLT", type: "plant_feed", purpose: "plant", submitter: "Shift E", count: 1, tags: "MA-WAIT" }); const [w2] = await ids(Tc);
+  await walk(Tc, w2); await open(Tc, w2);
+  let rw = await railOf(Tc);
+  const lastName = rw[rw.findIndex(x => x.n === "Results released") - 1]?.n || "?";   // the step before the release, as the record shows it
+  check(!(await Tc.$("#holdNote")) && /^Move to: Results released$/.test(await text(Tc, '#moveForm [data-step="wait"]')) && !(await Tc.$('#moveForm [data-step="next"]')) && /current/.test(li(rw, lastName).c),
+    "at the last lab step with no results: no 'release on hold', the step offers Move to: Results released (" + lastName + " is the open step)");
+  await Tc.click('[data-step="wait"]'); await waitFor(() => doc(w2).rw, 5000); await open(Tc, w2); await Tc.waitForTimeout(200); rw = await railOf(Tc);
+  check(li(rw, lastName).m === "✓" && /current/.test(li(rw, "Results released").c) && /^Waiting for the results/.test(li(rw, "Results released").t) && /^\s*$/.test(li(rw, "Retained in storage").m || ""),
+    "moved on: " + lastName + " is ticked and Results released is the open step, waiting for the results: " + li(rw, "Results released").t);
+  check(/Waiting for results/.test(await text(Tc, ".card-head .pill")) && /Step (\d+) of \1: waiting for the results/.test(await text(Tc, ".prog-t")) && /^Waiting for the results: .*released when you save them/.test(await text(Tc, "#waitNote")),
+    "the record says it is waiting for results (status, progress and a note naming them): " + await text(Tc, "#waitNote"));
+  check(doc(w2).history.at(-1).rw === true && doc(w2).history.at(-1).key === doc(w2).stageKey && doc(w2).history.at(-1).sn === lastName, "the custody line records " + lastName + " done; the sample's step itself is unchanged");
+  await Tc.click("#corrBox summary"); await Tc.selectOption("#mvKey", doc(w2).stageKey); await Tc.fill("#corrWhy", "Pressed too early"); await Tc.click("#corrBtn");
+  await waitFor(() => doc(w2).rw === null, 5000); await open(Tc, w2); rw = await railOf(Tc);
+  check(doc(w2).rw === null && /current/.test(li(rw, lastName).c) && !!(await Tc.$('[data-step="wait"]')), "pressed too early: a correction puts it back on " + lastName + ", not done yet");
+  await Tc.click('[data-step="wait"]'); await waitFor(() => doc(w2).rw, 5000);
+  await open(Tc, w2); await H.attachFile(Tc, `sample:${w2}`, "mill.csv", Buffer.from("Sample,AuFx\nX,1.2\n")); await H.saveAttach(Tc); await waitFor(() => (doc(w2).certs || []).length, 8000);
+  await open(Tc, w2); await Tc.waitForTimeout(200); rw = await railOf(Tc);
+  check(doc(w2).stageKey === "released" && li(rw, "Results released").m === "✓" && /current/.test(li(rw, "Retained in storage").c), "the file saved: released, Results released ticked green and Retained in storage is the open step");
+
+  log("Two-person custody: the witness signs the release with the file or the typed results");
+  await fillForm(Tc, "register", { section: "PLT", type: "conc", purpose: "recon", submitter: "Gold room", count: 2, tags: "GC-W", wit: "Lab Supervisor" }); const [g2, g3] = await ids(Tc);
+  check(doc(g2).route === "CONC" && !!(await (async () => { await open(Tc, g2); return Tc.$("#mvWit"); })()), "gravity concentrates on CONC, two-person custody (a witness for every step): " + doc(g2).route + " " + JSON.stringify(doc(g2).haz));
+  await walk(Tc, g2); await open(Tc, g2);
+  await Tc.click('[data-step="wait"]'); await Tc.waitForTimeout(250);
+  check(/witness/.test(await H.toastText(Tc)) && !doc(g2).rw, "moving it on needs the witness too");
+  await Tc.selectOption("#mvWit", { index: 1 }); await Tc.click('[data-step="wait"]'); await waitFor(() => doc(g2).rw, 5000);
+  check(!!doc(g2).history.at(-1).wit && doc(g2).history.at(-1).rw, "with the witness it waits for the results, the witness on the custody line");
+  await open(Tc, g2); await H.attachFile(Tc, `sample:${g2}`, "conc.pdf", PDF); await Tc.waitForSelector("#upWit", { timeout: 5000 }).catch(() => {});
+  check(/Witness to the release \(two-person custody: /.test(await text(Tc, "label:has(#upWit)")), "the results file dialog asks for the witness to the release");
+  await Tc.click("#upSave"); await Tc.waitForTimeout(300);
+  check(/choose the witness/.test(await H.toastText(Tc)) && !(doc(g2).certs || []).length, "without it nothing is saved or released");
+  await Tc.selectOption("#upWit", { label: "Lab Supervisor" }); await H.saveAttach(Tc); await waitFor(() => (doc(g2).certs || []).length, 8000);
+  const relE = doc(g2).history.find(h => h.key === "released");
+  check((doc(g2).certs || []).length === 1 && relE?.wit === "Lab Supervisor" && /1 released with the file/.test(H.toasts.slice(-3).join(" ")), "with it the file releases the sample, the witness on the release: " + JSON.stringify(relE));
+  await walk(Tc, g3); await open(Tc, g3); await Tc.selectOption("#mvWit", { index: 1 }); await Tc.click('[data-step="wait"]'); await waitFor(() => doc(g3).rw, 5000);
+  await open(Tc, g3); await Tc.$eval("#resBox", d => { d.open = true; });
+  for (const el of await Tc.$$("#resBox input[id^=rs_]")) await el.fill("1.5");
+  await Tc.selectOption("#mvWit", { label: "Lab Supervisor" }); await Tc.click("#rsSave"); await waitFor(() => (doc(g3).certs || []).length, 6000);
+  check((doc(g3).certs || []).length === 1 && doc(g3).history.find(h => h.key === "released")?.wit === "Lab Supervisor", "typed results with the witness chosen on the record release it too, witnessed");
+
   console.log("\nConsole errors:", JSON.stringify(errors));
   if (errors.length) process.exitCode = 1;
   await browser.close();

@@ -119,10 +119,17 @@ function buildTrack(v, s){
   /* v24d: released results are done (ticked, with when and who), though the sample stays at that step until its material is on the shelf:
      what is left, putting the material away and its due time, shows on the storage step. A closed sample's closing step is done too. */
   const tKey = plan[tIdx]?.key, relDone = s.stageKey === tKey && !!(released || s.relAt), nextKey = relDone ? plan[tIdx + 1]?.key || "" : "";
+  const wRes = waitingRes(s);   // the last lab step is done and the sample waits for its results: Results released is the open step
   const rail = railStages.map(x => {
     const i = stageIdx(s, x.key), e = lastEntry(s, x.key), by = byOf(x, e);
     let cls = "upcoming", meta = "", note = "", mark = "";
     if (relDone && x.key === tKey){ cls = "done"; mark = "✓"; meta = `${fmt(released?.at || s.relAt)}${by ? ` · ${esc(by)}` : ""}`; }
+    else if (wRes && x.key === s.stageKey){ cls = "done"; mark = "✓"; const d = (s.history || []).filter(h => h.rw && h.key === x.key).at(-1); meta = `${fmt(d?.at || s.rw.at)}${d?.tech ? ` · ${esc(d.tech)}` : ""}`; }
+    else if (wRes && x.key === tKey){
+      cls = "current" + (st.late ? " late" : "");
+      meta = resMissing(s) ? `Waiting for the results: attach the results file or type them · since ${fmt(s.rw.at)}`
+        : relNow() ? "Results saved: release them below" : "Results saved: waiting for a lab supervisor to release them";
+    }
     else if (x.key === nextKey){
       cls = "current" + (st.late ? " late" : "");
       const due = stageDue(s), left = keptMaterials(s).filter(m => !m.loc), t = plan[tIdx];
@@ -192,8 +199,8 @@ function buildTrack(v, s){
   const facts = factList.filter(f => !blank(f)).map(row).join(""), factsMore = factList.filter(blank).map(row).join("");
   // Progress along the route up to the release of results, in the same colours as the board.
   const tone = !st.closed && !st.post ? { "t-ok": "ok", "t-soon": "warn", "t-late": "bad", "t-wait": "info" }[cardTime(s).cls] || st.cls : st.cls;
-  const stepNo = Math.min(Math.max(curI, 0), tIdx) + 1, pct = curI >= tIdx ? 100 : Math.round(Math.max(curI, 0) / tIdx * 100);
-  const prog = st.closed ? "" : `<div class="prog${st.late && !st.post ? " late" : awaiting(s) ? " wait" : ""}"><div class="prog-t"><span>${curI >= tIdx ? "<b>Results released</b>" : `Step <b>${stepNo}</b> of ${tIdx + 1}`}</span><span>${curI < tIdx && cardTime(s).left ? esc(cardTime(s).left) + " on this step" : ""}</span></div><div class="prog-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div></div>`;
+  const stepNo = wRes ? tIdx + 1 : Math.min(Math.max(curI, 0), tIdx) + 1, pct = curI >= tIdx ? 100 : wRes ? Math.round((tIdx - 0.5) / tIdx * 100) : Math.round(Math.max(curI, 0) / tIdx * 100);
+  const prog = st.closed ? "" : `<div class="prog${st.late && !st.post ? " late" : awaiting(s) ? " wait" : ""}"><div class="prog-t"><span>${curI >= tIdx ? "<b>Results released</b>" : `Step <b>${stepNo}</b> of ${tIdx + 1}${wRes ? ": waiting for the results" : ""}`}</span><span>${curI < tIdx && cardTime(s).left ? esc(cardTime(s).left) + " on this step" : ""}</span></div><div class="prog-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div></div>`;
 
   const showQc = !relNow() || canEval();   // v24: QC rules are for the people who evaluate
   const ret = s.retention || r?.retention || [], qcText = showQc ? s.qc || r?.qc || "" : "", trig = showQc ? s.triggers || r?.triggers || [] : [];
@@ -331,12 +338,16 @@ function redoBox(s){
 function moveForm(s){
   const p = planOf(s), ci = curIdx(s), ti = targetIdx(s), ri = redoIdx(s), next = p[ci + 1] || null;
   const canRedo = ri >= 0 && ci > ri && ci <= ti;
-  const back = p.map((x, j) => [x, j]).filter(([, j]) => j >= 1 && j < ci);
+  const release0 = next && next.target, waitRes = release0 && waitingRes(s), noRes = release0 && resMissing(s);
+  const back = p.map((x, j) => [x, j]).filter(([, j]) => j >= 1 && (j < ci || (waitRes && j === ci)));
   const ahead = canApprove() ? p.map((x, j) => [x, j]).filter(([, j]) => j > ci + 1 && j < ti && !blockedBy(s, j)) : [];
   const release = next && next.target;
   const self = release && canRelease() ? relSelf(s) : "";
-  const hold = release ? releaseBlock(s) || (self === "blocked" ? SELF_MSG : "") : next && next.phase === "qc" && p[ci].phase !== "qc" ? qcEntryBlock(s) : "";
+  /* v24d: with no results yet the last lab step is not "on hold": it moves on to Results released, where the sample waits for its results
+     file or typed results (released when they are saved, or by a supervisor in the sign-off mode). */
+  const hold = release ? (noRes ? "" : releaseBlock(s) || (self === "blocked" ? SELF_MSG : "")) : next && next.phase === "qc" && p[ci].phase !== "qc" ? qcEntryBlock(s) : "";
   return `<div id="moveForm" class="stack" style="gap:10px">
+    ${waitRes && noRes ? `<div class="notice" id="waitNote"><b>Waiting for the results${missingRes(s).length ? `: ${esc(missingRes(s).map(a => a.s || a.n).join(", "))}` : ""}.</b> Attach the results file, or type the results, under <b>Results</b>. ${relNow() ? `They are released when you save them${twoPerson(s) ? " (with the witness chosen there)" : ""}.` : "A lab supervisor then releases them."}</div>` : ""}
     ${hold ? `<div class="notice warn" id="holdNote"><b>${release ? "Release on hold" : "Before QA/QC review"}:</b> ${esc(hold)}</div>` : ""}
     <div class="form">
       ${meBox("Recorded by")}
@@ -347,13 +358,14 @@ function moveForm(s){
       ${self === "admin" && !hold ? `<label class="f full"><span>You entered results on this sample: reason for releasing them yourself (printed on the certificate) <span class="req">*</span></span><input id="selfWhy" data-clear></label>` : ""}
     </div>
     <div class="row">
-      ${release ? (canRelease() ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Release results and issue certificate</button>` : `<span class="small muted">A lab supervisor releases the results${qcStepOn() ? " after the QA/QC review" : ""}.</span>`)
+      ${release && noRes ? (waitRes ? "" : `<button type="button" class="btn primary" data-step="wait">Move to: Results released</button>`)
+        : release ? (canRelease() ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Release results and issue certificate</button>` : `<span class="small muted">A lab supervisor releases the results${qcStepOn() ? " after the QA/QC review" : ""}.</span>`)
         : next ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Move to: ${esc(next.name)}</button>` : ""}
       <button type="button" class="btn" data-step="note">Save note only</button>
     </div>
     ${back.length || ahead.length ? `<details class="more" id="corrBox"><summary>Correct the stage or skip a step</summary>
       <div class="stack" style="gap:8px;margin-top:8px">
-        <label class="f">Move to<select class="inp" id="mvKey">${back.map(([x]) => `<option value="${esc(x.key)}">Back to ${esc(x.name)} (correction)</option>`).join("")}${ahead.map(([x]) => `<option value="${esc(x.key)}">Skip ahead to ${esc(x.name)}</option>`).join("")}</select></label>
+        <label class="f">Move to<select class="inp" id="mvKey">${back.map(([x, j]) => `<option value="${esc(x.key)}">Back to ${esc(x.name)}${j === ci ? " (not done yet)" : ""} (correction)</option>`).join("")}${ahead.map(([x]) => `<option value="${esc(x.key)}">Skip ahead to ${esc(x.name)}</option>`).join("")}</select></label>
         <label class="f">Reason (required)<input id="corrWhy" data-clear placeholder="e.g. Recorded against the wrong sample"></label>
         <p class="small muted" style="margin:0">A correction never adds a ledger movement. ${canApprove() ? "Skipped steps stay on the record as skipped, with the reason. A skip can't reach or pass QA/QC or the release of results." : "Only a lab supervisor can skip steps."}</p>
         <div class="row"><button type="button" class="btn" id="corrBtn">Record correction</button></div></div></details>` : ""}
@@ -398,7 +410,7 @@ function materialsPanel(s){
       // v24d: on the shelf, the route's return or disposal is offered once the retention period is over; before that, nothing that can't be undone is chosen for you.
       const def = m.loc && od ? m.dispo : "store";
       ctl = `<div class="row mat-row" style="gap:6px;margin-top:6px;flex-wrap:wrap">
-        <select class="inp" id="mx_${m.k}" style="flex:0 1 auto;min-width:0;width:auto;max-width:100%">${[["store", m.loc ? "Move to another location" : "Put away in storage"], ["returned", "Return"], ["disposed", "Dispose"], ["external", "Send to external lab"], ["archived", "Move to long-term archive"]].map(([k, l]) => `<option value="${k}" ${k === def ? "selected" : ""}>${l}${k === m.dispo ? " (route says)" : ""}</option>`).join("")}</select>
+        <select class="inp" id="mx_${m.k}" style="flex:1 1 170px;min-width:0;width:auto">${[["store", m.loc ? "Move to another location" : "Put away in storage"], ["returned", "Return"], ["disposed", "Dispose"], ["external", "Send to external lab"], ["archived", "Move to long-term archive"]].map(([k, l]) => `<option value="${k}" ${k === def ? "selected" : ""}>${l}${k === m.dispo ? " (route says)" : ""}</option>`).join("")}</select>
         <input class="inp" id="mr_${m.k}" data-clear style="flex:1 1 110px;min-width:0;width:auto" placeholder="Location or ref.">
         <button type="button" class="btn" data-mat="${m.k}">Record</button></div>`;
     } else if (m.status !== "kept" && canApprove()){
@@ -549,6 +561,18 @@ async function doStep(kind){
   const s0 = current?.body; if (!s0) return;
   const p = planOf(s0), ci = curIdx(s0), note = val("#mvNote"), ref = val("#mvRef"), loc = val("#mvLoc");
   let key = s0.stageKey, wit = "";
+  if (kind === "wait"){
+    // v24d: the last lab step is done; the sample waits for its results on the Results released step.
+    if ((wit = needWitness(s0, "#mvWit")) === null) return;
+    await act(s => {
+      if (curIdx(s) !== targetIdx(s) - 1 || waitingRes(s) || !resMissing(s)) return null;
+      const at = nowAfter(s), name = stage(s, s.stageKey)?.name || s.stageKey;
+      const upd = { rw: { key: s.stageKey, at }, history: [...(s.history || []), { key: s.stageKey, sn: name, at, by: session.u, tech: session.name, ref, ...(loc ? { loc } : {}), ...(wit ? { wit } : {}), rw: true, note: note || "Done: waiting for the results" }] };
+      if (loc) upd.location = loc;
+      return { upd, msg: `${s.id}: ${name} done; waiting for the results` };
+    }, { clear: ["mvNote", "mvRef", "mvLoc", "mvWit"] });
+    return;
+  }
   if (kind === "next"){
     const nx = p[ci + 1]; if (!nx) return;
     if (nx.target && !canRelease()){ toast("Only a lab supervisor can release results."); return; }
@@ -590,11 +614,12 @@ async function doCorrection(){
   const wit = needWitness(s0, "#mvWit"); if (wit === null) return;
   await act(s => {
     const p = planOf(s), ci = curIdx(s), j = p.findIndex(x => x.key === key);
-    if (j < 1 || j === ci || ci >= targetIdx(s)) return null;
+    if (j < 1 || (j === ci && !waitingRes(s)) || ci >= targetIdx(s)) return null;
     if (j > ci){ const b = blockedBy(s, j); if (b){ toast(`${b.name} can only be reached step by step.`); return null; } }
     const at = nowAfter(s), skipped = j > ci + 1 ? p.slice(ci + 1, j).map(x => x.key) : null;
     const entry = { key, sn: p[j].name, at, by: session.u, tech: session.name, ref: val("#mvRef"), why, ...(wit ? { wit } : {}),
       ...(j < ci ? { corr: true, note: "Correction: " + why } : { skipped, note: `Skipped ${p.slice(ci + 1, j).map(x => x.name).join(", ")}: ${why}` }) };
+    if (j === ci) return { upd: { rw: null, history: [...(s.history || []), entry] }, msg: `${s.id} is back at ${p[j].name}, not done yet` };   // v24d
     return { upd: { stageKey: key, stageAt: at, history: [...(s.history || []), entry] }, msg: j < ci ? `${s.id} corrected to ${p[j].name}` : `${s.id} moved to ${p[j].name}; skipped steps recorded` };
   });
 }

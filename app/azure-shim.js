@@ -291,8 +291,13 @@ const changedField = el => {
   if (el.type === "checkbox" || el.type === "radio") return el.checked !== el.defaultChecked;
   return el.value.trim() !== "" && el.value !== el.defaultValue;
 };
-const unsaved = () => writing > 0 || Date.now() - lastWrite < 3000 || !!document.querySelector(".modal, dialog[open]") ||
-  (window.__unsaved && window.__unsaved()) || [...document.querySelectorAll("input, textarea, select")].some(changedField);
+/* What keeps the page from reloading itself, or "" (also read by the tests). */
+const unsavedWhy = () => writing > 0 ? "a change is being saved" : Date.now() - lastWrite < 3000 ? "a change was just saved" :
+  document.querySelector(".modal, dialog[open]") ? "a dialog is open" : window.__unsaved && window.__unsaved() ? "Settings have unsaved changes" :
+  ([...document.querySelectorAll("input, textarea, select")].find(changedField) || {}).id ? "typed in " + [...document.querySelectorAll("input, textarea, select")].find(changedField).id :
+  [...document.querySelectorAll("input, textarea, select")].some(changedField) ? "something typed" : "";
+const unsaved = () => !!unsavedWhy();
+window.__unsavedWhy = unsavedWhy;
 const reloadIfSafe = () => { if (newBuild && !unsaved()) location.reload(); };
 function newVersionBar(){
   if (document.getElementById("newVersion") || !document.body) return;
@@ -324,8 +329,8 @@ setInterval(() => {
   else if (!document.hidden && Date.now() - lastCheck > 180000){ lastCheck = Date.now(); checkBuild(); }
 }, 15000);
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) reloadIfSafe();
-  else if (!newBuild && Date.now() - lastCheck > 20000){ lastCheck = Date.now(); checkBuild(); }
+  if (document.hidden){ reloadIfSafe(); setTimeout(() => { if (document.hidden) reloadIfSafe(); }, 3500); return; }   // once more after a change just saved has settled
+  if (!newBuild && Date.now() - lastCheck > 20000){ lastCheck = Date.now(); checkBuild(); }
 });
 
 /* The page starts once the signed-in person is known, so it opens on the right tab. */

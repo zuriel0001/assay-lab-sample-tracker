@@ -59,9 +59,10 @@ async function setQcStep(Ad, on){
   check(!r.some(x => /QA\/QC review/.test(x)) && r.some(x => /Wash efficiency/.test(x)) && r.some(x => /Results released/.test(x)), "the record shows no QA/QC review step: " + r.map(x => x.slice(0, 24)).join(" | "));
   const end = await toLast(Tc, c1);
   check(doc(c1).stageKey === "calc", "it moves through every step to Wash efficiency without being stopped (at " + doc(c1).stageKey + ")");
-  check(/A lab supervisor releases the results\.$/.test(end) && !/QA\/QC/.test(end), "the technician sees: A lab supervisor releases the results. (" + end + ")");
-  const hold = await text(Tc, "#holdNote");
-  check(/^Release on hold: Results missing: Solution gold, Solids gold\.$/.test(hold), "the note asks only for the results the release needs, not the sampling point: " + hold);
+  check(!end && /^Move to: Results released$/.test(await text(Tc, '[data-step="wait"]')) && !(await Tc.$("#holdNote")), "with no results yet the last step moves on to Results released, nothing on hold (v24d)");
+  await Tc.click('[data-step="wait"]'); await waitFor(() => doc(c1).rw, 5000); await open(Tc, c1);
+  const hold = await text(Tc, "#waitNote");
+  check(/^Waiting for the results: Solution gold, Solids gold\. .*A lab supervisor then releases them\.$/.test(hold), "waiting there, the note asks only for the results the release needs, not the sampling point: " + hold);
 
   log("Results typed on the record, then a supervisor releases");
   await typeResults(Tc, c1, { Au_s: "0.012", Au: "0.35" });

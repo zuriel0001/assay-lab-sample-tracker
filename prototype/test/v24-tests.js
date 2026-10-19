@@ -128,10 +128,11 @@ async function typeResults(page, id, vals){
 
   log("Release at once: complete results go out when they are saved, by the technician");
   const last = await toLast(Tc, b1);
-  check(/^Release results/.test(last), "the technician reaches the release themselves: " + last);
+  check(!last && /^Move to: Results released$/.test(await text(Tc, '[data-step="wait"]')) && !(await Tc.$("#holdNote")), "with no results yet the technician moves it on to Results released, nothing on hold (v24d)");
+  await Tc.click('[data-step="wait"]'); await waitFor(() => doc(b1).rw, 5000);
   await typeResults(Tc, b1, { h2o: "6.4" });
   check(!doc(b1).certs?.length && doc(b1).stageKey === "aufx", "moisture alone: AuFx is still missing, nothing is released");
-  check(/Results missing: AuFx/.test(await text(Tc, "#holdNote")), "the record says what is missing: " + await text(Tc, "#holdNote"));
+  check(/^Waiting for the results: AuFx\./.test(await text(Tc, "#waitNote")) && /released when you save them/.test(await text(Tc, "#waitNote")), "the record says what it waits for: " + await text(Tc, "#waitNote"));
   await typeResults(Tc, b1, { h2o: "6.4", Au: "1.23" });
   await waitFor(() => doc(b1).certs?.length, 5000);
   const c = (doc(b1).certs || [])[0] || {};

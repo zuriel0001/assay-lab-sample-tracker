@@ -407,6 +407,9 @@ function blockedBy(s, toIdx){
 const stageName = (s, h) => stage(s, h.key)?.name || h.sn || h.key;
 const routeStageNote = (s, key) => routeByCode(s.route)?.stages?.find(x => x.key === key)?.note || "";
 function lastEntry(s, key){ const h = s.history || []; for (let i = h.length - 1; i >= 0; i--) if (h[i].key === key) return h[i]; return null; }
+/* v24d: the last lab step is done and the sample waits for its results on the Results released step (rw: the step it was on and when).
+   A stale mark (the sample has moved since, or came back to that step later) means nothing. */
+const waitingRes = s => !!s?.rw && s.rw.key === s.stageKey && +s.rw.at >= +s.stageAt && curIdx(s) === targetIdx(s) - 1 && !stage(s, s.stageKey)?.final;
 /* Skipped steps since the sample last entered them, with the reason. */
 function skipInfo(s, key){
   const h = s.history || [];
@@ -451,6 +454,7 @@ function status(s){
     if (notStored) return { label: "Results released; material not yet put in storage", cls: "warn", closed: false, late: true, post: true };
     return i === t ? { label: "Results released", cls: "ok", closed: false, late: false, post: true } : { label: "In storage", cls: "info", closed: false, late: false, post: true };
   }
+  if (waitingRes(s)) return { label: late ? "Waiting for results (overdue)" : "Waiting for results", cls: late ? "warn" : "info", closed: false, late };
   return { label: late ? `Overdue at ${st.name}` : `In progress: ${st.name}`, cls: late ? "bad" : "gold", closed: false, late };
 }
 /* Projected start time of every stage up to and including results released. */

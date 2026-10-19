@@ -10,6 +10,12 @@ const check = (cond, msg) => { console.log(cond ? "  PASS" : "  FAIL", msg); if 
 const text = async (page, sel) => ((await page.textContent(sel).catch(() => "")) || "").replace(/\s+/g, " ").trim();
 const IN_USE = ["EXP-FA", "GC-FA", "FA-GRAV", "SFA", "BULLION", ...H.NEW_ROUTES];
 /* Clicks "Move to" until the next step is the release (or a held step). */
+/* v24d: from the last step the sample moves on to Results released and waits there; the note says which results it waits for. */
+async function waitNote(page, id){
+  await open(page, id);
+  if (await page.$('[data-step="wait"]')){ await page.click('[data-step="wait"]'); await waitFor(() => doc(id).rw, 5000); await open(page, id); }
+  return ((await page.textContent("#waitNote b").catch(() => "")) || "").replace(/\s+/g, " ").trim();
+}
 async function toLast(page, id){
   for (let g = 0; g < 25; g++){
     await open(page, id); await page.waitForTimeout(200);
@@ -82,8 +88,8 @@ const rv = (id, k) => doc(id).results?.rows?.[k]?.v;
   const keys = doc(m1).plan.map(x => x.key);
   check(["wet", "filter", "ausx", "dry", "pulv", "fuse", "aufx"].every((k, i, a) => keys.indexOf(k) >= 0 && (i === 0 || keys.indexOf(a[i - 1]) < keys.indexOf(k))), "steps in order: weigh, filter, AuSx, dry, pulverise, fusion, AuFx: " + keys.join(","));
   const end = await toLast(Tc, m1);
-  check(/A lab supervisor releases the results\./.test(end) && doc(m1).stageKey === "aufx", "it moves through every step to AuFx without being stopped (at " + doc(m1).stageKey + ")");
-  check(await text(Tc, "#holdNote") === "Release on hold: Results missing: AuFx, AuSx.", "the hold note names the results as the lab does: " + await text(Tc, "#holdNote"));
+  check(!end && !!(await Tc.$('[data-step="wait"]')) && doc(m1).stageKey === "aufx", "it moves through every step to AuFx without being stopped, then on to Results released (at " + doc(m1).stageKey + ")");
+  check(await waitNote(Tc, m1) === "Waiting for the results: AuFx, AuSx.", "the note names the results as the lab does: " + await waitNote(Tc, m1));
   await open(Tc, m1); await Tc.$eval("#resBox", d => { d.open = true; });
   check(await Tc.$eval("#rs_pt", e => e.value) === "CIL tails", "the results' sampling point is already CIL tails");
   const lbl = await Tc.$$eval("#resBox label", ls => ls.map(l => l.textContent.replace(/\s+/g, " ").trim()).join(" | "));
@@ -104,7 +110,7 @@ const rv = (id, k) => doc(id).results?.rows?.[k]?.v;
   const ck = doc(c1).plan.map(x => x.key);
   check(doc(c1).route === "AUFX-AUSX-CN" && ck.indexOf("cn") > ck.indexOf("filter") && ck.indexOf("cn") < ck.indexOf("ausx") && ck.indexOf("ausx") < ck.indexOf("fuse"), "AUFX-AUSX-CN: filter, cyanide straight away, AuSx, then the solids: " + ck.join(","));
   await toLast(Tc, c1);
-  check(await text(Tc, "#holdNote") === "Release on hold: Results missing: AuFx, AuSx, CNWAD.", "it needs AuFx, AuSx and CNWAD (NaCN and pH optional): " + await text(Tc, "#holdNote"));
+  check(await waitNote(Tc, c1) === "Waiting for the results: AuFx, AuSx, CNWAD.", "it needs AuFx, AuSx and CNWAD (NaCN and pH optional): " + await waitNote(Tc, c1));
   await open(Tc, c1);
   const up = await H.attachFile(Tc, `sample:${c1}`, "mill-assays.csv", `Sample ID,AuFA (ppm),AuSX (ppm),NaCN (ppm),CNWAD (ppm),pH\n${c1},0.18,0.042,85,12.5,10.4\n`);
   check(/Results on 1 sample record/.test(up), "the file is read for this record: " + up.slice(0, 160));
@@ -126,7 +132,7 @@ const rv = (id, k) => doc(id).results?.rows?.[k]?.v;
   const [e1] = await ids(Tc);
   check(doc(e1).route === "ELU-AUSX", "elution solution on ELU-AUSX");
   await toLast(Tc, e1);
-  check(await text(Tc, "#holdNote") === "Release on hold: Results missing: AuSx.", "it needs AuSx (silver, copper, NaOH, NaCN and pH optional): " + await text(Tc, "#holdNote"));
+  check(await waitNote(Tc, e1) === "Waiting for the results: AuSx.", "it needs AuSx (silver, copper, NaOH, NaCN and pH optional): " + await waitNote(Tc, e1));
 
   log("Board: the route filter lists the routes in use");
   await H.tab(Sv, "board"); await Sv.waitForSelector("#bdRoute");
