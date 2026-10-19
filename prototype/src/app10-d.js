@@ -51,7 +51,7 @@ function renderBoard(){
   const cur = sums.find(x => x.k === boardPick && x.n);
   if (boardPick && !cur) boardPick = "";
   const shown = cur && cur.pick ? new Set(cur.pick) : null;
-  const pickHtml = !cur ? "" : `<div class="panel pick-list stack" id="bdPick">
+  const pickHtml = !cur ? "" : cur.k === "await" && canEdit() ? recvManyPanel(cur) : `<div class="panel pick-list stack" id="bdPick">
       <div class="pick-note"><span>Showing <b>${esc(cur.l)}</b>: ${cur.n}</span>${cur.link ? `<button type="button" class="btn small" data-goto="${cur.link[0]}">${esc(cur.link[1])}</button>` : ""}<span class="grow"></span><button type="button" class="btn ghost small" data-bpick="${cur.k}">Close</button></div>
       ${cur.rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>${cur.k === "trends" ? "Reference material" : "Sample"}</th>${cur.k === "trends" ? "" : "<th>Type</th>"}<th>${cur.k === "trends" ? "Batch" : "Analysis · route"}</th><th>${cur.k === "trends" ? "Trend" : "Where it is"}</th></tr></thead><tbody>${cur.rows.slice(0, 100).map(r => cur.k === "trends"
         ? `<tr><td>${esc(r.type)}</td><td class="mono">${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`
@@ -115,7 +115,7 @@ function renderBoard(){
     ${alerts.length ? `<div class="notice bad" id="bdAlerts"><b>Past a limit:</b> ${alerts.slice(0, 12).map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button> <span class="small">${esc(openAlerts(s).map(h => alertLine(s, h)).join("; "))}</span>`).join("<br>")}${alerts.length > 12 ? `<br>+${alerts.length - 12} more` : ""}<div class="small">Open each sample, act as the limit says and record what was done and who was told. In the production system these also go out by email or SMS.</div></div>` : ""}
     ${trends.length ? `<div class="notice warn" id="bdTrends"><b>Reference material trends:</b> ${esc(trends.map(t => `${t.crm}${t.k ? " " + t.k : ""}: ${t.msg}`).join("; "))}. See the control chart on the <button type="button" class="linkish" data-goto="batches">Lab batches</button> tab.</div>` : ""}
     <div class="lanes">${lanes}</div></div>`;
-  bind();
+  bind(); bindRecvMany(v);
   fitLanes(scrolled);
 }
 
@@ -447,7 +447,7 @@ function computeRecon(m){
 }
 function renderLedger(){
   const v = $("#view-ledger");
-  ledgerWatch(); watchStore();
+  ledgerWatch(); watchStore(); watchSignoff(ledgerFilter.month || monthKey(Date.now()));
   const redoFor = sid => canEdit() && (samples.has(sid) ? redoOk(samples.get(sid)) : stored.has(sid));
   const shownRedo = new Set(), shownQa = new Set();
   const f = ledgerFilter;
@@ -484,6 +484,7 @@ function renderLedger(){
         <button class="btn" id="lgCsv">Export CSV</button>
       </div>
       ${rc ? `<div class="recon"><b>Month check:</b> ${rc.opening} on hand at the start + ${rc.ins} received − ${rc.outs} fully out = <b>${rc.closing}</b> on hand at the end${rc.now != null ? (rc.now === rc.closing ? ` <span class="pill ok">matches the ${rc.now} on hand now</span>` : ` <span class="pill bad">${rc.now} on hand now: check for missing movements</span>`) : ""}.</div>` : ""}
+      ${signoffHtml(rc, revN)}
       <p class="small muted" style="margin:0">${inN} inbound and ${outN} outbound movement${outN === 1 ? "" : "s"}${revN ? `, ${revN} reversal${revN === 1 ? "" : "s"}` : ""} in ${esc(f.month)}. Times are ${esc(TZ() || "this device's")} time.</p>
       ${!ledgerReady && db ? `<div class="panel empty"><strong>Loading ${esc(f.month)}…</strong></div>` : rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>Date &amp; time</th><th>Dir.</th><th>Sample ID</th><th>Site code</th><th>Type</th><th>Material</th><th>From / to</th><th>Lab</th><th>Reference · note</th></tr></thead><tbody>${body}</tbody></table></div>`
         : `<div class="panel empty"><strong>No ledger entries${f.dir !== "all" || f.q || f.sec ? " match these filters" : ` in ${esc(f.month)}`}</strong>Entries appear when samples are received at the lab or leave it.</div>`}
@@ -496,6 +497,9 @@ function renderLedger(){
   $("#lgMonth").onchange = e => { if (/^\d{4}-\d{2}$/.test(e.target.value)){ f.month = e.target.value; ledgerWatch(); renderLedger(); } };
   $("#lgQ").oninput = e => { f.q = e.target.value; clearTimeout(renderLedger.t); renderLedger.t = setTimeout(renderLedger, 250); };
   $("#lgCsv").onclick = () => exportCsv(rows);
+  $("#lgSummary")?.addEventListener("click", () => showMonthSummary(rc, ledgerRows(), revN));
+  $("#lgSignBtn")?.addEventListener("click", () => signOffMonth(rc, revN));
+  $("#lgSignNote")?.addEventListener("input", e => { signNote = e.target.value; });
   fillNames(v);
 }
 /* Keeps focus and caret in place when a list view re-draws (the ledger search box, for example). */

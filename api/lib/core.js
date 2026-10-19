@@ -3,7 +3,7 @@
 const { validWhere, clone, same } = require("./docutil");
 const { createAuth, requestKey, clientIp } = require("./auth");
 
-const COLLS = ["samples", "ledger", "batches", "stock", "tagidx", "meta", "settings", "access", "files", "blind"];
+const COLLS = ["samples", "ledger", "batches", "stock", "tagidx", "meta", "settings", "access", "files", "blind", "signoff"];
 const WRITERS = ["tech", "super", "admin"], STAFF = [...WRITERS, "viewer"], APPROVERS = ["super", "admin"];
 const SEG = /^[^\u0000-\u001f/\\?#]{1,200}$/;
 const MAX_DOC = 1500000;   // Cosmos DB items are limited to 2 MB
@@ -137,7 +137,12 @@ function batchRule(a, cur, next){
   return "";
 }
 /* One ledger document per site day and section; its movements are written once. A mistake is reversed by a new movement. */
+const DISPOSAL_WITNESS = "Disposal needs a second person: name the witness (someone other than the person recording it).";
 function ledgerRule(a, cur, next){
+  // v24c: a new movement that disposes of material names a witness who is not the person recording it.
+  const was = (cur && cur.m) || {};
+  for (const [id, mv] of Object.entries((next && next.m) || {}))
+    if (!(id in was) && mv && mv.dir === "out" && mv.kind === "disposed" && !(typeof mv.wit === "string" && mv.wit.trim() && mv.wit !== mv.tech)) return DISPOSAL_WITNESS;
   if (!cur) return "";
   for (const k of ["day", "month", "sec"]) if (cur[k] != null && !same(cur[k], next[k])) return "A ledger day can't be moved.";
   const m0 = cur.m || {}, m1 = next.m || {};
@@ -145,6 +150,24 @@ function ledgerRule(a, cur, next){
   return "";
 }
 const RULES = { samples: sampleRule, batches: batchRule, ledger: ledgerRule };
+/* Monthly ledger sign-off (v24c): signoff/<YYYY-MM> holds each sign-off with the month's numbers at that moment. A lab supervisor or
+   the lab manager adds one in their own name; nothing is changed or removed afterwards. */
+const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
+const count = v => Number.isInteger(v) && v >= 0 && v < 1e7;
+function signProblem(a, e){
+  if (!e || typeof e !== "object" || Array.isArray(e) || Object.keys(e).some(k => !["at", "by", "tech", "role", "opening", "ins", "outs", "closing", "rev", "note"].includes(k)) ||
+      !Number.isFinite(e.at) || !["opening", "ins", "outs", "closing", "rev"].every(k => count(e[k])) || !short(e.note, 200) || !short(e.role, 20)) return "Not a valid ledger sign-off.";
+  return signedBy(a)(e) ? "" : "A ledger sign-off is made under the name of the person signed in.";
+}
+function signoffRule(a, id, cur, next){
+  if (!MONTH.test(id) || !next || next.id !== id || next.month !== id || Object.keys(next).some(k => !["id", "month", "signs"].includes(k)) || !Array.isArray(next.signs) || next.signs.length > 100)
+    return "Not a valid ledger sign-off.";
+  const old = (cur && cur.signs) || [];
+  if (cur && (cur.id !== next.id || cur.month !== next.month)) return "A ledger sign-off can't be moved.";
+  if (!extends_(old, next.signs) || next.signs.length === old.length) return "A ledger sign-off is only added to; earlier ones stay as they were.";
+  for (const e of next.signs.slice(old.length)){ const why = signProblem(a, e); if (why) return why; }
+  return "";
+}
 /* Blind QA/QC re-assay: blind/<blind ID> links a QC sample to the sample it re-assays. Only lab supervisors and the lab manager
    read it; the blind sample is written as a QA/QC submission with nothing on it that points back. A supervisor issues the link
    once in their own name; after that, comparisons are only added to it. */
@@ -192,7 +215,7 @@ function fileProblem(a, id, d){
 }
 
 /* Restoring a backup: the collections a backup holds, loaded in this order (Settings first). */
-const RESTORE = ["settings", "access", "meta", "tagidx", "samples", "blind", "batches", "stock", "ledger", "files"];
+const RESTORE = ["settings", "access", "meta", "tagidx", "samples", "blind", "batches", "stock", "ledger", "signoff", "files"];
 const RESTORE_MARK = "_restore/state";   // outside every collection: nobody reads it through the API
 /* The restored staff list keeps the person restoring it as lab manager, so loading a backup never locks them out. */
 function keepRestorer(d, a){
@@ -424,6 +447,13 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
         if (!(await store.get("samples/" + pp.id))) throw fail("bad_request", "Issue the blind sample before its link.");
         await store.set(op.path, op.data, { check: (cur, next) => cur ? blindRule(a, cur, next) : "" });
       } else await store.update(op.path, op.data, { check: (cur, next) => blindRule(a, cur, next) });
+      return { ok: true };
+    }
+    if (pp.coll === "signoff"){
+      if (!APPROVERS.includes(a.role)) throw fail("permission_denied", "Only a lab supervisor or the lab manager signs off the ledger.");
+      if (t === "delete") throw fail("permission_denied", "A ledger sign-off is never deleted.");
+      const check = (cur, next) => signoffRule(a, pp.id, cur, next);
+      if (t === "set") await store.set(op.path, op.data, { check }); else await store.update(op.path, op.data, { check });
       return { ok: true };
     }
     if (isWriter(a)){

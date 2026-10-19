@@ -21,6 +21,7 @@ async function material(page, id, k, what, ref){
   await open(page, id);
   const before = JSON.stringify(doc(id).materials);
   await page.selectOption("#mx_" + k, what); if (ref != null) await page.fill("#mr_" + k, ref);
+  if (what === "disposed") await page.selectOption("#mtWit", { index: 1 });   // v24c: disposal needs a witness
   await page.click(`[data-mat="${k}"]`);
   await waitFor(() => JSON.stringify(doc(id).materials) !== before && !doc(id).sx, 5000); await page.waitForTimeout(300);
 }

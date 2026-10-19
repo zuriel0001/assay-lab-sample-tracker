@@ -156,7 +156,9 @@ the tracker already shapes them. Sources: [SQL free offer](https://learn.microso
 Staff see each other's names and roles but not their sign-in emails. A request gives no access by itself: a role
 comes only from the staff list in Settings, which only the admin saves; who approved or declined it, and when, stays
 on the request. The ledger, lab batches and stock records (which
-name shelves and tags) are staff only. Nobody deletes a sample, its stock record or a ledger day. Which sample a blind QA/QC sample
+name shelves and tags) are staff only. Nobody deletes a sample, its stock record or a ledger day. A disposal written to the ledger must name a
+witness who is not the person recording it, and the monthly ledger sign-offs (signoff/<month>) are added only by a lab supervisor or the
+admin, in their own name, and never changed or deleted. Which sample a blind QA/QC sample
 re-assays is kept only in its link, which no one but lab supervisors and the admin can read, list or receive as a live change;
 the blind sample itself is a QA/QC submission with nothing pointing back, and only a supervisor or the admin can send a sample
 presented that way. The API only answers JSON requests from the site's own page, so another website
@@ -168,6 +170,7 @@ can't make a signed-in person's browser change records.
 |---|---|
 | `prototype/` | In the GitHub repository only: the prototype's source, tests and route tables (the project's `sample-tracking` folder, without its old version archives). `build.py` and `test/run-suites.js` read it from here; the site deploy uses only `app/` and `api/`. |
 | `app/index.html` | The page. Built by `build.py` from the prototype's `assay-lab-sample-tracker.html` (v26), which it never edits. Every patch must match exactly once, so a changed prototype fails the build loudly. |
+| `app/jsqr.js` | jsQR 1.4.0 (Apache 2.0), unchanged: the QR reader the Scan button loads in browsers that can't read codes themselves (v24c). |
 | `app/azure-shim.js` | Gives the page the shared-database interface it was written for, over `/api/db`: documents, where-filters, live snapshots (by polling for changes), short leases; plus the signed-in person (`/api/me`) and downloads. |
 | `app/staticwebapp.config.json` | Node 22 API, Microsoft sign-in only (GitHub sign-in turned off), `/login` and `/logout`. |
 | `api/db`, `api/me`, `api/auth` | Azure Functions (HTTP) behind `/api`. |
@@ -193,7 +196,7 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 
 | Suite | Result |
 |---|---|
-| `api-tests.js` | 230 / 230 (v26: results files up to 5 MB, a section account opening its own section's file; release at once by the technician, evaluations by a Metallurgy viewer and nothing else, amendments still by a second person, sign-off still enforced when chosen) |
+| `api-tests.js` | 245 / 245 (v24c: a disposal in the ledger names a witness who is not the recorder; ledger sign-offs only by a supervisor or the lab manager, in their own name, only added to, never deleted, read by staff only; v26: results files up to 5 MB, a section account opening its own section's file; release at once by the technician, evaluations by a Metallurgy viewer and nothing else, amendments still by a second person, sign-off still enforced when chosen) |
 | `store-tests.js` | 56 / 56 (28 in memory, 28 on the local Cosmos DB imitation) |
 | `auth-tests.js` | 51 / 51 |
 | `azure-extra.js` | 68 / 68 (including a backup restored into a second copy of the site, a visitor's batch page updating live, and a sample on a route no longer in use moving on) |
@@ -213,10 +216,11 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 | Prototype `v20-tests.js` | 71 / 71 (blind QA/QC re-assay: picks, blind IDs, what technicians see, comparisons on both records; a batch or a single sample on Submit and Register; the batch page and receiving a batch; the custody log scrolling) |
 | Prototype `v21-tests.js` | 60 / 60 (lab batches optional, header search suggestions, recently opened, same details again, phone tables as cards, batch progress, wording) |
 | Prototype `v22-tests.js` | 29 / 29 (no QA/QC review step unless Settings use it: release from the last analysis step, Ready for release on the board, picked results not missing, sampling-point limits) |
+| Prototype `v25-tests.js` | 29 / 29 on the prototype and on this build (scan a label, including the camera reading a printed label; receive several from the board; disposal witness; monthly ledger sign-off and summary; turnaround) |
 | Prototype `v24-tests.js` | 88 / 88 on the prototype and on this build (release at once, any results file accepted (a PDF, a file naming no samples), departments and evaluation, Results tab, re-assay requests, Belt cut sample, testwork as purpose, the new Submit form, Batches, Storage, Ledger, concise Routes, 16 px text, sign-off still selectable; v24c: sample types in Ore, Processing, Gold room, Environment and QC with no testwork or duplicate types, AuFx-named fire assay, an analysis list of exactly the sample type's own analyses, Environment from any site, every board tile with a number opening its list, What it is for and Section limited to what fits the sample type, 18 px text, Received now unticked so submissions wait under Awaiting receipt) |
 | Prototype `v23-tests.js` | 53 / 53 (the routes the lab runs: AuFx/AuSx, cyanide, carbon loading, elution, ore fire assay; routes not in use hidden but kept; sampling point lists; example plant limits; the shorter Submit form) |
 
-For v26 (with the evening's sample type, analysis, purpose, section, colour, board and type-size changes) every prototype suite was run on the prototype page and passes (run.js 107, results-tests 93, v12 71, v13 26, v14 27, v15 46, v16 42, v17 25, v20 71, v21 61, v22 29, v23 53, v24 88, review 41 + 5, hours 7, work hours 14); on this build `v24-tests.js` (88), `azure-extra.js` (68), `api-tests.js`, `auth-tests.js` and `store-tests.js` were run; the older suites' rows above are from the v25 run of this build.
+For v26 (with the evening's sample type, analysis, purpose, section, colour, board and type-size changes) every prototype suite was run on the prototype page and passes (run.js 107, results-tests 93, v12 71, v13 26, v14 27, v15 46, v16 42, v17 25, v20 71, v21 61, v22 29, v23 53, v24 88, v25 29, review 41 + 5, hours 7, work hours 14); on this build `v25-tests.js` (29), `v24-tests.js` (88), `azure-extra.js` (68), `api-tests.js`, `auth-tests.js` and `store-tests.js` were run; the older suites' rows above are from the v25 run of this build.
 
 No console errors in any suite. The 4 prototype checks that don't pass all expect a page **nobody is signed in to** to
 upgrade older records (3) or finish a lab batch a crashed device left half-made (1). On Azure the public can't

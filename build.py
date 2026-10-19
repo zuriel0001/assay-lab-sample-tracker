@@ -443,6 +443,8 @@ put('''  $("#userAdd").onclick = () => {''', '''  v.querySelectorAll("[data-acc-
   });
   $("#userAdd").onclick = () => {''')
 put('''      draftDirty = false; draft = null; renderStages();''', '''      draftDirty = false; draft = null; renderStages(); markAccessGiven(mine.users);''')
+# v24c: the QR reader for browsers that can't read codes themselves is served from this site (app/jsqr.js), not a CDN.
+put('''const JSQR_SRC = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";''', '''const JSQR_SRC = "jsqr.js";''')
 
 out = os.path.join(HERE, "app", "index.html")
 # 9. The document shell. On Claude the platform wraps the page in this shell (doctype, UTF-8, phone viewport, safe-area

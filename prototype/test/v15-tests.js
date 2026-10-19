@@ -98,10 +98,12 @@ const noScroll = page => page.evaluate(() => document.documentElement.scrollWidt
   const S = await newUser(browser, { uid: "u_s", name: "Start", canEdit: true, names }); await signIn(S, "tech1");
   await H.tab(S, "track"); await S.waitForSelector(".hero");
   const today = await S.$$eval(".today button", bs => bs.map(b => [b.dataset.today, b.querySelector(".n").textContent]));
-  check(today.map(t => t[0]).join() === "recvToday,dueToday,late,rel" && today[0][1] === "2" && today[2][1] === "1", "staff see Today: received, due, late, released (" + today.map(t => t.join(" ")).join(", ") + ")");
+  // The late sample was received 3 hours ago: just after midnight that is yesterday (the counts are by site day).
+  const recvN = String(1 + (new Date(Date.now() - 3 * HOUR).toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10) ? 1 : 0));
+  check(today.map(t => t[0]).join() === "recvToday,dueToday,late,rel" && today[0][1] === recvN && today[2][1] === "1", "staff see Today: received, due, late, released (" + today.map(t => t.join(" ")).join(", ") + ")");
   check(!(await S.$$eval("#view-track p", ps => ps.length)), "no explanatory paragraph on the start page");
   await S.click('[data-today="recvToday"]'); await S.waitForTimeout(250);
-  check(await S.$eval("#view-board", v => !v.hidden) && (await S.$$eval(".lanes .chip", cs => cs.length)) === 2 && /received today/i.test(await S.textContent(".pick-note")), "a Today number opens the board filtered to it");
+  check(await S.$eval("#view-board", v => !v.hidden) && (await S.$$eval(".lanes .chip", cs => cs.length)) === +recvN && /received today/i.test(await S.textContent(".pick-note")), "a Today number opens the board filtered to it");
   await H.tab(S, "track"); await S.fill("#heroInput", ex[1].toLowerCase()); await S.press("#heroInput", "Enter"); await S.waitForSelector(".sid");
   check((await S.textContent(".sid")) === ex[1], "the big search box opens a sample");
   await H.tab(P, "track").catch(() => {}); await P.evaluate(() => { location.hash = ""; });

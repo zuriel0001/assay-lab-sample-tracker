@@ -224,9 +224,9 @@ function buildTrack(v, s){
   fillNames(v);
   bindTrack(v, s);
 }
-function witnessField(id){
-  const others = (cfg.users || []).filter(x => x.u !== session?.u && x.role !== "viewer");
-  return `<label class="f"><span>Witness (two-person custody) <span class="req">*</span></span><select id="${id}"><option value="">Choose the second person…</option>${others.map(x => `<option value="${esc(x.name)}">${esc(x.name)}</option>`).join("")}</select></label>`;
+function witnessField(id, label = "Witness (two-person custody)", req = true){
+  const others = (cfg.users || []).filter(x => x.u !== session?.u && ["tech", "super", "admin"].includes(x.role));   // lab staff only (v24c: not section accounts)
+  return `<label class="f"><span>${label}${req ? ` <span class="req">*</span>` : ""}</span><select id="${id}"><option value="">Choose the second person…</option>${others.map(x => `<option value="${esc(x.name)}">${esc(x.name)}</option>`).join("")}</select></label>`;
 }
 const meBox = label => `<label class="f"><span>${label}</span><div class="me-box">${esc(session.name)} <span class="muted small" style="font-weight:400">(you)</span></div></label>`;
 /* Tests a route in use performs: the sample type's own first, then the others by group. `sel` (a sample's own test) is always listed. */
@@ -278,6 +278,7 @@ function receiptForm(s){
     <details class="more" id="rejBox"><summary>Reject the sample</summary>
       <div class="stack" style="gap:8px;margin-top:8px">
         <label class="f">What happens to it<select class="inp" id="rcDisp"><option value="returned">Returned to the submitter</option><option value="disposed">Disposed at the lab</option><option value="cancel">Nothing arrived: cancel the submission</option></select></label>
+        <div class="form" id="rcDispWitBox">${witnessField("rcDispWit", "Witness, if disposed (a second person)", false)}</div>
         <p class="small muted" style="margin:0">Returned or disposed material goes in the ledger as received, then sent out, so the counts balance. Put the reason in the note above.</p>
         <div class="row"><button type="button" class="btn danger" data-receipt="reject">Reject sample</button></div></div></details>
   </div>`;
@@ -352,6 +353,7 @@ function moveForm(s){
       <div class="stack" style="gap:8px;margin-top:8px">
         <label class="f">What happens to the sample<select class="inp" id="cxDisp"><option value="returned">Returned to the submitter</option><option value="disposed">Disposed at the lab</option><option value="external">Sent to an external lab</option></select></label>
         <label class="f">Reason (required)<input id="cxWhy" data-clear placeholder="e.g. Submitter withdrew the request"></label>
+        ${twoPerson(s) ? "" : `<div class="form">${witnessField("cxWit", "Witness, if disposed (a second person)", false)}</div>`}
         <p class="small muted" style="margin:0">Writes an outbound ledger movement and closes the sample.</p>
         <div class="row"><button type="button" class="btn danger" id="cxBtn">Stop testing</button></div></div></details>` : ""}
   </div>`;
@@ -386,7 +388,7 @@ function materialsPanel(s){
   }).join("");
   return `<div class="panel stack" id="matBox"><h3>Retained material</h3>
     <p class="small muted" style="margin:0">Each material is kept for its own period from the release of results, then returned or disposed. Every return, disposal or send-out is written to the ledger.</p>
-    ${edit && !closed && twoPerson(s) ? `<div class="form">${witnessField("mtWit")}</div>` : ""}
+    ${edit && !closed && (s.materials || []).some(m => m.status === "kept") ? `<div class="form">${twoPerson(s) ? witnessField("mtWit") : witnessField("mtWit", "Witness, to dispose (a second person)", false)}</div>` : ""}
     <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 function bindTrack(v, s){
@@ -488,6 +490,7 @@ async function doReceipt(kind){
     if (c.warn.length && !note){ toast("A receipt check failed. Describe it in the note, then confirm."); $("#mvNote")?.focus(); return; }
   }
   const disp = kind === "reject" ? val("#rcDisp") : "";
+  const dWit = disp === "disposed" ? disposalWitness("#rcDispWit") : ""; if (dWit === null) return;
   await act(s => {
     if (!awaiting(s)){ toast(`${s.id} was already handled by ${lastTech(s)}.`); return null; }
     const base = { by: session.u, tech: session.name, ref: "" }, h = s.history || [];
@@ -508,8 +511,8 @@ async function doReceipt(kind){
     if (disp === "cancel") return { upd: { stageKey: "cancelled", stageAt: now, flag: "", open: false, onHand: false, closedAt: now, history: [...h, { ...base, key: "cancelled", sn: "Submission cancelled", at: now, note: "Cancelled, nothing received: " + note }] }, msg: `${s.id} cancelled` };
     const outAt = now + 1000;
     return { upd: { stageKey: "rejected", stageAt: outAt, flag: "", open: false, onHand: false, closedAt: outAt, recvAt: now, receivedBy: session.name, receivedAt: now, inMid: `${s.id}~in`,
-        history: [...h, { ...base, key: "received", sn: HEAD[1].name, at: now, note: "Received for inspection" }, { ...base, key: "rejected", sn: "Rejected at receipt", at: outAt, note: `Rejected and ${DISPO[disp].toLowerCase()}: ${note}` }] },
-      moves: [inMove(s, now, null, "Received for inspection", ""), outMove(s, outAt, disp, "Whole sample (rejected)", "", note, `${s.id}~out~all~1`, "")], msg: `${s.id} rejected` };
+        history: [...h, { ...base, key: "received", sn: HEAD[1].name, at: now, note: "Received for inspection" }, { ...base, key: "rejected", sn: "Rejected at receipt", at: outAt, ...(dWit ? { wit: dWit } : {}), note: `Rejected and ${DISPO[disp].toLowerCase()}: ${note}` }] },
+      moves: [inMove(s, now, null, "Received for inspection", ""), outMove(s, outAt, disp, "Whole sample (rejected)", "", note, `${s.id}~out~all~1`, dWit)], msg: `${s.id} rejected` };
   });
 }
 async function doStep(kind){
@@ -604,7 +607,8 @@ async function doCancel(){
   const disp = val("#cxDisp"), why = val("#cxWhy"), ref = val("#mvRef");
   if (!why){ toast("Give the reason for stopping the testing."); $("#cxWhy")?.focus(); return; }
   if (disp === "external" && !ref){ toast("Put the external lab and waybill in the Reference box."); $("#mvRef")?.focus(); return; }
-  const wit = needWitness(s0, "#mvWit"); if (wit === null) return;
+  const wit = twoPerson(s0) ? needWitness(s0, "#mvWit") : disp === "disposed" ? disposalWitness("#cxWit") : ""; if (wit === null) return;
+  if (twoPerson(s0) && disp === "disposed" && wit === session?.name){ toast("The witness must be someone other than you."); return; }
   await act(s => {
     const ci = curIdx(s); if (ci < 1 || ci >= targetIdx(s)) return null;
     const at = nowAfter(s), mid = `${s.id}~out~all~1`;
@@ -618,7 +622,7 @@ async function doMaterial(k){
   const what = val("#mx_" + k), ref = val("#mr_" + k);
   if (what === "store" && !ref){ toast("Type the storage location first."); $("#mr_" + k)?.focus(); return; }
   if (what === "external" && !ref){ toast("Type the external lab and waybill number first."); $("#mr_" + k)?.focus(); return; }
-  const wit = needWitness(s0, "#mtWit"); if (wit === null) return;
+  const wit = what === "disposed" ? disposalWitness("#mtWit") : needWitness(s0, "#mtWit"); if (wit === null) return;   // v24c: disposal needs a second person
   await act(s => {
     const mats = clone(s.materials || []), m = mats.find(x => x.k === k);
     if (!m || m.status !== "kept"){ toast("This material was already recorded by someone else."); return null; }

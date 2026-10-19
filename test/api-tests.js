@@ -144,6 +144,26 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   check(!(await one("boss@site.com", { op: "update", path: lp, data: { m: { a: null } } })).ok, "a recorded ledger movement can't be removed");
   check(!(await one("boss@site.com", { op: "set", path: lp, data: { day: "2026-10-14", m: {} } })).ok, "a ledger day can't be wiped by writing it again");
   check(!(await one("boss@site.com", { op: "delete", path: lp })).ok, "ledger days are never deleted");
+  // v24c: disposal needs a second person, on the server too
+  const dmv = { dir: "out", kind: "disposed", sid: rid, item: "Pulp", ...T1 };
+  check(!(await one("t1@site.com", { op: "update", path: lp, data: { m: { d1: dmv } } })).ok, "a disposal with no witness is refused");
+  check(!(await one("t1@site.com", { op: "update", path: lp, data: { m: { d1: { ...dmv, wit: "Tech One" } } } })).ok, "a disposal witnessed by the person recording it is refused");
+  check(!(await one("t1@site.com", { op: "set", path: "ledger/2026-10-15_EXP", data: { day: "2026-10-15", m: { d2: dmv } } })).ok, "a new ledger day with an unwitnessed disposal is refused");
+  check((await one("t1@site.com", { op: "update", path: lp, data: { m: { d1: { ...dmv, wit: "Super One" } } } })).ok, "a disposal witnessed by a second person is recorded");
+  check((await one("t1@site.com", { op: "update", path: lp, data: { m: { r1: { dir: "out", kind: "returned", sid: rid, item: "Pulp", ...T1 } } } })).ok, "a return needs no witness");
+  // v24c: monthly ledger sign-off: supervisors and the lab manager, in their own name, only added to
+  const so = "signoff/2026-10", sg = (who, x = {}) => ({ at: Date.now(), ...who, role: "super", opening: 3, ins: 10, outs: 4, closing: 9, rev: 0, note: "", ...x });
+  check(!(await one("t1@site.com", { op: "set", path: so, data: { id: "2026-10", month: "2026-10", signs: [sg(T1)] } })).ok, "a technician can't sign off the ledger");
+  check(!(await one("s1@site.com", { op: "set", path: so, data: { id: "2026-10", month: "2026-10", signs: [sg(T1)] } })).ok, "a sign-off is made in the name of the person signed in");
+  check(!(await one("s1@site.com", { op: "set", path: so, data: { id: "2026-10", month: "2026-10", signs: [sg(S1, { closing: -1 })] } })).ok, "a sign-off carries whole counts");
+  check(!(await one("s1@site.com", { op: "set", path: "signoff/2026-13", data: { id: "2026-13", month: "2026-13", signs: [sg(S1)] } })).ok, "a sign-off is for a real month");
+  check((await one("s1@site.com", { op: "set", path: so, data: { id: "2026-10", month: "2026-10", signs: [sg(S1)] } })).ok, "a supervisor signs off a month");
+  const so1 = (await one("v@site.com", { op: "get", path: so })).data;
+  check(so1 && so1.signs.length === 1 && so1.signs[0].tech === "Super One", "staff read the sign-off");
+  check(!(await one(null, { op: "get", path: so })).ok && !(await one("exp@site.com", { op: "get", path: so })).ok, "the public and section accounts don't");
+  check(!(await one("boss@site.com", { op: "update", path: so, data: { signs: [sg(MG, { role: "admin" })] } })).ok, "an earlier sign-off can't be replaced");
+  check((await one("boss@site.com", { op: "update", path: so, data: { signs: [...so1.signs, sg(MG, { role: "admin", closing: 10, ins: 11 })] } })).ok, "the lab manager signs off again after a change, added after the first");
+  check(!(await one("boss@site.com", { op: "delete", path: so })).ok, "a sign-off is never deleted");
   const ex1 = await one("boss@site.com", { op: "export", coll: "samples", limit: 2 }), ex2 = await one("boss@site.com", { op: "export", coll: "samples", after: ex1.next, limit: 500 });
   check(ex1.docs.length === 2 && ex1.next === ex1.docs[1].path && ex2.next === null && ex2.docs.length >= 2 && ex2.docs[0].path > ex1.next, "the lab manager exports every record, page by page (backup)");
   check(!(await one("s1@site.com", { op: "export", coll: "samples" })).ok && !(await one(null, { op: "export", coll: "settings" })).ok, "nobody else can export");

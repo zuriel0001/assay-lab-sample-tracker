@@ -122,6 +122,7 @@ function renderStaffResults(v){
         <select class="inp" id="resDays" style="width:auto" aria-label="Period">${[7, 30, 90].map(d => `<option value="${d}" ${resDays === d ? "selected" : ""}>${d} days</option>`).join("")}</select>
         ${ev ? `<label class="row" style="gap:6px"><input type="checkbox" id="resDue" ${resDue ? "checked" : ""}> To evaluate only</label>` : ""}
       </div></div>
+    ${turnaroundPanel(list)}
     ${list.length ? `<div class="panel"><div class="tbl-wrap"><table class="cardy restbl"><thead><tr><th>Sample</th><th>Type · for</th><th>Results</th><th>Released</th>${ev ? "<th>Flags</th><th>Evaluation</th>" : ""}</tr></thead><tbody>
       ${list.slice(0, 300).map(s => { const c = lastCert(s), fl = ev ? evalFlags(s) : [], e = lastEval(s);
         return `<tr${ev && !evaluated(s) && fl.length ? ' class="due"' : ""}><td data-l="Sample"><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>${tagText(s) ? `<div class="small muted mono">${esc(tagText(s))}</div>` : ""}</td>

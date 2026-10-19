@@ -446,17 +446,7 @@ async function receiveBatch(sids){
   if (err){ toast(err); $("#bvAt")?.focus(); return; }
   if ($("#bvWit") && !wit){ toast("Two-person custody: choose the witness first."); $("#bvWit")?.focus(); return; }
   batchRecvBusy = true; $("#bvRecvBtn").disabled = true; $("#bvRecvBtn").textContent = "Receiving…";
-  const ok = await pool(sids, 5, sid => sampleWrite(sid, s => {
-    if (!awaiting(s)) return null;
-    const t = typeOf(s.typeKey), w = twoPerson(s) ? wit : "", when = Math.max(at, (s.createdAt || 0) + 1000), warn = [];
-    let holdH = null;
-    if (t?.hold && s.collectedAt){ holdH = Math.max(0, (when - s.collectedAt) / HOUR); if (holdH > t.hold) warn.push(`holding time for ${t.holdWhat} exceeded: received ${hoursLabel(holdH)} after collection, limit ${hoursLabel(t.hold)}`); }
-    const recv = { bags: s.containers || 1, mass: null, unit: massUnit(s), seal: s.seal ? "ok" : "none", cond: "Good", temp: "", holdH, warn, ...(w ? { wit: w } : {}) };
-    const note = `Received with batch ${ref}` + (warn.length ? ". Receipt checks: " + warn.join("; ") : "");
-    return { upd: { stageKey: "received", stageAt: when, receivedBy: session.name, receivedAt: when, recvAt: when, recv, onHand: true, flag: "", inMid: `${s.id}~in`,
-        history: [...(s.history || []), { key: "received", sn: HEAD[1].name, at: when, by: session.u, tech: session.name, ref: "", note, ...(w ? { wit: w } : {}) }] },
-      moves: [inMove(s, when, recv, note, w)] };
-  }));
+  const ok = await receiveMany(sids, at, wit, () => `Received with batch ${ref}`);
   batchRecvBusy = false;
   toast(`${ok} of ${sids.length} received`);
   if (current?.batch === ref) renderTrack();

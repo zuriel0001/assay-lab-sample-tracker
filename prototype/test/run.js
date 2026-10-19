@@ -188,7 +188,7 @@ const moves = id => ledger().filter(m => m.sid === id);
   await open(A, s1);
   await A.selectOption("#mx_m1", "store"); await A.fill("#mr_m1", "B3"); await A.click('[data-mat="m1"]'); await A.waitForTimeout(1100);
   check(doc(s1).stageKey === "released" && doc(s1).lab === true && doc(s1).materials[0].loc === "B3" && /Pulp: B3/.test(doc(s1).location) && /still to put away/.test(await toastText(A)), "pulp put away at B3; the sample stays on the board while the coarse reject has no place" + (process.env.DBG ? JSON.stringify({ st: doc(s1).stageKey, m: doc(s1).materials, loc: doc(s1).location }) : ""));
-  await A.selectOption("#mx_m2", "disposed"); await A.click('[data-mat="m2"]'); await A.waitForTimeout(1100);
+  await A.selectOption("#mtWit", { index: 1 }); await A.selectOption("#mx_m2", "disposed"); await A.click('[data-mat="m2"]'); await A.waitForTimeout(1100);   // v24c: disposal needs a witness
   check(doc(s1).materials[1].status === "disposed" && doc(s1).open === true && moves(s1).filter(m => m.dir === "out").length === 1, "coarse reject disposed on its own: one OUT movement, sample still open for the pulp");
   check(doc(s1).stageKey === "storage" && doc(s1).lab === false && store["stock/" + s1]?.st === "store" && store["stock/" + s1].m.length === 1 && store["stock/" + s1].m[0].loc === "B3" && !doc(s1).sx,
     "with every kept material shelved the sample moves into storage, off the board, and its stock record lists the pulp at B3");
@@ -198,7 +198,7 @@ const moves = id => ledger().filter(m => m.sid === id);
   await S.fill("#mu_m2", "Wrong bag disposed in the system; reject still on the shelf"); await S.click('[data-undo="m2"]'); await S.waitForTimeout(1100);
   check(doc(s1).materials[1].status === "kept" && moves(s1).filter(m => m.dir === "rev").length === 1, "reversal writes a visible REV movement; nothing is deleted");
   await open(A, s1);
-  await A.selectOption("#mx_m2", "disposed"); await A.click('[data-mat="m2"]'); await A.waitForTimeout(1100);
+  await A.selectOption("#mtWit", { index: 1 }); await A.selectOption("#mx_m2", "disposed"); await A.click('[data-mat="m2"]'); await A.waitForTimeout(1100);   // v24c: disposal needs a witness
   await A.selectOption("#mx_m1", "returned"); await A.fill("#mr_m1", "Geology store, slip 118"); await A.click('[data-mat="m1"]'); await A.waitForTimeout(1200);
   const fin = doc(s1);
   check(fin.open === false && fin.stageKey === "closed" && fin.closedAt, "sample closes when the last material leaves (mixed: closed)");
@@ -217,7 +217,7 @@ const moves = id => ledger().filter(m => m.sid === id);
   await fillForm(P, "submit", { section: "EXP", submitter: "Esi" }); const st = (await ids(P))[0];
   await open(A, st); await A.click('[data-receipt="confirm"]'); await A.waitForTimeout(1100);
   check(!(await A.$$eval("#mvKey option", os => os.map(o => o.value))).includes("rejected"), "Rejected is not offered once the sample is received");
-  await A.click("#cxBox summary"); await A.selectOption("#cxDisp", "disposed"); await A.fill("#cxWhy", "Submitter withdrew the request"); await A.click("#cxBtn"); await A.waitForTimeout(1100);
+  await A.click("#cxBox summary"); await A.selectOption("#cxDisp", "disposed"); await A.selectOption("#cxWit", { index: 1 }); await A.fill("#cxWhy", "Submitter withdrew the request"); await A.click("#cxBtn"); await A.waitForTimeout(1100);
   check(doc(st).stageKey === "disposed" && doc(st).open === false && moves(st).map(m => m.dir).sort().join() === "in,out", "testing stopped: closed with an OUT movement");
 
   log("Two-person custody, holding time and cooler checks");
