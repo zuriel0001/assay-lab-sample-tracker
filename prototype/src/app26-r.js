@@ -47,76 +47,84 @@ function bindWq(v){
   $("#wqDrop", v)?.addEventListener("click", doWithdraw);
 }
 const wqId = at => "W" + at.toString(36).toUpperCase();
+/* Each change below is built for one sample: { upd, moves, msg } to write, or null when it no longer applies. The sample page writes it to the
+   sample open; a batch (v24d, processed as one) writes it to each of its samples, with one request id for them all and the batch named. */
+const inB = bref => bref ? `With batch ${bref}. ` : "";
+function askStoreUpd(s, w, id, bref){
+  if (wqOf(s) || !twoPerson(s) || s.stageKey !== "released" || !shelvedAll(s)) return null;
+  const at = nowAfter(s), q = { id: id || wqId(at), kind: "store", at, by: session.u, tech: session.name, wit: w.name, witU: w.u, ...(bref ? { batch: bref } : {}) };
+  return { upd: { wq: q, wqU: w.u, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wreq: q.id,
+    note: `${inB(bref)}Put away: ${wqText(s, q)}. Asked ${w.name} to confirm` }] }, msg: `Asked ${w.name} to confirm the storage of ${s.id}` };
+}
+function askOutUpd(s, k, what, ref, w, id, bref){
+  const m = (s.materials || []).find(x => x.k === k);
+  if (wqOf(s) || !m || m.status !== "kept") return null;
+  const at = nowAfter(s), q = { id: id || wqId(at), kind: "out", k, what, ref: ref || "", at, by: session.u, tech: session.name, wit: w.name, witU: w.u, ...(bref ? { batch: bref } : {}) };
+  return { upd: { wq: q, wqU: w.u, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wreq: q.id, mat: k,
+    note: `${inB(bref)}${wqText(s, q)}. Asked ${w.name} to confirm` }] }, msg: `Asked ${w.name} to confirm: ${m.item} to be ${(DISPO[what] || what).toLowerCase()}` };
+}
+function confirmUpd(s, say = () => {}){
+  const q = wqOf(s); if (!q || q.witU !== session.u){ say("This confirmation is no longer waiting for you."); return null; }
+  const at = nowAfter(s), h = s.history || [], bref = q.batch || "";
+  if (q.kind === "store"){
+    const upd = { wq: null, wqU: null, history: [...h, { key: "storage", sn: stage(s, "storage")?.name || "Retained in storage", at, by: session.u, tech: session.name, wcf: q.id, put: q.tech,
+      note: `${inB(bref)}Storage confirmed: ${wqText(s, q)}. Put away by ${q.tech}` }] };
+    if (s.stageKey === "released"){ upd.stageKey = "storage"; upd.stageAt = at; }
+    return { upd, msg: `${s.id}: storage confirmed. The workflow is complete` };
+  }
+  const mats = clone(s.materials || []), m = mats.find(x => x.k === q.k);
+  if (!m || m.status !== "kept"){ say("This material was already recorded."); return null; }
+  m.outs = (m.outs || 0) + 1;
+  Object.assign(m, { status: q.what, outAt: at, outBy: q.by, outTech: q.tech, outRef: q.ref || "", outMid: `${s.id}~out~${q.k}~${m.outs}` });
+  const mv = { ...outMove(s, at, q.what, m.item, q.ref || "", "Confirmed by the witness", m.outMid, session.name), by: q.by, tech: q.tech };
+  const upd = { materials: mats, wq: null, wqU: null };
+  if (!mats.some(x => x.status === "kept")){
+    const ds = new Set(mats.map(x => x.status)), fin = ds.size === 1 ? [...ds][0] : "closed";
+    Object.assign(upd, { stageKey: fin, stageAt: at, open: false, onHand: false, closedAt: at });
+  }
+  upd.location = mats.filter(x => x.status === "kept" && x.loc).map(x => `${x.item}: ${x.loc}`).join("; ");
+  const key = upd.stageKey || s.stageKey;
+  upd.history = [...h, { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, wcf: q.id, mat: q.k, put: q.tech, ref: q.ref || "",
+    note: `${inB(bref)}${m.item}: ${(DISPO[q.what] || q.what).toLowerCase()} by ${q.tech}, confirmed by the witness` }];
+  return { upd, moves: [mv], msg: upd.open === false ? `${s.id} closed: all material has left the lab` : `${m.item}: ${(DISPO[q.what] || q.what).toLowerCase()}, confirmed` };
+}
+function sendBackUpd(s, why){
+  const q = wqOf(s); if (!q || q.witU !== session.u) return null;
+  const at = nowAfter(s);
+  return { upd: { wq: null, wqU: null, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wsb: q.id, ...(q.k ? { mat: q.k } : {}),
+    note: `${inB(q.batch)}Not confirmed (${q.kind === "store" ? "storage: " : ""}${wqText(s, q)}): ${why}. Sent back to ${q.tech}` }] }, msg: `Sent back to ${q.tech}` };
+}
+function withdrawUpd(s){
+  const q = wqOf(s); if (!q || !(session?.u === q.by || canApprove())) return null;
+  const at = nowAfter(s);
+  return { upd: { wq: null, wqU: null, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wwd: q.id,
+    note: `${inB(q.batch)}Request to ${q.wit} withdrawn` }] }, msg: "Request withdrawn" };
+}
 async function doAskStore(){
   const s0 = current?.body; if (!s0) return;
   const w = (cfg.users || []).find(x => x.u === val("#wqWit"));
   if (!w){ toast("Choose the witness who confirms the storage."); $("#wqWit")?.focus(); return; }
-  await act(s => {
-    if (wqOf(s) || !twoPerson(s) || s.stageKey !== "released" || !shelvedAll(s)) return null;
-    const at = nowAfter(s), q = { id: wqId(at), kind: "store", at, by: session.u, tech: session.name, wit: w.name, witU: w.u };
-    return { upd: { wq: q, wqU: w.u, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wreq: q.id,
-      note: `Put away: ${wqText(s, q)}. Asked ${w.name} to confirm` }] }, msg: `Asked ${w.name} to confirm the storage of ${s.id}` };
-  }, { anyStage: true, clear: ["wqWit"] });
+  await act(s => askStoreUpd(s, w), { anyStage: true, clear: ["wqWit"] });
 }
 /* A disposal on a critical sample: recorded as a request; the material leaves when the witness confirms. */
 async function askOut(k, what, ref, wn){
   const w = userByName(wn);
   if (!w){ toast("Two-person custody: choose the witness who confirms the disposal."); $("#mtWit")?.focus(); return; }
   if (w.u === session.u){ toast("The witness must be someone other than you."); return; }
-  await act(s => {
-    const m = (s.materials || []).find(x => x.k === k);
-    if (wqOf(s) || !m || m.status !== "kept") return null;
-    const at = nowAfter(s), q = { id: wqId(at), kind: "out", k, what, ref: ref || "", at, by: session.u, tech: session.name, wit: w.name, witU: w.u };
-    return { upd: { wq: q, wqU: w.u, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wreq: q.id, mat: k,
-      note: `${wqText(s, q)}. Asked ${w.name} to confirm` }] }, msg: `Asked ${w.name} to confirm: ${m.item} to be ${(DISPO[what] || what).toLowerCase()}` };
-  }, { anyStage: true, clear: ["mx_" + k, "mr_" + k, "mtWit"] });
+  await act(s => askOutUpd(s, k, what, ref, w), { anyStage: true, clear: ["mx_" + k, "mr_" + k, "mtWit"] });
 }
 async function doConfirm(){
   const s0 = current?.body; if (!s0 || !myConf(s0)) return;
-  await act(s => {
-    const q = wqOf(s); if (!q || q.witU !== session.u){ toast("This confirmation is no longer waiting for you."); return null; }
-    const at = nowAfter(s), h = s.history || [];
-    if (q.kind === "store"){
-      const upd = { wq: null, wqU: null, history: [...h, { key: "storage", sn: stage(s, "storage")?.name || "Retained in storage", at, by: session.u, tech: session.name, wcf: q.id, put: q.tech,
-        note: `Storage confirmed: ${wqText(s, q)}. Put away by ${q.tech}` }] };
-      if (s.stageKey === "released"){ upd.stageKey = "storage"; upd.stageAt = at; }
-      return { upd, msg: `${s.id}: storage confirmed. The workflow is complete` };
-    }
-    const mats = clone(s.materials || []), m = mats.find(x => x.k === q.k);
-    if (!m || m.status !== "kept"){ toast("This material was already recorded."); return null; }
-    m.outs = (m.outs || 0) + 1;
-    Object.assign(m, { status: q.what, outAt: at, outBy: q.by, outTech: q.tech, outRef: q.ref || "", outMid: `${s.id}~out~${q.k}~${m.outs}` });
-    const mv = { ...outMove(s, at, q.what, m.item, q.ref || "", "Confirmed by the witness", m.outMid, session.name), by: q.by, tech: q.tech };
-    const upd = { materials: mats, wq: null, wqU: null };
-    if (!mats.some(x => x.status === "kept")){
-      const ds = new Set(mats.map(x => x.status)), fin = ds.size === 1 ? [...ds][0] : "closed";
-      Object.assign(upd, { stageKey: fin, stageAt: at, open: false, onHand: false, closedAt: at });
-    }
-    upd.location = mats.filter(x => x.status === "kept" && x.loc).map(x => `${x.item}: ${x.loc}`).join("; ");
-    const key = upd.stageKey || s.stageKey;
-    upd.history = [...h, { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, wcf: q.id, mat: q.k, put: q.tech, ref: q.ref || "",
-      note: `${m.item}: ${(DISPO[q.what] || q.what).toLowerCase()} by ${q.tech}, confirmed by the witness` }];
-    return { upd, moves: [mv], msg: upd.open === false ? `${s.id} closed: all material has left the lab` : `${m.item}: ${(DISPO[q.what] || q.what).toLowerCase()}, confirmed` };
-  }, { anyStage: true });
+  await act(s => confirmUpd(s, toast), { anyStage: true });
 }
 async function doSendBack(){
   const s0 = current?.body; if (!s0 || !myConf(s0)) return;
   const why = val("#wqWhy"); if (!why){ toast("Give the reason for sending it back."); $("#wqWhy")?.focus(); return; }
-  await act(s => {
-    const q = wqOf(s); if (!q || q.witU !== session.u) return null;
-    const at = nowAfter(s);
-    return { upd: { wq: null, wqU: null, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wsb: q.id, ...(q.k ? { mat: q.k } : {}),
-      note: `Not confirmed (${q.kind === "store" ? "storage: " : ""}${wqText(s, q)}): ${why}. Sent back to ${q.tech}` }] }, msg: `Sent back to ${q.tech}` };
-  }, { anyStage: true, clear: ["wqWhy"] });
+  await act(s => sendBackUpd(s, why), { anyStage: true, clear: ["wqWhy"] });
 }
 async function doWithdraw(){
   const s0 = current?.body, q0 = wqOf(s0); if (!q0 || !(session?.u === q0.by || canApprove())) return;
-  await act(s => {
-    const q = wqOf(s); if (!q) return null;
-    const at = nowAfter(s);
-    return { upd: { wq: null, wqU: null, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wwd: q.id,
-      note: `Request to ${q.wit} withdrawn` }] }, msg: "Request withdrawn" };
-  }, { anyStage: true });
+  await act(withdrawUpd, { anyStage: true });
 }
 /* The samples waiting for the person signed in to confirm, for the board (and a note when a new one arrives). */
 const confs = new Map();
@@ -130,7 +138,8 @@ function watchConf(){
   confSub = db.collection("samples").where("wqU", "==", u).limit(100).onSnapshot(snap => {
     confs.clear(); snap.docs.forEach(d => { const x = d.data(); if (x && x.id && x.wq && x.wq.witU === u) confs.set(x.id, x); });
     const ids = [...confs.values()].map(x => x.wq.id);
-    if (confSeen){ const fresh = [...confs.values()].filter(x => !confSeen.has(x.wq.id)); if (fresh.length) toast(`${fresh[0].wq.tech} asks you to confirm ${fresh[0].id}${fresh.length > 1 ? ` and ${fresh.length - 1} more` : ""}. It is on the board under Waiting for your confirmation.`); }
+    if (confSeen){ const fresh = [...confs.values()].filter(x => !confSeen.has(x.wq.id)); if (fresh.length){ const q = fresh[0].wq, n = new Set(fresh.map(x => x.wq.batch ? x.wq.batch + "|" + x.wq.id : x.id)).size;
+      toast(`${q.tech} asks you to confirm ${q.batch ? `batch ${q.batch} (${fresh.filter(x => x.wq.id === q.id).length} samples)` : fresh[0].id}${n > 1 ? ` and ${n - 1} more` : ""}. It is on the board under Waiting for your confirmation.`); } }
     confSeen = new Set(ids);
     if (tab === "board") rerenderSoon();
   }, () => {});

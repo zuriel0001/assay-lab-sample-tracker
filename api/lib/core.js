@@ -48,7 +48,7 @@ function redactSample(d){
   if (!d) return d;
   const o = { ...d };
   for (const k of ["results", "resHist", "resAcc", "amend", "acks", "dil"]) delete o[k];
-  if (Array.isArray(o.certs)) o.certs = o.certs.map(c => ({ no: c.no, v: c.v, at: c.at, code: c.code, ...(c.amends ? { amends: c.amends } : {}) }));
+  if (Array.isArray(o.certs)) o.certs = o.certs.map(c => ({ no: c.no, v: c.v, at: c.at, code: c.code, ...(c.amends ? { amends: c.amends } : {}), ...(c.bref ? { bref: c.bref, bv: c.bv } : {}) }));   // v24d: a batch certificate keeps its batch
   return o;
 }
 

@@ -226,8 +226,8 @@ function buildTrack(v, s){
   if (!canEdit()) actions = `<p class="small muted" style="margin:0">${session ? "You can view this sample. Only lab staff can update it." : "Only lab staff update samples. <button class='btn ghost small' data-goto='login'>Staff sign in</button>"}</p>`;
   else if (awaiting(s)) actions = receiptForm(s);
   else if (st.closed) actions = `<p class="small muted" style="margin:0">This sample is closed${s.closedAt ? ` (${fmtFull(s.closedAt)})` : ""}.${(s.materials || []).length ? " A lab supervisor can reverse a material movement recorded by mistake, under Retained material." : ""}</p>`;
-  else if (ci >= 0 && ci < tIdx) actions = moveForm(s);
-  else actions = releasedForm(s);
+  else if (ci >= 0 && ci < tIdx) actions = grouped(s) ? groupedForm(s) : moveForm(s);
+  else actions = grouped(s) ? groupedForm(s) : releasedForm(s);
 
   v.innerHTML = `<div class="stack">
     <div class="panel">
@@ -346,6 +346,35 @@ function redoBox(s){
         <label class="f">Reason<select class="inp" id="redoWhy">${reasons.map(x => `<option>${esc(x)}</option>`).join("")}</select></label>
         <div class="row"><button type="button" class="btn" id="redoBtn">Send back for re-assay</button></div></div></details>`;
 }
+/* Change of test or route, and stopping the tests: on the sample page in the lab (a sample in a batch: for this sample alone). */
+function routeStopBoxes(s){
+  return `<details class="more" id="rrBox"><summary>Change the test or workflow route</summary>
+      <div class="stack" style="gap:8px;margin-top:8px">
+        <div class="form"><label class="f">Test<select class="inp" id="rrTest">${testOptions(s.typeKey, s.test)}</select></label><label class="f">Route<select class="inp" id="rrCode"></select></label></div>
+        <p class="small muted" id="rrInfo" style="margin:0"></p>
+        <p class="small muted" style="margin:0">Only routes that perform the chosen test are listed. Steps already done stay in the chain of custody; the sample carries on from the same step in the new route if it has one.</p>
+        <div class="row"><button type="button" class="btn" id="rerouteBtn">Change route</button></div></div></details>
+    <details class="more" id="cxBox"><summary>Stop testing and send the sample out</summary>
+      <div class="stack" style="gap:8px;margin-top:8px">
+        <label class="f">What happens to the sample<select class="inp" id="cxDisp"><option value="returned">Returned to the submitter</option><option value="disposed">Disposed at the lab</option><option value="external">Sent to an external lab</option></select></label>
+        <label class="f">Reason (required)<input id="cxWhy" data-clear placeholder="e.g. Submitter withdrew the request"></label>
+        ${twoPerson(s) ? "" : `<div class="form">${witnessField("cxWit", "Witness, if disposed (a second person)", false)}</div>`}
+        <p class="small muted" style="margin:0">Writes an outbound ledger movement and closes the sample.</p>
+        <div class="row"><button type="button" class="btn danger" id="cxBtn">Stop testing</button></div></div></details>`;
+}
+/* v24d: the actions on the record of a sample processed with its batch: the batch moves it; this sample alone can be re-assayed, put on
+   another route or stopped, which takes it out of the batch. */
+function groupedForm(s){
+  const ci = curIdx(s), ti = targetIdx(s), ri = redoIdx(s), inLab = ci >= 1 && ci < ti, canRedo = ri >= 0 && ci > ri && ci <= ti, after = !inLab && redoOk(s);
+  const extra = (inLab && (canRedo || ci >= 1)) || after;
+  return `<div id="moveForm" class="stack" style="gap:10px">${batchNote(s)}
+    ${extra ? `<details class="more" id="soloBox"><summary>${inLab ? "Re-assay, change the route or stop testing this sample alone" : "Re-assay this sample alone"}</summary>
+      <div class="stack" style="gap:8px;margin-top:8px">
+        <p class="small muted" style="margin:0">This takes ${esc(s.id)} out of batch ${esc(s.batchId)}: it carries on by itself from there, with its own certificate.</p>
+        <div class="form">${meBox("Recorded by")}${twoPerson(s) ? witnessField("mvWit") : ""}<label class="f">Reference<input id="mvRef" data-clear placeholder="Optional"></label><label class="f full">Note<input id="mvNote" data-clear placeholder="Optional"></label></div>
+        ${canRedo || after ? redoBox(s) : ""}${inLab ? routeStopBoxes(s) : ""}</div></details>` : ""}
+  </div>`;
+}
 function moveForm(s){
   const p = planOf(s), ci = curIdx(s), ti = targetIdx(s), ri = redoIdx(s), next = p[ci + 1] || null;
   const canRedo = ri >= 0 && ci > ri && ci <= ti;
@@ -381,19 +410,7 @@ function moveForm(s){
         <p class="small muted" style="margin:0">A correction never adds a ledger movement. ${canApprove() ? "Skipped steps stay on the record as skipped, with the reason. A skip can't reach or pass QA/QC or the release of results." : "Only a lab supervisor can skip steps."}</p>
         <div class="row"><button type="button" class="btn" id="corrBtn">Record correction</button></div></div></details>` : ""}
     ${canRedo ? redoBox(s) : ""}
-    ${ci >= 1 ? `<details class="more" id="rrBox"><summary>Change the test or workflow route</summary>
-      <div class="stack" style="gap:8px;margin-top:8px">
-        <div class="form"><label class="f">Test<select class="inp" id="rrTest">${testOptions(s.typeKey, s.test)}</select></label><label class="f">Route<select class="inp" id="rrCode"></select></label></div>
-        <p class="small muted" id="rrInfo" style="margin:0"></p>
-        <p class="small muted" style="margin:0">Only routes that perform the chosen test are listed. Steps already done stay in the chain of custody; the sample carries on from the same step in the new route if it has one.</p>
-        <div class="row"><button type="button" class="btn" id="rerouteBtn">Change route</button></div></div></details>
-    <details class="more" id="cxBox"><summary>Stop testing and send the sample out</summary>
-      <div class="stack" style="gap:8px;margin-top:8px">
-        <label class="f">What happens to the sample<select class="inp" id="cxDisp"><option value="returned">Returned to the submitter</option><option value="disposed">Disposed at the lab</option><option value="external">Sent to an external lab</option></select></label>
-        <label class="f">Reason (required)<input id="cxWhy" data-clear placeholder="e.g. Submitter withdrew the request"></label>
-        ${twoPerson(s) ? "" : `<div class="form">${witnessField("cxWit", "Witness, if disposed (a second person)", false)}</div>`}
-        <p class="small muted" style="margin:0">Writes an outbound ledger movement and closes the sample.</p>
-        <div class="row"><button type="button" class="btn danger" id="cxBtn">Stop testing</button></div></div></details>` : ""}
+    ${ci >= 1 ? routeStopBoxes(s) : ""}
   </div>`;
 }
 function releasedForm(s){
@@ -410,7 +427,7 @@ function releasedForm(s){
   </div>`;
 }
 function materialsPanel(s){
-  const edit = canEdit(), closed = !!stage(s, s.stageKey)?.final, now = Date.now();
+  const edit = canEdit() && !grouped(s), closed = !!stage(s, s.stageKey)?.final, now = Date.now();
   // v24d: the witness to a movement is shown with it (from the custody line written with it).
   const witOf = m => { const h = (s.history || []).filter(h => h.mat === m.k && (h.wit || h.wcf) && (!m.outAt || h.at === m.outAt)).at(-1); return h ? (h.wcf ? h.tech : h.wit) : ""; };
   const q = wqOf(s);   // v24d: while a witness is asked, nothing else is recorded on the material
@@ -435,6 +452,7 @@ function materialsPanel(s){
   }).join("");
   return `<div class="panel stack" id="matBox"><h3>Retained material</h3>
     <p class="small muted" style="margin:0">Each material is kept for its own period from the release of results, then returned or disposed. Every return, disposal or send-out is written to the ledger.</p>
+    ${grouped(s) ? `<p class="small" id="matBatch" style="margin:0">Put away, returned and disposed of with batch <button type="button" class="linkish mono" data-open="${esc(s.batchId)}">${esc(s.batchId)}</button>, on the batch page.</p>` : ""}
     ${q ? `<div class="notice small" style="margin:0">Waiting for <b>${esc(q.wit)}</b> to confirm ${q.kind === "store" ? "the storage" : esc(wqText(s, q))}. Nothing else is recorded on the material until then.</div>` : ""}
     ${edit && !closed && !q && twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div class="form"><div class="full">${witnessField("mtWit", "Witness (two-person custody: confirms a disposal from their own account)")}</div></div>` : ""}
     <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
@@ -472,6 +490,7 @@ function bindTrack(v, s){
   v.querySelectorAll("[data-undo]").forEach(b => b.addEventListener("click", () => doUndo(b.dataset.undo)));
   $("#corrBtn", v)?.addEventListener("click", doCorrection);
   $("#redoBtn", v)?.addEventListener("click", doRedo);
+  $("#soloBtn", v)?.addEventListener("click", doSolo);
   $("#rerouteBtn", v)?.addEventListener("click", doReroute);
   $("#cxBtn", v)?.addEventListener("click", doCancel);
   $("#rsSave", v)?.addEventListener("click", doSaveResults);
@@ -647,8 +666,8 @@ async function doRedo(){
     if (!redoOk(s)) return null;
     const p = planOf(s), back = p[redoIdx(s)], at = nowAfter(s), kept = keptMaterials(s), fromStore = curIdx(s) > targetIdx(s) || stage(s, s.stageKey)?.phase === "store";
     const out = fromStore ? `. Taken from storage${kept.some(m => m.loc) ? ` (${kept.filter(m => m.loc).map(m => `${m.item}: ${m.loc}`).join("; ")})` : ""}` : "";
-    return { upd: { stageKey: back.key, stageAt: at, reassays: (s.reassays || 0) + 1, lastRedo: why, ...redoReset(s, at), ...(s.rq ? { rq: null } : {}),
-      history: [...(s.history || []), { key: back.key, sn: back.name, at, by: session.u, tech: session.name, ref, redo: true, ...(wit ? { wit } : {}), note: `Re-assay: ${why}${note ? ". " + note : ""}${out}` }] },
+    return { upd: { stageKey: back.key, stageAt: at, reassays: (s.reassays || 0) + 1, lastRedo: why, ...redoReset(s, at), ...(s.rq ? { rq: null } : {}), ...soloUpd(s),
+      history: [...(s.history || []), { key: back.key, sn: back.name, at, by: session.u, tech: session.name, ref, redo: true, ...(wit ? { wit } : {}), note: `Re-assay: ${why}${note ? ". " + note : ""}${out}${soloNote(s)}` }] },
       msg: `${s.id} sent back to ${back.name}` };
   });
 }
@@ -666,8 +685,8 @@ async function doReroute(){
     if (test !== s.test) parts.push(`Test changed from ${s.testName || testOf(s.test)?.name || s.test} to ${testOf(test)?.name || test}`);
     if (r.code !== s.route) parts.push(`Route changed from ${s.route || "the standard workflow"} to ${r.code}`);
     if (note) parts.push(note);
-    const upd = { ...routeFields(r, test), ...rerouteReset(s, r, test, at),
-      history: [...(s.history || []), { key: to.key, sn: to.name, at, by: session.u, tech: session.name, ref, reroute: true, ...(wit ? { wit } : {}), ...(test !== s.test ? { testFrom: s.test, testTo: test } : {}), note: parts.join(". ") }] };
+    const upd = { ...routeFields(r, test), ...rerouteReset(s, r, test, at), ...soloUpd(s),
+      history: [...(s.history || []), { key: to.key, sn: to.name, at, by: session.u, tech: session.name, ref, reroute: true, ...(wit ? { wit } : {}), ...(test !== s.test ? { testFrom: s.test, testTo: test } : {}), note: parts.join(". ") + soloNote(s) }] };
     if (to.key !== s.stageKey){ upd.stageKey = to.key; upd.stageAt = at; }
     return { upd, msg: `${s.id} is now on ${r.code}, at ${to.name}` };
   });
@@ -697,33 +716,36 @@ async function doMaterial(k){
   if (twoPerson(s0) && what === "disposed") return askOut(k, what, ref, val("#mtWit"));
   const firstPut = twoPerson(s0) && what === "store" && s0.stageKey === "released";
   const wit = what === "disposed" ? disposalWitness("#mtWit") : firstPut ? "" : needWitness(s0, "#mtWit"); if (wit === null) return;   // v24c: disposal needs a second person
-  await act(s => {
-    const mats = clone(s.materials || []), m = mats.find(x => x.k === k);
-    if (!m || m.status !== "kept"){ toast("This material was already recorded by someone else."); return null; }
-    const at = nowAfter(s), upd = { materials: mats }, moves = [], h = s.history || [];
-    // The sample goes into storage (and off the board) once every material still kept has a place on the shelf.
-    // (v24d: a critical sample moves into storage when the witness confirms it, not here)
-    const shelved = () => { if (s.stageKey === "released" && !twoPerson(s) && mats.every(x => x.status !== "kept" || x.loc)){ upd.stageKey = "storage"; upd.stageAt = at; } };
-    if (what === "store"){
-      m.loc = ref; shelved();
-      upd.location = mats.filter(x => x.status === "kept" && x.loc).map(x => `${x.item}: ${x.loc}`).join("; ");
-      const key = upd.stageKey || s.stageKey;
-      upd.history = [...h, { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, ref: "", loc: ref, mat: k, ...(wit ? { wit } : {}), note: `${m.item} put away` }];
-      const left = mats.filter(x => x.status === "kept" && !x.loc).map(x => x.item);
-      return { upd, msg: `${m.item} stored at ${ref}${upd.stageKey ? ". The workflow is complete" : left.length ? `; ${left.join(", ")} still to put away` : twoPerson(s) ? ". All on the shelf: ask a witness to confirm the storage" : ""}` };
-    }
-    m.outs = (m.outs || 0) + 1;
-    Object.assign(m, { status: what, outAt: at, outBy: session.u, outTech: session.name, outRef: ref, outMid: `${s.id}~out~${k}~${m.outs}` });
-    moves.push(outMove(s, at, what, m.item, ref, "", m.outMid, wit));
-    if (!mats.some(x => x.status === "kept")){
-      const ds = new Set(mats.map(x => x.status)), fin = ds.size === 1 ? [...ds][0] : "closed";
-      Object.assign(upd, { stageKey: fin, stageAt: at, open: false, onHand: false, closedAt: at });
-    } else shelved();
+  await act(s => { const r = matUpd(s, k, what, ref, wit); if (!r) toast("This material was already recorded by someone else."); return r; }, { anyStage: true, clear: ["mx_" + k, "mr_" + k, "mtWit"] });
+}
+/* One material movement on one sample (store, return, dispose, send out, archive): the sample page writes it to the sample open, a batch
+   processed as one (v24d) to each of its samples. */
+function matUpd(s, k, what, ref, wit, bref){
+  const mats = clone(s.materials || []), m = mats.find(x => x.k === k);
+  if (!m || m.status !== "kept") return null;
+  const at = nowAfter(s), upd = { materials: mats }, moves = [], h = s.history || [];
+  // The sample goes into storage (and off the board) once every material still kept has a place on the shelf.
+  // (v24d: a critical sample moves into storage when the witness confirms it, not here)
+  const shelved = () => { if (s.stageKey === "released" && !twoPerson(s) && mats.every(x => x.status !== "kept" || x.loc)){ upd.stageKey = "storage"; upd.stageAt = at; } };
+  if (what === "store"){
+    m.loc = ref; shelved();
     upd.location = mats.filter(x => x.status === "kept" && x.loc).map(x => `${x.item}: ${x.loc}`).join("; ");
     const key = upd.stageKey || s.stageKey;
-    upd.history = [...h, { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, ref, mat: k, ...(wit ? { wit } : {}), note: `${m.item}: ${DISPO[what].toLowerCase()}` }];
-    return { upd, moves, msg: upd.open === false ? `${s.id} closed: all material has left the lab` : `${m.item}: ${DISPO[what].toLowerCase()}` };
-  }, { anyStage: true, clear: ["mx_" + k, "mr_" + k, "mtWit"] });
+    upd.history = [...h, { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, ref: "", loc: ref, mat: k, ...(wit ? { wit } : {}), note: `${inB(bref)}${m.item} put away` }];
+    const left = mats.filter(x => x.status === "kept" && !x.loc).map(x => x.item);
+    return { upd, msg: `${m.item} stored at ${ref}${upd.stageKey ? ". The workflow is complete" : left.length ? `; ${left.join(", ")} still to put away` : twoPerson(s) ? ". All on the shelf: ask a witness to confirm the storage" : ""}` };
+  }
+  m.outs = (m.outs || 0) + 1;
+  Object.assign(m, { status: what, outAt: at, outBy: session.u, outTech: session.name, outRef: ref, outMid: `${s.id}~out~${k}~${m.outs}` });
+  moves.push(outMove(s, at, what, m.item, ref, "", m.outMid, wit));
+  if (!mats.some(x => x.status === "kept")){
+    const ds = new Set(mats.map(x => x.status)), fin = ds.size === 1 ? [...ds][0] : "closed";
+    Object.assign(upd, { stageKey: fin, stageAt: at, open: false, onHand: false, closedAt: at });
+  } else shelved();
+  upd.location = mats.filter(x => x.status === "kept" && x.loc).map(x => `${x.item}: ${x.loc}`).join("; ");
+  const key = upd.stageKey || s.stageKey;
+  upd.history = [...h, { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, ref, mat: k, ...(wit ? { wit } : {}), note: `${inB(bref)}${m.item}: ${DISPO[what].toLowerCase()}` }];
+  return { upd, moves, msg: upd.open === false ? `${s.id} closed: all material has left the lab` : `${m.item}: ${DISPO[what].toLowerCase()}` };
 }
 async function doUndo(k){
   const s0 = current?.body; if (!s0 || !canApprove()) return;

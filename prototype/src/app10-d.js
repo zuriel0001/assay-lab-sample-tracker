@@ -32,7 +32,7 @@ function renderBoard(){
   const lastRedo = s => (s.evals || []).filter(x => x.v === "redo").at(-1);
   // Summary tiles, zeros included: a tile with samples filters the board to them, a tile with a tab opens it.
   const sums = [
-    ...(confL.length ? [{ k: "conf", n: confL.length, l: "Waiting for your confirmation", tone: "gold", rows: confL.map(x => sRow(x, `${x.wq.kind === "store" ? "Storage: " : ""}${wqText(x)} · asked by ${x.wq.tech}`)) }] : []),
+    ...(confL.length ? (r => [{ k: "conf", n: r.length, l: "Waiting for your confirmation", tone: "gold", rows: r }])(confRows(confL, sRow)) : []),   // a batch's request is one row
     { k: "await", n: waiting.length, l: `Awaiting receipt${flagged ? `, ${flagged} flagged` : ""}`, tone: flagged ? "warn" : "info", pick: waiting },
     { k: "lab", n: inProc.length, l: "In the lab, before results", tone: "gold", pick: inProc },
     { k: "late", n: late.length, l: "Running late", tone: "bad", pick: late },
@@ -94,7 +94,7 @@ function renderBoard(){
     const items = list.filter(s => { const st = stage(s, s.stageKey); return (!shown || shown.has(s)) && (x.key === "__unknown" ? !st : relSet.has(s) ? x.key === "qc" : st && st.phase === x.key); })
       .sort((a, b) => (status(b).late - status(a).late) || (b.priority === "Urgent") - (a.priority === "Urgent") || a.stageAt - b.stageAt);
     return `<div class="lane ph-${x.key}"><h4>${esc(x.name)} <span>${items.length}</span></h4>
-      <div class="cards">${items.slice(0, 40).map(s => { const stt = status(s), stp = stage(s, s.stageKey), od = overdueMaterials(s), tm = cardTime(s);
+      <div class="cards">${laneCards(items).slice(0, 40).map(c => { if (c.docs) return batchChip(c, x.key); const s = c.s, stt = status(s), stp = stage(s, s.stageKey), od = overdueMaterials(s), tm = cardTime(s);
         return `<button class="chip ${tm.cls}${stt.late ? " late" : ""}${s.priority === "Urgent" ? " urgent" : ""}" data-open="${esc(s.id)}"${stageDue(s) && !stp?.final ? ` title="Due ${esc(fmt(stageDue(s)))}"` : ""}>
           <div class="ctop"><span class="cid">${esc(s.id)}${s.route ? ` <span class="rc">${esc(s.route)}</span>` : ""}</span></div>
           ${showStep[x.key] && stp ? `<div class="cmeta"><b style="color:var(--ink)">${esc(waitingRes(s) ? "Waiting for results" : stp.name)}</b>${s.reassays ? ` · <b style="color:var(--warn)">re-assay</b>` : ""}</div>` : ""}
@@ -106,7 +106,7 @@ function renderBoard(){
           ${hazTags(s).length || twoPerson(s) ? `<div class="cmeta">${hazPills(s)}${twoPerson(s) ? `<span class="haz two" title="Two-person custody">2P</span>` : ""}</div>` : ""}
           ${od.length ? `<div class="cmeta"><b style="color:var(--bad)">${esc(od.map(m => m.item).join(", "))} past retention</b></div>` : x.key === "report" && stt.late ? `<div class="cmeta"><b style="color:var(--warn)">Not yet put in storage</b></div>` : ""}
           ${tm.left && !od.length && x.key !== "report" ? `<div class="cmeta left">${esc(tm.left)}</div>` : ""}</button>`; }).join("")}</div>
-      ${items.length > 40 ? `<div class="small muted" style="margin-top:6px">+${items.length - 40} more: use the filters or look a sample up by ID</div>` : ""}
+      ${laneCards(items).length > 40 ? `<div class="small muted" style="margin-top:6px">+${laneCards(items).length - 40} more: use the filters or look a sample up by ID</div>` : ""}
       ${!items.length ? `<div class="small muted">None</div>` : ""}</div>`;
   }).join("");
   const scrolled = laneScroll();

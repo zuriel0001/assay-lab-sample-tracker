@@ -92,7 +92,11 @@ async function signIn(page, u){
   await page.click('#loginForm button[type=submit]');
   await page.waitForTimeout(250);
 }
-async function fillForm(page, tabName, { section, type = "core", purpose = "exp", test = "", route = "", submitter = "J. Owusu", count = 1, tags = "", details = {}, collected = "", recvAt = "", wit = "", why = "", handed, badge, subBadge = "" }){
+/* v24d: a batch is processed as one. The suites written before that process a batch's samples one by one, so ids() takes them out of their
+   batch (as "Take it out of the batch" would) unless fillForm was given together: true. */
+let lastBatch = false;
+async function fillForm(page, tabName, { section, type = "core", purpose = "exp", test = "", route = "", submitter = "J. Owusu", count = 1, tags = "", details = {}, collected = "", recvAt = "", wit = "", why = "", handed, badge, subBadge = "", together = false }){
+  lastBatch = count > 1 && !together;
   // v16: Submit a sample needs a sign-in; people who are not signed in register walk-in samples at the lab, which wait for receipt the same way.
   // v17: signed in, there is only Submit; lab staff receive on it ("Received now at the lab, by me"), so "register" means that box ticked
   // and "submit" means it cleared (a submission received later, the same document as a public one).
@@ -135,7 +139,12 @@ async function fillForm(page, tabName, { section, type = "core", purpose = "exp"
   if (wit) await page.selectOption("#rWit", { label: wit });
   await page.click("#rSubmit");
 }
-const ids = async page => { await page.waitForSelector("#rResult code", { timeout: 15000 }); return page.$$eval("#rResult code", els => els.map(e => e.textContent.split(" · ")[0])); };
+const ids = async page => {
+  await page.waitForSelector("#rResult code", { timeout: 15000 });
+  const out = await page.$$eval("#rResult code", els => els.map(e => e.textContent.split(" · ")[0]));
+  if (lastBatch && out.length > 1){ lastBatch = false; await page.evaluate(async xs => { const db = await window.claude.use("db"); for (const id of xs) try { await db.doc("samples/" + id).update({ solo: true }); } catch {} }, out).catch(() => {}); await page.waitForTimeout(200); }
+  return out;
+};
 const open = async (page, id) => { await page.fill("#lookupInput", id); await page.press("#lookupInput", "Enter"); await page.waitForSelector(".sid", { timeout: 8000 }); await page.waitForTimeout(250); };
 const doc = id => store["samples/" + id];
 const ledger = () => Object.entries(store).filter(([k]) => k.startsWith("ledger/")).flatMap(([, d]) => Object.values(d.m || {}));

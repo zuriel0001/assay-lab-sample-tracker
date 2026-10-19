@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="cd9182ec80c8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 80e847c9ac45) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="f3c57a97a407"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 68b57e8ab9b6) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -835,6 +835,12 @@ ol.rail li.done.stop .dot{background:var(--bad);border-color:var(--bad)}
 .mat-wit{margin-top:8px;max-width:380px}
 /* v24d: the Results column wraps, so the Evaluation column fits on a computer screen */
 .tbl-wrap table.restbl td[data-l="Results"]{white-space:normal;min-width:12em}
+/* v24d: a batch processed as one shows as one card on the board, drawn as a small stack */
+.chip.bchip{box-shadow:3px 3px 0 -1px var(--panel),3px 3px 0 0 var(--line),6px 6px 0 -1px var(--panel),6px 6px 0 0 var(--line);margin-bottom:12px;max-width:calc(100% - 6px)}
+.chip.bchip .bn{font-weight:700;color:var(--accent);font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+#bwBox .rail{margin-bottom:0}
+#bmBox .tbl-wrap table td{vertical-align:top}
+.cert table{color:inherit}
 </style>
 
 <div class="wrap">
@@ -3098,8 +3104,8 @@ function buildTrack(v, s){
   if (!canEdit()) actions = `<p class="small muted" style="margin:0">${session ? "View only." : "<button class='btn ghost small' data-goto='login'>Staff sign in</button>"}</p>`;
   else if (awaiting(s)) actions = receiptForm(s);
   else if (st.closed) actions = `<p class="small muted" style="margin:0">This sample is closed${s.closedAt ? ` (${fmtFull(s.closedAt)})` : ""}.</p>`;
-  else if (ci >= 0 && ci < tIdx) actions = moveForm(s);
-  else actions = releasedForm(s);
+  else if (ci >= 0 && ci < tIdx) actions = grouped(s) ? groupedForm(s) : moveForm(s);
+  else actions = grouped(s) ? groupedForm(s) : releasedForm(s);
 
   v.innerHTML = `<div class="stack">
     <div class="panel">
@@ -3217,6 +3223,33 @@ function redoBox(s){
         <label class="f">Reason<select class="inp" id="redoWhy">${reasons.map(x => `<option>${esc(x)}</option>`).join("")}</select></label>
         <div class="row"><button type="button" class="btn" id="redoBtn">Send back for re-assay</button></div></div></details>`;
 }
+/* Change of test or route, and stopping the tests: on the sample page in the lab (a sample in a batch: for this sample alone). */
+function routeStopBoxes(s){
+  return `<details class="more" id="rrBox"><summary>Change the test or workflow route</summary>
+      <div class="stack" style="gap:8px;margin-top:8px">
+        <div class="form"><label class="f">Test<select class="inp" id="rrTest">${testOptions(s.typeKey, s.test)}</select></label><label class="f">Route<select class="inp" id="rrCode"></select></label></div>
+        <p class="small muted" id="rrInfo" style="margin:0"></p>
+        <div class="row"><button type="button" class="btn" id="rerouteBtn">Change route</button></div></div></details>
+    <details class="more" id="cxBox"><summary>Stop testing and send the sample out</summary>
+      <div class="stack" style="gap:8px;margin-top:8px">
+        <label class="f">What happens to the sample<select class="inp" id="cxDisp"><option value="returned">Returned to the submitter</option><option value="disposed">Disposed at the lab</option><option value="external">Sent to an external lab</option></select></label>
+        <label class="f">Reason (required)<input id="cxWhy" data-clear placeholder="e.g. Submitter withdrew the request"></label>
+        ${twoPerson(s) ? "" : `<div class="form">${witnessField("cxWit", "Witness, if disposed (a second person)", false)}</div>`}
+        <div class="row"><button type="button" class="btn danger" id="cxBtn">Stop testing</button></div></div></details>`;
+}
+/* v24d: the actions on the record of a sample processed with its batch: the batch moves it; this sample alone can be re-assayed, put on
+   another route or stopped, which takes it out of the batch. */
+function groupedForm(s){
+  const ci = curIdx(s), ti = targetIdx(s), ri = redoIdx(s), inLab = ci >= 1 && ci < ti, canRedo = ri >= 0 && ci > ri && ci <= ti, after = !inLab && redoOk(s);
+  const extra = (inLab && (canRedo || ci >= 1)) || after;
+  return `<div id="moveForm" class="stack" style="gap:10px">${batchNote(s)}
+    ${extra ? `<details class="more" id="soloBox"><summary>${inLab ? "Re-assay, change the route or stop testing this sample alone" : "Re-assay this sample alone"}</summary>
+      <div class="stack" style="gap:8px;margin-top:8px">
+        <p class="small muted" style="margin:0">This takes ${esc(s.id)} out of batch ${esc(s.batchId)}: it carries on by itself from there, with its own certificate.</p>
+        <div class="form">${meBox("Recorded by")}${twoPerson(s) ? witnessField("mvWit") : ""}<label class="f">Reference<input id="mvRef" data-clear placeholder="Optional"></label><label class="f full">Note<input id="mvNote" data-clear placeholder="Optional"></label></div>
+        ${canRedo || after ? redoBox(s) : ""}${inLab ? routeStopBoxes(s) : ""}</div></details>` : ""}
+  </div>`;
+}
 function moveForm(s){
   const p = planOf(s), ci = curIdx(s), ti = targetIdx(s), ri = redoIdx(s), next = p[ci + 1] || null;
   const canRedo = ri >= 0 && ci > ri && ci <= ti;
@@ -3251,17 +3284,7 @@ function moveForm(s){
         <label class="f">Reason (required)<input id="corrWhy" data-clear placeholder="e.g. Recorded against the wrong sample"></label>
         <div class="row"><button type="button" class="btn" id="corrBtn">Record correction</button></div></div></details>` : ""}
     ${canRedo ? redoBox(s) : ""}
-    ${ci >= 1 ? `<details class="more" id="rrBox"><summary>Change the test or workflow route</summary>
-      <div class="stack" style="gap:8px;margin-top:8px">
-        <div class="form"><label class="f">Test<select class="inp" id="rrTest">${testOptions(s.typeKey, s.test)}</select></label><label class="f">Route<select class="inp" id="rrCode"></select></label></div>
-        <p class="small muted" id="rrInfo" style="margin:0"></p>
-        <div class="row"><button type="button" class="btn" id="rerouteBtn">Change route</button></div></div></details>
-    <details class="more" id="cxBox"><summary>Stop testing and send the sample out</summary>
-      <div class="stack" style="gap:8px;margin-top:8px">
-        <label class="f">What happens to the sample<select class="inp" id="cxDisp"><option value="returned">Returned to the submitter</option><option value="disposed">Disposed at the lab</option><option value="external">Sent to an external lab</option></select></label>
-        <label class="f">Reason (required)<input id="cxWhy" data-clear placeholder="e.g. Submitter withdrew the request"></label>
-        ${twoPerson(s) ? "" : `<div class="form">${witnessField("cxWit", "Witness, if disposed (a second person)", false)}</div>`}
-        <div class="row"><button type="button" class="btn danger" id="cxBtn">Stop testing</button></div></div></details>` : ""}
+    ${ci >= 1 ? routeStopBoxes(s) : ""}
   </div>`;
 }
 function releasedForm(s){
@@ -3278,7 +3301,7 @@ function releasedForm(s){
   </div>`;
 }
 function materialsPanel(s){
-  const edit = canEdit(), closed = !!stage(s, s.stageKey)?.final, now = Date.now();
+  const edit = canEdit() && !grouped(s), closed = !!stage(s, s.stageKey)?.final, now = Date.now();
   // v24d: the witness to a movement is shown with it (from the custody line written with it).
   const witOf = m => { const h = (s.history || []).filter(h => h.mat === m.k && (h.wit || h.wcf) && (!m.outAt || h.at === m.outAt)).at(-1); return h ? (h.wcf ? h.tech : h.wit) : ""; };
   const q = wqOf(s);   // v24d: while a witness is asked, nothing else is recorded on the material
@@ -3302,6 +3325,7 @@ function materialsPanel(s){
       <td>${state}</td></tr>${ctl ? `<tr class="mat-ctl"><td colspan="3" style="border-top:0;padding-top:0">${ctl}</td></tr>` : ""}`;
   }).join("");
   return `<div class="panel stack" id="matBox"><h3>Retained material</h3>
+    ${grouped(s) ? `<p class="small" id="matBatch" style="margin:0">Put away, returned and disposed of with batch <button type="button" class="linkish mono" data-open="${esc(s.batchId)}">${esc(s.batchId)}</button>, on the batch page.</p>` : ""}
     ${q ? `<div class="notice small" style="margin:0">Waiting for <b>${esc(q.wit)}</b> to confirm ${q.kind === "store" ? "the storage" : esc(wqText(s, q))}. Nothing else is recorded on the material until then.</div>` : ""}
     ${edit && !closed && !q && twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div class="form"><div class="full">${witnessField("mtWit", "Witness (two-person custody: confirms a disposal from their own account)")}</div></div>` : ""}
     <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
@@ -3339,6 +3363,7 @@ function bindTrack(v, s){
   v.querySelectorAll("[data-undo]").forEach(b => b.addEventListener("click", () => doUndo(b.dataset.undo)));
   $("#corrBtn", v)?.addEventListener("click", doCorrection);
   $("#redoBtn", v)?.addEventListener("click", doRedo);
+  $("#soloBtn", v)?.addEventListener("click", doSolo);
   $("#rerouteBtn", v)?.addEventListener("click", doReroute);
   $("#cxBtn", v)?.addEventListener("click", doCancel);
   $("#rsSave", v)?.addEventListener("click", doSaveResults);
@@ -3514,8 +3539,8 @@ async function doRedo(){
     if (!redoOk(s)) return null;
     const p = planOf(s), back = p[redoIdx(s)], at = nowAfter(s), kept = keptMaterials(s), fromStore = curIdx(s) > targetIdx(s) || stage(s, s.stageKey)?.phase === "store";
     const out = fromStore ? `. Taken from storage${kept.some(m => m.loc) ? ` (${kept.filter(m => m.loc).map(m => `${m.item}: ${m.loc}`).join("; ")})` : ""}` : "";
-    return { upd: { stageKey: back.key, stageAt: at, reassays: (s.reassays || 0) + 1, lastRedo: why, ...redoReset(s, at), ...(s.rq ? { rq: null } : {}),
-      history: [...(s.history || []), { key: back.key, sn: back.name, at, by: session.u, tech: session.name, ref, redo: true, ...(wit ? { wit } : {}), note: `Re-assay: ${why}${note ? ". " + note : ""}${out}` }] },
+    return { upd: { stageKey: back.key, stageAt: at, reassays: (s.reassays || 0) + 1, lastRedo: why, ...redoReset(s, at), ...(s.rq ? { rq: null } : {}), ...soloUpd(s),
+      history: [...(s.history || []), { key: back.key, sn: back.name, at, by: session.u, tech: session.name, ref, redo: true, ...(wit ? { wit } : {}), note: `Re-assay: ${why}${note ? ". " + note : ""}${out}${soloNote(s)}` }] },
       msg: `${s.id} sent back to ${back.name}` };
   });
 }
@@ -3533,8 +3558,8 @@ async function doReroute(){
     if (test !== s.test) parts.push(`Test changed from ${s.testName || testOf(s.test)?.name || s.test} to ${testOf(test)?.name || test}`);
     if (r.code !== s.route) parts.push(`Route changed from ${s.route || "the standard workflow"} to ${r.code}`);
     if (note) parts.push(note);
-    const upd = { ...routeFields(r, test), ...rerouteReset(s, r, test, at),
-      history: [...(s.history || []), { key: to.key, sn: to.name, at, by: session.u, tech: session.name, ref, reroute: true, ...(wit ? { wit } : {}), ...(test !== s.test ? { testFrom: s.test, testTo: test } : {}), note: parts.join(". ") }] };
+    const upd = { ...routeFields(r, test), ...rerouteReset(s, r, test, at), ...soloUpd(s),
+      history: [...(s.history || []), { key: to.key, sn: to.name, at, by: session.u, tech: session.name, ref, reroute: true, ...(wit ? { wit } : {}), ...(test !== s.test ? { testFrom: s.test, testTo: test } : {}), note: parts.join(". ") + soloNote(s) }] };
     if (to.key !== s.stageKey){ upd.stageKey = to.key; upd.stageAt = at; }
     return { upd, msg: `${s.id} is now on ${r.code}, at ${to.name}` };
   });
@@ -3564,33 +3589,36 @@ async function doMaterial(k){
   if (twoPerson(s0) && what === "disposed") return askOut(k, what, ref, val("#mtWit"));
   const firstPut = twoPerson(s0) && what === "store" && s0.stageKey === "released";
   const wit = what === "disposed" ? disposalWitness("#mtWit") : firstPut ? "" : needWitness(s0, "#mtWit"); if (wit === null) return;   // v24c: disposal needs a second person
-  await act(s => {
-    const mats = clone(s.materials || []), m = mats.find(x => x.k === k);
-    if (!m || m.status !== "kept"){ toast("This material was already recorded by someone else."); return null; }
-    const at = nowAfter(s), upd = { materials: mats }, moves = [], h = s.history || [];
-    // The sample goes into storage (and off the board) once every material still kept has a place on the shelf.
-    // (v24d: a critical sample moves into storage when the witness confirms it, not here)
-    const shelved = () => { if (s.stageKey === "released" && !twoPerson(s) && mats.every(x => x.status !== "kept" || x.loc)){ upd.stageKey = "storage"; upd.stageAt = at; } };
-    if (what === "store"){
-      m.loc = ref; shelved();
-      upd.location = mats.filter(x => x.status === "kept" && x.loc).map(x => `${x.item}: ${x.loc}`).join("; ");
-      const key = upd.stageKey || s.stageKey;
-      upd.history = [...h, { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, ref: "", loc: ref, mat: k, ...(wit ? { wit } : {}), note: `${m.item} put away` }];
-      const left = mats.filter(x => x.status === "kept" && !x.loc).map(x => x.item);
-      return { upd, msg: `${m.item} stored at ${ref}${upd.stageKey ? ". The workflow is complete" : left.length ? `; ${left.join(", ")} still to put away` : twoPerson(s) ? ". All on the shelf: ask a witness to confirm the storage" : ""}` };
-    }
-    m.outs = (m.outs || 0) + 1;
-    Object.assign(m, { status: what, outAt: at, outBy: session.u, outTech: session.name, outRef: ref, outMid: `${s.id}~out~${k}~${m.outs}` });
-    moves.push(outMove(s, at, what, m.item, ref, "", m.outMid, wit));
-    if (!mats.some(x => x.status === "kept")){
-      const ds = new Set(mats.map(x => x.status)), fin = ds.size === 1 ? [...ds][0] : "closed";
-      Object.assign(upd, { stageKey: fin, stageAt: at, open: false, onHand: false, closedAt: at });
-    } else shelved();
+  await act(s => { const r = matUpd(s, k, what, ref, wit); if (!r) toast("This material was already recorded by someone else."); return r; }, { anyStage: true, clear: ["mx_" + k, "mr_" + k, "mtWit"] });
+}
+/* One material movement on one sample (store, return, dispose, send out, archive): the sample page writes it to the sample open, a batch
+   processed as one (v24d) to each of its samples. */
+function matUpd(s, k, what, ref, wit, bref){
+  const mats = clone(s.materials || []), m = mats.find(x => x.k === k);
+  if (!m || m.status !== "kept") return null;
+  const at = nowAfter(s), upd = { materials: mats }, moves = [], h = s.history || [];
+  // The sample goes into storage (and off the board) once every material still kept has a place on the shelf.
+  // (v24d: a critical sample moves into storage when the witness confirms it, not here)
+  const shelved = () => { if (s.stageKey === "released" && !twoPerson(s) && mats.every(x => x.status !== "kept" || x.loc)){ upd.stageKey = "storage"; upd.stageAt = at; } };
+  if (what === "store"){
+    m.loc = ref; shelved();
     upd.location = mats.filter(x => x.status === "kept" && x.loc).map(x => `${x.item}: ${x.loc}`).join("; ");
     const key = upd.stageKey || s.stageKey;
-    upd.history = [...h, { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, ref, mat: k, ...(wit ? { wit } : {}), note: `${m.item}: ${DISPO[what].toLowerCase()}` }];
-    return { upd, moves, msg: upd.open === false ? `${s.id} closed: all material has left the lab` : `${m.item}: ${DISPO[what].toLowerCase()}` };
-  }, { anyStage: true, clear: ["mx_" + k, "mr_" + k, "mtWit"] });
+    upd.history = [...h, { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, ref: "", loc: ref, mat: k, ...(wit ? { wit } : {}), note: `${inB(bref)}${m.item} put away` }];
+    const left = mats.filter(x => x.status === "kept" && !x.loc).map(x => x.item);
+    return { upd, msg: `${m.item} stored at ${ref}${upd.stageKey ? ". The workflow is complete" : left.length ? `; ${left.join(", ")} still to put away` : twoPerson(s) ? ". All on the shelf: ask a witness to confirm the storage" : ""}` };
+  }
+  m.outs = (m.outs || 0) + 1;
+  Object.assign(m, { status: what, outAt: at, outBy: session.u, outTech: session.name, outRef: ref, outMid: `${s.id}~out~${k}~${m.outs}` });
+  moves.push(outMove(s, at, what, m.item, ref, "", m.outMid, wit));
+  if (!mats.some(x => x.status === "kept")){
+    const ds = new Set(mats.map(x => x.status)), fin = ds.size === 1 ? [...ds][0] : "closed";
+    Object.assign(upd, { stageKey: fin, stageAt: at, open: false, onHand: false, closedAt: at });
+  } else shelved();
+  upd.location = mats.filter(x => x.status === "kept" && x.loc).map(x => `${x.item}: ${x.loc}`).join("; ");
+  const key = upd.stageKey || s.stageKey;
+  upd.history = [...h, { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, ref, mat: k, ...(wit ? { wit } : {}), note: `${inB(bref)}${m.item}: ${DISPO[what].toLowerCase()}` }];
+  return { upd, moves, msg: upd.open === false ? `${s.id} closed: all material has left the lab` : `${m.item}: ${DISPO[what].toLowerCase()}` };
 }
 async function doUndo(k){
   const s0 = current?.body; if (!s0 || !canApprove()) return;
@@ -3702,7 +3730,7 @@ function renderBoard(){
   const lastRedo = s => (s.evals || []).filter(x => x.v === "redo").at(-1);
   // Summary tiles, zeros included: a tile with samples filters the board to them, a tile with a tab opens it.
   const sums = [
-    ...(confL.length ? [{ k: "conf", n: confL.length, l: "Waiting for your confirmation", tone: "gold", rows: confL.map(x => sRow(x, `${x.wq.kind === "store" ? "Storage: " : ""}${wqText(x)} · asked by ${x.wq.tech}`)) }] : []),
+    ...(confL.length ? (r => [{ k: "conf", n: r.length, l: "Waiting for your confirmation", tone: "gold", rows: r }])(confRows(confL, sRow)) : []),   // a batch's request is one row
     { k: "await", n: waiting.length, l: `Awaiting receipt${flagged ? `, ${flagged} flagged` : ""}`, tone: flagged ? "warn" : "info", pick: waiting },
     { k: "lab", n: inProc.length, l: "In the lab, before results", tone: "gold", pick: inProc },
     { k: "late", n: late.length, l: "Running late", tone: "bad", pick: late },
@@ -3764,7 +3792,7 @@ function renderBoard(){
     const items = list.filter(s => { const st = stage(s, s.stageKey); return (!shown || shown.has(s)) && (x.key === "__unknown" ? !st : relSet.has(s) ? x.key === "qc" : st && st.phase === x.key); })
       .sort((a, b) => (status(b).late - status(a).late) || (b.priority === "Urgent") - (a.priority === "Urgent") || a.stageAt - b.stageAt);
     return `<div class="lane ph-${x.key}"><h4>${esc(x.name)} <span>${items.length}</span></h4>
-      <div class="cards">${items.slice(0, 40).map(s => { const stt = status(s), stp = stage(s, s.stageKey), od = overdueMaterials(s), tm = cardTime(s);
+      <div class="cards">${laneCards(items).slice(0, 40).map(c => { if (c.docs) return batchChip(c, x.key); const s = c.s, stt = status(s), stp = stage(s, s.stageKey), od = overdueMaterials(s), tm = cardTime(s);
         return `<button class="chip ${tm.cls}${stt.late ? " late" : ""}${s.priority === "Urgent" ? " urgent" : ""}" data-open="${esc(s.id)}"${stageDue(s) && !stp?.final ? ` title="Due ${esc(fmt(stageDue(s)))}"` : ""}>
           <div class="ctop"><span class="cid">${esc(s.id)}${s.route ? ` <span class="rc">${esc(s.route)}</span>` : ""}</span></div>
           ${showStep[x.key] && stp ? `<div class="cmeta"><b style="color:var(--ink)">${esc(waitingRes(s) ? "Waiting for results" : stp.name)}</b>${s.reassays ? ` · <b style="color:var(--warn)">re-assay</b>` : ""}</div>` : ""}
@@ -3776,7 +3804,7 @@ function renderBoard(){
           ${hazTags(s).length || twoPerson(s) ? `<div class="cmeta">${hazPills(s)}${twoPerson(s) ? `<span class="haz two" title="Two-person custody">2P</span>` : ""}</div>` : ""}
           ${od.length ? `<div class="cmeta"><b style="color:var(--bad)">${esc(od.map(m => m.item).join(", "))} past retention</b></div>` : x.key === "report" && stt.late ? `<div class="cmeta"><b style="color:var(--warn)">Not yet put in storage</b></div>` : ""}
           ${tm.left && !od.length && x.key !== "report" ? `<div class="cmeta left">${esc(tm.left)}</div>` : ""}</button>`; }).join("")}</div>
-      ${items.length > 40 ? `<div class="small muted" style="margin-top:6px">+${items.length - 40} more</div>` : ""}
+      ${laneCards(items).length > 40 ? `<div class="small muted" style="margin-top:6px">+${laneCards(items).length - 40} more</div>` : ""}
       ${!items.length ? `<div class="small muted">None</div>` : ""}</div>`;
   }).join("");
   const scrolled = laneScroll();
@@ -5005,8 +5033,8 @@ function makeCert(s, at, why, x = {}){
   return c;
 }
 /* Release: the results are frozen on a new certificate and each retained material starts its clock (kept from an earlier release). */
-function releaseUpdate(s, at, note, wit, ref, selfWhy){
-  const cert = makeCert(s, at, "", selfWhy ? { self: selfWhy } : {}), mats = (s.materials || []).length ? s.materials : materialsAt(s, at);
+function releaseUpdate(s, at, note, wit, ref, selfWhy, certIn){
+  const cert = certIn || makeCert(s, at, "", selfWhy ? { self: selfWhy } : {}), mats = (s.materials || []).length ? s.materials : materialsAt(s, at);
   const stored = (s.materials || []).length && keptMaterials(s).length && keptMaterials(s).every(m => m.loc);
   const key = stored ? "storage" : "released";
   return { stageKey: key, stageAt: at, relAt: at, relDay: dayKey(at), materials: mats, certs: [...(s.certs || []), cert],
@@ -5021,6 +5049,7 @@ function withRelease(s, res){
   const upd = res.upd || res, h = upd.history, last = h && h.at(-1);
   if (!upd.results || !last || !last.res || last.redo || h.length <= (s.history || []).length) return res;
   const m = { ...s, ...upd }, p = planOf(m), ci = curIdx(m), ti = targetIdx(m), ph = stage(m, m.stageKey)?.phase;
+  if (grouped(m)) return res;   // v24d: a sample in a batch is released with its batch, on the batch certificate (releaseGroup)
   const wit = twoPerson(m) ? last.wit || "" : "";
   if (awaiting(m) || (twoPerson(m) && !wit) || !(ci >= 1 && ci < ti && (ph === "test" || ph === "qc" || hasResFile(upd))) || releaseBlock(m)) return res;
   let at = Math.max(...h.map(e => +e.at || 0)) + 1000;
@@ -5161,7 +5190,7 @@ async function doSaveResults(){
   const bk = batchKeys(s0), rows = readRows("rs_", anOf(s0).filter(a => !bk.has(a.k)), s0.results?.rows), inst = val("#rsInst");
   if (!rows) return;
   if (!Object.keys(rows).length){ toast("Type at least one result."); return; }
-  await act(s => {
+  const ok = await act(s => {
     const ph = stage(s, s.stageKey)?.phase;
     if (!(curIdx(s) < targetIdx(s) && (ph === "test" || ph === "qc"))){ toast("Results are entered while the sample is in analysis or QA/QC review."); return null; }
     const keep = Object.fromEntries(Object.entries(rowsOf(s)).filter(([k]) => batchKeys(s).has(k)));
@@ -5170,8 +5199,10 @@ async function doSaveResults(){
     const wit = twoPerson(s) ? val("#mvWit") : "";   // v24d: two-person custody: the witness chosen on the record signs the release
     return { upd: { results: next, resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null,
       history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, ...(wit ? { wit } : {}), note: `Results ${s.results ? "updated" : "entered"}: ${resSummary(anOf(s), all)}` }] },
-      msg: `Results saved on ${s.id}${twoPerson(s) && !wit && relNow() ? ". Two-person custody: choose the witness and press Release results" : ""}` };
+      msg: `Results saved on ${s.id}${grouped(s) ? `. Released with batch ${s.batchId} once all its results are in` : twoPerson(s) && !wit && relNow() ? ". Two-person custody: choose the witness and press Release results" : ""}` };
   }, { anyStage: true, clear: ["resBox"] });
+  // v24d: the last results of a batch in: the batch is released with one certificate (a critical batch: on the batch page, with its witness)
+  if (ok && grouped(s0) && relNow() && !twoPerson(s0)){ const r = await releaseGroup(s0.batchId, "", true); if (r.n) toast(`All results in: ${nS(r.n)} released on batch certificate ${r.no}`); }
 }
 async function doAcceptChecks(){
   const why = val("#accWhy"); if (!why){ toast("Give the reason for accepting."); $("#accWhy")?.focus(); return; }
@@ -5203,9 +5234,9 @@ async function doOverRange(){
     const rows = rowsOf(s); keys.forEach(k => delete rows[k]);
     const labs = { ...labsOf(s) }; groupsOf(s).filter(g => g.k.some(k => keys.includes(k))).forEach(g => delete labs[g.p]);
     const left = withCalc({ ...s, ...extra }, rows), what = over.map(a => `${a.n} ${resText(s.results.rows[a.k], a)} ${a.u}`).join(", ");
-    return { upd: { stageKey: back.key, stageAt: at, reassays: (s.reassays || 0) + 1, lastRedo: `${over[0].n} over range${grav ? ": repeated by gravimetric finish" : ": diluted re-run"}`,
+    return { upd: { stageKey: back.key, stageAt: at, reassays: (s.reassays || 0) + 1, lastRedo: `${over[0].n} over range${grav ? ": repeated by gravimetric finish" : ": diluted re-run"}`, ...soloUpd(s),
       results: Object.keys(left).length ? { ...s.results, rows: patch(s.results.rows, left), v: s.results.v + 1, at } : null, resHist: [...(s.resHist || []), s.results].slice(-30), resAcc: null, ...labsUpd(s, labs, extra),
-      history: [...(s.history || []), { key: back.key, sn: back.name, at, by: session.u, tech: session.name, redo: true, note: `Re-assay: ${what} is over the ${fmtNum(over[0].ul)} ${over[0].u} range${grav ? "; repeat by gravimetric finish in a gravimetric batch" : "; diluted re-run in a new batch"}` }] },
+      history: [...(s.history || []), { key: back.key, sn: back.name, at, by: session.u, tech: session.name, redo: true, note: `Re-assay: ${what} is over the ${fmtNum(over[0].ul)} ${over[0].u} range${grav ? "; repeat by gravimetric finish in a gravimetric batch" : "; diluted re-run in a new batch"}${soloNote(s)}` }] },
       msg: `${s.id} sent back to ${back.name}` };
   }, { anyStage: true });
 }
@@ -5292,6 +5323,7 @@ function certHtml(s, c){
 function showCert(v){
   const s = current?.body; if (!s || !canSeeResults(s)) return;
   const c = (s.certs || []).find(x => x.v === +v) || (s.certs || []).at(-1); if (!c) return;
+  if (c.bref) return showBatchCert(c.bref, c.no);   // v24d: released with its batch: the batch certificate
   const box = $("#certBox");
   box.innerHTML = `<div class="cert-wrap"><div class="cert-bar"><b>${esc(c.no)}</b><span style="flex:1"></span><button type="button" class="btn" id="certPrint">Print</button><button type="button" class="btn" id="certDl">Download</button><button type="button" class="btn primary" id="certClose">Close</button></div>${certHtml(s, c)}</div>`;
   box.hidden = false;
@@ -6939,7 +6971,7 @@ function rowValues(rep, cells, defs, r = 1, clash){
     }
     if (!pick) continue;
     if (got[pick.k]){ if (got[pick.k].raw !== raw && clash) clash.push(`${anShort(pick)}: ${got[pick.k].col.name} ${got[pick.k].raw} and ${c.name} ${raw}`); continue; }
-    got[pick.k] = { raw, col: c };
+    got[pick.k] = { raw, col: c }; c.used = true;   // read: not listed under Columns not read
   }
   return got;
 }
@@ -6956,7 +6988,6 @@ function planUpload(rep, scope){
     else if (r.kind === "crm") crmRows.push(r);
     else P.notFound.push(r.key);
   }
-  P.unread = rep.cols.filter(c => !c.concept && !c.used && rep.rows.some(r => (r.cells[c.i] || "").trim())).map(c => c.name + (c.unit ? ` (${c.unit})` : ""));
   const fileCrms = [...rep.crms.map(f => ({ ...f, reg: crmFromFile(f.id) })), ...crmRows.map(r => ({ id: r.key, reg: r.crm, row: r }))];
   P.unknownCrm = [...new Set(fileCrms.filter(f => !f.reg).map(f => f.id))];
   /* The lab methods a batch's sample readings came from (AuFA under FAA505, carbon Au under ARS12D). */
@@ -7004,7 +7035,7 @@ function planUpload(rep, scope){
     P.n += n;
     return { vals, crms, miss, n };
   };
-  const want = s => !scope.sample || s.id === scope.sample;
+  const want = s => (!scope.sample || s.id === scope.sample) && (!scope.sub || s.batchId === scope.sub);
   const touched = new Map(), fresh = new Map();
   for (const [sid, row] of bySid){
     const s = bs(sid); if (!s || !want(s)) continue;
@@ -7060,6 +7091,8 @@ function planUpload(rep, scope){
     }
   }
   P.notFound = [...new Set(P.notFound)];
+  // Columns the plan read nothing from (after the plan: a column read by its exact name has no measurement of its own to go by)
+  P.unread = rep.cols.filter(c => !c.concept && !c.used && rep.rows.some(r => (r.cells[c.i] || "").trim())).map(c => c.name + (c.unit ? ` (${c.unit})` : ""));
   return P;
 }
 
@@ -7077,7 +7110,7 @@ function attachInput(){
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-attach]"); if (!b || !canEdit()) return;
   const [k, id] = b.dataset.attach.split(":");
-  upScope = k === "batch" ? { batch: id } : k === "sample" ? { sample: id } : {};
+  upScope = k === "batch" ? { batch: id } : k === "sample" ? { sample: id } : k === "sub" ? { sub: id } : {};   // sub: a submission batch, processed as one (v24d)
   attachInput().click();
 });
 const kb = n => n < 1024 ? `${n} bytes` : n < 1048576 ? `${(n / 1024).toFixed(n < 10240 ? 1 : 0)} KB` : `${(n / 1048576).toFixed(1)} MB`;
@@ -7158,13 +7191,16 @@ const canTakeFile = s => !!s && !awaiting(s) && s.open !== false && curIdx(s) >=
 function uploadTargets(u){
   const sc = u.scope || {}, P = u.plan;
   if (sc.sample) return canTakeFile(bs(sc.sample)) ? [sc.sample] : [];
+  if (sc.sub) return (current?.batch === sc.sub ? current.docs : [...samples.values()].filter(s => s.batchId === sc.sub)).filter(s => grouped(s) && canTakeFile(s)).map(s => s.id);
   if (sc.batch){ const b = openBatches.get(sc.batch) || (batchLive && batchLive.id === sc.batch ? batchLive : null); return (b?.sids || []).filter(id => { const s = bs(id); return canTakeFile(s) && inBatch(s, sc.batch); }); }
   const named = P ? [...new Set([...P.batches.flatMap(t => t.b.pos.filter(x => x.t === "s" && Object.keys(t.vals[x.p] || {}).length).map(x => x.sid)), ...P.fresh.flatMap(t => t.b.sids), ...P.samples.map(x => x.sid), ...P.notReady])] : [];
   return named.length ? named : [...u.pick].filter(id => canTakeFile(bs(id)));
 }
+const unreadNote = u => u.rep.error ? `<div class="notice">${u.grid ? "This file doesn't name its samples in a way the site can read." : "This file's values can't be read here."} It is kept as the results of the samples below, and they are released with it.</div>` : "";
 function uploadTargetsHtml(u, tg){
-  const sc = u.scope || {}, P = u.plan, named = P && !sc.sample && !sc.batch && (P.batches.length || P.fresh.length || P.samples.length || P.notReady.length);
-  const unread = u.rep.error ? `<div class="notice">${u.grid ? "This file doesn't name its samples in a way the site can read." : "This file's values can't be read here."} It is kept as the results of the samples below, and they are released with it.</div>` : "";
+  const sc = u.scope || {}, P = u.plan, named = P && !sc.sample && !sc.batch && !sc.sub && (P.batches.length || P.fresh.length || P.samples.length || P.notReady.length);
+  if (sc.sub) return `${unreadNote(u)}<div class="up-sec"><h4>Released together with this file: batch <span class="mono">${esc(sc.sub)}</span></h4><div class="small">${tg.length ? `${nS(tg.length)}, on one batch certificate${relNow() ? "" : " (a lab supervisor releases it)"}: ${tg.map(id => `<span class="mono">${esc(id)}</span>`).join(", ")}` : "No sample of the batch can take results (not received yet, or already released)."}</div></div>`;
+  const unread = unreadNote(u);
   if (sc.sample || sc.batch || named) return `${unread}<div class="up-sec"><h4>Released with this file</h4><div class="small">${tg.length ? tg.map(id => `<span class="mono">${esc(id)}</span>`).join(", ") : "No sample here can take results (not received yet, or already released)."}</div></div>`;
   const q = u.q.trim().toUpperCase().replace(/\s+/g, "");
   const list = [...samples.values()].filter(canTakeFile).filter(s => !q || [s.id, tagText(s)].some(x => String(x).toUpperCase().replace(/\s+/g, "").includes(q))).sort((a, b) => a.id < b.id ? 1 : -1).slice(0, 150);
@@ -7279,10 +7315,16 @@ async function saveUpload(){
       // Every sample the file is for and not released yet: the file is its results, and it is released (withRelease).
       msg("Releasing…");
       const inst = f.labRef || f.name;
-      const relIds = [], keptIds = [];   // v24d: say what happened to each: released, or results kept but not released
-      await pool(targets, 4, sid => sampleWrite(sid, s => canTakeFile(s) ? fileResults(s, f, inst, wit) : null, upd => (upd.relAt ? relIds : keptIds).push(sid)));
+      const relIds = [], keptIds = [], subs = new Set(), inSub = new Set();   // v24d: say what happened to each: released, or results kept but not released
+      await pool(targets, 4, sid => sampleWrite(sid, s => { if (!canTakeFile(s)) return null; if (grouped(s)){ subs.add(s.batchId); inSub.add(sid); } return fileResults(s, f, inst, wit); },
+        upd => upd.relAt ? relIds.push(sid) : inSub.has(sid) ? 0 : keptIds.push(sid)));
       if (relIds.length) done.push(`${relIds.length} released with the file`);
       if (keptIds.length) done.push(`results kept on ${listAnd(keptIds)}, not released yet`);
+      for (const ref of subs){   // a batch processed as one: released together, on one batch certificate, once all its results are in
+        msg(`Releasing batch ${ref}…`);
+        const r = await releaseGroup(ref, wit, true);
+        done.push(r.n ? `batch ${ref}: ${nS(r.n)} released on certificate ${r.no}` : `batch ${ref}: results kept, not released yet${r.why ? ` (${r.why.replace(/\.$/, "")})` : ""}`);
+      }
       for (const b of new Set(targets.flatMap(id => Object.values(labsOf(bs(id) || {})).map(l => l.b)))) await closeBatchIfDone(b);
     }
     toast(`Saved: ${done.join("; ") || "the file is kept"}.`);
@@ -7732,7 +7774,7 @@ async function watchBatchRef(text, seq){
 let batchRecvBusy = false;
 function renderBatchView(v){
   const c = current, docs = c.docs, s0 = docs[0] || {}, waiting = docs.filter(awaiting);
-  v.dataset.ctx = "batch|" + c.batch;
+  const bst = batchState(docs), ctx = `${c.batch}|${bst.bi}.${bst.waiting ? 1 : 0}.${bst.at.some(wqOf) ? 1 : 0}`;   // v24d: what is typed stays while the batch is at the same step
   const cool = waiting.filter(s => typeOf(s.typeKey)?.cool != null), quick = waiting.filter(s => typeOf(s.typeKey)?.cool == null), two = quick.some(twoPerson);
   const tally = {}; docs.forEach(s => { const st = status(s); tally[st.label] = (tally[st.label] || 0) + 1; });
   const done = docs.filter(s => curIdx(s) >= targetIdx(s)).length, etas = docs.filter(s => curIdx(s) < targetIdx(s) && !status(s).closed).map(s => projection(s).eta).filter(Boolean);
@@ -7742,6 +7784,7 @@ function renderBatchView(v){
     return `<tr><td class="mono muted">${esc(s.batchIndex || "")}</td><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button></td><td class="mono">${esc(tagText(s)) || "—"}</td>${srcCol ? `<td>${esc(s.source || "")}</td>` : ""}
       <td><span class="pill ${st.cls}">${esc(st.label)}</span></td><td class="small">${last ? `Released ${esc(fmtDate(last.at))}` : ""}</td></tr>`; };
   const keepAt = $("#bvAt", v)?.value, keepWit = $("#bvWit", v)?.value, keepOk = $("#bvOk", v)?.checked;
+  keepUi(v, ctx, () => {
   v.innerHTML = `<div class="stack">
     <div class="panel stack">
       <div class="row" style="gap:10px"><div class="sid">${esc(c.batch)}</div><span class="pill info">${docs.length} samples</span><button type="button" class="btn ghost small" data-link="${esc(c.batch)}">Copy batch link</button></div>
@@ -7758,6 +7801,7 @@ function renderBatchView(v){
         <label class="recv-toggle full"><input type="checkbox" id="bvOk" ${keepOk ? "checked" : ""}> All ${quick.length} bags match, seals intact, good condition</label></div>
       <div class="row"><button type="button" class="btn primary" id="bvRecvBtn" ${batchRecvBusy ? "disabled" : ""}>Confirm receipt of ${quick.length}</button>${cool.length ? `<span class="small">One by one (cooler temperature): ${cool.map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>`).join(", ")}</span>` : ""}</div>
     </div>` : ""}
+    ${bwPanel(c)}
     <div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>#</th><th>Sample ID</th><th>Site sample code</th>${srcCol ? "<th>Source</th>" : ""}<th>Status</th><th></th></tr></thead><tbody>${docs.map(row).join("")}</tbody></table></div></div>
   </div>`;
   if (keepWit && $("#bvWit", v)) $("#bvWit", v).value = keepWit;
@@ -7765,6 +7809,8 @@ function renderBatchView(v){
   $("#bvLabels", v).onclick = () => showLabels(docs.map(labelOf));
   $("#bvCopy", v).onclick = () => navigator.clipboard.writeText(docs.map(s => s.id).join("\n")).then(() => toast("IDs copied"), () => toast("Copy blocked here. Select the IDs and copy them."));
   $("#bvRecvBtn", v)?.addEventListener("click", () => receiveBatch(quick.map(s => s.id)));
+  bindBw(v);
+  });
 }
 /* Receipt of every sample of the batch that needs no cooler check, as each record's receipt would write it. */
 async function receiveBatch(sids){
@@ -8484,76 +8530,84 @@ function bindWq(v){
   $("#wqDrop", v)?.addEventListener("click", doWithdraw);
 }
 const wqId = at => "W" + at.toString(36).toUpperCase();
+/* Each change below is built for one sample: { upd, moves, msg } to write, or null when it no longer applies. The sample page writes it to the
+   sample open; a batch (v24d, processed as one) writes it to each of its samples, with one request id for them all and the batch named. */
+const inB = bref => bref ? `With batch ${bref}. ` : "";
+function askStoreUpd(s, w, id, bref){
+  if (wqOf(s) || !twoPerson(s) || s.stageKey !== "released" || !shelvedAll(s)) return null;
+  const at = nowAfter(s), q = { id: id || wqId(at), kind: "store", at, by: session.u, tech: session.name, wit: w.name, witU: w.u, ...(bref ? { batch: bref } : {}) };
+  return { upd: { wq: q, wqU: w.u, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wreq: q.id,
+    note: `${inB(bref)}Put away: ${wqText(s, q)}. Asked ${w.name} to confirm` }] }, msg: `Asked ${w.name} to confirm the storage of ${s.id}` };
+}
+function askOutUpd(s, k, what, ref, w, id, bref){
+  const m = (s.materials || []).find(x => x.k === k);
+  if (wqOf(s) || !m || m.status !== "kept") return null;
+  const at = nowAfter(s), q = { id: id || wqId(at), kind: "out", k, what, ref: ref || "", at, by: session.u, tech: session.name, wit: w.name, witU: w.u, ...(bref ? { batch: bref } : {}) };
+  return { upd: { wq: q, wqU: w.u, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wreq: q.id, mat: k,
+    note: `${inB(bref)}${wqText(s, q)}. Asked ${w.name} to confirm` }] }, msg: `Asked ${w.name} to confirm: ${m.item} to be ${(DISPO[what] || what).toLowerCase()}` };
+}
+function confirmUpd(s, say = () => {}){
+  const q = wqOf(s); if (!q || q.witU !== session.u){ say("This confirmation is no longer waiting for you."); return null; }
+  const at = nowAfter(s), h = s.history || [], bref = q.batch || "";
+  if (q.kind === "store"){
+    const upd = { wq: null, wqU: null, history: [...h, { key: "storage", sn: stage(s, "storage")?.name || "Retained in storage", at, by: session.u, tech: session.name, wcf: q.id, put: q.tech,
+      note: `${inB(bref)}Storage confirmed: ${wqText(s, q)}. Put away by ${q.tech}` }] };
+    if (s.stageKey === "released"){ upd.stageKey = "storage"; upd.stageAt = at; }
+    return { upd, msg: `${s.id}: storage confirmed. The workflow is complete` };
+  }
+  const mats = clone(s.materials || []), m = mats.find(x => x.k === q.k);
+  if (!m || m.status !== "kept"){ say("This material was already recorded."); return null; }
+  m.outs = (m.outs || 0) + 1;
+  Object.assign(m, { status: q.what, outAt: at, outBy: q.by, outTech: q.tech, outRef: q.ref || "", outMid: `${s.id}~out~${q.k}~${m.outs}` });
+  const mv = { ...outMove(s, at, q.what, m.item, q.ref || "", "Confirmed by the witness", m.outMid, session.name), by: q.by, tech: q.tech };
+  const upd = { materials: mats, wq: null, wqU: null };
+  if (!mats.some(x => x.status === "kept")){
+    const ds = new Set(mats.map(x => x.status)), fin = ds.size === 1 ? [...ds][0] : "closed";
+    Object.assign(upd, { stageKey: fin, stageAt: at, open: false, onHand: false, closedAt: at });
+  }
+  upd.location = mats.filter(x => x.status === "kept" && x.loc).map(x => `${x.item}: ${x.loc}`).join("; ");
+  const key = upd.stageKey || s.stageKey;
+  upd.history = [...h, { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, wcf: q.id, mat: q.k, put: q.tech, ref: q.ref || "",
+    note: `${inB(bref)}${m.item}: ${(DISPO[q.what] || q.what).toLowerCase()} by ${q.tech}, confirmed by the witness` }];
+  return { upd, moves: [mv], msg: upd.open === false ? `${s.id} closed: all material has left the lab` : `${m.item}: ${(DISPO[q.what] || q.what).toLowerCase()}, confirmed` };
+}
+function sendBackUpd(s, why){
+  const q = wqOf(s); if (!q || q.witU !== session.u) return null;
+  const at = nowAfter(s);
+  return { upd: { wq: null, wqU: null, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wsb: q.id, ...(q.k ? { mat: q.k } : {}),
+    note: `${inB(q.batch)}Not confirmed (${q.kind === "store" ? "storage: " : ""}${wqText(s, q)}): ${why}. Sent back to ${q.tech}` }] }, msg: `Sent back to ${q.tech}` };
+}
+function withdrawUpd(s){
+  const q = wqOf(s); if (!q || !(session?.u === q.by || canApprove())) return null;
+  const at = nowAfter(s);
+  return { upd: { wq: null, wqU: null, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wwd: q.id,
+    note: `${inB(q.batch)}Request to ${q.wit} withdrawn` }] }, msg: "Request withdrawn" };
+}
 async function doAskStore(){
   const s0 = current?.body; if (!s0) return;
   const w = (cfg.users || []).find(x => x.u === val("#wqWit"));
   if (!w){ toast("Choose the witness who confirms the storage."); $("#wqWit")?.focus(); return; }
-  await act(s => {
-    if (wqOf(s) || !twoPerson(s) || s.stageKey !== "released" || !shelvedAll(s)) return null;
-    const at = nowAfter(s), q = { id: wqId(at), kind: "store", at, by: session.u, tech: session.name, wit: w.name, witU: w.u };
-    return { upd: { wq: q, wqU: w.u, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wreq: q.id,
-      note: `Put away: ${wqText(s, q)}. Asked ${w.name} to confirm` }] }, msg: `Asked ${w.name} to confirm the storage of ${s.id}` };
-  }, { anyStage: true, clear: ["wqWit"] });
+  await act(s => askStoreUpd(s, w), { anyStage: true, clear: ["wqWit"] });
 }
 /* A disposal on a critical sample: recorded as a request; the material leaves when the witness confirms. */
 async function askOut(k, what, ref, wn){
   const w = userByName(wn);
   if (!w){ toast("Two-person custody: choose the witness who confirms the disposal."); $("#mtWit")?.focus(); return; }
   if (w.u === session.u){ toast("The witness must be someone other than you."); return; }
-  await act(s => {
-    const m = (s.materials || []).find(x => x.k === k);
-    if (wqOf(s) || !m || m.status !== "kept") return null;
-    const at = nowAfter(s), q = { id: wqId(at), kind: "out", k, what, ref: ref || "", at, by: session.u, tech: session.name, wit: w.name, witU: w.u };
-    return { upd: { wq: q, wqU: w.u, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wreq: q.id, mat: k,
-      note: `${wqText(s, q)}. Asked ${w.name} to confirm` }] }, msg: `Asked ${w.name} to confirm: ${m.item} to be ${(DISPO[what] || what).toLowerCase()}` };
-  }, { anyStage: true, clear: ["mx_" + k, "mr_" + k, "mtWit"] });
+  await act(s => askOutUpd(s, k, what, ref, w), { anyStage: true, clear: ["mx_" + k, "mr_" + k, "mtWit"] });
 }
 async function doConfirm(){
   const s0 = current?.body; if (!s0 || !myConf(s0)) return;
-  await act(s => {
-    const q = wqOf(s); if (!q || q.witU !== session.u){ toast("This confirmation is no longer waiting for you."); return null; }
-    const at = nowAfter(s), h = s.history || [];
-    if (q.kind === "store"){
-      const upd = { wq: null, wqU: null, history: [...h, { key: "storage", sn: stage(s, "storage")?.name || "Retained in storage", at, by: session.u, tech: session.name, wcf: q.id, put: q.tech,
-        note: `Storage confirmed: ${wqText(s, q)}. Put away by ${q.tech}` }] };
-      if (s.stageKey === "released"){ upd.stageKey = "storage"; upd.stageAt = at; }
-      return { upd, msg: `${s.id}: storage confirmed. The workflow is complete` };
-    }
-    const mats = clone(s.materials || []), m = mats.find(x => x.k === q.k);
-    if (!m || m.status !== "kept"){ toast("This material was already recorded."); return null; }
-    m.outs = (m.outs || 0) + 1;
-    Object.assign(m, { status: q.what, outAt: at, outBy: q.by, outTech: q.tech, outRef: q.ref || "", outMid: `${s.id}~out~${q.k}~${m.outs}` });
-    const mv = { ...outMove(s, at, q.what, m.item, q.ref || "", "Confirmed by the witness", m.outMid, session.name), by: q.by, tech: q.tech };
-    const upd = { materials: mats, wq: null, wqU: null };
-    if (!mats.some(x => x.status === "kept")){
-      const ds = new Set(mats.map(x => x.status)), fin = ds.size === 1 ? [...ds][0] : "closed";
-      Object.assign(upd, { stageKey: fin, stageAt: at, open: false, onHand: false, closedAt: at });
-    }
-    upd.location = mats.filter(x => x.status === "kept" && x.loc).map(x => `${x.item}: ${x.loc}`).join("; ");
-    const key = upd.stageKey || s.stageKey;
-    upd.history = [...h, { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, wcf: q.id, mat: q.k, put: q.tech, ref: q.ref || "",
-      note: `${m.item}: ${(DISPO[q.what] || q.what).toLowerCase()} by ${q.tech}, confirmed by the witness` }];
-    return { upd, moves: [mv], msg: upd.open === false ? `${s.id} closed: all material has left the lab` : `${m.item}: ${(DISPO[q.what] || q.what).toLowerCase()}, confirmed` };
-  }, { anyStage: true });
+  await act(s => confirmUpd(s, toast), { anyStage: true });
 }
 async function doSendBack(){
   const s0 = current?.body; if (!s0 || !myConf(s0)) return;
   const why = val("#wqWhy"); if (!why){ toast("Give the reason for sending it back."); $("#wqWhy")?.focus(); return; }
-  await act(s => {
-    const q = wqOf(s); if (!q || q.witU !== session.u) return null;
-    const at = nowAfter(s);
-    return { upd: { wq: null, wqU: null, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wsb: q.id, ...(q.k ? { mat: q.k } : {}),
-      note: `Not confirmed (${q.kind === "store" ? "storage: " : ""}${wqText(s, q)}): ${why}. Sent back to ${q.tech}` }] }, msg: `Sent back to ${q.tech}` };
-  }, { anyStage: true, clear: ["wqWhy"] });
+  await act(s => sendBackUpd(s, why), { anyStage: true, clear: ["wqWhy"] });
 }
 async function doWithdraw(){
   const s0 = current?.body, q0 = wqOf(s0); if (!q0 || !(session?.u === q0.by || canApprove())) return;
-  await act(s => {
-    const q = wqOf(s); if (!q) return null;
-    const at = nowAfter(s);
-    return { upd: { wq: null, wqU: null, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wwd: q.id,
-      note: `Request to ${q.wit} withdrawn` }] }, msg: "Request withdrawn" };
-  }, { anyStage: true });
+  await act(withdrawUpd, { anyStage: true });
 }
 /* The samples waiting for the person signed in to confirm, for the board (and a note when a new one arrives). */
 const confs = new Map();
@@ -8567,10 +8621,393 @@ function watchConf(){
   confSub = db.collection("samples").where("wqU", "==", u).limit(100).onSnapshot(snap => {
     confs.clear(); snap.docs.forEach(d => { const x = d.data(); if (x && x.id && x.wq && x.wq.witU === u) confs.set(x.id, x); });
     const ids = [...confs.values()].map(x => x.wq.id);
-    if (confSeen){ const fresh = [...confs.values()].filter(x => !confSeen.has(x.wq.id)); if (fresh.length) toast(`${fresh[0].wq.tech} asks you to confirm ${fresh[0].id}${fresh.length > 1 ? ` and ${fresh.length - 1} more` : ""}. It is on the board under Waiting for your confirmation.`); }
+    if (confSeen){ const fresh = [...confs.values()].filter(x => !confSeen.has(x.wq.id)); if (fresh.length){ const q = fresh[0].wq, n = new Set(fresh.map(x => x.wq.batch ? x.wq.batch + "|" + x.wq.id : x.id)).size;
+      toast(`${q.tech} asks you to confirm ${q.batch ? `batch ${q.batch} (${fresh.filter(x => x.wq.id === q.id).length} samples)` : fresh[0].id}${n > 1 ? ` and ${n - 1} more` : ""}. It is on the board under Waiting for your confirmation.`); } }
     confSeen = new Set(ids);
     if (tab === "board") rerenderSoon();
   }, () => {});
+}
+
+/* ---------- v24d: a batch is processed as one ----------
+   Samples submitted together (one batch reference, B-…) keep their own IDs, labels and records, but go through the workflow as one: one
+   card on the board, one workflow on the batch page, one press moves them all on a step (each sample's custody line is written), one
+   results file for the batch, one release with one batch certificate (one number and check code, listing every sample with its results),
+   one put-away and, for a critical batch, one witness confirmation; later, one return or disposal of each material. A sample that needs
+   something different is taken out of the batch (solo) and carries on by itself: by hand ("Take it out of the batch"), by a re-assay or a
+   change of route. A sample rejected at receipt, stopped or closed has left the batch's workflow anyway. */
+const batchOf = s => s && s.batchId && (s.batchSize || 0) > 1 && !s.solo ? s.batchId : "";
+const grouped = s => !!batchOf(s) && s.open !== false && !stage(s, s.stageKey)?.final;
+const nS = n => `${n} sample${n === 1 ? "" : "s"}`;
+const resIn = s => !resMissing(s);
+const certOfBatch = (s, ref) => (s?.certs || []).filter(c => c.bref === ref).at(-1) || null;
+/* The members that move together and the step they are at: the earliest step among the received ones (any ahead wait there for it). */
+function batchState(docs){
+  const mem = docs.filter(grouped), inLab = mem.filter(s => !awaiting(s));
+  if (!inLab.length) return { mem, inLab, at: [], lead: null, bi: -1, unrecv: mem };
+  const bi = Math.min(...inLab.map(curIdx)), at = inLab.filter(s => curIdx(s) === bi), lead = at[0], ti = targetIdx(lead);
+  const waiting = bi === ti - 1 && at.every(waitingRes);
+  return { mem, inLab, at, lead, bi, ti, plan: planOf(lead), waiting, cur: waiting ? ti : bi === ti ? ti + 1 : bi, ahead: inLab.filter(s => curIdx(s) !== bi), unrecv: mem.filter(awaiting) };
+}
+/* The rail of the batch: the lead sample's route up to storage; done steps with when and who, the open one with what it waits for. */
+function bwRail(st, ref){
+  const { plan, bi, ti, lead, at, cur } = st, now = Date.now(), cert = certOfBatch(lead, ref), q = at.map(wqOf).find(Boolean);
+  return `<ol class="rail">${plan.slice(0, ti + 2).map((x, i) => {
+    const done = i < cur || bi > ti;
+    let meta = "";
+    if (done){
+      const e = i === ti + 1 ? (lead.history || []).filter(h => h.key === x.key).at(-1) : lastEntry(lead, x.key);
+      meta = e ? `${fmt(e.at)}${e.wcf ? ` · confirmed by ${esc(e.tech)}${e.put ? `, put away by ${esc(e.put)}` : ""}` : e.tech ? ` · ${esc(e.tech)}` : ""}` : "";
+      if (i === ti && cert) meta += ` · batch certificate <b class="mono">${esc(cert.no)}</b>`;
+      if (i === ti + 1) meta += ` · ${nS(at.length)} kept`;
+    } else if (i === cur){
+      if (i === ti){ const n = at.filter(resIn).length; meta = n < at.length ? `Waiting for the results: ${n} of ${at.length} in` : relNow() ? "All results in: release them below" : "All results in: waiting for a lab supervisor to release them"; }
+      else if (i === ti + 1){
+        const left = at.filter(s => keptMaterials(s).some(m => !m.loc)).length;
+        meta = q && q.kind === "store" ? `Waiting for <b>${esc(q.wit)}</b> to confirm the storage (put away by ${esc(q.tech)})` : left ? `To put away: ${nS(left)}` : at.some(twoPerson) ? "On the shelf: a second person confirms the storage" : "";
+      } else {
+        const dues = at.map(stageDue).filter(Boolean), due = dues.length ? Math.min(...dues) : 0;
+        meta = `${nS(at.length)} here · started ${fmt(Math.min(...at.map(s => +s.stageAt || now)))}${due ? (now > due ? ` · <b style="color:var(--bad)">over the time allowed</b>` : ` · due ${fmt(due)}`) : ""}`;
+      }
+    } else meta = x.phase === "store" ? "Each material kept for its own period after results" : `${hoursLabel(x.hours)} allowed`;
+    const late = i === cur && i < ti && at.some(s => status(s).late);
+    return `<li class="${done ? "done" : i === cur ? "current" + (late ? " late" : "") : "upcoming"}"><span class="dot">${done ? "✓" : ""}</span><div><div class="st-name">${esc(x.name)}</div><div class="st-meta">${meta}</div></div></li>`;
+  }).join("")}</ol>`;
+}
+/* The materials of the batch, item by item over all its samples at the step: one put-away, one return or disposal for them all. */
+function bwMats(st){
+  const items = new Map(), now = Date.now(), two = st.at.some(twoPerson), q = st.at.map(wqOf).find(Boolean);
+  st.at.forEach(s => keptMaterials(s).forEach(m => {
+    const x = items.get(m.k) || items.set(m.k, { k: m.k, item: m.item, then: m.then, dispo: m.dispo, days: m.days, n: 0, noLoc: 0, locs: new Set(), due: Infinity }).get(m.k);
+    x.n++; if (m.loc) x.locs.add(m.loc); else x.noLoc++; if (m.dueAt) x.due = Math.min(x.due, m.dueAt);
+  }));
+  if (!items.size) return "";
+  const edit = canEdit() && !q;
+  const rows = [...items.values()].map(x => {
+    const od = isFinite(x.due) && now > x.due, def = (!x.noLoc && od) || (x.noLoc && !x.days) ? x.dispo : "store";
+    const where = x.noLoc ? `<span style="color:var(--warn)">Not yet put away${x.noLoc < x.n ? ` (${x.noLoc} of ${x.n})` : ""}</span>${x.locs.size ? `<div class="small">${esc([...x.locs].join("; "))}</div>` : ""}` : `Kept at <b>${esc([...x.locs].join("; "))}</b>`;
+    const ctl = edit ? `<div class="row mat-row" style="gap:6px;margin-top:6px;flex-wrap:wrap">
+        <select class="inp" id="bmx_${x.k}" style="flex:1 1 250px;min-width:0;width:auto">${[["store", x.noLoc ? "Put away in storage" : "Move to another location"], ["returned", "Return"], ["disposed", "Dispose"], ["external", "Send to external lab"], ["archived", "Move to long-term archive"]].map(([k, l]) => `<option value="${k}" ${k === def ? "selected" : ""}>${l}${k === x.dispo ? " (route says)" : ""}</option>`).join("")}</select>
+        <input class="inp" id="bmr_${x.k}" data-clear style="flex:1 1 110px;min-width:0;width:auto" placeholder="Location or ref.">
+        <button type="button" class="btn" data-bmat="${x.k}">Record for ${nS(x.n)}</button></div>` : "";
+    return `<tr><td><b>${esc(x.item)}</b><div class="small muted">Then: ${esc(lcFirst(x.then))}</div></td>
+      <td style="white-space:nowrap">${x.days ? fmtDate(x.due) : "At release"}${od ? (x.days ? `<div class="small" style="color:var(--bad);font-weight:600">${dur(now - x.due)} past</div>` : `<div class="small" style="color:var(--warn);font-weight:600">Due now</div>`) : ""}</td>
+      <td>${where}<div class="small muted">${nS(x.n)}</div></td></tr>${ctl ? `<tr class="mat-ctl"><td colspan="3" style="border-top:0;padding-top:0">${ctl}</td></tr>` : ""}`;
+  }).join("");
+  return `<div class="stack" id="bmBox" style="gap:8px"><b>Retained material of the batch</b>
+    ${q ? `<div class="notice small" style="margin:0">Waiting for <b>${esc(q.wit)}</b> to confirm ${q.kind === "store" ? "the storage" : "a movement"}. Nothing else is recorded on the material until then.</div>` : ""}
+    ${edit && two ? `<div class="form"><div class="full">${witnessField("bmWit", "Witness (two-person custody: confirms a disposal from their own account)")}</div></div>` : ""}
+    <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${edit && !two ? `<div id="bmWitBox" class="mat-wit" hidden>${witnessField("bmWit", "Witness to the disposal (a second person)")}</div>` : ""}</div>`;
+}
+/* The witness request of the batch (storage, or a disposal on a critical batch): the witness confirms it for all the samples at once. */
+function bwWq(st){
+  const q = st.at.map(wqOf).find(Boolean);
+  if (q){
+    const on = st.at.filter(s => wqOf(s)?.id === q.id), n = on.length;
+    const what = q.kind === "store" ? `the storage of ${nS(n)}: ${esc(bwShelf(on))}` : `${esc(wqText(on[0], q))}, for ${nS(n)}`;
+    if (session && q.witU === session.u) return `<div class="notice wq-me stack" id="bwConfBox" style="gap:8px"><div><b>Your confirmation is asked.</b> ${esc(q.tech)} asks you to witness ${what}. Asked ${fmt(q.at)}.</div>
+      <div class="row" style="gap:8px"><button type="button" class="btn primary" id="bwOk">Confirm for ${nS(n)}</button><input class="inp" id="bwWhy" data-clear placeholder="Reason, to send it back (e.g. wrong shelf)" style="flex:1 1 200px;width:auto"><button type="button" class="btn" id="bwBack">Send back</button></div></div>`;
+    return `<div class="notice stack" id="bwConfBox" style="gap:8px"><div><b>Waiting for ${esc(q.wit)} to confirm</b> ${what} (asked by ${esc(q.tech)}, ${fmt(q.at)}). ${esc(q.wit)} opens this batch, or any of its samples, from their own account to confirm it.</div>
+      ${canEdit() && (session.u === q.by || canApprove()) ? `<div class="row"><button type="button" class="btn ghost small" id="bwDrop">Withdraw the request</button></div>` : ""}</div>`;
+  }
+  const crit = st.at.filter(twoPerson);
+  if (canEdit() && st.bi === st.ti && crit.length && crit.every(shelvedAll)) return `<div class="notice stack" id="bwAskBox" style="gap:8px">
+    <div><b>All material is on the shelf.</b> Two-person custody: a second person confirms the storage of the batch from their own account.</div>
+    <div class="form">${witPick("bwWq", "Witness to confirm the storage")}</div>
+    <div class="row"><button type="button" class="btn primary" id="bwAsk">Ask to confirm storage</button></div></div>`;
+  return "";
+}
+const bwShelf = docs => [...new Set(docs.flatMap(s => keptMaterials(s).filter(m => m.loc).map(m => `${m.item} at ${m.loc}`)))].join("; ");
+const idLinks = xs => xs.map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>`).join(", ");
+/* The batch's workflow panel on the batch page. */
+function bwPanel(c){
+  const ref = c.batch, st = batchState(c.docs), edit = canEdit();
+  const anyCert = c.docs.map(s => certOfBatch(s, ref)).filter(Boolean).sort((a, b) => (b.bv || 0) - (a.bv || 0))[0];
+  const certLine = anyCert ? `<div class="row" style="gap:8px"><span class="pill ok">Released</span><b>Batch certificate ${esc(anyCert.no)}</b><span class="small muted">${fmtFull(anyCert.at)} by ${esc(anyCert.tech)}${anyCert.code ? ` · check code <span class="mono nw">${esc(anyCert.code)}</span>` : ""}</span><button type="button" class="btn small" data-bcert="${esc(ref)}">View certificate</button></div>` : "";
+  const solo = c.docs.filter(s => s.solo), out = c.docs.filter(s => !s.solo && !grouped(s));
+  const asides = [st.lead && st.unrecv.length ? `Not received yet: ${idLinks(st.unrecv)}. They join the batch at its step once received.` : "",
+    st.ahead?.length ? `Already further on, waiting for the batch: ${idLinks(st.ahead)}` : "",
+    solo.length ? `Taken out of the batch, processed on their own: ${idLinks(solo)}` : "",
+    out.length ? `Left the workflow (rejected, stopped or closed): ${idLinks(out)}` : ""].filter(Boolean);
+  const head = n => `<h3>Workflow for the batch${st.lead?.routeName ? `: ${esc(st.lead.routeName)}` : ""} <span class="pill">${nS(n)} together</span></h3>`;
+  if (!st.lead){
+    if (st.mem.length) return `<div class="panel stack" id="bwBox">${head(st.mem.length)}<p class="small muted" style="margin:0">Once received, the samples go through the workflow together: one card on the board, every step recorded here for all of them at once.</p></div>`;
+    return `<div class="panel stack" id="bwBox"><h3>Workflow for the batch</h3>${certLine}<p class="small muted" style="margin:0">No sample of this batch is in the lab's workflow any more.</p>${asides.length ? `<div class="small muted">${asides.join("<br>")}</div>` : ""}</div>`;
+  }
+  const { plan, bi, ti, at, waiting } = st, two = at.some(twoPerson), next = plan[bi + 1], n = at.length;
+  let act = "";
+  if (!edit) act = `${certLine}<p class="small muted" style="margin:0">${session ? "You can view this batch. Only lab staff can update it." : "Only lab staff update samples."}</p>`;
+  else if (bi >= 1 && bi < ti){
+    const missing = at.filter(s => !resIn(s)), toRel = !!next?.target, holds = [];
+    const form = `<div class="form">${meBox("Recorded by")}${two ? witnessField("bwWit") : ""}
+        <label class="f">Where the samples are now<input id="bwLoc" data-clear placeholder="e.g. Oven 2, Shelf B3"></label>
+        <label class="f">Reference<input id="bwRef" data-clear placeholder="e.g. drying trays 12–18"></label>
+        <label class="f full">Note<input id="bwNote" data-clear placeholder="Optional"></label></div>`;
+    if (!toRel){
+      if (next?.phase === "qc" && plan[bi].phase !== "qc") at.forEach(s => { const h = qcEntryBlock(s); if (h) holds.push(`${s.id}: ${h}`); });
+      act = `${holds.length ? `<div class="notice warn" id="bwHold"><b>Before ${esc(next?.name || "the next step")}:</b> ${esc(holds.slice(0, 4).join(" "))}${holds.length > 4 ? ` +${holds.length - 4} more` : ""}</div>` : ""}${form}
+        <div class="row"><button type="button" class="btn primary" id="bwNext" ${holds.length ? "disabled data-hold" : ""}>Move ${nS(n)} to: ${esc(next?.name || "")}</button></div>`;
+    } else if (missing.length && !waiting){
+      act = `${form}<div class="row"><button type="button" class="btn primary" id="bwWaitBtn">Move ${nS(n)} to: Results released</button></div>`;
+    } else {
+      if (!missing.length && !relNow()) at.forEach(s => { const h = releaseBlock(s) || (relSelf(s) ? SELF_MSG : ""); if (h) holds.push(`${s.id}: ${h}`); });
+      act = `${missing.length ? `<div class="notice" id="bwWait"><b>Waiting for the results of ${nS(missing.length)}${missing.length < n ? ` (${missing.slice(0, 6).map(s => s.id).join(", ")}${missing.length > 6 ? "…" : ""})` : ""}.</b> Attach the results file for the batch: each sample's values are read from it by its ID or site sample code, and a file the site can't read is kept as the results of them all.${relNow() ? " The batch is released with one certificate when you save it." : ""} Results typed on a sample's own record count too.</div>` : ""}
+        <div class="row" style="gap:8px"><span class="pill ${missing.length ? "" : "ok"}" id="bwCount">Results in: ${n - missing.length} of ${n}</span><button type="button" class="btn${missing.length ? " primary" : ""}" data-attach="sub:${esc(ref)}">Attach results file for the batch</button></div>
+        ${holds.length ? `<div class="notice warn" id="bwHold"><b>Release on hold:</b> ${esc(holds.slice(0, 4).join(" "))}${holds.length > 4 ? ` +${holds.length - 4} more` : ""}</div>` : ""}
+        ${!missing.length ? (canRelease() ? `${two ? `<div class="form">${witnessField("bwRelWit", "Witness to the release (two-person custody)")}</div>` : ""}<div class="row"><button type="button" class="btn primary" id="bwRelease" ${holds.length ? "disabled data-hold" : ""}>Release results and issue the batch certificate</button></div>`
+          : `<span class="small muted">A lab supervisor releases the results${qcStepOn() ? " after the QA/QC review" : ""}.</span>`) : ""}`;
+    }
+  } else if (bi >= ti){
+    act = `${certLine}${bi > ti ? `<div class="row" style="gap:8px"><span class="pill ok">Workflow complete</span><span class="small muted">All ${nS(n)} on the shelf. Each material is returned or disposed of below when its retention period ends.</span></div>` : ""}${bwWq(st)}${bwMats(st)}`;
+  }
+  return `<div class="panel stack" id="bwBox">${head(st.mem.length)}
+    ${bwRail(st, ref)}
+    ${asides.length ? `<div class="small muted">${asides.join("<br>")}</div>` : ""}
+    <div class="actions stack" id="bwAct" style="gap:10px">${act}</div></div>`;
+}
+let bwBusy = false;
+function bindBw(v){
+  $("#bwNext", v)?.addEventListener("click", () => bwMove("next"));
+  $("#bwWaitBtn", v)?.addEventListener("click", () => bwMove("wait"));
+  $("#bwRelease", v)?.addEventListener("click", bwRelease);
+  $("#bwAsk", v)?.addEventListener("click", bwAsk);
+  $("#bwOk", v)?.addEventListener("click", () => bwAnswer("ok"));
+  $("#bwBack", v)?.addEventListener("click", () => bwAnswer("back"));
+  $("#bwDrop", v)?.addEventListener("click", () => bwAnswer("drop"));
+  v.querySelectorAll("[data-bmat]").forEach(b => b.addEventListener("click", () => bwMat(b.dataset.bmat)));
+  v.querySelectorAll("[data-bcert]").forEach(b => b.addEventListener("click", () => showBatchCert(b.dataset.bcert)));
+  if (bwBusy) document.querySelectorAll("#bwBox button").forEach(b => b.disabled = true);
+  const wb = $("#bmWitBox", v);   // the witness to a disposal, asked for on the material being disposed
+  if (wb){
+    const sels = [...v.querySelectorAll('#bmBox select[id^="bmx_"]')];
+    const sync = () => { const d = sels.find(x => x.value === "disposed"), td = d?.closest("td"); if (td && wb.parentNode !== td) td.appendChild(wb); wb.hidden = !td; };
+    sels.forEach(x => x.addEventListener("change", sync)); syncers.push(sync); sync();
+  }
+}
+/* One change written to each sample of the batch, each under its own lease. fn(s) builds it from the sample as it is now (null: skip). */
+async function bwEach(label, ids, fn, clear){
+  if (bwBusy || !canEdit() || !ids.length) return 0;
+  bwBusy = true; document.querySelectorAll("#bwBox button").forEach(b => b.disabled = true);
+  try {
+    const ok = await pool(ids, 4, id => sampleWrite(id, fn));
+    toast(ok === ids.length ? `${label}: ${nS(ok)}` : ok ? `${label}: ${ok} of ${ids.length}. The others changed meanwhile; check them below.` : `Nothing was recorded: the samples changed meanwhile. Check the batch and try again.`);
+    if (ok && clear) clearForm(clear);
+    return ok;
+  } finally { bwBusy = false; if (current?.batch) renderTrack(); }
+}
+async function bwMove(kind){
+  const st = batchState(current?.docs || []); if (!st.lead) return;
+  const { plan, bi, at, lead } = st, next = plan[bi + 1], bref = current.batch, key = plan[bi].key;
+  const wit = needWitness(at.find(twoPerson) || lead, "#bwWit"); if (wit === null) return;
+  const loc = val("#bwLoc"), ref = val("#bwRef"), note = val("#bwNote");
+  if (kind === "next" && (!next || next.target)) return;
+  await bwEach(kind === "wait" ? "Moved to Results released" : `Moved to ${next.name}`, at.map(s => s.id), s => {
+    if (!grouped(s) || s.stageKey !== key || awaiting(s)) return null;
+    const t = nowAfter(s), w = twoPerson(s) ? wit : "", line = { by: session.u, tech: session.name, ref, ...(loc ? { loc } : {}), ...(w ? { wit: w } : {}) };
+    if (kind === "wait"){
+      if (waitingRes(s) || !resMissing(s)) return null;
+      return { rw: { key: s.stageKey, at: t }, ...(loc ? { location: loc } : {}), history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at: t, ...line, rw: true, note: `With batch ${bref}: waiting for the results${note ? ". " + note : ""}` }] };
+    }
+    const to = stage(s, next.key); if (!to || (to.phase === "qc" && stage(s, s.stageKey)?.phase !== "qc" && qcEntryBlock(s))) return null;
+    return { stageKey: next.key, stageAt: t, ...(loc ? { location: loc } : {}), history: [...(s.history || []), { key: next.key, sn: to.name, at: t, ...line, note: `With batch ${bref}${note ? ". " + note : ""}` }] };
+  }, ["bwNote", "bwRef", "bwLoc"]);
+}
+/* The release of the batch: the steps each sample has left are recorded as done; every sample gets the same certificate number, time and
+   check code (over all the samples' results), each keeping its own results on its record. */
+function walkToRelease(s, from, wit){
+  const p = planOf(s), ci = curIdx(s), ti = targetIdx(s), hist = [...(s.history || [])];
+  let t = Math.max(from, ...hist.map(e => (+e.at || 0) + 1000));
+  for (let i = ci + 1; i < ti; i++){ hist.push({ key: p[i].key, sn: p[i].name, at: t, by: session.u, tech: session.name, note: "Done: results saved", ...(wit && twoPerson(s) ? { wit } : {}) }); t += 1000; }
+  return { history: hist, t };
+}
+function batchCode(ref, no, at, certs){
+  const body = JSON.stringify([ref, no, at, session?.u || "", certs.map(([id, c]) => [id, (c.an || []).map(a => [a.k, a.u]), Object.keys(c.rows || {}).sort().map(k => [k, c.rows[k].raw]), c.file ? c.file.name : ""])]);
+  const h = seed => { let x = seed; for (const ch of body){ x ^= ch.codePointAt(0); x = Math.imul(x, 0x01000193) >>> 0; } return x.toString(16).padStart(8, "0"); };
+  return (h(0x811c9dc5) + h(0x2f6b1a3d)).toUpperCase().match(/.{4}/g).join("-");
+}
+async function releaseGroup(ref, wit, quiet){
+  const none = { n: 0, no: "", why: "" }, say = why => { if (!quiet) toast(why); return { ...none, why }; };
+  if (!canRelease()) return say(relNow() ? "Only lab staff release results." : "Only a lab supervisor can release results.");
+  let docs;
+  try { docs = (await db.collection("samples").where("batchId", "==", ref).limit(100).get()).docs.map(d => d.data()).filter(s => s && s.id); } catch { return say("Could not read the batch. Try again."); }
+  const ready = docs.filter(s => grouped(s) && !awaiting(s) && curIdx(s) >= 1 && curIdx(s) < targetIdx(s));
+  if (!ready.length) return none;
+  const missing = ready.filter(s => !resIn(s));
+  if (missing.length) return say(`Results still to come for ${nS(missing.length)}: ${missing.slice(0, 4).map(s => s.id).join(", ")}${missing.length > 4 ? "…" : ""}. Attach them, or take a sample out of the batch to release the others.`);
+  if (!relNow()){ const hold = ready.map(s => [s, releaseBlock(s) || (relSelf(s) ? SELF_MSG : "")]).find(x => x[1]); if (hold) return say(`${hold[0].id}: ${hold[1]}`); }
+  if (ready.some(twoPerson) && !wit) return say("Two-person custody: choose the witness to the release.");
+  const v = 1 + Math.max(0, ...docs.flatMap(s => (s.certs || []).filter(c => c.bref === ref).map(c => c.bv || 0)));
+  const no = `${ref}-R${v}`, from = Date.now(), at = Math.max(...ready.map(s => walkToRelease(s, from, wit).t));
+  const certs = ready.map(s => [s.id, { ...makeCert(s, at, ""), no, bref: ref, bv: v, bn: ready.length }]), code = batchCode(ref, no, at, certs);
+  certs.forEach(([, c]) => { c.code = code; });
+  const byId = new Map(ready.map(s => [s.id, s])), cert = new Map(certs);
+  const n = await pool(ready.map(s => s.id), 4, id => sampleWrite(id, s => {
+    const s0 = byId.get(id);
+    if (!grouped(s) || (s.results?.v || 0) !== (s0.results?.v || 0) || s.stageKey !== s0.stageKey) return null;   // changed meanwhile: not released with the others
+    const w = walkToRelease(s, from, wit); if (w.t > at) return null;
+    return releaseUpdate({ ...s, history: w.history }, at, `Released with batch ${ref}`, twoPerson(s) ? wit : "", "", "", cert.get(id));
+  }));
+  for (const b of new Set(ready.flatMap(s => Object.values(labsOf(s)).map(l => l.b)))) await closeBatchIfDone(b);
+  if (n && n < ready.length && !quiet) toast(`${n} of ${ready.length} released on ${no}; the others changed meanwhile. Open them to check.`);
+  return { n, no, why: n ? "" : "the samples changed meanwhile" };
+}
+async function bwRelease(){
+  const ref = current?.batch; if (!ref || bwBusy) return;
+  const st = batchState(current.docs), wit = st.at.some(twoPerson) ? val("#bwRelWit") : "";
+  if (st.at.some(twoPerson) && !wit){ toast("Two-person custody: choose the witness to the release."); $("#bwRelWit")?.focus(); return; }
+  bwBusy = true; document.querySelectorAll("#bwBox button").forEach(b => b.disabled = true);
+  try { const r = await releaseGroup(ref, wit); if (r.n) toast(`Released ${nS(r.n)}: batch certificate ${r.no}`); }
+  finally { bwBusy = false; renderTrack(); }
+}
+async function bwMat(k){
+  const st = batchState(current?.docs || []); if (!st.lead) return;
+  const what = val("#bmx_" + k), ref = val("#bmr_" + k), bref = current.batch, ids = st.at.filter(s => keptMaterials(s).some(m => m.k === k)).map(s => s.id), two = st.at.some(twoPerson);
+  if (st.at.some(wqOf)){ toast("Waiting for the witness to confirm. Withdraw that request first."); return; }
+  if (what === "store" && !ref){ toast("Type the storage location first."); $("#bmr_" + k)?.focus(); return; }
+  if (what === "external" && !ref){ toast("Type the external lab and waybill number first."); $("#bmr_" + k)?.focus(); return; }
+  const clear = ["bmx_" + k, "bmr_" + k, "bmWit"];
+  if (two && what === "disposed"){   // a critical batch: the witness confirms the disposal from their own account
+    const w = userByName(val("#bmWit"));
+    if (!w){ toast("Two-person custody: choose the witness who confirms the disposal."); $("#bmWit")?.focus(); return; }
+    if (w.u === session.u){ toast("The witness must be someone other than you."); return; }
+    const id = wqId(Date.now());
+    await bwEach(`Asked ${w.name} to confirm`, ids, s => grouped(s) ? askOutUpd(s, k, what, ref, w, id, bref) : null, clear);
+    return;
+  }
+  const firstPut = two && what === "store" && st.lead.stageKey === "released";
+  const wit = what === "disposed" ? disposalWitness("#bmWit") : firstPut || !two ? "" : needWitness(st.lead, "#bmWit"); if (wit === null) return;
+  await bwEach(what === "store" ? "Put away" : DISPO[what], ids, s => grouped(s) && !wqOf(s) ? matUpd(s, k, what, ref, wit, bref) : null, clear);
+}
+async function bwAsk(){
+  const st = batchState(current?.docs || []); if (!st.lead) return;
+  const w = (cfg.users || []).find(x => x.u === val("#bwWq"));
+  if (!w){ toast("Choose the witness who confirms the storage."); $("#bwWq")?.focus(); return; }
+  const id = wqId(Date.now()), bref = current.batch;
+  await bwEach(`Asked ${w.name} to confirm`, st.at.filter(twoPerson).map(s => s.id), s => grouped(s) ? askStoreUpd(s, w, id, bref) : null, ["bwWq"]);
+}
+async function bwAnswer(kind){
+  const st = batchState(current?.docs || []); if (!st.lead) return;
+  const q = st.at.map(wqOf).find(Boolean); if (!q) return;
+  const why = kind === "back" ? val("#bwWhy") : "";
+  if (kind === "back" && !why){ toast("Give the reason for sending it back."); $("#bwWhy")?.focus(); return; }
+  const ids = st.at.filter(s => wqOf(s)?.id === q.id).map(s => s.id);
+  await bwEach(kind === "ok" ? "Confirmed" : kind === "back" ? `Sent back to ${q.tech}` : "Request withdrawn", ids, s => {
+    if (wqOf(s)?.id !== q.id) return null;
+    return kind === "ok" ? confirmUpd(s) : kind === "back" ? sendBackUpd(s, why) : withdrawUpd(s);
+  }, ["bwWhy"]);
+}
+/* On a member's own record: it moves with its batch; it can be taken out to go its own way. */
+function batchNote(s){
+  const ref = s.batchId, q = wqOf(s);
+  return `<div class="notice stack" id="inBatch" style="gap:8px"><div>${esc(s.id)} is processed with batch <button type="button" class="linkish mono" data-open="${esc(ref)}">${esc(ref)}</button> (${esc(s.batchSize)} samples): its steps, the release of its results and its storage are recorded for the whole batch, on the batch page.${q ? ` <b>Waiting for ${esc(q.wit)} to confirm ${q.kind === "store" ? "the storage" : esc(wqText(s, q))}</b>${myConf(s) ? ": confirm it on the batch page" : ""}.` : ""}</div>
+    <div class="row" style="gap:8px"><button type="button" class="btn primary" data-open="${esc(ref)}">Open the batch</button>${canEdit() && !q ? `<button type="button" class="btn ghost" id="soloBtn">Take it out of the batch</button>` : ""}</div></div>`;
+}
+async function doSolo(){
+  const s0 = current?.body; if (!s0 || !batchOf(s0)) return;
+  if (wqOf(s0)){ toast(`Waiting for ${s0.wq.wit} to confirm. Withdraw that request on the batch page first.`); return; }
+  await act(s => {
+    if (!batchOf(s) || wqOf(s)) return null;
+    const at = nowAfter(s);
+    return { upd: { solo: true, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, note: `Taken out of batch ${s.batchId}: processed on its own from here` }] }, msg: `${s.id} is now processed on its own` };
+  }, { anyStage: true });
+}
+/* A sample that goes its own way (a re-assay, another route) leaves its batch: the fields, and the words for its custody line. */
+const soloUpd = s => batchOf(s) ? { solo: true } : {};
+const soloNote = s => batchOf(s) ? `. Taken out of batch ${s.batchId}: processed on its own from here` : "";
+
+/* ---------- the batch certificate: one number and check code; every sample with its own results ---------- */
+function certBatchHtml(ref, mem){
+  const [s0, c] = mem[0], ans = [];
+  mem.forEach(([, x]) => (x.an || []).forEach(a => { if (!ans.some(y => y.k === a.k)) ans.push(a); }));
+  const fact = (k, v) => `<tr><th>${k}</th><td>${v}</td></tr>`, uniq = f => [...new Set(mem.map(f).filter(Boolean))];
+  const recv = mem.map(([s]) => s.recvAt || s.receivedAt).filter(Boolean), types = uniq(([s]) => s.type), labs = uniq(([, x]) => x.batch).join(", ");
+  const exc = mem.flatMap(([s, x]) => [x.amends ? `${s.id}: replaces ${x.amends}. ${x.why || ""}` : "", x.qcNote ? `${s.id}: ${x.qcNote}` : "", x.acc ? `${s.id}: accepted outside a check by ${x.acc.tech}: ${x.acc.why}` : "",
+    ...(x.soft || []).map(m => `${s.id}: note: ${m}`), ...(x.alerts || []).map(a => `${s.id}: ${a.line}. ${a.act}.${a.ack ? ` Recorded by ${a.ack.tech}: ${a.ack.note}` : ""}`)].filter(Boolean));
+  return `<div class="cert">
+    <div class="cert-head"><div><div class="cert-org">ZIJIN · Assay Laboratory</div><h2>Certificate of analysis</h2><div class="small">Batch of ${nS(mem.length)}</div></div>
+      <div class="cert-no"><div class="mono">${esc(c.no)}</div><div>Version ${esc(c.bv || 1)} · ${esc(fmtFull(c.at))}</div>${c.code ? `<div>Check code <span class="mono">${esc(c.code)}</span></div>` : ""}</div></div>
+    <table class="cert-facts">
+      ${fact("Batch", `<b class="mono">${esc(ref)}</b>${s0.batchName ? ` · ${esc(s0.batchName)}` : ""}`)}${fact("Samples", `${mem.length}${s0.batchSize > mem.length ? ` of the ${esc(s0.batchSize)} submitted` : ""}`)}${fact("Sample type", esc(types.join(", ")))}
+      ${fact("Submitted by", `${esc(s0.submitter)}${s0.section ? ` · ${esc(s0.section)} ${esc(sectionName(s0.section))}` : ""}`)}
+      ${recv.length ? fact("Received", esc(fmtFull(Math.min(...recv))) + (Math.max(...recv) - Math.min(...recv) > 60000 ? ` to ${esc(fmtFull(Math.max(...recv)))}` : "")) : ""}
+      ${fact("Test", esc(c.testName || ""))}${fact("Method", `${c.route ? `<span class="mono">${esc(c.route)}</span> ` : ""}${esc(c.routeName || "")}`)}
+      ${labs ? fact(labs.includes(",") ? "Lab batches" : "Lab batch", `<span class="mono">${esc(labs)}</span>`) : ""}
+    </table>
+    ${c.file ? `<div class="cert-file">Results file: <b>${esc(c.file.name)}</b>${c.att ? (ans.length ? ". Results not shown below are in this file." : ". The results are in this file.") : ""}</div>` : ""}
+    ${ans.length ? `<div class="tbl-wrap"><table class="cert-res"><thead><tr><th>Sample ID</th><th>Site sample code</th>${ans.map(a => `<th>${esc(a.n)}${a.u ? ` (${esc(a.u)})` : ""}</th>`).join("")}</tr></thead><tbody>
+      ${mem.map(([s, x]) => `<tr><td class="mono">${esc(s.id)}</td><td class="mono">${esc(tagText(s)) || "—"}</td>${ans.map(a => `<td class="mono">${x.rows && x.rows[a.k] ? `<b>${esc(resText(x.rows[a.k], a))}</b>` : "—"}</td>`).join("")}</tr>`).join("")}
+      ${ans.some(a => a.dl != null) ? `<tr class="muted"><td colspan="2">Detection limit</td>${ans.map(a => `<td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>`).join("")}</tr>` : ""}</tbody></table></div>`
+      : `<table class="cert-res"><thead><tr><th>Sample ID</th><th>Site sample code</th></tr></thead><tbody>${mem.map(([s]) => `<tr><td class="mono">${esc(s.id)}</td><td class="mono">${esc(tagText(s)) || "—"}</td></tr>`).join("")}</tbody></table>`}
+    ${exc.length ? `<div class="cert-note">${exc.map(esc).join("<br>")}</div>` : ""}
+    <div class="cert-sign"><div>Released by <b>${esc(c.tech)}</b>, ${esc(ROLE_SIGN[c.role] || "lab supervisor (QA/QC)")}</div><div>${esc(fmtFull(c.at))}${TZ() ? ` (${esc(TZ())})` : ""}</div></div>
+    <div class="cert-foot">Results relate only to the samples as received. Values below the detection limit are shown as &lt;DL. Check this copy by looking up the batch reference or any of its sample IDs in the Assay Lab tracker: the certificate number and check code must match. Design prototype: not an official laboratory certificate.</div>
+  </div>`;
+}
+async function showBatchCert(ref, no){
+  let docs = current?.batch === ref ? current.docs : null;
+  if (!docs){ try { docs = (await db.collection("samples").where("batchId", "==", ref).limit(100).get()).docs.map(d => d.data()).filter(s => s && s.id); } catch { docs = []; } }
+  const all = docs.flatMap(s => (s.certs || []).filter(c => c.bref === ref).map(c => [s, c]));
+  if (!all.length){ toast("No batch certificate yet."); return; }
+  const pickNo = no || all.map(x => x[1]).sort((a, b) => (b.bv || 0) - (a.bv || 0))[0].no;
+  const mem = all.filter(x => x[1].no === pickNo).sort((a, b) => (a[0].batchIndex || 0) - (b[0].batchIndex || 0));
+  if (!mem.length || !mem.every(([s]) => canSeeResults(s))){ toast(`Batch certificate ${pickNo}: ask the Assay Lab for a copy.`); return; }
+  const c = mem[0][1], html = certBatchHtml(ref, mem), box = $("#certBox");
+  const others = [...new Set(all.map(x => x[1].no))].filter(x => x !== pickNo);
+  box.innerHTML = `<div class="cert-wrap"><div class="cert-bar"><b>${esc(c.no)}</b>${others.length ? `<span class="small muted">Also: ${others.map(x => `<button type="button" class="linkish mono" data-bcno="${esc(x)}">${esc(x)}</button>`).join(", ")}</span>` : ""}<span style="flex:1"></span><button type="button" class="btn" id="certPrint">Print</button><button type="button" class="btn" id="certDl">Download</button><button type="button" class="btn primary" id="certClose">Close</button></div>${html}</div>`;
+  box.hidden = false;
+  $("#certClose").onclick = closeCert; box.onclick = e => { if (e.target === box) closeCert(); };
+  box.querySelectorAll("[data-bcno]").forEach(b => b.onclick = e => { e.stopPropagation(); showBatchCert(ref, b.dataset.bcno); });
+  $("#certPrint").onclick = () => { document.body.classList.add("print-cert"); try { window.print(); } catch { toast("Printing is blocked in this view. Use Download instead."); } };
+  $("#certDl").onclick = async () => {
+    const dl = window.claude?.use ? await claude.use("downloads") : null;
+    if (!dl){ toast("Downloads are not available in this view."); return; }
+    const css = [...document.querySelectorAll("style")].map(x => x.textContent).join("\n");
+    try { await dl.save({ filename: `${c.no}.html`, data: `<!doctype html><html><head><meta charset="utf-8"><title>${esc(c.no)}</title><style>${css}</style></head><body class="cert-only">${html}</body></html>` }); }
+    catch { toast("Download was not saved."); }
+  };
+  $("#certClose").focus();
+}
+
+/* ---------- the board: one card for the samples of a batch in a lane ---------- */
+function laneCards(items){
+  const out = [], seen = new Map();
+  for (const s of items){
+    const ref = batchOf(s);
+    if (!ref || !grouped(s)){ out.push({ s }); continue; }
+    const g = seen.get(ref); if (g){ g.docs.push(s); continue; }
+    const x = { ref, docs: [s] }; seen.set(ref, x); out.push(x);
+  }
+  return out;
+}
+function batchChip(x, lane){
+  const docs = x.docs, s = docs[0], late = docs.some(d => status(d).late), urgent = docs.some(d => d.priority === "Urgent");
+  const tms = docs.map(cardTime), cls = ["t-late", "t-soon", "t-ok", "t-wait"].find(c => tms.some(t => t.cls === c)) || tms[0].cls || "";
+  const names = [...new Set(docs.map(d => waitingRes(d) ? "Waiting for results" : awaiting(d) ? "Awaiting receipt" : stage(d, d.stageKey)?.name || ""))];
+  const q = docs.map(wqOf).find(Boolean), left = tms.find(t => t.left)?.left || "";
+  return `<button class="chip bchip ${cls}${late ? " late" : ""}${urgent ? " urgent" : ""}" data-open="${esc(x.ref)}" title="Batch ${esc(x.ref)}: ${docs.length} of ${esc(s.batchSize)} samples here">
+    <div class="ctop"><span class="cid">${esc(x.ref)}${s.route ? ` <span class="rc">${esc(s.route)}</span>` : ""}</span></div>
+    <div class="cmeta"><span class="bn">${docs.length === s.batchSize ? `Batch of ${nS(docs.length)}` : `${docs.length} of ${esc(s.batchSize)} samples`}</span></div>
+    <div class="cmeta"><b style="color:var(--ink)">${esc(names.slice(0, 2).join(", "))}${names.length > 2 ? "…" : ""}</b>${docs.some(d => d.reassays) ? ` · <b style="color:var(--warn)">re-assay</b>` : ""}</div>
+    ${q ? `<div class="cmeta"><b style="color:var(--info)">Waiting for ${esc(q.wit)} to confirm</b></div>` : ""}
+    <div class="cmeta">${esc(s.type)}${s.batchName ? ` · ${esc(s.batchName)}` : ""}${urgent ? ` · <span class="urg">Urgent</span>` : ""}${docs.some(d => d.flag && awaiting(d)) ? ` · <b style="color:var(--warn)">Flagged</b>` : ""}</div>
+    ${hazTags(s).length || twoPerson(s) ? `<div class="cmeta">${hazPills(s)}${twoPerson(s) ? `<span class="haz two" title="Two-person custody">2P</span>` : ""}</div>` : ""}
+    ${lane === "report" && late ? `<div class="cmeta"><b style="color:var(--warn)">Not yet put in storage</b></div>` : ""}
+    ${left && lane !== "report" ? `<div class="cmeta left">${esc(left)}</div>` : ""}</button>`;
+}
+/* The confirmations asked of the person signed in, one row per request (a batch's request is one row). */
+function confRows(list, sRow){
+  const out = [], seen = new Set();
+  for (const x of list){
+    const q = x.wq;
+    if (q.batch){
+      const key = q.batch + "|" + q.id; if (seen.has(key)) continue; seen.add(key);
+      const n = list.filter(y => y.wq.batch === q.batch && y.wq.id === q.id).length;
+      out.push({ id: q.batch, type: x.type || "", what: `Batch of ${nS(n)}`, where: `${q.kind === "store" ? "Storage" : DISPO[q.what] || q.what} · asked by ${q.tech}` });
+      continue;
+    }
+    out.push(sRow(x, `${q.kind === "store" ? "Storage: " : ""}${wqText(x)} · asked by ${q.tech}`));
+  }
+  return out;
 }
 
 /* ---------- upgrade of records written by earlier versions (runs once, under a lease) ---------- */

@@ -329,7 +329,7 @@ put('@media (max-width:760px){.login-grid{grid-template-columns:minmax(0,1fr)}}'
 
 # Workflow board
 put('''<div class="small">Open each sample, act as the limit says and record what was done and who was told. In the production system these also go out by email or SMS.</div>''', '')
-put('''+${items.length - 40} more: use the filters or look a sample up by ID</div>''', '''+${items.length - 40} more</div>''')
+put('''+${laneCards(items).length - 40} more: use the filters or look a sample up by ID</div>''', '''+${laneCards(items).length - 40} more</div>''')
 
 # Submit a sample / Register at lab
 put('''after the lab receives the sample (an estimate from the step times). ${(r.retention''', '''after receipt. ${(r.retention''')

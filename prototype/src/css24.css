@@ -186,3 +186,9 @@ ol.rail li.done.stop .dot{background:var(--bad);border-color:var(--bad)}
 .mat-wit{margin-top:8px;max-width:380px}
 /* v24d: the Results column wraps, so the Evaluation column fits on a computer screen */
 .tbl-wrap table.restbl td[data-l="Results"]{white-space:normal;min-width:12em}
+/* v24d: a batch processed as one shows as one card on the board, drawn as a small stack */
+.chip.bchip{box-shadow:3px 3px 0 -1px var(--panel),3px 3px 0 0 var(--line),6px 6px 0 -1px var(--panel),6px 6px 0 0 var(--line);margin-bottom:12px;max-width:calc(100% - 6px)}
+.chip.bchip .bn{font-weight:700;color:var(--accent);font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+#bwBox .rail{margin-bottom:0}
+#bmBox .tbl-wrap table td{vertical-align:top}
+.cert table{color:inherit}

@@ -255,6 +255,8 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   check(!(await one("t1@site.com", { op: "query", coll: "samples", where: [["a b", "==", 1]] })).ok, "bad field names are refused");
   check(!(await one("t1@site.com", { op: "get", path: "secrets/x" })).ok, "unknown collections are refused");
   check(JSON.stringify(redactSample({ id: "x", results: 1 })) === '{"id":"x"}', "redact helper");
+  { const r = redactSample({ id: "x", certs: [{ no: "B-PLT-20261019-0001-R1", v: 1, at: 5, code: "C", bref: "B-PLT-20261019-0001", bv: 1, rows: { Au: { raw: "1" } } }] }).certs[0];
+    check(r.bref === "B-PLT-20261019-0001" && r.bv === 1 && !r.rows, "a batch certificate keeps its batch (not its results) where results are hidden (v24d)"); }
 
   // The Azure Functions entry points, with the in-memory store.
   process.env.STORE = "memory"; process.env.ADMIN_EMAILS = "boss@site.com";

@@ -239,8 +239,8 @@ function makeCert(s, at, why, x = {}){
   return c;
 }
 /* Release: the results are frozen on a new certificate and each retained material starts its clock (kept from an earlier release). */
-function releaseUpdate(s, at, note, wit, ref, selfWhy){
-  const cert = makeCert(s, at, "", selfWhy ? { self: selfWhy } : {}), mats = (s.materials || []).length ? s.materials : materialsAt(s, at);
+function releaseUpdate(s, at, note, wit, ref, selfWhy, certIn){
+  const cert = certIn || makeCert(s, at, "", selfWhy ? { self: selfWhy } : {}), mats = (s.materials || []).length ? s.materials : materialsAt(s, at);
   const stored = (s.materials || []).length && keptMaterials(s).length && keptMaterials(s).every(m => m.loc);
   const key = stored ? "storage" : "released";
   return { stageKey: key, stageAt: at, relAt: at, relDay: dayKey(at), materials: mats, certs: [...(s.certs || []), cert],
@@ -255,6 +255,7 @@ function withRelease(s, res){
   const upd = res.upd || res, h = upd.history, last = h && h.at(-1);
   if (!upd.results || !last || !last.res || last.redo || h.length <= (s.history || []).length) return res;
   const m = { ...s, ...upd }, p = planOf(m), ci = curIdx(m), ti = targetIdx(m), ph = stage(m, m.stageKey)?.phase;
+  if (grouped(m)) return res;   // v24d: a sample in a batch is released with its batch, on the batch certificate (releaseGroup)
   const wit = twoPerson(m) ? last.wit || "" : "";
   if (awaiting(m) || (twoPerson(m) && !wit) || !(ci >= 1 && ci < ti && (ph === "test" || ph === "qc" || hasResFile(upd))) || releaseBlock(m)) return res;
   let at = Math.max(...h.map(e => +e.at || 0)) + 1000;
@@ -395,7 +396,7 @@ async function doSaveResults(){
   const bk = batchKeys(s0), rows = readRows("rs_", anOf(s0).filter(a => !bk.has(a.k)), s0.results?.rows), inst = val("#rsInst");
   if (!rows) return;
   if (!Object.keys(rows).length){ toast("Type at least one result."); return; }
-  await act(s => {
+  const ok = await act(s => {
     const ph = stage(s, s.stageKey)?.phase;
     if (!(curIdx(s) < targetIdx(s) && (ph === "test" || ph === "qc"))){ toast("Results are entered while the sample is in analysis or QA/QC review."); return null; }
     const keep = Object.fromEntries(Object.entries(rowsOf(s)).filter(([k]) => batchKeys(s).has(k)));
@@ -404,8 +405,10 @@ async function doSaveResults(){
     const wit = twoPerson(s) ? val("#mvWit") : "";   // v24d: two-person custody: the witness chosen on the record signs the release
     return { upd: { results: next, resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null,
       history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, ...(wit ? { wit } : {}), note: `Results ${s.results ? "updated" : "entered"}: ${resSummary(anOf(s), all)}` }] },
-      msg: `Results saved on ${s.id}${twoPerson(s) && !wit && relNow() ? ". Two-person custody: choose the witness and press Release results" : ""}` };
+      msg: `Results saved on ${s.id}${grouped(s) ? `. Released with batch ${s.batchId} once all its results are in` : twoPerson(s) && !wit && relNow() ? ". Two-person custody: choose the witness and press Release results" : ""}` };
   }, { anyStage: true, clear: ["resBox"] });
+  // v24d: the last results of a batch in: the batch is released with one certificate (a critical batch: on the batch page, with its witness)
+  if (ok && grouped(s0) && relNow() && !twoPerson(s0)){ const r = await releaseGroup(s0.batchId, "", true); if (r.n) toast(`All results in: ${nS(r.n)} released on batch certificate ${r.no}`); }
 }
 async function doAcceptChecks(){
   const why = val("#accWhy"); if (!why){ toast("Give the reason for accepting."); $("#accWhy")?.focus(); return; }
@@ -437,9 +440,9 @@ async function doOverRange(){
     const rows = rowsOf(s); keys.forEach(k => delete rows[k]);
     const labs = { ...labsOf(s) }; groupsOf(s).filter(g => g.k.some(k => keys.includes(k))).forEach(g => delete labs[g.p]);
     const left = withCalc({ ...s, ...extra }, rows), what = over.map(a => `${a.n} ${resText(s.results.rows[a.k], a)} ${a.u}`).join(", ");
-    return { upd: { stageKey: back.key, stageAt: at, reassays: (s.reassays || 0) + 1, lastRedo: `${over[0].n} over range${grav ? ": repeated by gravimetric finish" : ": diluted re-run"}`,
+    return { upd: { stageKey: back.key, stageAt: at, reassays: (s.reassays || 0) + 1, lastRedo: `${over[0].n} over range${grav ? ": repeated by gravimetric finish" : ": diluted re-run"}`, ...soloUpd(s),
       results: Object.keys(left).length ? { ...s.results, rows: patch(s.results.rows, left), v: s.results.v + 1, at } : null, resHist: [...(s.resHist || []), s.results].slice(-30), resAcc: null, ...labsUpd(s, labs, extra),
-      history: [...(s.history || []), { key: back.key, sn: back.name, at, by: session.u, tech: session.name, redo: true, note: `Re-assay: ${what} is over the ${fmtNum(over[0].ul)} ${over[0].u} range${grav ? "; repeat by gravimetric finish in a gravimetric batch" : "; diluted re-run in a new batch"}` }] },
+      history: [...(s.history || []), { key: back.key, sn: back.name, at, by: session.u, tech: session.name, redo: true, note: `Re-assay: ${what} is over the ${fmtNum(over[0].ul)} ${over[0].u} range${grav ? "; repeat by gravimetric finish in a gravimetric batch" : "; diluted re-run in a new batch"}${soloNote(s)}` }] },
       msg: `${s.id} sent back to ${back.name}` };
   }, { anyStage: true });
 }
@@ -526,6 +529,7 @@ function certHtml(s, c){
 function showCert(v){
   const s = current?.body; if (!s || !canSeeResults(s)) return;
   const c = (s.certs || []).find(x => x.v === +v) || (s.certs || []).at(-1); if (!c) return;
+  if (c.bref) return showBatchCert(c.bref, c.no);   // v24d: released with its batch: the batch certificate
   const box = $("#certBox");
   box.innerHTML = `<div class="cert-wrap"><div class="cert-bar"><b>${esc(c.no)}</b><span style="flex:1"></span><button type="button" class="btn" id="certPrint">Print</button><button type="button" class="btn" id="certDl">Download</button><button type="button" class="btn primary" id="certClose">Close</button></div>${certHtml(s, c)}</div>`;
   box.hidden = false;

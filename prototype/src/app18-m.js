@@ -154,7 +154,7 @@ function rowValues(rep, cells, defs, r = 1, clash){
     }
     if (!pick) continue;
     if (got[pick.k]){ if (got[pick.k].raw !== raw && clash) clash.push(`${anShort(pick)}: ${got[pick.k].col.name} ${got[pick.k].raw} and ${c.name} ${raw}`); continue; }
-    got[pick.k] = { raw, col: c };
+    got[pick.k] = { raw, col: c }; c.used = true;   // read: not listed under Columns not read
   }
   return got;
 }
@@ -171,7 +171,6 @@ function planUpload(rep, scope){
     else if (r.kind === "crm") crmRows.push(r);
     else P.notFound.push(r.key);
   }
-  P.unread = rep.cols.filter(c => !c.concept && !c.used && rep.rows.some(r => (r.cells[c.i] || "").trim())).map(c => c.name + (c.unit ? ` (${c.unit})` : ""));
   const fileCrms = [...rep.crms.map(f => ({ ...f, reg: crmFromFile(f.id) })), ...crmRows.map(r => ({ id: r.key, reg: r.crm, row: r }))];
   P.unknownCrm = [...new Set(fileCrms.filter(f => !f.reg).map(f => f.id))];
   /* The lab methods a batch's sample readings came from (AuFA under FAA505, carbon Au under ARS12D). */
@@ -219,7 +218,7 @@ function planUpload(rep, scope){
     P.n += n;
     return { vals, crms, miss, n };
   };
-  const want = s => !scope.sample || s.id === scope.sample;
+  const want = s => (!scope.sample || s.id === scope.sample) && (!scope.sub || s.batchId === scope.sub);
   const touched = new Map(), fresh = new Map();
   for (const [sid, row] of bySid){
     const s = bs(sid); if (!s || !want(s)) continue;
@@ -275,6 +274,8 @@ function planUpload(rep, scope){
     }
   }
   P.notFound = [...new Set(P.notFound)];
+  // Columns the plan read nothing from (after the plan: a column read by its exact name has no measurement of its own to go by)
+  P.unread = rep.cols.filter(c => !c.concept && !c.used && rep.rows.some(r => (r.cells[c.i] || "").trim())).map(c => c.name + (c.unit ? ` (${c.unit})` : ""));
   return P;
 }
 
@@ -292,7 +293,7 @@ function attachInput(){
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-attach]"); if (!b || !canEdit()) return;
   const [k, id] = b.dataset.attach.split(":");
-  upScope = k === "batch" ? { batch: id } : k === "sample" ? { sample: id } : {};
+  upScope = k === "batch" ? { batch: id } : k === "sample" ? { sample: id } : k === "sub" ? { sub: id } : {};   // sub: a submission batch, processed as one (v24d)
   attachInput().click();
 });
 const kb = n => n < 1024 ? `${n} bytes` : n < 1048576 ? `${(n / 1024).toFixed(n < 10240 ? 1 : 0)} KB` : `${(n / 1048576).toFixed(1)} MB`;
@@ -373,13 +374,16 @@ const canTakeFile = s => !!s && !awaiting(s) && s.open !== false && curIdx(s) >=
 function uploadTargets(u){
   const sc = u.scope || {}, P = u.plan;
   if (sc.sample) return canTakeFile(bs(sc.sample)) ? [sc.sample] : [];
+  if (sc.sub) return (current?.batch === sc.sub ? current.docs : [...samples.values()].filter(s => s.batchId === sc.sub)).filter(s => grouped(s) && canTakeFile(s)).map(s => s.id);
   if (sc.batch){ const b = openBatches.get(sc.batch) || (batchLive && batchLive.id === sc.batch ? batchLive : null); return (b?.sids || []).filter(id => { const s = bs(id); return canTakeFile(s) && inBatch(s, sc.batch); }); }
   const named = P ? [...new Set([...P.batches.flatMap(t => t.b.pos.filter(x => x.t === "s" && Object.keys(t.vals[x.p] || {}).length).map(x => x.sid)), ...P.fresh.flatMap(t => t.b.sids), ...P.samples.map(x => x.sid), ...P.notReady])] : [];
   return named.length ? named : [...u.pick].filter(id => canTakeFile(bs(id)));
 }
+const unreadNote = u => u.rep.error ? `<div class="notice">${u.grid ? "This file doesn't name its samples in a way the site can read." : "This file's values can't be read here."} It is kept as the results of the samples below, and they are released with it.</div>` : "";
 function uploadTargetsHtml(u, tg){
-  const sc = u.scope || {}, P = u.plan, named = P && !sc.sample && !sc.batch && (P.batches.length || P.fresh.length || P.samples.length || P.notReady.length);
-  const unread = u.rep.error ? `<div class="notice">${u.grid ? "This file doesn't name its samples in a way the site can read." : "This file's values can't be read here."} It is kept as the results of the samples below, and they are released with it.</div>` : "";
+  const sc = u.scope || {}, P = u.plan, named = P && !sc.sample && !sc.batch && !sc.sub && (P.batches.length || P.fresh.length || P.samples.length || P.notReady.length);
+  if (sc.sub) return `${unreadNote(u)}<div class="up-sec"><h4>Released together with this file: batch <span class="mono">${esc(sc.sub)}</span></h4><div class="small">${tg.length ? `${nS(tg.length)}, on one batch certificate${relNow() ? "" : " (a lab supervisor releases it)"}: ${tg.map(id => `<span class="mono">${esc(id)}</span>`).join(", ")}` : "No sample of the batch can take results (not received yet, or already released)."}</div></div>`;
+  const unread = unreadNote(u);
   if (sc.sample || sc.batch || named) return `${unread}<div class="up-sec"><h4>Released with this file</h4><div class="small">${tg.length ? tg.map(id => `<span class="mono">${esc(id)}</span>`).join(", ") : "No sample here can take results (not received yet, or already released)."}</div></div>`;
   const q = u.q.trim().toUpperCase().replace(/\s+/g, "");
   const list = [...samples.values()].filter(canTakeFile).filter(s => !q || [s.id, tagText(s)].some(x => String(x).toUpperCase().replace(/\s+/g, "").includes(q))).sort((a, b) => a.id < b.id ? 1 : -1).slice(0, 150);
@@ -494,10 +498,16 @@ async function saveUpload(){
       // Every sample the file is for and not released yet: the file is its results, and it is released (withRelease).
       msg("Releasing…");
       const inst = f.labRef || f.name;
-      const relIds = [], keptIds = [];   // v24d: say what happened to each: released, or results kept but not released
-      await pool(targets, 4, sid => sampleWrite(sid, s => canTakeFile(s) ? fileResults(s, f, inst, wit) : null, upd => (upd.relAt ? relIds : keptIds).push(sid)));
+      const relIds = [], keptIds = [], subs = new Set(), inSub = new Set();   // v24d: say what happened to each: released, or results kept but not released
+      await pool(targets, 4, sid => sampleWrite(sid, s => { if (!canTakeFile(s)) return null; if (grouped(s)){ subs.add(s.batchId); inSub.add(sid); } return fileResults(s, f, inst, wit); },
+        upd => upd.relAt ? relIds.push(sid) : inSub.has(sid) ? 0 : keptIds.push(sid)));
       if (relIds.length) done.push(`${relIds.length} released with the file`);
       if (keptIds.length) done.push(`results kept on ${listAnd(keptIds)}, not released yet`);
+      for (const ref of subs){   // a batch processed as one: released together, on one batch certificate, once all its results are in
+        msg(`Releasing batch ${ref}…`);
+        const r = await releaseGroup(ref, wit, true);
+        done.push(r.n ? `batch ${ref}: ${nS(r.n)} released on certificate ${r.no}` : `batch ${ref}: results kept, not released yet${r.why ? ` (${r.why.replace(/\.$/, "")})` : ""}`);
+      }
       for (const b of new Set(targets.flatMap(id => Object.values(labsOf(bs(id) || {})).map(l => l.b)))) await closeBatchIfDone(b);
     }
     toast(`Saved: ${done.join("; ") || "the file is kept"}.`);

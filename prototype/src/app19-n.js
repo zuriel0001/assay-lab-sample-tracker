@@ -403,7 +403,7 @@ async function watchBatchRef(text, seq){
 let batchRecvBusy = false;
 function renderBatchView(v){
   const c = current, docs = c.docs, s0 = docs[0] || {}, waiting = docs.filter(awaiting);
-  v.dataset.ctx = "batch|" + c.batch;
+  const bst = batchState(docs), ctx = `${c.batch}|${bst.bi}.${bst.waiting ? 1 : 0}.${bst.at.some(wqOf) ? 1 : 0}`;   // v24d: what is typed stays while the batch is at the same step
   const cool = waiting.filter(s => typeOf(s.typeKey)?.cool != null), quick = waiting.filter(s => typeOf(s.typeKey)?.cool == null), two = quick.some(twoPerson);
   const tally = {}; docs.forEach(s => { const st = status(s); tally[st.label] = (tally[st.label] || 0) + 1; });
   const done = docs.filter(s => curIdx(s) >= targetIdx(s)).length, etas = docs.filter(s => curIdx(s) < targetIdx(s) && !status(s).closed).map(s => projection(s).eta).filter(Boolean);
@@ -413,6 +413,7 @@ function renderBatchView(v){
     return `<tr><td class="mono muted">${esc(s.batchIndex || "")}</td><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button></td><td class="mono">${esc(tagText(s)) || "—"}</td>${srcCol ? `<td>${esc(s.source || "")}</td>` : ""}
       <td><span class="pill ${st.cls}">${esc(st.label)}</span></td><td class="small">${last ? `Released ${esc(fmtDate(last.at))}` : ""}</td></tr>`; };
   const keepAt = $("#bvAt", v)?.value, keepWit = $("#bvWit", v)?.value, keepOk = $("#bvOk", v)?.checked;
+  keepUi(v, ctx, () => {
   v.innerHTML = `<div class="stack">
     <div class="panel stack">
       <div class="row" style="gap:10px"><div class="sid">${esc(c.batch)}</div><span class="pill info">${docs.length} samples</span><button type="button" class="btn ghost small" data-link="${esc(c.batch)}">Copy batch link</button></div>
@@ -429,6 +430,7 @@ function renderBatchView(v){
         <label class="recv-toggle full"><input type="checkbox" id="bvOk" ${keepOk ? "checked" : ""}> All ${quick.length} bags match, seals intact, good condition</label></div>
       <div class="row"><button type="button" class="btn primary" id="bvRecvBtn" ${batchRecvBusy ? "disabled" : ""}>Confirm receipt of ${quick.length}</button>${cool.length ? `<span class="small">One by one (cooler temperature): ${cool.map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>`).join(", ")}</span>` : ""}</div>
     </div>` : ""}
+    ${bwPanel(c)}
     <div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>#</th><th>Sample ID</th><th>Site sample code</th>${srcCol ? "<th>Source</th>" : ""}<th>Status</th><th></th></tr></thead><tbody>${docs.map(row).join("")}</tbody></table></div></div>
   </div>`;
   if (keepWit && $("#bvWit", v)) $("#bvWit", v).value = keepWit;
@@ -436,6 +438,8 @@ function renderBatchView(v){
   $("#bvLabels", v).onclick = () => showLabels(docs.map(labelOf));
   $("#bvCopy", v).onclick = () => navigator.clipboard.writeText(docs.map(s => s.id).join("\n")).then(() => toast("IDs copied"), () => toast("Copy blocked here. Select the IDs and copy them."));
   $("#bvRecvBtn", v)?.addEventListener("click", () => receiveBatch(quick.map(s => s.id)));
+  bindBw(v);
+  });
 }
 /* Receipt of every sample of the batch that needs no cooler check, as each record's receipt would write it. */
 async function receiveBatch(sids){
