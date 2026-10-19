@@ -138,11 +138,14 @@ function batchRule(a, cur, next){
 }
 /* One ledger document per site day and section; its movements are written once. A mistake is reversed by a new movement. */
 const DISPOSAL_WITNESS = "Disposal needs a second person: name the witness (someone other than the person recording it).";
+const WITNESS_FROM = Date.UTC(2026, 9, 19);   // disposals dated from 19 October 2026 on need the witness
 function ledgerRule(a, cur, next){
   // v24c: a new movement that disposes of material names a witness who is not the person recording it.
   const was = (cur && cur.m) || {};
+  // A disposal brought forward from a record kept before this rule (the one-off upgrade of old records) is history, not a new disposal.
+  const history = mv => mv.note === "Brought forward from the earlier ledger" && +mv.at < WITNESS_FROM;
   for (const [id, mv] of Object.entries((next && next.m) || {}))
-    if (!(id in was) && mv && mv.dir === "out" && mv.kind === "disposed" && !(typeof mv.wit === "string" && mv.wit.trim() && mv.wit !== mv.tech)) return DISPOSAL_WITNESS;
+    if (!(id in was) && mv && mv.dir === "out" && mv.kind === "disposed" && !history(mv) && !(typeof mv.wit === "string" && mv.wit.trim() && mv.wit !== mv.tech)) return DISPOSAL_WITNESS;
   if (!cur) return "";
   for (const k of ["day", "month", "sec"]) if (cur[k] != null && !same(cur[k], next[k])) return "A ledger day can't be moved.";
   const m0 = cur.m || {}, m1 = next.m || {};

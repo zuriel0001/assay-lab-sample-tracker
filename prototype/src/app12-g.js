@@ -108,7 +108,11 @@ function resCell(r, a){
 const resSummary = (ans, rows) => ans.filter(a => rows[a.k]).slice(0, 4).map(a => `${anShort(a)} ${resText(rows[a.k], a)}${a.u ? " " + a.u : ""}`).join("; ") + (ans.filter(a => rows[a.k]).length > 4 ? "; …" : "");
 /* A pick (such as the sampling point) describes the sample; it is never a missing result. */
 /* v24: results attached as a file the site can't read (att) are complete as they stand: the file is the results. */
-const missingRes = (s, rows = s.results?.rows || {}) => s?.results?.att && relNow() ? [] : anOf(s).filter(a => !a.opt && !a.calc && a.t !== "pick" && !rows[a.k]);
+/* v24c: a results file on the sample (attached on the record, from a lab batch, or from before "any file" was accepted) is its results:
+   nothing is missing, in either release mode. With release at once nothing else holds a release; with a supervisor's sign-off the lab
+   batch QC still does, as that mode is chosen for. */
+const hasResFile = s => !!(s?.results?.att || s?.results?.file);
+const missingRes = (s, rows = s.results?.rows || {}) => hasResFile(s) ? [] : anOf(s).filter(a => !a.opt && !a.calc && a.t !== "pick" && !rows[a.k]);
 const overRes = (s, rows = s.results?.rows || {}) => anOf(s).filter(a => rows[a.k]?.f === "over");
 /* Results worked out from others are never typed: they are set, or cleared, from their inputs whenever results are saved ("<DL" counts as 0). */
 function withCalc(s, rows){
@@ -247,7 +251,7 @@ function withRelease(s, res){
   const upd = res.upd || res, h = upd.history, last = h && h.at(-1);
   if (!upd.results || !last || !last.res || last.redo || h.length <= (s.history || []).length) return res;
   const m = { ...s, ...upd }, p = planOf(m), ci = curIdx(m), ti = targetIdx(m), ph = stage(m, m.stageKey)?.phase;
-  if (awaiting(m) || twoPerson(m) || !(ci >= 1 && ci < ti && (ph === "test" || ph === "qc" || upd.results.att)) || releaseBlock(m)) return res;
+  if (awaiting(m) || twoPerson(m) || !(ci >= 1 && ci < ti && (ph === "test" || ph === "qc" || hasResFile(upd))) || releaseBlock(m)) return res;
   let at = Math.max(...h.map(e => +e.at || 0)) + 1000;
   const hist = [...h];
   for (let i = ci + 1; i < ti; i++){ hist.push({ key: p[i].key, sn: p[i].name, at, by: session.u, tech: session.name, note: "Done: results saved" }); at += 1000; }

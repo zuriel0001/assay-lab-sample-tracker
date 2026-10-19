@@ -197,6 +197,15 @@ the ledger's heading like Lab batches; "if there is anything to improve on the w
   tiles when no sample is in the lab (today's releases and past-retention material can still be opened); an empty card is not shown
   pressed; *Same details again* keeps *Received now* as it was.
 
+**19 October, 01:13 (Zuriel): "i still see 'Release on hold: Results missing: Head grade.' nothing should prevent the result from being
+released as far as there is an attachment".** A file attached before "any file" was accepted (or through a lab batch) was kept as the
+sample's results (`results.file`) without the `att` mark, so a value the file didn't hold still counted as missing. Now `hasResFile(s)`
+(`results.att` or `results.file`) means nothing is missing (`missingRes`), in either release mode, so with release at once nothing holds
+it; with a supervisor's sign-off (chosen in Settings) the lab batch QC still does. The release-at-once write takes it too. On the server, a
+disposal brought forward by the one-off upgrade of old records ("Brought forward from the earlier ledger", dated before 19 October 2026) is
+history and needs no witness. Samples already waiting like this offer *Release results and issue
+certificate* when opened. `v25-tests.js` reproduces it (the hold read "Results missing: AuSx" before the fix): **31 PASS**.
+
 **19 October, clean-up (Zuriel: "are there any redundant script to be removed …?").** The page itself had almost nothing to remove:
 no function is declared twice, no CSS rule repeats a selector's property, and one helper (`dayStart`) was unused (removed). The repository
 lost what the build and the site never use: `src/v9-backup.html` (184 KB, of which the build read only the first 248 lines) became

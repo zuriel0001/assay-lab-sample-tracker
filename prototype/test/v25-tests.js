@@ -130,6 +130,23 @@ const JSQR = [path.join(__dirname, "..", "..", "app", "jsqr.js"), process.env.AZ
   check(/In \/ out ledger/.test(ms) && (ms.match(/Signed off by/g) || []).length === 2 && ms.includes(w1) && /Print/.test(await text(Ad, "#certPrint")), "the month summary: the numbers, both sign-offs and every movement, ready to print");
   await Ad.click("#certClose");
 
+  log("A results file on a sample never holds its release (v24c, 01:13: 'nothing should prevent the result from being released as far as there is an attachment')");
+  await fillForm(Tc, "register", { section: "PLT", type: "plant_feed", purpose: "plant", submitter: "Shift C", count: 1, tags: "MA-OLD" }); const [o1] = await ids(Tc);
+  for (let g = 0; g < 20; g++){
+    await open(Tc, o1); await Tc.waitForTimeout(120);
+    const st = await Tc.$eval('[data-step="next"]', b => b.textContent.trim()).catch(() => "");
+    if (!/^Move to:/.test(st) || /Results released/.test(st)) break;
+    const k = doc(o1).stageKey; await Tc.click('[data-step="next"]').catch(() => {}); await waitFor(() => doc(o1).stageKey !== k, 4000);
+  }
+  // As a file attached before "any file" was accepted left it: the file kept as the results, one value read, AuSx missing, no att mark.
+  const od = { ...doc(o1), results: { v: 1, at: Date.now(), by: "tech1", tech: "Lab Technician A", rows: { Au: { v: 1.21, raw: "1.21", by: "tech1", src: "file" } }, inst: "old-run.csv", file: { id: "RF-20261018-OLD1", name: "old-run.csv" } } };
+  store["samples/" + o1] = od; await H.broadcast("samples/" + o1, od); await Tc.waitForTimeout(400);
+  await open(Tc, o1); await Tc.waitForTimeout(300);
+  const nx = await Tc.$eval('[data-step="next"]', b => b.textContent.trim()).catch(() => "");
+  check(!(await Tc.$("#holdNote")) && /Release|Results released/.test(nx), "a sample whose results are a file, with a value missing, shows no hold and offers the release: " + nx + (await Tc.$("#holdNote") ? " / " + await text(Tc, "#holdNote") : ""));
+  await Tc.click('[data-step="next"]').catch(() => {}); await waitFor(() => (doc(o1).certs || []).length, 6000);
+  check((doc(o1).certs || []).length === 1 && doc(o1).certs[0].file?.name === "old-run.csv", "released, the certificate naming the file");
+
   log("Turnaround on the Results tab");
   const back = H.localStr ? H.localStr(Date.now() - 3 * DAY) : "";
   await fillForm(Tc, "register", { section: "PLT", type: "plant_feed", purpose: "plant", submitter: "Shift B", count: 1, tags: "MA-LATE", recvAt: back }); const [l1] = await ids(Tc);

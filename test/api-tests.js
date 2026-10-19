@@ -151,6 +151,9 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   check(!(await one("t1@site.com", { op: "set", path: "ledger/2026-10-15_EXP", data: { day: "2026-10-15", m: { d2: dmv } } })).ok, "a new ledger day with an unwitnessed disposal is refused");
   check((await one("t1@site.com", { op: "update", path: lp, data: { m: { d1: { ...dmv, wit: "Super One" } } } })).ok, "a disposal witnessed by a second person is recorded");
   check((await one("t1@site.com", { op: "update", path: lp, data: { m: { r1: { dir: "out", kind: "returned", sid: rid, item: "Pulp", ...T1 } } } })).ok, "a return needs no witness");
+  const bf = { dir: "out", kind: "disposed", sid: rid, item: "Whole sample", by: "", tech: "", note: "Brought forward from the earlier ledger" };
+  check((await one("t1@site.com", { op: "update", path: lp, data: { m: { h1: { ...bf, at: Date.UTC(2026, 8, 3) } } } })).ok, "an old disposal brought forward by the upgrade of old records is history: no witness needed");
+  check(!(await one("t1@site.com", { op: "update", path: lp, data: { m: { h2: { ...bf, at: Date.now() } } } })).ok, "but a new disposal can't pass as one");
   // v24c: monthly ledger sign-off: supervisors and the lab manager, in their own name, only added to
   const so = "signoff/2026-10", sg = (who, x = {}) => ({ at: Date.now(), ...who, role: "super", opening: 3, ins: 10, outs: 4, closing: 9, rev: 0, note: "", ...x });
   check(!(await one("t1@site.com", { op: "set", path: so, data: { id: "2026-10", month: "2026-10", signs: [sg(T1)] } })).ok, "a technician can't sign off the ledger");
