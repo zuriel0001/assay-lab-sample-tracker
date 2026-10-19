@@ -247,7 +247,6 @@ function fromInput(v){
   return wall - off(first);
 }
 /* Midnight at the start of a site day or month, as epoch ms. */
-const dayStart = ms => fromInput(dayKey(ms) + "T00:00");
 const monthStart = key => fromInput(key + "-01T00:00");
 const fmtOpts = o => ({ timeZone: TZ(), ...o });
 function fmt(ms){ if (!ms) return "—"; return new Date(ms).toLocaleString(undefined, fmtOpts({ weekday:"short", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" })); }

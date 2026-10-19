@@ -1,5 +1,6 @@
-src = open("v9-backup.html", encoding="utf-8").read().split("\n")
-head = "\n".join(src[:248])            # lines 1..248: markup, CSS, script start, SHARE_URL, HOUR
+# base.html: the page's markup, base CSS and the start of its script (SHARE_URL, HOUR): the first 248 lines of the v9 page, all that the
+# build ever used of it (the v9 script that followed is replaced by the chunks below).
+head = open("base.html", encoding="utf-8").read().rstrip("\n")
 css = open("css10.css").read() + open("css11.css").read() + open("css12.css").read() + open("css14.css").read() + open("css15.css").read() + open("css16.css").read() + open("css18.css").read() + open("css19.css").read() + open("css20.css").read() + open("css24.css").read()
 head = head.replace("</style>", css + "</style>", 1)
 def put(old, new):

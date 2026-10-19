@@ -3,30 +3,15 @@
 > **In the GitHub repository** this folder is `prototype/`. Left out: the old version folders (`v9/`, `v10/` and so on; git history keeps versions from now on), and `test/v18-tests.js` and `test/shot18.js`, which read the lab's two real reports and quote their sample codes and values. Those two run only in the project folder, with the private reports present.
 
 This folder holds the **v24** source of the prototype (Version 26; the Azure site is built from it)
-(https://claude.ai/artifact/5JgoyE2wokT67u8TCtYDop). The build thread owns all edits;
-reviewers should read and run, not change these files. Earlier versions: `v22/` (Version 24, before the routes were cut to the ones
-the lab runs; to rebuild it, copy `src/v9-backup.html` next to `v22/src/build20.py`), `v21/` (Version 23, before the QA/QC review step
-became a Settings switch; to rebuild it, copy `src/v9-backup.html` next to `v21/src/build20.py`), `v20/` (Version 22, before the polish pass: search
-suggestions, recently opened, the same details again, tables as cards on a phone; to rebuild it, copy `src/v9-backup.html` next to `v20/src/build19.py`), `v19/` (Version 21, before blind QA/QC, batch
-submission and the custody scroll; to rebuild it, copy `src/v9-backup.html` next to `v19/src/build18.py`), `v18/` (Version 20, before Zuriel's answers on QC,
-grind and the site sample code, and the `patch()` fix; to rebuild it, copy `src/v9-backup.html` next to `v18/src/build18.py`), `v17/` (Version 19, before results files, batch
-steps, re-assay from the lists and the shorter form; to rebuild it, copy `src/v9-backup.html` next to `v17/src/build17.py`), `v16/` (Version 18, before the single entry tab and
-the hand-over fields; to rebuild it, copy `src/v9-backup.html` next to `v16/src/build16.py`), `v15/` (Version 17, the design refresh, before
-walk-in registration and the earlier board look; to rebuild it, copy `src/v9-backup.html` next to `v15/src/build15.py`), `v14/` (Version 16, before the design refresh; to
-rebuild it, copy `src/v9-backup.html` next to `v14/src/build14.py`), `v13/` (Version 15 of the artifact, before the
-Settings tabs, working hours and labels; to rebuild it, copy `src/v9-backup.html` next to `v13/src/build13.py`), `v12/` (second review fixes; to rebuild it, copy
-`src/v9-backup.html` next to `v12/src/build12.py`), `v11/` (results, certificates
-and lab batches, the version the second review was done against; to rebuild it, copy `src/v9-backup.html` next to
-`v11/src/build11.py`), `v10/` (first review fixes) and `v9/`.
+(https://claude.ai/artifact/5JgoyE2wokT67u8TCtYDop). The build thread owns all edits; reviewers should read and run, not change these
+files. Earlier versions are in git history.
 
 | File | What it is |
 |---|---|
 | `assay-lab-sample-tracker.html` | The whole page (HTML, CSS, JS in one file), exactly as published (called `met-lab-sample-tracker.html` before the rename). Uses the Artifact runtime `window.claude` db, user and downloads capabilities. |
 | `routes-data.js` | Tests, sample types, the 50 workflow routes (13 in use since v23; `RETIRED_ROUTES` lists the others), `RESULTS` (what each test reports, including picked and calculated results), `QC_PROFILES` (lab batch rules), `ROUTE_QC` and `ROUTE_GROUPS` (the batches each route's samples join, one per analytical method), `qcRuleText` / `routeQcText` (write each route's QA/QC text from the same numbers the batches enforce). |
-| `src/` | The page is built from these: `app10-a.js` … `app10-f.js`, `app12-g.js` (results, limits, four eyes, amendments, certificates, lab batches, section results), `app13-h.js` (stock records, Storage tab, the selected batch's samples), `app14-i.js` (lab working hours, Settings tabs, QR codes and bag labels), `app15-j.js` (navigation, theme, logo, wall screen, time left), `app16-k.js` (reference material change history and renames, board lanes that scroll), `app18-l.js` (reads a results file in the page: old Excel .xls, .xlsx, CSV and text; SHA-256; base64), `app18-m.js` (recognises a lab report, matches it to samples, batches and QC, the preview, saving and the kept file), `app19-n.js` (blind QA/QC re-assay, a batch or a single sample on the form, the batch page and its receipt, the custody scroll), `app20-o.js` (search suggestions, recently opened, the same details again, tables as cards on a phone, the tab title), `app24-p.js` (departments, evaluation of released results, re-assay requests, the Results tab for staff, the title leading home), `app25-q.js` (scan a bag label, receive several at once, the disposal witness, the monthly ledger sign-off and its summary, turnaround), `css10.css`, `css11.css`, `css12.css`, `css14.css`, `css15.css` (design refresh; its icon block is written by `tools/icons.py`), `css16.css`, `css18.css`, `css19.css`, `css20.css`, `css24.css` (a size larger, colour, the v24 pieces), `v9-backup.html` (markup and base CSS). `cd src && python3 build24.py` writes the page into `src/`; copy it up a folder. |
+| `src/` | The page is built from these: `app10-a.js` … `app10-f.js`, `app12-g.js` (results, limits, four eyes, amendments, certificates, lab batches, section results), `app13-h.js` (stock records, Storage tab, the selected batch's samples), `app14-i.js` (lab working hours, Settings tabs, QR codes and bag labels), `app15-j.js` (navigation, theme, logo, wall screen, time left), `app16-k.js` (reference material change history and renames, board lanes that scroll), `app18-l.js` (reads a results file in the page: old Excel .xls, .xlsx, CSV and text; SHA-256; base64), `app18-m.js` (recognises a lab report, matches it to samples, batches and QC, the preview, saving and the kept file), `app19-n.js` (blind QA/QC re-assay, a batch or a single sample on the form, the batch page and its receipt, the custody scroll), `app20-o.js` (search suggestions, recently opened, the same details again, tables as cards on a phone, the tab title), `app24-p.js` (departments, evaluation of released results, re-assay requests, the Results tab for staff, the title leading home), `app25-q.js` (scan a bag label, receive several at once, the disposal witness, the monthly ledger sign-off and its summary, turnaround), `css10.css`, `css11.css`, `css12.css`, `css14.css`, `css15.css` (design refresh; its icon block is written by `tools/icons.py`), `css16.css`, `css18.css`, `css19.css`, `css20.css`, `css24.css` (a size larger, colour, the v24 pieces), `base.html` (markup, base CSS and the start of the script). `cd src && python3 build24.py` writes the page into `src/`; copy it up a folder. |
 | `tools/icons.py` | Prints the icon definitions at the top of `css15.css` (24 px stroke icons drawn as CSS masks). |
-| `checkroutes.js` | Validates the route data and prints turnaround per route. |
-| `genmd.js` | Regenerates `workflow-routes.md`: what each route reports (picked and calculated results marked), the batches it joins and its action limits. Run it from `src/`'s parent with `src/app10-a.js` present. |
 | `test/harness.js` | Shared mock of the db capability: several browser pages on one store, with `where` filters (including `array-contains`), `orderBy`, `limit`, recursive `update` merge, update-requires-existence, leases, frozen snapshots and deletes. Batch helpers (`createBatch`, `fillBatch` for one or many results per position, `saveBatch`). |
 | `test/v25-tests.js` | New (v24c, third round): submissions wait under Awaiting receipt; the board's Awaiting receipt list receives the ticked samples with one set of checks (condition box, a witness for bullion, lab staff only as witnesses, cooler samples one by one, IN movements and custody lines); Scan bags ticks by site sample code and says when a code isn't waiting; Scan beside Track sample opens a tracking link at the receipt form; the camera reads a label this site printed (a fake camera fed the label's QR code, read with jsQR) and opens the sample; disposing of retained material and rejecting to dispose need a witness (custody line and ledger); a technician can't sign off the ledger, the lab manager can, a movement after it shows and the month is signed off again with the first kept; the month summary; turnaround on the Results tab with a sample received three days ago counted late by section and analysis. Last run: **29 PASS**, no console errors. |
 | `test/v24-tests.js` | New: release at once (complete results released by the technician who saves them, typed or from a file; QC, limits and checks never hold them; a failed blank doesn't either); departments in Settings with Metallurgy evaluating; tabs by role and department; the Results tab (flags, to evaluate, results in short names) and the Evaluation box (Accepted, Query, Re-assay requested with a reason); the lab's board and record show a re-assay request and re-assaying clears it; a viewer outside an evaluating department sees results only; the three-step Submit form, Belt cut sample on BELT, purpose and section filled in; testwork as purpose (bottle roll solution sent as a mill sample, on AUSX); v24c sample types, AuFx names and the plain analysis list; empty board tiles marked; Storage and Ledger cards; concise Routes with the analytical routes back; 16 px text; sign-off still selectable. |
@@ -46,15 +31,13 @@ and lab batches, the version the second review was done against; to rebuild it, 
 | `test/v12-tests.js` | New: every v12 change (numbers, batches per method, multi-element QC, limits, four eyes, amendments, paste, trends, prep blanks, plant routing, check codes, section accounts, upgrade of v11 records and settings; since v18 an amended file value is saved as typed). Last run: **71 PASS**, no console errors. |
 | `test/v13-tests.js` | New: stock records through a sample's life, a lab batch whose released sample is already in storage, repair of an unwritten stock record, Settings counts, the month check, and a register with 3,000 stored samples (board load, Storage paging and search, phone width). Last run: **26 PASS**, no console errors. |
 | `test/review-tests-v11.js` | The first reviewer's scenarios A–R plus bugs 8, 9, 14–17; scenario 8 adapted for v13 (see below). Last run: **41 OK, 0 BUG**. |
-| `test/review-v11-scenarios.js` | The second reviewer's five scenarios (`review/review-v11-scenarios.js`), adapted only where v12 now refuses the step (see its header). Last run: **5 OK, 0 BUG**. |
+| `test/review-v11-scenarios.js` | The second reviewer's five scenarios, adapted only where v12 now refuses the step (see its header). Last run: **5 OK, 0 BUG**. |
 | `test/hours-shortcut-tests.js` | The admin-only "Edit steps and hours" button on the Workflow routes tab (see below). Last run: **7 PASS**, no console errors. |
-| `test/live-dryrun13.js` | Dry run of the v13 upgrade on a copy of the live register (`live6/` is not kept here: fetch samples, meta and ledger read-only first). |
-| `workflow-routes.md` | Generated route table. |
 
 ## Running
 
 ```sh
-node checkroutes.js
+sh test/run-all.sh            # every browser suite, one line each
 sed -n '/<script>/,/<\/script>/p' assay-lab-sample-tracker.html | sed '1d;$d' > /tmp/check.js && node --check /tmp/check.js
 cd test
 NODE_PATH=$(npm root -g) timeout 590 node run.js > out.txt 2>&1; grep -E "FAIL|Console errors" out.txt; grep -c PASS out.txt
@@ -213,6 +196,15 @@ the ledger's heading like Lab batches; "if there is anything to improve on the w
 - Smaller fixes: board cards drop the route code under the sample ID instead of cutting it off; table headings wrap; the board keeps its
   tiles when no sample is in the lab (today's releases and past-retention material can still be opened); an empty card is not shown
   pressed; *Same details again* keeps *Received now* as it was.
+
+**19 October, clean-up (Zuriel: "are there any redundant script to be removed …?").** The page itself had almost nothing to remove:
+no function is declared twice, no CSS rule repeats a selector's property, and one helper (`dayStart`) was unused (removed). The repository
+lost what the build and the site never use: `src/v9-backup.html` (184 KB, of which the build read only the first 248 lines) became
+`src/base.html` (those lines, 17 KB; the built page is byte-for-byte the same); `build14.py` and `build20.py` (replaced by `build24.py`);
+the first reviewers' original scripts in `review/` (their adapted versions are `test/review-tests-v11.js` and
+`test/review-v11-scenarios.js`); `test/live-dryrun13.js`, `test/shot16.js`, `test/shot17.js` (one-off runs for v13, v16, v17);
+`checkroutes.js`, `genmd.js` and `workflow-routes.md` (written for the old project folder and the pre-v23 routes; the Workflow routes tab
+is the route library, and `v23-tests.js` / `v24-tests.js` check the route data). Test outputs and screenshots are git-ignored.
 
 **19 October (Zuriel): "Lets do 1, 2, 4, 5 & 6"** of the suggested improvements. (v24c, fifth pass; `app25-q.js`)
 - **Scan to receive.** *Scan* beside *Track sample* opens the camera and reads the bag label's QR code (its tracking link) or a barcode
