@@ -992,6 +992,19 @@ const SOLIDS = () => A("sol", "Solids", "%", null, 2, { s: "% solids", opt: true
 const SCREEN = () => A("scr", "Screen analysis, % retained", "", null, 0, { t: "text", opt: true });
 const METALS = () => [["Cu", "Copper"], ["Fe", "Iron"], ["Ni", "Nickel"], ["Zn", "Zinc"]].map(([k, n]) => A(k, n, "mg/L", 0.01, 2, { opt: true }));
 const PICK = (n, opts) => A("pt", n, "", null, 0, { t: "pick", opts });
+/* v24d: carbon activity. The test: a carbon sample (cmass g, standard 1 g) in a gold solution (vol0 mL, standard 1000 mL), an aliquot
+   (aliq mL, standard 5 mL) taken at every reading, 0 min too. Gold taken up by time t = gold put in − gold still in solution − gold taken
+   out with the aliquots before t. Returns the share taken up (%), the gold on the carbon (g/t) and the solution reading at t (mg/L). */
+const CA_T = [0, 15, 30, 45, 60, 120], CA_OPT = ["cmass", "vol0", "aliq"], CA_FROM = t => CA_T.filter(m => m <= t).map(m => "ca" + m);
+const CA_STD = { cmass: 1, vol0: 1000, aliq: 5 }, CA_CALC = new Set(["ads60", "ads120", "load60", "k60"]);   // worked out (a stored certificate keeps no calc)
+function caUp(v, t){
+  const n = CA_T.indexOf(t), c0 = v.ca0; if (n < 0 || !(c0 > 0) || v["ca" + t] == null) return null;
+  const m = v.cmass > 0 ? v.cmass : CA_STD.cmass, V = v.vol0 > 0 ? v.vol0 : CA_STD.vol0, a = v.aliq >= 0 && v.aliq != null ? v.aliq : CA_STD.aliq;
+  if (V - n * a <= 0) return null;
+  let out = 0; for (let i = 0; i < n; i++) out += v["ca" + CA_T[i]] * a / 1000;
+  const put = c0 * V / 1000, mg = put - v["ca" + t] * (V - n * a) / 1000 - out;
+  return { pct: mg / put * 100, gt: mg / m * 1000, c: v["ca" + t] };
+}
 const RESULTS = {
   fa_aas:   { an: [A("Au", "AuFx, gold in solids", "g/t", 0.005, 3, { s: "AuFx", ul: 10 })], over: "fa_grav" },
   fa_grav:  { an: [A("Au", "AuFx, gold in solids", "g/t", 0.05, 2, { s: "AuFx" })] },
@@ -1078,9 +1091,16 @@ const RESULTS = {
   cn_only:      { an: [PICK("Sampling point", PLANT_PTS), CNWAD(), NACN({ opt: true }), PH(), ...METALS()], qc: "wad" },
   c_load:       { an: [PICK("Carbon type", CARBON_PTS), A("Au_c", "Au loading", "g/t", 1, 2, { s: "Au loading" })], qc: "Au_c" },
   /* v24d: carbon activity as the lab reports it: gold left in a standard solution after 0, 15, 30, 45, 60 and 120 min with the carbon
-     (columns Au CA-00 … Au CA-120), and the carbon mass and volumes from the activity sheet. */
-  c_act:        { an: [PICK("Carbon type", CARBON_PTS), ...[0, 15, 30, 45, 60, 120].map(m => A("ca" + m, `Au in solution at ${m} min`, "mg/L", 0.01, 2, { s: "Au CA-" + String(m).padStart(2, "0") })),
-                         A("cmass", "Carbon mass", "g", null, 3, { opt: true }), A("vol0", "Initial volume", "mL", null, 0, { opt: true }), A("aliq", "Aliquot", "mL", null, 0, { opt: true })], qc: "ca120" },
+     (columns Au CA-00 … Au CA-120, or "0 mins" … "120 mins" on the lab's activity sheet), and the carbon mass and volumes from that sheet.
+     Worked out from them (caUp): the share of the gold taken up by the carbon in 60 and 120 min, the gold on the carbon after 60 min and
+     the activity constant k, gold on carbon ÷ gold in solution after one hour. */
+  c_act:        { an: [PICK("Carbon type", CARBON_PTS), ...CA_T.map(m => A("ca" + m, `Au in solution at ${m} min`, "mg/L", 0.01, 2, { s: "Au CA-" + String(m).padStart(2, "0"), alt: [`${m} mins`, `${m} min`] })),
+                         A("cmass", "Carbon mass", "g", null, 3, { opt: true, alt: ["Mass of carbon/g", "Mass of carbon", "Carbon mass/g"] }), A("vol0", "Initial volume", "mL", null, 0, { opt: true, alt: ["Initial volume/ml"] }),
+                         A("aliq", "Aliquot", "mL", null, 0, { opt: true, alt: ["Amount aliquot/ml", "Amount aliquot", "Aliquot/ml"] }),
+                         A("ads60", "Gold taken up in 60 min", "%", null, 1, { s: "Taken up 60 min", calc: v => caUp(v, 60)?.pct, from: CA_FROM(60), fromOpt: CA_OPT }),
+                         A("ads120", "Gold taken up in 120 min", "%", null, 1, { s: "Taken up 120 min", calc: v => caUp(v, 120)?.pct, from: CA_FROM(120), fromOpt: CA_OPT }),
+                         A("load60", "Gold on carbon after 60 min", "g/t", null, 0, { s: "Au on carbon 60 min", calc: v => caUp(v, 60)?.gt, from: CA_FROM(60), fromOpt: CA_OPT }),
+                         A("k60", "Activity constant k", "h⁻¹", null, 0, { s: "k", calc: v => { const u = caUp(v, 60); return u && u.c > 0 ? u.gt / u.c : null; }, from: CA_FROM(60), fromOpt: CA_OPT })], qc: "ca120" },
   elu_sol:      { an: [PICK("Solution", ELU_PTS), AUSX({ ul: 2000 }), AGSX(), ...METALS(), A("naoh", "NaOH", "%", null, 2, { opt: true }), NACN({ opt: true }), PH()], qc: "Au_s" }
 };
 /* Lab QC batch profiles. size: routine samples per batch; ins: QC positions per batch (pb preparation blank, cd crusher duplicate,

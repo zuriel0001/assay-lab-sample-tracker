@@ -102,7 +102,8 @@ function staffResBadge(){
 /* One line per result on the latest certificate, short names first: "AuFx 0.12 g/t · AuSx 0.004 mg/L". */
 function certSummary(c, s){
   const defs = (() => { try { return anOf(s); } catch { return []; } })(), short = a => a.s || defs.find(x => x.k === a.k)?.s || a.n;
-  const vals = (c.an || []).filter(a => c.rows?.[a.k] && a.t !== "pick" && a.t !== "text").slice(0, 5).map(a => `${short(a)} ${resText(c.rows[a.k], a)}${a.u ? " " + a.u : ""}`);
+  const rank = a => ({ k60: 0, ads60: 1, ads120: 2, load60: 3 })[a.k] ?? 9;   // v24d: carbon activity leads with its k and the gold taken up
+  const vals = (c.an || []).filter(a => c.rows?.[a.k] && a.t !== "pick" && a.t !== "text").sort((a, b) => rank(a) - rank(b)).slice(0, 5).map(a => `${short(a)} ${resText(c.rows[a.k], a)}${a.u ? " " + a.u : ""}`);
   if (c.att && c.file) vals.push(`${vals.length ? "rest in" : "In"} file ${c.file.name}`);
   return vals.join(" · ");
 }

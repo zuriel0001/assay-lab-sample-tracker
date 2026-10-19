@@ -124,6 +124,7 @@ function withCalc(s, rows){
     if (!a.calc) continue;
     const v = {}; let ok = true;
     for (const k of a.from || []){ const x = resNum(out[k]); if (x == null){ ok = false; break; } v[k] = x; }
+    for (const k of a.fromOpt || []){ const x = resNum(out[k]); if (x != null) v[k] = x; }   // v24d: inputs the calculation can do without (carbon mass: the standard 1 g)
     const n = ok ? a.calc(v) : null;
     if (n == null || !isFinite(n)){ delete out[a.k]; continue; }
     const x = +n.toFixed((a.dp ?? 4) + 2);

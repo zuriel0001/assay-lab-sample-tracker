@@ -440,6 +440,7 @@ function renderBatchView(v){
       <div class="row"><button type="button" class="btn primary" id="bvRecvBtn" ${batchRecvBusy ? "disabled" : ""}>Confirm receipt of ${quick.length}</button>${cool.length ? `<span class="small">One by one (cooler temperature): ${cool.map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>`).join(", ")}</span>` : ""}</div>
     </div>` : ""}
     ${bwPanel(c)}
+    ${plantViews(docs)}
     <div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>#</th><th>Sample ID</th><th>Site sample code</th>${srcCol ? "<th>Source</th>" : ""}${ptCol || mixed ? "<th>Sample</th>" : ""}<th>Status</th><th></th></tr></thead><tbody>${docs.map(row).join("")}</tbody></table></div></div>
   </div>`;
   if (keepWit && $("#bvWit", v)) $("#bvWit", v).value = keepWit;
@@ -448,6 +449,7 @@ function renderBatchView(v){
   $("#bvCopy", v).onclick = () => navigator.clipboard.writeText(docs.map(s => s.id).join("\n")).then(() => toast("IDs copied"), () => toast("Copy blocked here. Select the IDs and copy them."));
   $("#bvRecvBtn", v)?.addEventListener("click", () => receiveBatch(quick.map(s => s.id)));
   bindBw(v);
+  bindViz(v);
   });
 }
 /* Receipt of every sample of the batch that needs no cooler check, as each record's receipt would write it. */

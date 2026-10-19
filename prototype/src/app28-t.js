@@ -5,9 +5,12 @@
    picks the template, the shift and the date (codes follow: ML + NS/DS + point + date, as on the reports), unticks what was not sampled,
    adds anything extra, and submits: one batch, received, analysed and released together with the lab's report for the job (route JOB).
    Each sample keeps its own ID, label, analysis, results, limits and retention. */
+/* v24d, from the day shift's report (19 Oct): the day shift samples at 07:00, 10:00, 13:00 and 16:00, names its spigot samples without a
+   time and its hourly samples (CT, the same code) "CIL tank 11"; its carbon for the elution circuit is the regenerated carbon, where the night
+   shift sends the stripped and the loaded carbon. */
 const JOB_SHIFT = {
-  N: { code: "NS", name: "Night shift", t: ["19:00", "22:00", "01:00", "04:00"], h: ["01", "03", "05", "19", "21", "23"], p: ["2200", "0400"] },
-  D: { code: "DS", name: "Day shift", t: ["07:00", "10:00", "13:00", "16:00"], h: ["07", "09", "11", "13", "15", "17"], p: ["1000", "1600"] }
+  N: { code: "NS", name: "Night shift", t: ["19:00", "22:00", "01:00", "04:00"], h: ["01", "03", "05", "19", "21", "23"], p: ["2200", "0400"], ct: "CIL tails launder" },
+  D: { code: "DS", name: "Day shift", t: ["07:00", "10:00", "13:00", "16:00"], h: ["07", "09", "11", "13", "15", "17"], p: null, ct: "CIL tank 11" }
 };
 const ABCD = ["A", "B", "C", "D"];
 /* The analysis a point usually gets (the shift reports); a point not listed takes its type's first. */
@@ -20,25 +23,29 @@ const POINT_TEST = {
 const JOB_TYPES = ["plant_feed", "ccd", "tsf", "carbon", "elution"];
 const ptField = t => (typeOf(t)?.fields || [])[0] || { k: "point", l: "Sampling point", o: [] };
 const pointTest = (t, pt) => { const k = POINT_TEST[pt]; return k && typeTests(typeOf(t)).includes(k) ? k : t === "carbon" ? "c_load" : t === "elution" ? "elu_sol" : typeOf(t)?.tests?.[0] || ""; };
-/* Codes and descriptions: {S} NS/DS, {SN} Night shift / Day shift, {D} the date as yyyymmdd, {#1} {#2} "#" and an elution number (blank: nothing). */
+/* Codes and descriptions: {S} NS/DS, {SN} Night shift / Day shift, {D} the date as yyyymmdd ({D-1} the day before), {#1} {#2} "#" and an
+   elution number (blank: nothing). */
 const R = (t, pt, test, code, desc, det) => ({ t, pt, test, code, desc, ...(det ? { det } : {}) });
+const OFF = (r, ...shifts) => ({ ...r, off: shifts });   // listed, but not ticked at first on these shifts
 const JOB_TPL = [
   { key: "mill", name: "Mill shift", shift: true, n: [["n1", "Stripped carbon: elution no."], ["n2", "Loaded carbon: elution no."]], rows: S => [
     ...ABCD.map((x, i) => R("ccd", "CCD overflow", "ausx_cn", `ML{S}REC${x}{D}`, `{SN} ${S.t[i]} CCD #1 overflow sample`)),
     ...ABCD.map((x, i) => R("plant_feed", "Tails grab", "cn_only", `ML{S}TLS${x}{D}`, `{SN} ${S.t[i]} tails grab sample`)),
-    ...["A", "B"].map((x, i) => R("tsf", "TSF spigot", "cn_only", `TSF{S}PG${x}{D}`, `{SN} tails dam spigot sample ${x} ${S.p[i]}HRS`)),
-    R("carbon", "Eluted carbon", "c_load", "ML{S}CBST{D}{#1}", "Mill {sn} stripped carbon for the elution circuit{#1}"),
-    ...Array.from({ length: 10 }, (_, i) => R("carbon", "CIL tank carbon", "c_load", `ML{S}CL${String(i + 1).padStart(2, "0")}{D}`, `Mill {sn} carbon from CIL tank ${i + 1}`)),
-    R("carbon", "Loaded carbon (to elution)", "c_load", "ML{S}CBLD{D}{#2}", "Mill {sn} loaded carbon for the elution circuit{#2}"),
-    ...S.h.map(h => R("plant_feed", "CIL tails launder", "ausx", `ML{S}CT${h}{D}`, `Mill {sn} CIL tails launder ${h}00 hours special sample`)),
+    ...["A", "B"].map((x, i) => R("tsf", "TSF spigot", "cn_only", `TSF{S}PG${x}{D}`, `{SN} tails dam spigot sample ${x}${S.p ? ` ${S.p[i]}HRS` : ""}`)),
+    OFF(R("carbon", "Eluted carbon", "c_load", "ML{S}CBST{D}{#1}", "Mill {sn} stripped carbon for the elution circuit{#1}"), "D"),
+    OFF(R("carbon", "Regenerated carbon", "c_load", "ML{S}CBRG{D}", "Mill {sn} regen carbon from the elution circuit"), "N"),
+    ...[6, 7, 8, 9, 10].map(i => R("carbon", "CIL tank carbon", "c_load", `ML{S}CL${String(i).padStart(2, "0")}{D}`, `Mill {sn} carbon from CIL tank ${i}`)),
+    OFF(R("carbon", "Loaded carbon (to elution)", "c_load", "ML{S}CBLD{D}{#2}", "Mill {sn} loaded carbon for the elution circuit{#2}"), "D"),
+    ...[1, 2, 3, 4, 5].map(i => R("carbon", "CIL tank carbon", "c_load", `ML{S}CL${String(i).padStart(2, "0")}{D}`, `Mill {sn} carbon from CIL tank ${i}`)),
+    ...S.h.map(h => R("plant_feed", "CIL tails launder", "ausx", `ML{S}CT${h}{D}`, `Mill {sn} ${S.ct} ${h}00 hours special sample`)),
     R("tsf", "Decant pond", "ausx_cn", "ML{S}POND{D}", "Decant pond solution"),
     R("plant_feed", "CIL feed", "aufx_ausx", "ML{S}CLF1{D}", "Mill {sn} CIL feed 1"),
     R("plant_feed", "CIL feed", "aufx", "ML{S}CLF2{D}", "Mill {sn} CIL feed 2"),
     R("plant_feed", "CIL tails", "aufx_ausx", "ML{S}CLTL{D}", "Mill {sn} CIL tails"),
     R("plant_feed", "COF (cyclone overflow)", "aufx_ausx", "ML{S}COF {D}", "Mill {sn} cyclone overflow"),
-    R("plant_feed", "CUF (cyclone underflow)", "aufx_ausx", "ML{S}CUF {D}", "Mill {sn} cyclone underflow"),
+    R("plant_feed", "CUF (cyclone underflow)", "aufx", "ML{S}CUF {D}", "Mill {sn} cyclone underflow"),
     R("ccd", "CCD tails", "aufx_ausx", "ML{S}TDDS{D}", "{SN} CCD tails sample"),
-    R("plant_feed", "CIL tank", "aufx_ausx_cn", "ML{S}TK11{D}", "{SN} tank 11 sample"),
+    R("plant_feed", "CIL tank", "aufx_ausx", "ML{S}TK11{D}", "{SN} tank 11 sample"),
     R("plant_feed", "Special CIL feed", "aufx_ausx", "ML{S}SPFD{D}", "Mill {sn} special CIL feed")
   ] },
   { key: "elution", name: "Elution run", shift: false, n: [["n1", "Strip no."]], rows: () => [
@@ -52,8 +59,8 @@ const JOB_TPL = [
   { key: "cact", name: "Carbon activity", shift: true, n: [["n1", "Elution no."]], rows: () => [
     R("carbon", "Regenerated carbon", "c_act", "ML{S}CBRG{D}", "Mill {sn} regen carbon from the elution circuit"),
     R("carbon", "Eluted carbon", "c_act", "MLSCBST{D}{#1}", "Mill special stripped carbon for the elution circuit{#1}"),
-    R("carbon", "Loaded carbon (to elution)", "c_act", "MLSCBLD{D}{#1}", "Mill special loaded carbon for the elution circuit{#1}"),
-    R("carbon", "Fresh carbon", "c_act", "", "Virgin carbon: type its code (e.g. the supplier's name)")
+    R("carbon", "Loaded carbon (to elution)", "c_act", "MLSCBLD{D-1}{#1}", "Mill special loaded carbon for the elution circuit{#1}"),   // sampled the day before its strip (the lab's report)
+    { ...R("carbon", "Fresh carbon", "c_act", "", "Virgin carbon"), ph: "Type its code, e.g. the supplier's name" }
   ] }
 ];
 const jobTpl = k => JOB_TPL.find(x => x.key === k) || JOB_TPL[0];
@@ -61,7 +68,8 @@ const dayCode = v => String(v || "").replace(/-/g, "");   // a date input's yyyy
 let job = null;   // { tpl, shift, date, n: {n1, n2}, rows: [{ on, t, pt, test, code, desc, det, ec, ed }] } (ec / ed: code / description typed over)
 function jobFill(x, ctx){
   const S = JOB_SHIFT[ctx.shift] || JOB_SHIFT.N, num = k => ctx.n[k] ? "#" + String(ctx.n[k]).replace(/^#/, "") : "";
-  return String(x).replace(/\{S\}/g, S.code).replace(/\{SN\}/g, S.name).replace(/\{sn\}/g, S.name.toLowerCase()).replace(/\{D\}/g, dayCode(ctx.date)).replace(/\{#1\}/g, num("n1")).replace(/\{#2\}/g, num("n2"));
+  const t0 = Date.parse(String(ctx.date || "") + "T12:00:00Z"), before = isFinite(t0) ? dayCode(new Date(t0 - 86400e3).toISOString().slice(0, 10)) : "";
+  return String(x).replace(/\{S\}/g, S.code).replace(/\{SN\}/g, S.name).replace(/\{sn\}/g, S.name.toLowerCase()).replace(/\{D-1\}/g, before).replace(/\{D\}/g, dayCode(ctx.date)).replace(/\{#1\}/g, num("n1")).replace(/\{#2\}/g, num("n2"));
 }
 /* The rows for the template, shift, date and numbers: generated codes and descriptions follow them, what was typed over stays. */
 function jobRows(keep){
@@ -69,7 +77,8 @@ function jobRows(keep){
   const old = keep && keep.length === base.length ? keep : null;
   job.rows = [...base.map((r, i) => {
     const o = old && old[i];
-    return { on: o ? o.on : true, t: r.t, pt: r.pt, test: o?.test || r.test, code: o?.ec ? o.code : jobFill(r.code, job), desc: o?.ed ? o.desc : jobFill(r.desc, job), det: r.det || null, ec: !!o?.ec, ed: !!o?.ed, gen: [r.code, r.desc] }; }),
+    const on0 = !(r.off || []).includes(job.shift), fresh = r.ph && !o?.ec ? lsGet("jobFresh") || "" : "";
+    return { on: o?.ut ? o.on : on0, ut: !!o?.ut, ph: r.ph || "", t: r.t, pt: r.pt, test: o?.test || r.test, code: o?.ec ? o.code : fresh || jobFill(r.code, job), desc: o?.ed ? o.desc : jobFill(r.desc, job), det: r.det || null, ec: !!o?.ec || !!fresh, ed: !!o?.ed, gen: [r.code, r.desc] }; }),
     ...(keep || []).filter(r => r.extra)];
 }
 function jobBlock(){
@@ -93,7 +102,7 @@ function renderJob(){
   const nb = $("#jNums"); if (nb && nb.dataset.tpl !== T.key){ nb.dataset.tpl = T.key; nb.innerHTML = `<div class="form">${T.n.map(([k, l]) => `<label class="f"><span>${esc(l)}</span><input id="jN_${k}" inputmode="numeric" maxlength="8" placeholder="e.g. 31" value="${esc(job.n[k] || "")}"></label>`).join("")}</div>`; }
   body.innerHTML = job.rows.map((r, i) => `<tr class="${r.on ? "" : "off"}"><td><input type="checkbox" data-jon="${i}" ${r.on ? "checked" : ""} aria-label="Include ${esc(r.code)}"></td>
     <td><span class="small muted">${esc(typeOf(r.t)?.name || r.t)}</span><div><b>${esc(r.pt)}</b></div></td>
-    <td><input class="inp j-code" data-j="${i}" value="${esc(r.code)}" aria-label="Code, row ${i + 1}" autocomplete="off" spellcheck="false"></td>
+    <td><input class="inp j-code" data-j="${i}" value="${esc(r.code)}" aria-label="Code, row ${i + 1}" placeholder="${esc(r.ph || "")}" autocomplete="off" spellcheck="false"></td>
     <td><input class="inp j-desc" data-j="${i}" value="${esc(r.desc)}" aria-label="Description, row ${i + 1}" autocomplete="off"></td>
     <td><select class="inp j-test" data-j="${i}" aria-label="Analysis, row ${i + 1}">${jobTestOpts(r.t, r.test)}</select></td></tr>`).join("");
   jobHints();
@@ -106,6 +115,9 @@ function jobHints(){
   const info = $("#jInfo");
   if (info){ info.textContent = dup.size ? "Same code twice" : `${on.length} of ${job.rows.length} samples ticked · untick what was not sampled`; info.classList.toggle("bad-t", dup.size > 0); }
   const all = $("#jAll"); if (all) all.checked = on.length === job.rows.length;
+  // a number that goes into codes (elution no. after #) is asked for while a ticked sample's code carries it; one that does not (strip no.) always
+  const inCode = (r, k) => String(r.gen?.[0] || "").includes(`{#${k.slice(1)}}`);
+  jobTpl(job.tpl).n.forEach(([k]) => { const el = $("#jN_" + k)?.closest("label"); if (el) el.hidden = job.rows.some(r => inCode(r, k)) && !on.some(r => inCode(r, k)); });
   submitLabel();
 }
 function bindJob(v){
@@ -126,9 +138,9 @@ function bindJob(v){
   rows.addEventListener("input", e => { const el = e.target, r = job.rows[+el.dataset.j]; if (!r) return;
     if (el.classList.contains("j-code")){ r.code = el.value; r.ec = true; } else if (el.classList.contains("j-desc")){ r.desc = el.value; r.ed = true; } jobHints(); });
   rows.addEventListener("change", e => { const el = e.target;
-    if (el.dataset.jon != null){ job.rows[+el.dataset.jon].on = el.checked; el.closest("tr").classList.toggle("off", !el.checked); jobHints(); }
+    if (el.dataset.jon != null){ Object.assign(job.rows[+el.dataset.jon], { on: el.checked, ut: true }); el.closest("tr").classList.toggle("off", !el.checked); jobHints(); }
     else if (el.classList.contains("j-test")) job.rows[+el.dataset.j].test = el.value; });
-  $("#jAll", v).onchange = e => { job.rows.forEach(r => { r.on = e.target.checked; }); renderJob(); };
+  $("#jAll", v).onchange = e => { job.rows.forEach(r => { r.on = e.target.checked; r.ut = true; }); renderJob(); };
   $("#jAdd", v).onchange = e => {
     const [t, pt] = e.target.value.split("|"); e.target.value = ""; if (!t) return;
     if (job.rows.length >= 100) return toast("Up to 100 samples in one job.");
@@ -167,7 +179,7 @@ async function registerJob(){
   const batchName = `${T.name}${T.shift ? `, ${S.name.toLowerCase()}` : ""}, ${when}`;
   btn.disabled = true; msg.textContent = "Checking the codes…";
   try {
-    const owners = new Array(n); await pool(tags.map((t, i) => [t, i]), 6, async ([t, i]) => { owners[i] = await tagOwner(t); return true; });
+    const owners = new Array(n); await pool(tags.map((t, i) => [t, i]), 6, async ([t, i]) => { owners[i] = await tagOwner(t, rows[i].test); return true; });
     const used = owners.findIndex(Boolean); if (used >= 0) throw { code: "tagused", tag: tags[used], id: owners[used] };
     msg.textContent = "Issuing IDs…";
     const start = lab ? "received" : "submitted", priority = $("#rPriority").value, notes = val("#rNotes");
@@ -201,6 +213,7 @@ async function registerJob(){
     msg.textContent = n > 1 ? `Saved 1 of ${n}…` : "";
     const ids = n > 1 ? [first, ...await claimIds(code, stamp, n - 1, (id, i) => make(id, i + 1, ref), d => msg.textContent = `Saved ${d + 1} of ${n}…`, +first.split("-").pop() + 1)] : [first];
     ids.forEach((id, i) => db.doc("tagidx/" + tagKey(tags[i])).set({ sid: id, tag: tags[i], at: now }).catch(() => {}));
+    const fr = rows.find(r => r.ph && r.code.trim()); if (fr) lsSet("jobFresh", fr.code.trim().slice(0, 40));
     if (lab) ids.forEach(id => { flushLedger(id); syncStock(id); });
     msg.textContent = "";
     $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? "Sample" : `${n} samples`} ${walk ? "registered" : "submitted"}: ${esc(batchName)}.</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>: processed as one, with one receipt, one workflow and one certificate when the lab's report is attached.` : ""} Write the IDs on the bags, or print the labels:
@@ -214,7 +227,7 @@ async function registerJob(){
     btn.disabled = true;
   } catch (e) {
     btn.disabled = false; msg.textContent = "";
-    if (e && e.code === "tagused") toast(`Code ${e.tag} is already on open sample ${e.id}. Change it, or untick it.`);
+    if (e && e.code === "tagused") toast(`Code ${e.tag} is already on open sample ${e.id} for the same analysis. Change it, or untick it.`);
     else if (e && e.code === "noroute") toast(`No workflow route performs ${testOf(e.test)?.name || e.test}. Ask the lab manager.`);
     else if (e && e.code === "busy") toast("Could not issue an ID. Try again in a moment.");
     else writeFailed(e);

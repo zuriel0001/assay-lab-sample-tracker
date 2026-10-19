@@ -299,7 +299,8 @@ const soloNote = s => batchOf(s) ? `. Taken out of batch ${s.batchId}: processed
 function certBatchHtml(ref, mem){
   const [s0, c] = mem[0], ans = [];
   const sOf = (test, a) => (RESULTS[test]?.an || []).find(y => y.k === a.k)?.s || "";   // the short name (AuFx), which a certificate does not copy
-  const ansOf = list => { const out = []; list.forEach(([, x]) => (x.an || []).forEach(a => { if (a.t !== "pick" && !out.some(y => y.k === a.k)) out.push({ ...a, s: a.s || sOf(x.test, a) }); })); return out; };
+  // v24d: carbon activity's worked-out values are in its own table below (plantCert), with the comparison against fresh carbon
+  const ansOf = list => { const out = []; list.forEach(([, x]) => (x.an || []).forEach(a => { if (a.t !== "pick" && !(x.test === "c_act" && CA_CALC.has(a.k)) && !out.some(y => y.k === a.k)) out.push({ ...a, s: a.s || sOf(x.test, a) }); })); return out; };
   ans.push(...ansOf(mem));   // the point is a column of its own
   const fact = (k, v) => `<tr><th>${k}</th><td>${v}</td></tr>`, uniq = f => [...new Set(mem.map(f).filter(Boolean))];
   const recv = mem.map(([s]) => s.recvAt || s.receivedAt).filter(Boolean), types = uniq(([s]) => s.type), labs = uniq(([, x]) => x.batch).join(", ");
@@ -319,18 +320,34 @@ function certBatchHtml(ref, mem){
       ${labs ? fact(labs.includes(",") ? "Lab batches" : "Lab batch", `<span class="mono">${esc(labs)}</span>`) : ""}
     </table>
     ${c.file ? `<div class="cert-file">Results file: <b>${esc(c.file.name)}</b>${c.att ? (ans.length ? ". Results not shown below are in this file." : ". The results are in this file.") : ""}</div>` : ""}
-    ${ans.length ? groups.map(([title, list]) => certTable(title, list, ansOf(list), dsc, pts && !dsc)).join("")
+    ${ans.length ? groups.map(([title, list]) => { const ga = ansOf(list).filter(a => !a.opt || list.some(([, x]) => x.rows && x.rows[a.k]));
+      return list.every(([, x]) => x.test === "c_act") ? certTableT(title, list, ga) : certTable(title, list, ga, dsc, pts); }).join("")
       : `<table class="cert-res"><thead><tr><th>Sample ID</th><th>Site sample code</th></tr></thead><tbody>${mem.map(([s]) => `<tr><td class="mono">${esc(s.id)}</td><td class="mono">${esc(tagText(s)) || "—"}</td></tr>`).join("")}</tbody></table>`}
+    ${plantCert(mem)}
     ${exc.length ? `<div class="cert-note">${exc.map(esc).join("<br>")}</div>` : ""}
     <div class="cert-sign"><div>Released by <b>${esc(c.tech)}</b>, ${esc(ROLE_SIGN[c.role] || "lab supervisor (QA/QC)")}</div><div>${esc(fmtFull(c.at))}${TZ() ? ` (${esc(TZ())})` : ""}</div></div>
     <div class="cert-foot">Results relate only to the samples as received. Values below the detection limit are shown as &lt;DL. Check this copy by looking up the batch reference or any of its sample IDs in the Assay Lab tracker: the certificate number and check code must match. Design prototype: not an official laboratory certificate.</div>
   </div>`;
 }
+/* v24d: one column names the sample (ID, site sample code, description or point), so a section of several results fits the page. */
+const certWho = s => { const d = s.source || ptOf(s); return `<div class="mono">${esc(s.id)}</div><div class="mono cw-code">${esc(tagText(s)) || "—"}</div>${d ? `<div class="cw-desc">${esc(d)}</div>` : ""}`; };
 function certTable(title, list, ans, dsc, pts){
-  const lead = 2 + (dsc ? 1 : 0) + (pts ? 1 : 0), sv = a => (a.t === "text" ? "cell-text" : "mono");
-  return `${title ? `<h4 class="cert-sec">${esc(title)}</h4>` : ""}<div class="tbl-wrap"><table class="cert-res"><thead><tr><th>Sample ID</th><th>Site sample code</th>${dsc ? "<th>Description</th>" : ""}${pts ? "<th>Sample</th>" : ""}${ans.map(a => `<th>${esc(anShort(a))}${a.u ? ` (${esc(a.u)})` : ""}</th>`).join("")}</tr></thead><tbody>
-    ${list.map(([s, x]) => `<tr><td class="mono">${esc(s.id)}</td><td class="mono">${esc(tagText(s)) || "—"}</td>${dsc ? `<td class="cell-desc">${esc(s.source || "")}</td>` : ""}${pts ? `<td>${esc(ptOf(s))}</td>` : ""}${ans.map(a => `<td class="${sv(a)}">${x.rows && x.rows[a.k] ? `<b>${esc(resText(x.rows[a.k], a))}</b>` : "—"}</td>`).join("")}</tr>`).join("")}
-    ${ans.some(a => a.dl != null) ? `<tr class="muted"><td colspan="${lead}">Detection limit</td>${ans.map(a => `<td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>`).join("")}</tr>` : ""}</tbody></table></div>`;
+  const sv = a => (a.t === "text" ? "cell-text" : "mono");
+  return `${title ? `<h4 class="cert-sec">${esc(title)}</h4>` : ""}<div class="tbl-wrap"><table class="cert-res${ans.length > 6 ? " dense" : ""}"><thead><tr><th>Sample</th>${ans.map(a => `<th>${esc(anShort(a))}${a.u ? ` (${esc(a.u)})` : ""}</th>`).join("")}</tr></thead><tbody>
+    ${list.map(([s, x]) => `<tr><td class="cell-who">${certWho(s)}</td>${ans.map(a => `<td class="${sv(a)}">${x.rows && x.rows[a.k] ? `<b>${esc(resText(x.rows[a.k], a))}</b>` : "—"}</td>`).join("")}</tr>`).join("")}
+    ${ans.some(a => a.dl != null) ? `<tr class="muted"><td>Detection limit</td>${ans.map(a => `<td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>`).join("")}</tr>` : ""}</tbody></table></div>`;
+}
+/* Carbon activity reads down the page like the lab's activity sheet: a column per carbon, a row per reading, then what is worked out. */
+function certTableT(title, list, ans){
+  const ca = caRows(list.map(([s, x]) => ({ s, rows: x.rows || {}, test: x.test }))), of = s => ca.find(c => c.s.id === s.id);
+  const row = (label, f, cls = "mono") => `<tr><th>${label}</th>${list.map(([s, x]) => `<td class="${cls}">${f(s, x)}</td>`).join("")}</tr>`;
+  const val = (x, a) => x.rows && x.rows[a.k] ? `<b>${esc(resText(x.rows[a.k], a))}</b>` : "—";
+  return `${title ? `<h4 class="cert-sec">${esc(title)}</h4>` : ""}<div class="tbl-wrap"><table class="cert-res cert-t"><thead><tr><th>Carbon</th>${list.map(([s]) => `<th><span class="vz-key" style="--c:${of(s)?.color || "transparent"}"></span>${esc(ptOf(s) || "Carbon")}</th>`).join("")}</tr></thead><tbody>
+    ${row("Sample", s => certWho(s), "cell-who")}
+    ${ans.filter(a => !CA_CALC.has(a.k)).map(a => row(`${esc(/^ca\d+$/.test(a.k) ? `Au at ${a.k.slice(2)} min` : a.n)}${a.u ? ` (${esc(a.u)})` : ""}`, (s, x) => val(x, a))).join("")}
+    ${row("Gold taken up in 60 min", s => vzPct(of(s)?.u60?.pct))}${row("Gold taken up in 120 min", s => vzPct(of(s)?.u120?.pct))}
+    ${row("Gold on carbon after 60 min (g/t)", s => of(s)?.u60 ? String(Math.round(of(s).u60.gt)) : "—")}${row("Activity constant k (h⁻¹)", s => of(s)?.k != null ? `<b>${Math.round(of(s).k)}</b>` : "—")}
+    ${ca.some(c => c.rel != null) ? row("Activity vs fresh carbon", s => of(s)?.rel != null ? `<b>${Math.round(of(s).rel)}%</b>${of(s).ref ? " (reference)" : ""}` : "—") : ""}</tbody></table></div>`;
 }
 async function showBatchCert(ref, no){
   let docs = current?.batch === ref ? current.docs : null;

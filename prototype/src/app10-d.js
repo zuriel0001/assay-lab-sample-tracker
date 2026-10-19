@@ -281,11 +281,13 @@ function renderSampleForm(mode){
   $("#regForm", v).addEventListener("submit", e => { e.preventDefault(); register(); });
 }
 /* A tag belongs to one open sample at a time. Returns the open sample already using it, if any. */
-async function tagOwner(t){
+/* The open sample already carrying a site sample code. v24d: with an analysis given, only one for that analysis: the plant sends the same
+   carbon (MLDSCBRG…) for its loading with the mill shift and for its activity on its own, under one code. */
+async function tagOwner(t, test){
   const ids = new Set();
   try { const s = await db.doc("tagidx/" + tagKey(t)).get(); if (s.exists && s.data()?.sid) ids.add(s.data().sid); } catch {}
   try { (await db.collection("samples").where("tags", "array-contains", normTag(t)).limit(10).get()).docs.forEach(d => ids.add(d.id)); } catch {}
-  for (const id of ids){ const d = samples.get(id) || (await db.doc("samples/" + id).get()).data(); if (d && d.open !== false && !stage(d, d.stageKey)?.final) return id; }
+  for (const id of ids){ const d = samples.get(id) || (await db.doc("samples/" + id).get()).data(); if (d && d.open !== false && !stage(d, d.stageKey)?.final && (!test || !d.test || d.test === test)) return id; }
   return "";
 }
 /* Each ID is claimed on its own document under a short lease, so two people submitting at once never wait on each other or get the same number. */
@@ -353,7 +355,7 @@ async function register(){
   const batchName = batch ? val("#rBatchName").slice(0, 80) : "";
   btn.disabled = true; msg.textContent = allTags.length ? "Checking site sample codes…" : "Issuing IDs…";
   try {
-    for (const t of allTags){ const used = await tagOwner(t); if (used) throw { code: "tagused", tag: t, id: used }; }
+    for (const t of allTags){ const used = await tagOwner(t, teK); if (used) throw { code: "tagused", tag: t, id: used }; }
     msg.textContent = "Issuing IDs…";
     const details = {};
     (typeOf(tyK)?.fields || []).forEach(f => { const x = ($("#rD_" + f.k)?.value || "").trim(); if (x) details[f.l] = x; });

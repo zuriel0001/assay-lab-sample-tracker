@@ -36,7 +36,7 @@ function colConcept(name){
 const colPhase = name => { const m = String(name || "").trim().match(/^[A-Z][a-z]?[-_ ]?([A-Za-z]{2,6})\d{0,3}$/); return !m ? "" : /^(sx|sol)/i.test(m[1]) ? "sol" : /^(fa|faa|grav|gr)$/i.test(m[1]) ? "solid" : ""; };
 const anPhase = a => { const u = unitNorm(a.u); return /_s$/.test(a.k) || u === "mg/l" ? "sol" : UNIT_GROUPS[0].includes(u) || u === "ppb" ? "solid" : ""; };
 const phaseFits = (name, a) => { const c = colPhase(name), p = anPhase(a); return !c || !p || c === p; };
-const nameIs = (col, a) => { const n = normCol(col); return !!n && (n === normCol(a.k) || n === normCol(anShort(a)) || n === normCol(a.n)); };
+const nameIs = (col, a) => { const n = normCol(col); return !!n && (n === normCol(a.k) || n === normCol(anShort(a)) || n === normCol(a.n) || (a.alt || []).some(x => normCol(x) === n)); };
 /* Everything a result can be read as, for Settings: one entry per element or measurement, named after the first result that reports it. */
 function readAsList(){
   const m = new Map();
@@ -54,8 +54,12 @@ function splitHead(h){
 /* The register's current ID for a reference material named in a report (an old ID still counts). */
 const crmFromFile = id => { const k = normKey(id); const c = (cfg.crms || []).find(x => normKey(x.id) === k || (x.was || []).some(w => normKey(w) === k)); return c ? c.id : ""; };
 /* Known samples by every name a report may use: the tracker ID, each site sample code (tags) and the site reference. */
-function sampleIndex(){
+/* v24d: a file attached to a sample or a batch reads a code as that sample's, or that batch's, first (one code can be on two open samples,
+   for two analyses). */
+function sampleIndex(scope){
   const idx = new Map(), add = s => { if (!s || !s.id) return; [s.id, ...(s.tags || []), s.siteRef].filter(Boolean).forEach(k => { const n = normKey(k); if (n && !idx.has(n)) idx.set(n, s.id); }); };
+  const own = s => !!s && !!scope && ((scope.sample && s.id === scope.sample) || (scope.sub && s.batchId === scope.sub));
+  if (scope && (scope.sample || scope.sub)) [...samples.values(), ...batchSamps.values(), ...(current?.docs || []), current?.body].forEach(s => { if (own(s)) add(s); });
   samples.forEach(add); batchSamps.forEach(add); if (current?.body) add(current.body);
   return idx;
 }
@@ -64,7 +68,7 @@ const rightFill = row => { const out = []; let carry = ""; for (let j = row.leng
    LIMS prints them, or in the heading as "Au (g/t)"), repeat readings in a second column of the same result (Rep 2), and reference material
    readings in a table of expected and reported values at the foot, or as rows named after the material. */
 let knownMemo = null;
-const knownNames = () => knownMemo || (knownMemo = new Set(Object.values(RESULTS).flatMap(r => r.an).filter(a => a.s && !a.t).map(a => normCol(a.s))));
+const knownNames = () => knownMemo || (knownMemo = new Set(Object.values(RESULTS).flatMap(r => r.an).filter(a => !a.t && !a.calc).flatMap(a => [a.s, ...(a.alt || [])]).filter(Boolean).map(normCol)));
 function parseReport(grid, idx){
   const nc = Math.max(0, ...grid.map(r => r.length)), cell = (i, j) => (grid[i] || [])[j] || "";
   const crmIds = new Map((cfg.crms || []).flatMap(c => [c.id, ...(c.was || [])].map(x => [normKey(x), c.id])));
@@ -279,7 +283,7 @@ function planUpload(rep, scope){
   }
   P.notFound = [...new Set(P.notFound)];
   // Columns the plan read nothing from (after the plan: a column read by its exact name has no measurement of its own to go by)
-  P.unread = rep.cols.filter(c => !c.concept && !c.used && rep.rows.some(r => (r.cells[c.i] || "").trim())).map(c => c.name + (c.unit ? ` (${c.unit})` : ""));
+  P.unread = rep.cols.filter(c => !c.concept && !c.used && rep.rows.some(r => isRead((r.cells[c.i] || "").trim()))).map(c => c.name + (c.unit ? ` (${c.unit})` : ""));   // v24d: a column of words (a description) is not a result
   return P;
 }
 
@@ -313,7 +317,7 @@ async function openUpload(file, scope){
     got = { kind: extOf(file.name), grid: null, bytes: new Uint8Array(await file.arrayBuffer()) };
   }
   if (got.kind === "csv" && !["csv", "txt", "tsv"].includes(extOf(file.name)) && relNow()) got = { ...got, kind: extOf(file.name), grid: null };   // a PDF, a picture…: kept, not read
-  const rep = got.grid ? parseReport(got.grid, sampleIndex()) : { error: "This file's values can't be read here.", rows: [], cols: [], crms: [] };
+  const rep = got.grid ? parseReport(got.grid, sampleIndex(scope)) : { error: "This file's values can't be read here.", rows: [], cols: [], crms: [] };
   const sha = await sha256(got.bytes);
   upState = { file: { name: file.name.slice(0, 120), size: file.size, kind: got.kind, sha }, bytes: got.bytes, grid: got.grid, rep, scope, plan: rep.error ? null : planUpload(rep, scope), prior: [], pick: new Set(), q: "" };
   renderUpload();
@@ -422,7 +426,7 @@ async function moveToAnalysis(){
   u.busy = false;
   toast(`${ok} sample(s) moved to analysis.`);
   await movedIn(u.plan.notReady);
-  if (upState === u){ u.rep = parseReport(u.grid, sampleIndex()); u.plan = u.rep.error ? null : planUpload(u.rep, u.scope); renderUpload(); }
+  if (upState === u){ u.rep = parseReport(u.grid, sampleIndex(u.scope)); u.plan = u.rep.error ? null : planUpload(u.rep, u.scope); renderUpload(); }
 }
 /* The original file, kept once however many batches it fills: files/<ID> describes it, files/<ID>~1, ~2… hold it. */
 async function keepFile(u){
@@ -464,7 +468,7 @@ async function saveUpload(){
       return { stageKey: p[to].key, stageAt: at - 1000, history: hist };
     }));
     await movedIn(u.plan.notReady);
-    u.rep = parseReport(u.grid, sampleIndex()); u.plan = u.rep.error ? null : planUpload(u.rep, u.scope);
+    u.rep = parseReport(u.grid, sampleIndex(u.scope)); u.plan = u.rep.error ? null : planUpload(u.rep, u.scope);
   }
   const P = u.plan || { batches: [], fresh: [], samples: [] };
   const done = [];

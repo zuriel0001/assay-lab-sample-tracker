@@ -40,13 +40,13 @@ const live = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => v
   await Tc.fill("#jN_n1", "31"); await Tc.fill("#jN_n2", "32"); await Tc.waitForTimeout(200);
   const codes = () => Tc.$$eval("#jRows .j-code", es => es.map(e => e.value));
   let cs = await codes();
-  check(cs.length === 37 && cs.includes("MLNSCOF 20261018") && cs.includes("MLNSCUF 20261018") && cs.includes("MLNSRECA20261018") && cs.includes("TSFNSPGB20261018") && cs.includes("MLNSCBST20261018#31") && cs.includes("MLNSCBLD20261018#32") && cs.includes("MLNSCL1020261018"),
-    "37 samples with the plant's codes: ML + NS + point + date (" + cs.slice(30, 34).join(", ") + ")");
-  check(/37 of 37 samples ticked/.test(await text(Tc, "#jInfo")) && /Submit 37 samples/.test(await text(Tc, "#rSubmit")), "all ticked, Submit 37 samples");
+  check(cs.length === 38 && cs.includes("MLNSCOF 20261018") && cs.includes("MLNSCUF 20261018") && cs.includes("MLNSRECA20261018") && cs.includes("TSFNSPGB20261018") && cs.includes("MLNSCBST20261018#31") && cs.includes("MLNSCBLD20261018#32") && cs.includes("MLNSCL1020261018"),
+    "38 samples listed with the plant's codes: ML + NS + point + date (" + cs.slice(30, 34).join(", ") + ")");
+  check(/37 of 38 samples ticked/.test(await text(Tc, "#jInfo")) && /Submit 37 samples/.test(await text(Tc, "#rSubmit")) && !(await Tc.isChecked(`[data-jon="${cs.indexOf("MLNSCBRG20261018")}"]`)), "37 of 38 ticked (the regenerated carbon is the day shift's), Submit 37 samples");
   const rowOf = c => cs.indexOf(c);
   const sel = async c => Tc.$eval(`#jRows .j-test[data-j="${rowOf(c)}"]`, e => e.value);
-  check(await sel("MLNSCOF 20261018") === "aufx_ausx" && await sel("MLNSTK1120261018") === "aufx_ausx_cn" && await sel("MLNSRECA20261018") === "ausx_cn" && await sel("MLNSCL0620261018") === "c_load" && await sel("MLNSTLSA20261018") === "cn_only",
-    "each row comes with its usual analysis (COF AuFx & AuSx with grind, tank 11 with cyanide & pH, CCD overflow AuSx & cyanide, carbon loading, tails grab cyanide)");
+  check(await sel("MLNSCOF 20261018") === "aufx_ausx" && await sel("MLNSTK1120261018") === "aufx_ausx" && await sel("MLNSCUF 20261018") === "aufx" && await sel("MLNSRECA20261018") === "ausx_cn" && await sel("MLNSCL0620261018") === "c_load" && await sel("MLNSTLSA20261018") === "cn_only",
+    "each row comes with the analysis the reports give it (COF AuFx & AuSx with grind, CUF AuFx with grind, tank 11 AuFx & AuSx, CCD overflow AuSx & cyanide, carbon loading, tails grab cyanide)");
   await Tc.fill(`#jRows .j-code[data-j="${rowOf("MLNSCLF220261018")}"]`, "MLNSCLF2X20261018");
   await Tc.selectOption("#jShift", "D"); await Tc.waitForTimeout(200); cs = await codes();
   check(cs.includes("MLDSCOF 20261018") && cs.includes("MLNSCLF2X20261018") && /Day shift/.test(await Tc.inputValue(`#jRows .j-desc[data-j="0"]`)), "the day shift: codes and descriptions follow (DS, day times); a code typed over stays");
@@ -55,7 +55,7 @@ const live = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => v
   await Tc.selectOption("#jAdd", "plant_feed|CIL tank"); await Tc.waitForTimeout(150);
   const last = (await codes()).length - 1;
   await Tc.fill(`#jRows .j-code[data-j="${last}"]`, "MLNSTK0920261018"); await Tc.fill(`#jRows .j-desc[data-j="${last}"]`, "Night shift tank 9 sample");
-  check(await Tc.$eval(`#jRows .j-test[data-j="${last}"]`, e => e.value) === "aufx_ausx_cn" && /36 of 38 samples ticked/.test(await text(Tc, "#jInfo")), "two unticked, one CIL tank sample added with its analysis: 36 of 38");
+  check(await Tc.$eval(`#jRows .j-test[data-j="${last}"]`, e => e.value) === "aufx_ausx_cn" && /36 of 39 samples ticked/.test(await text(Tc, "#jInfo")), "two unticked, one CIL tank sample added with its analysis: 36 of 39");
   await Tc.fill("#rSubmitter", "Shift metallurgist");
   await Tc.fill(`#jRows .j-code[data-j="1"]`, "MLNSRECA20261018"); await Tc.click("#rSubmit"); await Tc.waitForTimeout(300);
   check(/same code appears twice/i.test(await H.toastText(Tc)) && !(await Tc.$("#rResult code")), "the same code twice is refused");
@@ -107,7 +107,7 @@ const live = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => v
   const heads = await Tc.$$eval("#certBox h4.cert-sec", hs => hs.map(h => h.textContent.trim()));
   check(heads.length === 7 && heads.some(h => /^Carbon: Au loading \(12 samples\)$/.test(h)) && heads.some(h => /^Slurry: AuFx & AuSx \(\d+ samples\)$/.test(h)), "the certificate reads one table per analysis: " + heads.join(" | "));
   const carbonCols = await Tc.$$eval("#certBox h4.cert-sec", hs => { const h = hs.find(x => /^Carbon/.test(x.textContent)); return [...h.nextElementSibling.querySelectorAll("thead th")].map(t => t.textContent.trim()); });
-  check(carbonCols.join("|") === "Sample ID|Site sample code|Description|Au loading (g/t)", "a section has only its own columns: " + carbonCols.join(", "));
+  check(carbonCols.join("|") === "Sample|Au loading (g/t)", "a section has only its own columns (the sample's ID, code and description in one): " + carbonCols.join(", "));
   await Tc.click("#certClose");
 
   log("The job's material: kept by item, put away for all at once");
@@ -129,7 +129,7 @@ const live = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => v
     "Elution run: 36 solutions (electrowinning tails and head, pregnant solution over time, lean eluate, treated water), no shift");
   await Tc.selectOption("#jTpl", "cact"); await Tc.selectOption("#jShift", "D"); await Tc.fill("#jDate", "2026-10-18"); await Tc.dispatchEvent("#jDate", "change"); await Tc.fill("#jN_n1", "31"); await Tc.waitForTimeout(200);
   cs = await codes();
-  check(cs.join("|") === "MLDSCBRG20261018|MLSCBST20261018#31|MLSCBLD20261018#31|" && await Tc.$eval('#jRows .j-code[data-j="3"]', e => e.classList.contains("dup")), "Carbon activity: regenerated, stripped and loaded carbon coded; the virgin carbon's code is left to type (marked)");
+  check(cs.join("|") === "MLDSCBRG20261018|MLSCBST20261018#31|MLSCBLD20261017#31|" && await Tc.$eval('#jRows .j-code[data-j="3"]', e => e.classList.contains("dup")), "Carbon activity: regenerated, stripped and loaded carbon coded (the loaded carbon the day before, as on the lab's report); the virgin carbon's code is left to type (marked)");
   await Tc.fill('#jRows .j-code[data-j="3"]', "Supplier virgin carbon"); await Tc.fill("#rSubmitter", "Elution operator");
   await Tc.click("#rSubmit"); await Tc.waitForSelector("#rResult code", { timeout: 20000 });
   const ca = (await Tc.$$eval("#rResult code", els => els.map(e => e.textContent.split(" · ")))), cids = ca.map(x => x[0]), cref = doc(cids[0]).batchId;
