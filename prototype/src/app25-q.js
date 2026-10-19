@@ -98,6 +98,7 @@ function scanToOpen(){
     const poll = () => {
       const s = current?.body;
       if (s && (s.id === want || s.id === id) && tab === "track"){
+        if (grouped(s) && awaiting(s) && canEdit()){ openSample(s.batchId); return; }   // v24d: a bag of a batch: the batch is received as one
         const f = $("#moveForm"); if (f && awaiting(s) && canEdit()){ f.scrollIntoView({ block: "start", behavior: "smooth" }); setTimeout(() => $("#rcMass")?.focus({ preventScroll: true }), 300); }
         return;
       }
@@ -117,13 +118,16 @@ function scanToOpen(){
 })();
 
 /* ----- Receive several at once: the same write as a batch receipt (no cooler check, no mass), for the samples ticked. ----- */
-async function receiveMany(sids, at, wit, noteFor){
+async function receiveMany(sids, at, wit, noteFor, temp = ""){
   return pool(sids, 5, sid => sampleWrite(sid, s => {
     if (!awaiting(s)) return null;
     const t = typeOf(s.typeKey), w = twoPerson(s) ? wit : "", when = Math.max(at, (s.createdAt || 0) + 1000), warn = [];
+    if (t?.cool != null && temp === "") return null;   // a cooler sample needs its temperature (v24d: one reading for a batch's cooler)
+    const tp = t?.cool != null ? String(temp) : "";
+    if (tp !== "" && +tp > t.cool) warn.push(`cooler at ${tp} °C, above the ${t.cool} °C limit`);
     let holdH = null;
     if (t?.hold && s.collectedAt){ holdH = Math.max(0, (when - s.collectedAt) / HOUR); if (holdH > t.hold) warn.push(`holding time for ${t.holdWhat} exceeded: received ${hoursLabel(holdH)} after collection, limit ${hoursLabel(t.hold)}`); }
-    const recv = { bags: s.containers || 1, mass: null, unit: massUnit(s), seal: s.seal ? "ok" : "none", cond: "Good", temp: "", holdH, warn, ...(w ? { wit: w } : {}) };
+    const recv = { bags: s.containers || 1, mass: null, unit: massUnit(s), seal: s.seal ? "ok" : "none", cond: "Good", temp: tp, holdH, warn, ...(w ? { wit: w } : {}) };
     const note = noteFor(s) + (warn.length ? ". Receipt checks: " + warn.join("; ") : "");
     return { upd: { stageKey: "received", stageAt: when, receivedBy: session.name, receivedAt: when, recvAt: when, recv, onHand: true, flag: "", inMid: `${s.id}~in`,
         history: [...(s.history || []), { key: "received", sn: HEAD[1].name, at: when, by: session.u, tech: session.name, ref: "", note, ...(w ? { wit: w } : {}) }] },
@@ -134,18 +138,23 @@ const rmSel = new Set();
 let rmList = [], rmAt = "", rmWit = "", rmOk = false, rmBusy = false;
 const coolOf = s => typeOf(s.typeKey)?.cool != null;
 /* The Awaiting receipt list on the board, with ticks and one receipt for the ticked samples (lab staff). */
+/* v24d: a batch processed as one is one row and one tick (all its bags); one with a cooler sample is received on the batch page (one
+   cooler temperature for the batch). */
+const rmUnits = list => { const out = [], seen = new Map(); for (const s of list){ if (!grouped(s)){ out.push({ s, ms: [s] }); continue; } const g = seen.get(s.batchId); if (g) g.ms.push(s); else { const u = { s, ref: s.batchId, ms: [s] }; seen.set(s.batchId, u); out.push(u); } } return out; };
+const rmCool = u => u.ms.some(coolOf);
 function recvManyPanel(cur){
   rmList = cur.pick || [];
-  const ids = new Set(rmList.filter(s => !coolOf(s)).map(s => s.id));
+  const units = rmUnits(rmList), ids = new Set(units.filter(u => !rmCool(u)).flatMap(u => u.ms.map(s => s.id)));
   [...rmSel].forEach(id => { if (!ids.has(id)) rmSel.delete(id); });
-  const ticked = rmList.filter(s => rmSel.has(s.id)), two = ticked.some(twoPerson), n = ticked.length;
-  const row = s => `<tr><td>${coolOf(s) ? `<span class="small muted" title="Cooler temperature: receive it on its own record">one by one</span>` : `<input type="checkbox" data-rm="${esc(s.id)}" ${rmSel.has(s.id) ? "checked" : ""} aria-label="Tick ${esc(s.id)}">`}</td>
-    <td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>${tagText(s) ? `<div class="small muted mono">${esc(tagText(s))}</div>` : ""}</td>
+  const tickedU = units.filter(u => !rmCool(u) && u.ms.every(s => rmSel.has(s.id))), two = tickedU.some(u => u.ms.some(twoPerson)), n = tickedU.length;
+  const row = u => { const s = u.s;
+    return `<tr><td>${rmCool(u) ? (u.ref ? `<button type="button" class="linkish small" data-open="${esc(u.ref)}" title="Cooler temperature: one reading for the batch">on the batch page</button>` : `<span class="small muted" title="Cooler temperature: receive it on its own record">one by one</span>`) : `<input type="checkbox" ${u.ref ? `data-rmb="${esc(u.ref)}"` : `data-rm="${esc(s.id)}"`} ${u.ms.every(x => rmSel.has(x.id)) ? "checked" : ""} aria-label="Tick ${esc(u.ref || s.id)}">`}</td>
+    <td>${u.ref ? `<button type="button" class="linkish mono" data-open="${esc(u.ref)}">${esc(u.ref)}</button><div class="small"><b>Batch of ${nS(u.ms.length)}</b>${s.batchName ? ` · ${esc(s.batchName)}` : ""}</div>` : `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>${tagText(s) ? `<div class="small muted mono">${esc(tagText(s))}</div>` : ""}`}</td>
     <td>${esc(s.type || "")}${twoPerson(s) ? ` <span class="haz two" title="Two-person custody">2P</span>` : ""}</td><td>${esc([testOf(s.test)?.name, s.route].filter(Boolean).join(" · "))}</td>
-    <td>${esc(fmt(s.createdAt))}${s.handedTo ? `<div class="small muted">Handed to ${esc(s.handedTo)}</div>` : ""}</td></tr>`;
+    <td>${esc(fmt(s.createdAt))}${s.handedTo ? `<div class="small muted">Handed to ${esc(s.handedTo)}</div>` : ""}</td></tr>`; };
   return `<div class="panel pick-list stack" id="bdPick">
     <div class="pick-note"><span>Showing <b>${esc(cur.l)}</b>: ${cur.n}</span><span class="grow"></span><button type="button" class="btn ghost small" data-bpick="${cur.k}">Close</button></div>
-    <div class="tbl-wrap"><table class="cardy"><thead><tr><th><input type="checkbox" id="rmAll" aria-label="Tick all" ${ids.size && n === ids.size ? "checked" : ""}></th><th>Sample</th><th>Type</th><th>Analysis · route</th><th>Submitted</th></tr></thead><tbody>${rmList.slice(0, 100).map(row).join("")}</tbody></table></div>
+    <div class="tbl-wrap"><table class="cardy"><thead><tr><th><input type="checkbox" id="rmAll" aria-label="Tick all" ${ids.size && n === ids.size ? "checked" : ""}></th><th>Sample</th><th>Type</th><th>Analysis · route</th><th>Submitted</th></tr></thead><tbody>${units.slice(0, 100).map(row).join("")}</tbody></table></div>
     <div class="recv-many stack" id="rmBox">
       <div class="form">${meBox("Received by")}
         <label class="f"><span>Date &amp; time received</span><input id="rmAt" type="datetime-local" value="${esc(rmAt || localInput(Date.now()))}"></label>
@@ -158,18 +167,20 @@ function recvManyPanel(cur){
 function bindRecvMany(v){
   const box = $("#bdPick", v); if (!box || !$("#rmBox", box)) return;
   box.querySelectorAll("[data-rm]").forEach(c => c.onchange = () => { c.checked ? rmSel.add(c.dataset.rm) : rmSel.delete(c.dataset.rm); renderBoard(); });
-  $("#rmAll", box).onchange = e => { rmList.filter(s => !coolOf(s)).forEach(s => e.target.checked ? rmSel.add(s.id) : rmSel.delete(s.id)); renderBoard(); };
+  box.querySelectorAll("[data-rmb]").forEach(c => c.onchange = () => { rmList.filter(s => grouped(s) && s.batchId === c.dataset.rmb).forEach(s => c.checked ? rmSel.add(s.id) : rmSel.delete(s.id)); renderBoard(); });
+  $("#rmAll", box).onchange = e => { rmUnits(rmList).filter(u => !rmCool(u)).flatMap(u => u.ms).forEach(s => e.target.checked ? rmSel.add(s.id) : rmSel.delete(s.id)); renderBoard(); };
   $("#rmAt", box).onchange = e => { rmAt = e.target.value; };
   $("#rmOk", box).onchange = e => { rmOk = e.target.checked; };
   const w = $("#rmWit", box); if (w){ if (rmWit) w.value = rmWit; w.onchange = () => { rmWit = w.value; }; }
   $("#rmBtn", box).onclick = receiveTicked;
   $("#rmScan", box).onclick = () => openScanner({ title: "Scan the bags", multi: true, hint: "Each bag scanned is ticked on the Awaiting receipt list. Press Done, then receive them.", onClose: () => renderBoard(),
     onCode: code => {
-      const c = code.toUpperCase(), hits = rmList.filter(s => s.id === c || s.batchId === c || (s.tags || []).some(t => String(t).toUpperCase() === c));
-      if (!hits.length) return { ok: false, msg: `${code}: not waiting for receipt (or hidden by the board's filters)` };
-      const cool = hits.filter(coolOf), ok = hits.filter(s => !coolOf(s));
-      ok.forEach(s => rmSel.add(s.id));
-      return ok.length ? { ok: true, msg: ok.length === 1 ? `${ok[0].id} ticked` : `${ok.length} samples of ${code} ticked` } : { ok: false, msg: `${cool[0].id}: needs its cooler temperature, receive it on its own record` };
+      const c = code.toUpperCase(), found = rmList.filter(s => s.id === c || s.batchId === c || (s.tags || []).some(t => String(t).toUpperCase() === c));
+      if (!found.length) return { ok: false, msg: `${code}: not waiting for receipt (or hidden by the board's filters)` };
+      // a bag of a batch processed as one ticks its batch (v24d)
+      const us = rmUnits(rmList).filter(u => u.ms.some(s => found.includes(s))), cool = us.filter(rmCool), ok = us.filter(u => !rmCool(u));
+      ok.forEach(u => u.ms.forEach(s => rmSel.add(s.id)));
+      return ok.length ? { ok: true, msg: ok.map(u => u.ref ? `batch ${u.ref} (${nS(u.ms.length)}) ticked` : `${u.s.id} ticked`).join("; ") } : { ok: false, msg: cool[0].ref ? `${cool[0].ref}: needs its cooler temperature, receive the batch on its page` : `${cool[0].s.id}: needs its cooler temperature, receive it on its own record` };
     } });
 }
 async function receiveTicked(){
@@ -181,7 +192,7 @@ async function receiveTicked(){
   const wit = $("#rmWit") ? val("#rmWit") : "";
   if ($("#rmWit") && !wit){ toast("Two-person custody: choose the witness first."); $("#rmWit")?.focus(); return; }
   rmBusy = true; renderBoard();
-  const ok = await receiveMany(ids, at, wit, () => "Received with others from the board");
+  const ok = await receiveMany(ids, at, wit, s => grouped(s) ? `Received with batch ${s.batchId}` : "Received with others from the board");
   rmBusy = false; rmSel.clear(); rmOk = false; rmAt = ""; rmWit = "";
   toast(`${ok} of ${ids.length} received`);
   renderBoard();

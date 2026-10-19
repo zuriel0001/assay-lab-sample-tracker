@@ -49,7 +49,7 @@ function renderTab(){
   ({ login: renderLogin, track: renderTrack, board: renderBoard, submit: renderSubmit, register: renderRegister, batches: renderBatches, storage: renderStorage, results: renderResultsTab, ledger: renderLedger, routes: renderRoutes, stages: renderStages })[tab]();
   updateCount();
 }
-const updateCount = () => { $("#cntActive").textContent = samples.size; };
+const updateCount = () => { $("#cntActive").textContent = unitCount([...samples.values()]); };   // v24d: a batch counts once
 
 /* ---------- sign in ---------- */
 function renderLogin(){

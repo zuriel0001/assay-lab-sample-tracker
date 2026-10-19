@@ -404,7 +404,9 @@ let batchRecvBusy = false;
 function renderBatchView(v){
   const c = current, docs = c.docs, s0 = docs[0] || {}, waiting = docs.filter(awaiting);
   const bst = batchState(docs), ctx = `${c.batch}|${bst.bi}.${bst.waiting ? 1 : 0}.${bst.at.some(wqOf) ? 1 : 0}`;   // v24d: what is typed stays while the batch is at the same step
-  const cool = waiting.filter(s => typeOf(s.typeKey)?.cool != null), quick = waiting.filter(s => typeOf(s.typeKey)?.cool == null), two = quick.some(twoPerson);
+  // v24d: a batch processed as one is received as one, its cooler samples too (one cooler temperature for the batch)
+  const cool0 = waiting.filter(s => typeOf(s.typeKey)?.cool != null), gcool = cool0.filter(grouped), cool = cool0.filter(s => !grouped(s));
+  const quick = [...waiting.filter(s => typeOf(s.typeKey)?.cool == null), ...gcool], two = quick.some(twoPerson), lim = Math.min(...gcool.map(s => typeOf(s.typeKey).cool));
   const tally = {}; docs.forEach(s => { const st = status(s); tally[st.label] = (tally[st.label] || 0) + 1; });
   const done = docs.filter(s => curIdx(s) >= targetIdx(s)).length, etas = docs.filter(s => curIdx(s) < targetIdx(s) && !status(s).closed).map(s => projection(s).eta).filter(Boolean);
   const eta = etas.length ? Math.max(...etas) : 0, srcCol = docs.some(s => s.source);
@@ -427,6 +429,7 @@ function renderBatchView(v){
       <div class="form">${meBox("Received by")}
         <label class="f"><span>Date &amp; time received</span><input id="bvAt" type="datetime-local" value="${esc(keepAt || localInput(Date.now()))}"></label>
         ${two ? witnessField("bvWit") : ""}
+        ${gcool.length ? `<label class="f"><span>Cooler temperature on arrival (°C) <span class="req">*</span></span><input id="bvTemp" type="number" step="0.1" placeholder="Limit ${lim} °C"></label>` : ""}
         <label class="recv-toggle full"><input type="checkbox" id="bvOk" ${keepOk ? "checked" : ""}> All ${quick.length} bags match, seals intact, good condition</label></div>
       <div class="row"><button type="button" class="btn primary" id="bvRecvBtn" ${batchRecvBusy ? "disabled" : ""}>Confirm receipt of ${quick.length}</button>${cool.length ? `<span class="small">One by one (cooler temperature): ${cool.map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>`).join(", ")}</span>` : ""}</div>
     </div>` : ""}
@@ -448,9 +451,11 @@ async function receiveBatch(sids){
   if (!$("#bvOk")?.checked){ toast("Tick that the bags match, seals are intact and in good condition, or receive them one by one."); $("#bvOk")?.focus(); return; }
   const docs = current.docs.filter(s => sids.includes(s.id)), err = docs.map(s => receiptTimeError(s, at)).find(Boolean);
   if (err){ toast(err); $("#bvAt")?.focus(); return; }
+  const temp = $("#bvTemp") ? $("#bvTemp").value.trim() : "";
+  if ($("#bvTemp") && temp === ""){ toast("Record the cooler temperature on arrival."); $("#bvTemp")?.focus(); return; }
   if ($("#bvWit") && !wit){ toast("Two-person custody: choose the witness first."); $("#bvWit")?.focus(); return; }
   batchRecvBusy = true; $("#bvRecvBtn").disabled = true; $("#bvRecvBtn").textContent = "Receiving…";
-  const ok = await receiveMany(sids, at, wit, () => `Received with batch ${ref}`);
+  const ok = await receiveMany(sids, at, wit, () => `Received with batch ${ref}`, temp);
   batchRecvBusy = false;
   toast(`${ok} of ${sids.length} received`);
   if (current?.batch === ref) renderTrack();

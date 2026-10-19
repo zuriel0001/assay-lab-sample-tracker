@@ -211,7 +211,7 @@ const JSQR = [path.join(__dirname, "..", "..", "app", "jsqr.js"), process.env.AZ
   await open(Tc, w2); await Tc.waitForTimeout(200); rw = await railOf(Tc);
   check(doc(w2).stageKey === "released" && li(rw, "Results released").m === "✓" && /current/.test(li(rw, "Retained in storage").c), "the file saved: released, Results released ticked green and Retained in storage is the open step");
 
-  log("Two-person custody: the witness signs the release with the file or the typed results");
+  log("Two-person custody: the witness signs the release with the file or the typed results");   // results are typed into boxes found by id: the record may be drawn again meanwhile
   await fillForm(Tc, "register", { section: "PLT", type: "conc", purpose: "recon", submitter: "Gold room", count: 2, tags: "GC-W", wit: "Lab Supervisor" }); const [g2, g3] = await ids(Tc);
   check(doc(g2).route === "CONC" && !!(await (async () => { await open(Tc, g2); return Tc.$("#mvWit"); })()), "gravity concentrates on CONC, two-person custody (a witness for every step): " + doc(g2).route + " " + JSON.stringify(doc(g2).haz));
   await walk(Tc, g2); await open(Tc, g2);
@@ -228,7 +228,7 @@ const JSQR = [path.join(__dirname, "..", "..", "app", "jsqr.js"), process.env.AZ
   check((doc(g2).certs || []).length === 1 && relE?.wit === "Lab Supervisor" && /1 released with the file/.test(H.toasts.slice(-3).join(" ")), "with it the file releases the sample, the witness on the release: " + JSON.stringify(relE));
   await walk(Tc, g3); await open(Tc, g3); await Tc.selectOption("#mvWit", { index: 1 }); await Tc.click('[data-step="wait"]'); await waitFor(() => doc(g3).rw, 5000);
   await open(Tc, g3); await Tc.$eval("#resBox", d => { d.open = true; });
-  for (const el of await Tc.$$("#resBox input[id^=rs_]")) await el.fill("1.5");
+  for (const id of await Tc.$$eval("#resBox input[id^=rs_]", es => es.map(e => e.id))) await Tc.fill("#" + id, "1.5");
   await Tc.selectOption("#mvWit", { label: "Lab Supervisor" }); await Tc.click("#rsSave"); await waitFor(() => (doc(g3).certs || []).length, 6000);
   check((doc(g3).certs || []).length === 1 && doc(g3).history.find(h => h.key === "released")?.wit === "Lab Supervisor", "typed results with the witness chosen on the record release it too, witnessed");
 
@@ -329,6 +329,44 @@ const JSQR = [path.join(__dirname, "..", "..", "app", "jsqr.js"), process.env.AZ
   await waitFor(() => ledger().filter(m => bt.includes(m.sid) && m.dir === "out" && m.kind === "disposed").length === 4, 8000);
   check(ledger().filter(m => bt.includes(m.sid) && m.dir === "out" && m.kind === "disposed" && m.wit === "Lab Supervisor").length === 4, "one disposal for the batch: each sample's material in the ledger, witnessed");
 
+  log("A batch waits for receipt as one and is received as one (v24d, 17:57: 'it should show 1 awaiting receipt … only one workflow and it should be for the batch')");
+  const tileN = async (page, k) => +((await text(page, `.stats.tiles [data-bpick="${k}"] .n`)) || 0);
+  await H.tab(Tc, "board"); await Tc.waitForTimeout(400); await offPick(Tc);
+  const aw0 = await tileN(Tc, "await"), lane0 = await Tc.$$eval(".lane.ph-intake .chip", cs => cs.length).catch(() => 0), tab0 = +(await text(Tc, "#cntActive"));
+  await fillForm(Tc, "submit", { section: "PLT", type: "plant_feed", purpose: "plant", submitter: "Shift J", count: 9, tags: "AW-1", together: true }); const aw = await ids(Tc);
+  const ref4 = doc(aw[0]).batchId;
+  check(aw.length === 9 && aw.every(id => doc(id).stageKey === "submitted" && doc(id).batchId === ref4) && /processed as one, with one receipt, one workflow and one certificate/.test(await text(Tc, "#rResult")), "nine samples submitted as one batch, waiting for receipt; the submission says the batch is processed as one");
+  await H.tab(Tc, "board"); await Tc.waitForTimeout(600); await offPick(Tc);
+  const awChips = await Tc.$$eval(".lane .chip", cs => cs.map(c => c.dataset.open));
+  check(await tileN(Tc, "await") === aw0 + 1 && +(await text(Tc, "#cntActive")) === tab0 + 1 && awChips.filter(x => x === ref4).length === 1 && !aw.some(id => awChips.includes(id)),
+    `Awaiting receipt counts the batch once (${aw0} → ${await tileN(Tc, "await")}), as does the Board tab; one card, no card per sample`);
+  check(/Batch of 9 samples/.test(await text(Tc, `.chip.bchip[data-open="${ref4}"]`)) && /Awaiting receipt/.test(await text(Tc, `.chip.bchip[data-open="${ref4}"]`)), "the card: Batch of 9 samples, awaiting receipt");
+  await Tc.click('.stats.tiles [data-bpick="await"]'); await Tc.waitForSelector("#rmBox", { timeout: 5000 }).catch(() => {});
+  check(!!(await Tc.$(`#bdPick [data-rmb="${ref4}"]`)) && !(await Tc.$(`#bdPick [data-rm="${aw[0]}"]`)) && new RegExp(`${ref4}\\s*Batch of 9 samples`).test(await text(Tc, "#bdPick tbody")), "the Awaiting receipt list has one row and one tick for the batch");
+  await Tc.click('.stats.tiles [data-bpick="await"]'); await Tc.waitForTimeout(200);
+  await open(Tc, aw[4]);
+  check(!(await Tc.$("#rcMass")) && !(await Tc.$('[data-receipt="confirm"]')) && /is received, moved through its steps, released and stored with the whole batch/.test(await text(Tc, "#inBatch")) && /^Receive the batch$/.test(await text(Tc, `#inBatch .btn.primary`)),
+    "a sample of the batch has no receipt of its own: its record sends you to receive the batch");
+  await Tc.click("#inBatch .btn.primary"); await Tc.waitForSelector("#bvRecv", { timeout: 6000 }).catch(() => {});
+  check(await text(Tc, ".sid") === ref4 && /Confirm receipt of 9/.test(await text(Tc, "#bvRecvBtn")) && /Waiting for receipt: 9 samples/.test(await text(Tc, "#bwBox")), "the batch page: one receipt for the nine, the batch's workflow waiting on receipt");
+  await Tc.check("#bvOk"); await Tc.click("#bvRecvBtn"); await waitFor(() => aw.every(id => doc(id).stageKey === "received"), 10000);
+  check(aw.every(id => doc(id).stageKey === "received" && /Received with batch/.test(doc(id).history.at(-1).note)), "one press receives all nine, each with its custody line");
+  await fillForm(Tc, "submit", { section: "PLT", type: "plant_feed", purpose: "plant", submitter: "Shift K", count: 3, tags: "AW-20", together: true }); const ax = await ids(Tc);
+  const ref5 = doc(ax[0]).batchId;
+  await H.tab(Tc, "board"); await Tc.waitForTimeout(500); await offPick(Tc); await Tc.click('.stats.tiles [data-bpick="await"]'); await Tc.waitForSelector("#rmBox", { timeout: 5000 }).catch(() => {});
+  await Tc.check(`[data-rmb="${ref5}"]`); await Tc.waitForTimeout(250);
+  check(/Receive 1 ticked/.test(await text(Tc, "#rmBtn")), "on the board one tick takes the whole batch: Receive 1 ticked");
+  await Tc.check("#rmOk"); await Tc.click("#rmBtn"); await waitFor(() => ax.every(id => doc(id).stageKey === "received"), 8000);
+  check(ax.every(id => doc(id).stageKey === "received" && new RegExp(`Received with batch ${ref5}`).test(doc(id).history.at(-1).note)), "and receives its three samples");
+  await fillForm(Tc, "submit", { section: "ENV", type: "env_water", purpose: "env", submitter: "Env officer", count: 2, tags: "EW-B1", together: true }); const ew = await ids(Tc);
+  const ref6 = doc(ew[0]).batchId;
+  await open(Tc, ref6);
+  check(!!(await Tc.$("#bvTemp")) && /Confirm receipt of 2/.test(await text(Tc, "#bvRecvBtn")), "a batch of cooler samples is received as one too, with one cooler temperature");
+  await Tc.check("#bvOk"); await Tc.click("#bvRecvBtn"); await Tc.waitForTimeout(250);
+  check(/cooler temperature/.test(await H.toastText(Tc)) && ew.every(id => doc(id).stageKey === "submitted"), "the temperature is required");
+  await Tc.fill("#bvTemp", "4"); await Tc.click("#bvRecvBtn"); await waitFor(() => ew.every(id => doc(id).stageKey === "received"), 8000);
+  check(ew.every(id => doc(id).stageKey === "received" && doc(id).recv.temp === "4"), "received, the cooler temperature on each sample's receipt");
+
   log("Taking a sample out of its batch; typed results release the rest together");
   await fillForm(Tc, "register", { section: "PLT", type: "plant_feed", purpose: "plant", submitter: "Shift H", count: 3, tags: "TB-1", together: true }); const bu = await ids(Tc);
   const ref2 = doc(bu[0]).batchId;
@@ -339,12 +377,12 @@ const JSQR = [path.join(__dirname, "..", "..", "app", "jsqr.js"), process.env.AZ
   await open(Tc, ref2);
   check(new RegExp(`Taken out of the batch, processed on their own: ${bu[2]}`).test(await text(Tc, "#bwBox")) && /^Move 2 samples to: /.test(await text(Tc, "#bwNext")), "the batch page names it and moves the other two");
   await bwalk(Tc, ref2); await open(Tc, ref2); await Tc.click("#bwWaitBtn"); await waitFor(() => bu.slice(0, 2).every(id => doc(id).rw), 6000);
-  await open(Tc, bu[0]); await Tc.$eval("#resBox", d => { d.open = true; }); for (const el of await Tc.$$("#resBox input[id^=rs_]")) await el.fill("2.1"); await Tc.click("#rsSave");
+  await open(Tc, bu[0]); await Tc.$eval("#resBox", d => { d.open = true; }); for (const id of await Tc.$$eval("#resBox input[id^=rs_]", es => es.map(e => e.id))) await Tc.fill("#" + id, "2.1"); await Tc.click("#rsSave");
   await waitFor(() => doc(bu[0]).results, 5000); await Tc.waitForTimeout(500);
   check(!!doc(bu[0]).results && !(doc(bu[0]).certs || []).length && doc(bu[0]).stageKey !== "released", "results typed on one sample of the batch are saved, not released alone");
   await open(Tc, ref2);
   check(/Results in: 1 of 2/.test(await text(Tc, "#bwCount")), "the batch counts them: 1 of 2 in");
-  await open(Tc, bu[1]); await Tc.$eval("#resBox", d => { d.open = true; }); for (const el of await Tc.$$("#resBox input[id^=rs_]")) await el.fill("2.2"); await Tc.click("#rsSave");
+  await open(Tc, bu[1]); await Tc.$eval("#resBox", d => { d.open = true; }); for (const id of await Tc.$$eval("#resBox input[id^=rs_]", es => es.map(e => e.id))) await Tc.fill("#" + id, "2.2"); await Tc.click("#rsSave");
   await waitFor(() => bu.slice(0, 2).every(id => (doc(id).certs || []).length), 8000);
   check(bu.slice(0, 2).every(id => doc(id).certs.at(-1)?.no === `${ref2}-R1` && doc(id).stageKey === "released") && !(doc(bu[2]).certs || []).length, "the last results in release the batch together on its certificate; the sample taken out is not on it");
   await open(Tc, bu[0]); await Tc.click("#soloBox summary"); await Tc.click("#redoBox summary"); await Tc.click("#redoBtn"); await waitFor(() => doc(bu[0]).solo, 5000);

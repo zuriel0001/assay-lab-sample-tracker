@@ -31,7 +31,8 @@ function bwRail(st, ref){
       if (i === ti && cert) meta += ` · batch certificate <b class="mono">${esc(cert.no)}</b>`;
       if (i === ti + 1) meta += ` · ${nS(at.length)} kept`;
     } else if (i === cur){
-      if (i === ti){ const n = at.filter(resIn).length; meta = n < at.length ? `Waiting for the results: ${n} of ${at.length} in` : relNow() ? "All results in: release them below" : "All results in: waiting for a lab supervisor to release them"; }
+      if (i === 0) meta = `Waiting for receipt: ${nS(at.length)}`;
+      else if (i === ti){ const n = at.filter(resIn).length; meta = n < at.length ? `Waiting for the results: ${n} of ${at.length} in` : relNow() ? "All results in: release them below" : "All results in: waiting for a lab supervisor to release them"; }
       else if (i === ti + 1){
         const left = at.filter(s => keptMaterials(s).some(m => !m.loc)).length;
         meta = q && q.kind === "store" ? `Waiting for <b>${esc(q.wit)}</b> to confirm the storage (put away by ${esc(q.tech)})` : left ? `To put away: ${nS(left)}` : at.some(twoPerson) ? "On the shelf: a second person confirms the storage" : "";
@@ -102,7 +103,9 @@ function bwPanel(c){
     out.length ? `Left the workflow (rejected, stopped or closed): ${idLinks(out)}` : ""].filter(Boolean);
   const head = n => `<h3>Workflow for the batch${st.lead?.routeName ? `: ${esc(st.lead.routeName)}` : ""} <span class="pill">${nS(n)} together</span></h3>`;
   if (!st.lead){
-    if (st.mem.length) return `<div class="panel stack" id="bwBox">${head(st.mem.length)}<p class="small muted" style="margin:0">Once received, the samples go through the workflow together: one card on the board, every step recorded here for all of them at once.</p></div>`;
+    if (st.mem.length){ const lead = st.mem[0];
+      return `<div class="panel stack" id="bwBox">${head(st.mem.length)}${bwRail({ plan: planOf(lead), bi: 0, ti: targetIdx(lead), lead, at: st.mem, cur: 0 }, ref)}
+        <p class="small muted" style="margin:0">${canEdit() ? `Receive the batch above: one receipt for all ${nS(st.mem.length)}. ` : ""}Then they go through the workflow together: one card on the board, every step recorded here for all of them at once.</p></div>`; }
     return `<div class="panel stack" id="bwBox"><h3>Workflow for the batch</h3>${certLine}<p class="small muted" style="margin:0">No sample of this batch is in the lab's workflow any more.</p>${asides.length ? `<div class="small muted">${asides.join("<br>")}</div>` : ""}</div>`;
   }
   const { plan, bi, ti, at, waiting } = st, two = at.some(twoPerson), next = plan[bi + 1], n = at.length;
@@ -270,8 +273,8 @@ async function bwAnswer(kind){
 /* On a member's own record: it moves with its batch; it can be taken out to go its own way. */
 function batchNote(s){
   const ref = s.batchId, q = wqOf(s);
-  return `<div class="notice stack" id="inBatch" style="gap:8px"><div>${esc(s.id)} is processed with batch <button type="button" class="linkish mono" data-open="${esc(ref)}">${esc(ref)}</button> (${esc(s.batchSize)} samples): its steps, the release of its results and its storage are recorded for the whole batch, on the batch page.${q ? ` <b>Waiting for ${esc(q.wit)} to confirm ${q.kind === "store" ? "the storage" : esc(wqText(s, q))}</b>${myConf(s) ? ": confirm it on the batch page" : ""}.` : ""}</div>
-    <div class="row" style="gap:8px"><button type="button" class="btn primary" data-open="${esc(ref)}">Open the batch</button>${canEdit() && !q ? `<button type="button" class="btn ghost" id="soloBtn">Take it out of the batch</button>` : ""}</div></div>`;
+  return `<div class="notice stack" id="inBatch" style="gap:8px"><div>${esc(s.id)} is processed with batch <button type="button" class="linkish mono" data-open="${esc(ref)}">${esc(ref)}</button> (${esc(s.batchSize)} samples): it is received, moved through its steps, released and stored with the whole batch, on the batch page.${q ? ` <b>Waiting for ${esc(q.wit)} to confirm ${q.kind === "store" ? "the storage" : esc(wqText(s, q))}</b>${myConf(s) ? ": confirm it on the batch page" : ""}.` : ""}</div>
+    <div class="row" style="gap:8px"><button type="button" class="btn primary" data-open="${esc(ref)}">${awaiting(s) && canEdit() ? "Receive the batch" : "Open the batch"}</button>${canEdit() && !q ? `<button type="button" class="btn ghost" id="soloBtn">Take it out of the batch</button>` : ""}</div></div>`;
 }
 async function doSolo(){
   const s0 = current?.body; if (!s0 || !batchOf(s0)) return;
@@ -379,4 +382,18 @@ function confRows(list, sRow){
     out.push(sRow(x, `${q.kind === "store" ? "Storage: " : ""}${wqText(x)} · asked by ${q.tech}`));
   }
   return out;
+}
+
+/* ---------- counting work, not bags: a batch is one item on the board, its tiles, the Today strip and the Board tab ---------- */
+const unitKey = s => grouped(s) ? "B:" + s.batchId : s.id;
+const unitCount = list => new Set(list.map(unitKey)).size;
+/* Rows for a board list: a sample on its own, or one row for a batch (its reference, "Batch of n samples", where its samples are). */
+function unitRows(list, rowOf){
+  const out = [], seen = new Map();
+  for (const s of list){
+    if (!grouped(s)){ out.push(rowOf(s)); continue; }
+    const g = seen.get(s.batchId); if (g){ g.n++; g.where.add(rowOf(s).where); continue; }
+    const r = rowOf(s), x = { ...r, id: s.batchId, n: 1, where: new Set([r.where]) }; seen.set(s.batchId, x); out.push(x);
+  }
+  return out.map(r => r.n ? { id: r.id, type: r.type, what: `Batch of ${nS(r.n)}${r.what ? " · " + r.what : ""}`, where: [...r.where].filter(Boolean).join(", ") } : r);
 }

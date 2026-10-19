@@ -206,8 +206,9 @@ async function material(page, id, k, what, ref){
   check((await W.textContent(".sid")) === ref && bat.every(id => bv.includes(id)) && bv.includes("Night shift CIL survey") && bv.includes("CIL-A-04") && !(await W.$("#bvRecv")), "searching the batch reference lists its four samples (signed out: no receipt)");
   await open(Tc, bat[1]);
   check((await text(Tc, "#view-track")).includes(`${ref} (2 of 4)`), "each sample record names its batch");
-  check(await Tc.isVisible(`#moveForm [data-open="${ref}"]`) && /Receive the whole batch \(4\)/.test(await text(Tc, "#moveForm")), "its receipt form offers Receive the whole batch");
-  await Tc.click(`#moveForm [data-open="${ref}"]`); await Tc.waitForSelector("#bvRecv"); await Tc.waitForTimeout(300);
+  // v24d: a batch is received as one: its samples have no receipt form of their own, their record sends you to the batch
+  check(await Tc.isVisible(`#inBatch .btn[data-open="${ref}"]`) && /^Receive the batch$/.test(await text(Tc, `#inBatch .btn[data-open="${ref}"]`)) && /\(4 samples\)/.test(await text(Tc, "#inBatch")) && !(await Tc.$('[data-receipt="confirm"]')), "its record sends you to Receive the batch (no receipt of its own)");
+  await Tc.click(`#inBatch .btn[data-open="${ref}"]`); await Tc.waitForSelector("#bvRecv"); await Tc.waitForTimeout(300);
   check((await Tc.textContent(".sid")) === ref && /Confirm receipt of 4/.test(await text(Tc, "#bvRecv")), "the batch link opens the batch page; a technician can receive all four");
   await Tc.click("#bvRecvBtn"); await Tc.waitForTimeout(300);
   check(/Tick that the bags match/.test(await toastText(Tc)) && bat.every(id => doc(id).stageKey === "submitted"), "receipt waits for the bags-match tick");

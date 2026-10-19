@@ -402,6 +402,8 @@ function fileResults(s, f, inst, wit = ""){
     resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), fids: [...new Set([...(s.fids || []), f.id])],
     history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, ...(wit && twoPerson(s) ? { wit } : {}), note: `Results file ${f.name} attached` }] };
 }
+/* Waits (up to 4 s) until the samples just moved show here at analysis, so the file's plan is made again on what was written. */
+async function movedIn(ids){ const t0 = Date.now(); await sleep(150); while (Date.now() - t0 < 4000 && ids.some(id => { const s = bs(id); return s && !readyForResults(s) && curIdx(s) >= 1; })) await sleep(100); }
 /* Samples still in preparation when their results arrive move to their first analysis step, one step at a time, each step recorded. */
 async function moveToAnalysis(){
   const u = upState; if (!u?.plan || u.busy) return;
@@ -415,7 +417,7 @@ async function moveToAnalysis(){
   }));
   u.busy = false;
   toast(`${ok} sample(s) moved to analysis.`);
-  await new Promise(r => setTimeout(r, 300));
+  await movedIn(u.plan.notReady);
   if (upState === u){ u.rep = parseReport(u.grid, sampleIndex()); u.plan = u.rep.error ? null : planUpload(u.rep, u.scope); renderUpload(); }
 }
 /* The original file, kept once however many batches it fills: files/<ID> describes it, files/<ID>~1, ~2… hold it. */
@@ -457,7 +459,7 @@ async function saveUpload(){
       for (let i = ci + 1; i <= to; i++){ hist.push({ key: p[i].key, sn: p[i].name, at, by: session.u, tech: session.name, ref: u.file.name, note: `Moved on with results file ${u.file.name}` }); at += 1000; }
       return { stageKey: p[to].key, stageAt: at - 1000, history: hist };
     }));
-    await new Promise(r => setTimeout(r, 300));
+    await movedIn(u.plan.notReady);
     u.rep = parseReport(u.grid, sampleIndex()); u.plan = u.rep.error ? null : planUpload(u.rep, u.scope);
   }
   const P = u.plan || { batches: [], fresh: [], samples: [] };

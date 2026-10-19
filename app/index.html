@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="f3c57a97a407"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 68b57e8ab9b6) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="f1f7967b64cb"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 7ffadfc609ae) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2663,7 +2663,7 @@ function renderTab(){
   ({ login: renderLogin, track: renderTrack, board: renderBoard, submit: renderSubmit, register: renderRegister, batches: renderBatches, storage: renderStorage, results: renderResultsTab, ledger: renderLedger, routes: renderRoutes, stages: renderStages })[tab]();
   updateCount();
 }
-const updateCount = () => { $("#cntActive").textContent = samples.size; };
+const updateCount = () => { $("#cntActive").textContent = unitCount([...samples.values()]); };   // v24d: a batch counts once
 
 /* ---------- sign in: a Microsoft account (Azure Static Web Apps authentication) or this site's own email login (/api/auth) ---------- */
 let loginMode = "in", loginEmail = false;
@@ -2927,10 +2927,10 @@ function renderTrack(){
     v.dataset.ctx = "";
     const staff = isStaff() && allowedTabs().includes("board"), list = [...samples.values()];
     const today = staff ? [
-      ["in", "recvToday", list.filter(s => isToday(recvOf(s))).length, "Received today"],
-      ["due", "dueToday", list.filter(dueToday).length, "Results due today"],
-      ["late", "late", list.filter(s => { const i = curIdx(s); return i > 0 && i < targetIdx(s) && status(s).late; }).length, "Running late"],
-      ["rel", "rel", releasedToday.size, "Results released today"]   // each opens its list on the board (v24c); a zero does nothing
+      ["in", "recvToday", unitCount(list.filter(s => isToday(recvOf(s)))), "Received today"],   // v24d: a batch counts once
+      ["due", "dueToday", unitCount(list.filter(dueToday)), "Results due today"],
+      ["late", "late", unitCount(list.filter(s => { const i = curIdx(s); return i > 0 && i < targetIdx(s) && status(s).late; })), "Running late"],
+      ["rel", "rel", unitCount([...releasedToday.values()]), "Results released today"]   // each opens its list on the board (v24c); a zero does nothing
     ] : [];
     v.innerHTML = `<div class="stack">
       <div class="panel hero"><h2>Find a sample</h2>
@@ -3102,7 +3102,7 @@ function buildTrack(v, s){
   const ci = curIdx(s);
   let actions;
   if (!canEdit()) actions = `<p class="small muted" style="margin:0">${session ? "View only." : "<button class='btn ghost small' data-goto='login'>Staff sign in</button>"}</p>`;
-  else if (awaiting(s)) actions = receiptForm(s);
+  else if (awaiting(s)) actions = grouped(s) ? groupedForm(s) : receiptForm(s);   // v24d: a batch is received as one, on the batch page
   else if (st.closed) actions = `<p class="small muted" style="margin:0">This sample is closed${s.closedAt ? ` (${fmtFull(s.closedAt)})` : ""}.</p>`;
   else if (ci >= 0 && ci < tIdx) actions = grouped(s) ? groupedForm(s) : moveForm(s);
   else actions = grouped(s) ? groupedForm(s) : releasedForm(s);
@@ -3118,10 +3118,11 @@ function buildTrack(v, s){
         <div class="eta${st.late && !st.post && !st.closed ? " late" : !proj.eta && !st.closed ? " done" : ""}">${etaHtml}</div>
       </div>
     </div>
+    ${grouped(s) ? batchNote(s) : ""}
     ${s.flag && awaiting(s) ? `<div class="notice warn"><b>Flagged at receipt:</b> ${esc(s.flag)}</div>` : ""}
     ${(s.ledgerPending || []).length ? `<div class="notice warn">A ledger entry for this sample is still being saved. It is retried automatically.</div>` : ""}
     <div class="grid2">
-      <div class="panel stack"><h3>Workflow${s.routeName ? `: ${esc(s.routeName)}` : ""}</h3><ol class="rail">${rail}</ol>
+      <div class="panel stack"><h3>Workflow${s.routeName ? `: ${esc(s.routeName)}` : ""}${grouped(s) ? ` <span class="pill">with batch ${esc(s.batchId)}</span>` : ""}</h3><ol class="rail">${rail}</ol>
         ${qcBlock}
         <div class="actions" id="actBox">${actions}</div></div>
       <div class="stack">
@@ -3242,7 +3243,7 @@ function routeStopBoxes(s){
 function groupedForm(s){
   const ci = curIdx(s), ti = targetIdx(s), ri = redoIdx(s), inLab = ci >= 1 && ci < ti, canRedo = ri >= 0 && ci > ri && ci <= ti, after = !inLab && redoOk(s);
   const extra = (inLab && (canRedo || ci >= 1)) || after;
-  return `<div id="moveForm" class="stack" style="gap:10px">${batchNote(s)}
+  return `<div id="moveForm" class="stack" style="gap:10px"><p class="small muted" style="margin:0">Recorded with batch <button type="button" class="linkish mono" data-open="${esc(s.batchId)}">${esc(s.batchId)}</button>, on the batch page (see above).</p>
     ${extra ? `<details class="more" id="soloBox"><summary>${inLab ? "Re-assay, change the route or stop testing this sample alone" : "Re-assay this sample alone"}</summary>
       <div class="stack" style="gap:8px;margin-top:8px">
         <p class="small muted" style="margin:0">This takes ${esc(s.id)} out of batch ${esc(s.batchId)}: it carries on by itself from there, with its own certificate.</p>
@@ -3716,12 +3717,12 @@ function renderBoard(){
   // Release at once: limits and QC are for the people who evaluate (Results tab); the lab's board shows only the lab's work.
   const alerts = isStaff() && !relNow() ? list.filter(s => (s.results || s.amend) && openAlerts(s).length) : [], trends = isStaff() && (!relNow() || canEval()) ? crmTrendFlags() : [];
   // v24d: every released sample whose material is not yet on the shelf (or not yet confirmed there), those over the day allowed marked
-  const unstored = list.filter(s => s.stageKey === "released"), notStored = unstored.length, unstoredLate = unstored.filter(s => stageDue(s) && Date.now() > stageDue(s)).length;
+  const unstored = list.filter(s => s.stageKey === "released"), notStored = unitCount(unstored), unstoredLate = unitCount(unstored.filter(s => stageDue(s) && Date.now() > stageDue(s)));
   const dueNow = Date.now(), dueL = [...list.filter(s => overdueMaterials(s).length).map(s => ({ id: s.id, s, sec: s.section, route: s.route || "", items: overdueMaterials(s).map(m => m.item), n: overdueMaterials(s).length })),
     ...[...storeDue.values()].filter(x => !samples.has(x.id)).map(x => { const ms = (x.m || []).filter(m => m.dueAt && dueNow > m.dueAt); return { id: x.id, sec: x.sec, route: x.route, type: x.type, items: ms.map(m => m.item || "Material"), n: ms.length }; })]
     .filter(x => x.n && (!boardSec || x.sec === boardSec) && (!boardRoute || x.route === boardRoute));
   const dueS = dueL, dueM = dueL.reduce((n, x) => n + x.n, 0);
-  const flagged = waiting.filter(s => s.flag).length;
+  const flagged = unitCount(waiting.filter(s => s.flag));
   const relL = [...releasedToday.values()].filter(pass), reqL = isStaff() ? [...reqs.values()].filter(pass) : [];
   const confL = canEdit() ? [...confs.values()].filter(x => myConf(x)) : [];   // v24d: a witness's confirmation asked of the person signed in
   // v24c: every tile with a number opens the list of what it counts (and the lanes narrow to those samples when they are in the lab).
@@ -3740,15 +3741,16 @@ function renderBoard(){
     ...(isStaff() && !relNow() ? [{ k: "alerts", n: alerts.length, l: "Results past an action or permit limit, not yet recorded", tone: "bad", pick: alerts }] : []),
     ...(isStaff() && (!relNow() || canEval()) ? [{ k: "trends", n: trends.length, l: "Reference material trends", tone: "warn", link: ["batches", "Open Lab batches"],
       rows: trends.map(t => ({ id: "", type: t.crm + (t.k ? " " + t.k : ""), what: t.b ? "Batch " + t.b : "", where: t.msg })) }] : []),
-    ...(isStaff() ? [{ k: "req", n: reqL.length, l: "Re-assay requested", tone: "bad", rows: reqL.map(s => { const e = lastRedo(s); return sRow(s, "Requested" + (e ? ` by ${e.tech}${e.note ? ": " + e.note : ""}` : "")); }) }] : []),
-    { k: "rel", n: relL.length, l: "Results released today", tone: "ok", rows: relL.map(s => sRow(s, "Released " + fmt(s.relAt))) },
+    ...(isStaff() ? [{ k: "req", n: unitCount(reqL), l: "Re-assay requested", tone: "bad", rows: unitRows(reqL, s => { const e = lastRedo(s); return sRow(s, "Requested" + (e ? ` by ${e.tech}${e.note ? ": " + e.note : ""}` : "")); }) }] : []),
+    { k: "rel", n: unitCount(relL), l: "Results released today", tone: "ok", rows: unitRows(relL, s => sRow(s, "Released " + fmt(s.relAt))) },
     { k: "unstored", n: notStored, l: `Released, not yet put in storage${unstoredLate ? `, ${unstoredLate} over a day` : ""}`, tone: unstoredLate ? "warn" : "info", pick: unstored },
     { k: "retention", n: dueM, l: `Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}`, tone: "warn", link: ["storage", "Open Storage"],
       rows: dueS.map(x => x.s ? sRow(x.s, x.items.join(", ") + " past retention") : { id: x.id, type: x.type || "", what: x.route || "", where: x.items.join(", ") + " past retention" }) },
     { k: "recvToday", n: list.filter(s => isToday(recvOf(s))).length, l: "Received today", tone: "", pick: list.filter(s => isToday(recvOf(s))), hide: true },
     { k: "dueToday", n: list.filter(dueToday).length, l: "Results due today", tone: "", pick: list.filter(dueToday), hide: true }
   ];
-  sums.forEach(x => { if (!x.rows) x.rows = (x.pick || []).map(s => sRow(s)); if (x.link && !allowedTabs().includes(x.link[0])) delete x.link; });
+  // v24d: a batch processed as one counts once and is one row (its samples stay separate records)
+  sums.forEach(x => { if (x.pick){ x.n = unitCount(x.pick); if (!x.rows) x.rows = unitRows(x.pick, s => sRow(s)); } if (!x.rows) x.rows = []; if (x.link && !allowedTabs().includes(x.link[0])) delete x.link; });
   const cur = sums.find(x => x.k === boardPick && x.n);
   if (boardPick && !cur) boardPick = "";
   const shown = cur && cur.pick ? new Set(cur.pick) : null;
@@ -3791,7 +3793,7 @@ function renderBoard(){
   const lanes = laneDefs.map(x => {
     const items = list.filter(s => { const st = stage(s, s.stageKey); return (!shown || shown.has(s)) && (x.key === "__unknown" ? !st : relSet.has(s) ? x.key === "qc" : st && st.phase === x.key); })
       .sort((a, b) => (status(b).late - status(a).late) || (b.priority === "Urgent") - (a.priority === "Urgent") || a.stageAt - b.stageAt);
-    return `<div class="lane ph-${x.key}"><h4>${esc(x.name)} <span>${items.length}</span></h4>
+    return `<div class="lane ph-${x.key}"><h4>${esc(x.name)} <span${items.length !== laneCards(items).length ? ` title="${items.length} samples"` : ""}>${laneCards(items).length}</span></h4>
       <div class="cards">${laneCards(items).slice(0, 40).map(c => { if (c.docs) return batchChip(c, x.key); const s = c.s, stt = status(s), stp = stage(s, s.stageKey), od = overdueMaterials(s), tm = cardTime(s);
         return `<button class="chip ${tm.cls}${stt.late ? " late" : ""}${s.priority === "Urgent" ? " urgent" : ""}" data-open="${esc(s.id)}"${stageDue(s) && !stp?.final ? ` title="Due ${esc(fmt(stageDue(s)))}"` : ""}>
           <div class="ctop"><span class="cid">${esc(s.id)}${s.route ? ` <span class="rc">${esc(s.route)}</span>` : ""}</span></div>
@@ -4082,7 +4084,7 @@ async function register(){
     ids.forEach((id, i) => tagSets[i].forEach(tg => db.doc("tagidx/" + tagKey(tg)).set({ sid: id, tag: tg, at: now }).catch(() => {})));
     if (lab) ids.forEach(id => { flushLedger(id); syncStock(id); });
     msg.textContent = "";
-    $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? (mode === "register" ? "Sample registered." : "Sample submitted.") : `${n} samples ${mode === "register" ? "registered" : "submitted"}.`}</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>${batchName ? ` · ${esc(batchName)}` : ""}.` : ""} Write ${n === 1 ? "this ID" : "these IDs"} on the bag${n === 1 ? "" : "s"} or print the label${n === 1 ? "" : "s"}${lab ? " (received: on the Board under Received & logged)" : " (on the Board under Awaiting receipt until the lab receives it)"}:
+    $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? (mode === "register" ? "Sample registered." : "Sample submitted.") : `${n} samples ${mode === "register" ? "registered" : "submitted"}.`}</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>${batchName ? ` · ${esc(batchName)}` : ""}: processed as one, with one receipt, one workflow and one certificate.` : ""} Write ${n === 1 ? "this ID" : "these IDs"} on the bag${n === 1 ? "" : "s"} or print the label${n === 1 ? "" : "s"}${lab ? " (received: on the Board under Received & logged)" : " (on the Board under Awaiting receipt until the lab receives it)"}:
       <div class="label-strip" style="margin-top:8px">${ids.map((id, i) => `<code>${esc(id)}${tagSets[i].length ? ` · ${esc(tagSets[i].join(", "))}` : ""}</code>`).join("")}</div>
       <div class="small" style="margin-top:8px">Workflow: <span class="code">${esc(r.code)}</span> ${esc(r.name)}. Results about ${hoursLabel(routeTat(r))} after receipt.</div>
       <div class="row" style="margin-top:10px"><button type="button" class="btn primary" id="rLabels">Print ${n === 1 ? "label" : n + " labels"}</button><button type="button" class="btn" id="rCopy">Copy IDs</button>${n === 1 ? `<button type="button" class="btn" data-link="${esc(ids[0])}">Copy tracking link</button><button type="button" class="btn" data-open="${esc(ids[0])}">Track ${esc(ids[0])}</button>` : `<button type="button" class="btn" data-open="${esc(ref)}">Open the batch</button><button type="button" class="btn" data-link="${esc(ref)}">Copy batch link</button>`}<button type="button" class="btn" id="rSame">Same details again</button><button type="button" class="btn ghost" id="rAgain">${mode === "register" ? "Register more" : "Submit another"}</button></div></div>`;
@@ -7219,6 +7221,8 @@ function fileResults(s, f, inst, wit = ""){
     resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), fids: [...new Set([...(s.fids || []), f.id])],
     history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, ...(wit && twoPerson(s) ? { wit } : {}), note: `Results file ${f.name} attached` }] };
 }
+/* Waits (up to 4 s) until the samples just moved show here at analysis, so the file's plan is made again on what was written. */
+async function movedIn(ids){ const t0 = Date.now(); await sleep(150); while (Date.now() - t0 < 4000 && ids.some(id => { const s = bs(id); return s && !readyForResults(s) && curIdx(s) >= 1; })) await sleep(100); }
 /* Samples still in preparation when their results arrive move to their first analysis step, one step at a time, each step recorded. */
 async function moveToAnalysis(){
   const u = upState; if (!u?.plan || u.busy) return;
@@ -7232,7 +7236,7 @@ async function moveToAnalysis(){
   }));
   u.busy = false;
   toast(`${ok} sample(s) moved to analysis.`);
-  await new Promise(r => setTimeout(r, 300));
+  await movedIn(u.plan.notReady);
   if (upState === u){ u.rep = parseReport(u.grid, sampleIndex()); u.plan = u.rep.error ? null : planUpload(u.rep, u.scope); renderUpload(); }
 }
 /* The original file, kept once however many batches it fills: files/<ID> describes it, files/<ID>~1, ~2… hold it. */
@@ -7274,7 +7278,7 @@ async function saveUpload(){
       for (let i = ci + 1; i <= to; i++){ hist.push({ key: p[i].key, sn: p[i].name, at, by: session.u, tech: session.name, ref: u.file.name, note: `Moved on with results file ${u.file.name}` }); at += 1000; }
       return { stageKey: p[to].key, stageAt: at - 1000, history: hist };
     }));
-    await new Promise(r => setTimeout(r, 300));
+    await movedIn(u.plan.notReady);
     u.rep = parseReport(u.grid, sampleIndex()); u.plan = u.rep.error ? null : planUpload(u.rep, u.scope);
   }
   const P = u.plan || { batches: [], fresh: [], samples: [] };
@@ -7775,7 +7779,9 @@ let batchRecvBusy = false;
 function renderBatchView(v){
   const c = current, docs = c.docs, s0 = docs[0] || {}, waiting = docs.filter(awaiting);
   const bst = batchState(docs), ctx = `${c.batch}|${bst.bi}.${bst.waiting ? 1 : 0}.${bst.at.some(wqOf) ? 1 : 0}`;   // v24d: what is typed stays while the batch is at the same step
-  const cool = waiting.filter(s => typeOf(s.typeKey)?.cool != null), quick = waiting.filter(s => typeOf(s.typeKey)?.cool == null), two = quick.some(twoPerson);
+  // v24d: a batch processed as one is received as one, its cooler samples too (one cooler temperature for the batch)
+  const cool0 = waiting.filter(s => typeOf(s.typeKey)?.cool != null), gcool = cool0.filter(grouped), cool = cool0.filter(s => !grouped(s));
+  const quick = [...waiting.filter(s => typeOf(s.typeKey)?.cool == null), ...gcool], two = quick.some(twoPerson), lim = Math.min(...gcool.map(s => typeOf(s.typeKey).cool));
   const tally = {}; docs.forEach(s => { const st = status(s); tally[st.label] = (tally[st.label] || 0) + 1; });
   const done = docs.filter(s => curIdx(s) >= targetIdx(s)).length, etas = docs.filter(s => curIdx(s) < targetIdx(s) && !status(s).closed).map(s => projection(s).eta).filter(Boolean);
   const eta = etas.length ? Math.max(...etas) : 0, srcCol = docs.some(s => s.source);
@@ -7798,6 +7804,7 @@ function renderBatchView(v){
       <div class="form">${meBox("Received by")}
         <label class="f"><span>Date &amp; time received</span><input id="bvAt" type="datetime-local" value="${esc(keepAt || localInput(Date.now()))}"></label>
         ${two ? witnessField("bvWit") : ""}
+        ${gcool.length ? `<label class="f"><span>Cooler temperature on arrival (°C) <span class="req">*</span></span><input id="bvTemp" type="number" step="0.1" placeholder="Limit ${lim} °C"></label>` : ""}
         <label class="recv-toggle full"><input type="checkbox" id="bvOk" ${keepOk ? "checked" : ""}> All ${quick.length} bags match, seals intact, good condition</label></div>
       <div class="row"><button type="button" class="btn primary" id="bvRecvBtn" ${batchRecvBusy ? "disabled" : ""}>Confirm receipt of ${quick.length}</button>${cool.length ? `<span class="small">One by one (cooler temperature): ${cool.map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>`).join(", ")}</span>` : ""}</div>
     </div>` : ""}
@@ -7819,9 +7826,11 @@ async function receiveBatch(sids){
   if (!$("#bvOk")?.checked){ toast("Tick that the bags match, seals are intact and in good condition, or receive them one by one."); $("#bvOk")?.focus(); return; }
   const docs = current.docs.filter(s => sids.includes(s.id)), err = docs.map(s => receiptTimeError(s, at)).find(Boolean);
   if (err){ toast(err); $("#bvAt")?.focus(); return; }
+  const temp = $("#bvTemp") ? $("#bvTemp").value.trim() : "";
+  if ($("#bvTemp") && temp === ""){ toast("Record the cooler temperature on arrival."); $("#bvTemp")?.focus(); return; }
   if ($("#bvWit") && !wit){ toast("Two-person custody: choose the witness first."); $("#bvWit")?.focus(); return; }
   batchRecvBusy = true; $("#bvRecvBtn").disabled = true; $("#bvRecvBtn").textContent = "Receiving…";
-  const ok = await receiveMany(sids, at, wit, () => `Received with batch ${ref}`);
+  const ok = await receiveMany(sids, at, wit, () => `Received with batch ${ref}`, temp);
   batchRecvBusy = false;
   toast(`${ok} of ${sids.length} received`);
   if (current?.batch === ref) renderTrack();
@@ -8292,6 +8301,7 @@ function scanToOpen(){
     const poll = () => {
       const s = current?.body;
       if (s && (s.id === want || s.id === id) && tab === "track"){
+        if (grouped(s) && awaiting(s) && canEdit()){ openSample(s.batchId); return; }   // v24d: a bag of a batch: the batch is received as one
         const f = $("#moveForm"); if (f && awaiting(s) && canEdit()){ f.scrollIntoView({ block: "start", behavior: "smooth" }); setTimeout(() => $("#rcMass")?.focus({ preventScroll: true }), 300); }
         return;
       }
@@ -8311,13 +8321,16 @@ function scanToOpen(){
 })();
 
 /* ----- Receive several at once: the same write as a batch receipt (no cooler check, no mass), for the samples ticked. ----- */
-async function receiveMany(sids, at, wit, noteFor){
+async function receiveMany(sids, at, wit, noteFor, temp = ""){
   return pool(sids, 5, sid => sampleWrite(sid, s => {
     if (!awaiting(s)) return null;
     const t = typeOf(s.typeKey), w = twoPerson(s) ? wit : "", when = Math.max(at, (s.createdAt || 0) + 1000), warn = [];
+    if (t?.cool != null && temp === "") return null;   // a cooler sample needs its temperature (v24d: one reading for a batch's cooler)
+    const tp = t?.cool != null ? String(temp) : "";
+    if (tp !== "" && +tp > t.cool) warn.push(`cooler at ${tp} °C, above the ${t.cool} °C limit`);
     let holdH = null;
     if (t?.hold && s.collectedAt){ holdH = Math.max(0, (when - s.collectedAt) / HOUR); if (holdH > t.hold) warn.push(`holding time for ${t.holdWhat} exceeded: received ${hoursLabel(holdH)} after collection, limit ${hoursLabel(t.hold)}`); }
-    const recv = { bags: s.containers || 1, mass: null, unit: massUnit(s), seal: s.seal ? "ok" : "none", cond: "Good", temp: "", holdH, warn, ...(w ? { wit: w } : {}) };
+    const recv = { bags: s.containers || 1, mass: null, unit: massUnit(s), seal: s.seal ? "ok" : "none", cond: "Good", temp: tp, holdH, warn, ...(w ? { wit: w } : {}) };
     const note = noteFor(s) + (warn.length ? ". Receipt checks: " + warn.join("; ") : "");
     return { upd: { stageKey: "received", stageAt: when, receivedBy: session.name, receivedAt: when, recvAt: when, recv, onHand: true, flag: "", inMid: `${s.id}~in`,
         history: [...(s.history || []), { key: "received", sn: HEAD[1].name, at: when, by: session.u, tech: session.name, ref: "", note, ...(w ? { wit: w } : {}) }] },
@@ -8328,18 +8341,23 @@ const rmSel = new Set();
 let rmList = [], rmAt = "", rmWit = "", rmOk = false, rmBusy = false;
 const coolOf = s => typeOf(s.typeKey)?.cool != null;
 /* The Awaiting receipt list on the board, with ticks and one receipt for the ticked samples (lab staff). */
+/* v24d: a batch processed as one is one row and one tick (all its bags); one with a cooler sample is received on the batch page (one
+   cooler temperature for the batch). */
+const rmUnits = list => { const out = [], seen = new Map(); for (const s of list){ if (!grouped(s)){ out.push({ s, ms: [s] }); continue; } const g = seen.get(s.batchId); if (g) g.ms.push(s); else { const u = { s, ref: s.batchId, ms: [s] }; seen.set(s.batchId, u); out.push(u); } } return out; };
+const rmCool = u => u.ms.some(coolOf);
 function recvManyPanel(cur){
   rmList = cur.pick || [];
-  const ids = new Set(rmList.filter(s => !coolOf(s)).map(s => s.id));
+  const units = rmUnits(rmList), ids = new Set(units.filter(u => !rmCool(u)).flatMap(u => u.ms.map(s => s.id)));
   [...rmSel].forEach(id => { if (!ids.has(id)) rmSel.delete(id); });
-  const ticked = rmList.filter(s => rmSel.has(s.id)), two = ticked.some(twoPerson), n = ticked.length;
-  const row = s => `<tr><td>${coolOf(s) ? `<span class="small muted" title="Cooler temperature: receive it on its own record">one by one</span>` : `<input type="checkbox" data-rm="${esc(s.id)}" ${rmSel.has(s.id) ? "checked" : ""} aria-label="Tick ${esc(s.id)}">`}</td>
-    <td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>${tagText(s) ? `<div class="small muted mono">${esc(tagText(s))}</div>` : ""}</td>
+  const tickedU = units.filter(u => !rmCool(u) && u.ms.every(s => rmSel.has(s.id))), two = tickedU.some(u => u.ms.some(twoPerson)), n = tickedU.length;
+  const row = u => { const s = u.s;
+    return `<tr><td>${rmCool(u) ? (u.ref ? `<button type="button" class="linkish small" data-open="${esc(u.ref)}" title="Cooler temperature: one reading for the batch">on the batch page</button>` : `<span class="small muted" title="Cooler temperature: receive it on its own record">one by one</span>`) : `<input type="checkbox" ${u.ref ? `data-rmb="${esc(u.ref)}"` : `data-rm="${esc(s.id)}"`} ${u.ms.every(x => rmSel.has(x.id)) ? "checked" : ""} aria-label="Tick ${esc(u.ref || s.id)}">`}</td>
+    <td>${u.ref ? `<button type="button" class="linkish mono" data-open="${esc(u.ref)}">${esc(u.ref)}</button><div class="small"><b>Batch of ${nS(u.ms.length)}</b>${s.batchName ? ` · ${esc(s.batchName)}` : ""}</div>` : `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>${tagText(s) ? `<div class="small muted mono">${esc(tagText(s))}</div>` : ""}`}</td>
     <td>${esc(s.type || "")}${twoPerson(s) ? ` <span class="haz two" title="Two-person custody">2P</span>` : ""}</td><td>${esc([testOf(s.test)?.name, s.route].filter(Boolean).join(" · "))}</td>
-    <td>${esc(fmt(s.createdAt))}${s.handedTo ? `<div class="small muted">Handed to ${esc(s.handedTo)}</div>` : ""}</td></tr>`;
+    <td>${esc(fmt(s.createdAt))}${s.handedTo ? `<div class="small muted">Handed to ${esc(s.handedTo)}</div>` : ""}</td></tr>`; };
   return `<div class="panel pick-list stack" id="bdPick">
     <div class="pick-note"><span>Showing <b>${esc(cur.l)}</b>: ${cur.n}</span><span class="grow"></span><button type="button" class="btn ghost small" data-bpick="${cur.k}">Close</button></div>
-    <div class="tbl-wrap"><table class="cardy"><thead><tr><th><input type="checkbox" id="rmAll" aria-label="Tick all" ${ids.size && n === ids.size ? "checked" : ""}></th><th>Sample</th><th>Type</th><th>Analysis · route</th><th>Submitted</th></tr></thead><tbody>${rmList.slice(0, 100).map(row).join("")}</tbody></table></div>
+    <div class="tbl-wrap"><table class="cardy"><thead><tr><th><input type="checkbox" id="rmAll" aria-label="Tick all" ${ids.size && n === ids.size ? "checked" : ""}></th><th>Sample</th><th>Type</th><th>Analysis · route</th><th>Submitted</th></tr></thead><tbody>${units.slice(0, 100).map(row).join("")}</tbody></table></div>
     <div class="recv-many stack" id="rmBox">
       <div class="form">${meBox("Received by")}
         <label class="f"><span>Date &amp; time received</span><input id="rmAt" type="datetime-local" value="${esc(rmAt || localInput(Date.now()))}"></label>
@@ -8352,18 +8370,20 @@ function recvManyPanel(cur){
 function bindRecvMany(v){
   const box = $("#bdPick", v); if (!box || !$("#rmBox", box)) return;
   box.querySelectorAll("[data-rm]").forEach(c => c.onchange = () => { c.checked ? rmSel.add(c.dataset.rm) : rmSel.delete(c.dataset.rm); renderBoard(); });
-  $("#rmAll", box).onchange = e => { rmList.filter(s => !coolOf(s)).forEach(s => e.target.checked ? rmSel.add(s.id) : rmSel.delete(s.id)); renderBoard(); };
+  box.querySelectorAll("[data-rmb]").forEach(c => c.onchange = () => { rmList.filter(s => grouped(s) && s.batchId === c.dataset.rmb).forEach(s => c.checked ? rmSel.add(s.id) : rmSel.delete(s.id)); renderBoard(); });
+  $("#rmAll", box).onchange = e => { rmUnits(rmList).filter(u => !rmCool(u)).flatMap(u => u.ms).forEach(s => e.target.checked ? rmSel.add(s.id) : rmSel.delete(s.id)); renderBoard(); };
   $("#rmAt", box).onchange = e => { rmAt = e.target.value; };
   $("#rmOk", box).onchange = e => { rmOk = e.target.checked; };
   const w = $("#rmWit", box); if (w){ if (rmWit) w.value = rmWit; w.onchange = () => { rmWit = w.value; }; }
   $("#rmBtn", box).onclick = receiveTicked;
   $("#rmScan", box).onclick = () => openScanner({ title: "Scan the bags", multi: true, hint: "Each bag scanned is ticked on the Awaiting receipt list. Press Done, then receive them.", onClose: () => renderBoard(),
     onCode: code => {
-      const c = code.toUpperCase(), hits = rmList.filter(s => s.id === c || s.batchId === c || (s.tags || []).some(t => String(t).toUpperCase() === c));
-      if (!hits.length) return { ok: false, msg: `${code}: not waiting for receipt (or hidden by the board's filters)` };
-      const cool = hits.filter(coolOf), ok = hits.filter(s => !coolOf(s));
-      ok.forEach(s => rmSel.add(s.id));
-      return ok.length ? { ok: true, msg: ok.length === 1 ? `${ok[0].id} ticked` : `${ok.length} samples of ${code} ticked` } : { ok: false, msg: `${cool[0].id}: needs its cooler temperature, receive it on its own record` };
+      const c = code.toUpperCase(), found = rmList.filter(s => s.id === c || s.batchId === c || (s.tags || []).some(t => String(t).toUpperCase() === c));
+      if (!found.length) return { ok: false, msg: `${code}: not waiting for receipt (or hidden by the board's filters)` };
+      // a bag of a batch processed as one ticks its batch (v24d)
+      const us = rmUnits(rmList).filter(u => u.ms.some(s => found.includes(s))), cool = us.filter(rmCool), ok = us.filter(u => !rmCool(u));
+      ok.forEach(u => u.ms.forEach(s => rmSel.add(s.id)));
+      return ok.length ? { ok: true, msg: ok.map(u => u.ref ? `batch ${u.ref} (${nS(u.ms.length)}) ticked` : `${u.s.id} ticked`).join("; ") } : { ok: false, msg: cool[0].ref ? `${cool[0].ref}: needs its cooler temperature, receive the batch on its page` : `${cool[0].s.id}: needs its cooler temperature, receive it on its own record` };
     } });
 }
 async function receiveTicked(){
@@ -8375,7 +8395,7 @@ async function receiveTicked(){
   const wit = $("#rmWit") ? val("#rmWit") : "";
   if ($("#rmWit") && !wit){ toast("Two-person custody: choose the witness first."); $("#rmWit")?.focus(); return; }
   rmBusy = true; renderBoard();
-  const ok = await receiveMany(ids, at, wit, () => "Received with others from the board");
+  const ok = await receiveMany(ids, at, wit, s => grouped(s) ? `Received with batch ${s.batchId}` : "Received with others from the board");
   rmBusy = false; rmSel.clear(); rmOk = false; rmAt = ""; rmWit = "";
   toast(`${ok} of ${ids.length} received`);
   renderBoard();
@@ -8660,7 +8680,8 @@ function bwRail(st, ref){
       if (i === ti && cert) meta += ` · batch certificate <b class="mono">${esc(cert.no)}</b>`;
       if (i === ti + 1) meta += ` · ${nS(at.length)} kept`;
     } else if (i === cur){
-      if (i === ti){ const n = at.filter(resIn).length; meta = n < at.length ? `Waiting for the results: ${n} of ${at.length} in` : relNow() ? "All results in: release them below" : "All results in: waiting for a lab supervisor to release them"; }
+      if (i === 0) meta = `Waiting for receipt: ${nS(at.length)}`;
+      else if (i === ti){ const n = at.filter(resIn).length; meta = n < at.length ? `Waiting for the results: ${n} of ${at.length} in` : relNow() ? "All results in: release them below" : "All results in: waiting for a lab supervisor to release them"; }
       else if (i === ti + 1){
         const left = at.filter(s => keptMaterials(s).some(m => !m.loc)).length;
         meta = q && q.kind === "store" ? `Waiting for <b>${esc(q.wit)}</b> to confirm the storage (put away by ${esc(q.tech)})` : left ? `To put away: ${nS(left)}` : at.some(twoPerson) ? "On the shelf: a second person confirms the storage" : "";
@@ -8731,7 +8752,9 @@ function bwPanel(c){
     out.length ? `Left the workflow (rejected, stopped or closed): ${idLinks(out)}` : ""].filter(Boolean);
   const head = n => `<h3>Workflow for the batch${st.lead?.routeName ? `: ${esc(st.lead.routeName)}` : ""} <span class="pill">${nS(n)} together</span></h3>`;
   if (!st.lead){
-    if (st.mem.length) return `<div class="panel stack" id="bwBox">${head(st.mem.length)}<p class="small muted" style="margin:0">Once received, the samples go through the workflow together: one card on the board, every step recorded here for all of them at once.</p></div>`;
+    if (st.mem.length){ const lead = st.mem[0];
+      return `<div class="panel stack" id="bwBox">${head(st.mem.length)}${bwRail({ plan: planOf(lead), bi: 0, ti: targetIdx(lead), lead, at: st.mem, cur: 0 }, ref)}
+        <p class="small muted" style="margin:0">${canEdit() ? `Receive the batch above: one receipt for all ${nS(st.mem.length)}. ` : ""}Then they go through the workflow together: one card on the board, every step recorded here for all of them at once.</p></div>`; }
     return `<div class="panel stack" id="bwBox"><h3>Workflow for the batch</h3>${certLine}<p class="small muted" style="margin:0">No sample of this batch is in the lab's workflow any more.</p>${asides.length ? `<div class="small muted">${asides.join("<br>")}</div>` : ""}</div>`;
   }
   const { plan, bi, ti, at, waiting } = st, two = at.some(twoPerson), next = plan[bi + 1], n = at.length;
@@ -8899,8 +8922,8 @@ async function bwAnswer(kind){
 /* On a member's own record: it moves with its batch; it can be taken out to go its own way. */
 function batchNote(s){
   const ref = s.batchId, q = wqOf(s);
-  return `<div class="notice stack" id="inBatch" style="gap:8px"><div>${esc(s.id)} is processed with batch <button type="button" class="linkish mono" data-open="${esc(ref)}">${esc(ref)}</button> (${esc(s.batchSize)} samples): its steps, the release of its results and its storage are recorded for the whole batch, on the batch page.${q ? ` <b>Waiting for ${esc(q.wit)} to confirm ${q.kind === "store" ? "the storage" : esc(wqText(s, q))}</b>${myConf(s) ? ": confirm it on the batch page" : ""}.` : ""}</div>
-    <div class="row" style="gap:8px"><button type="button" class="btn primary" data-open="${esc(ref)}">Open the batch</button>${canEdit() && !q ? `<button type="button" class="btn ghost" id="soloBtn">Take it out of the batch</button>` : ""}</div></div>`;
+  return `<div class="notice stack" id="inBatch" style="gap:8px"><div>${esc(s.id)} is processed with batch <button type="button" class="linkish mono" data-open="${esc(ref)}">${esc(ref)}</button> (${esc(s.batchSize)} samples): it is received, moved through its steps, released and stored with the whole batch, on the batch page.${q ? ` <b>Waiting for ${esc(q.wit)} to confirm ${q.kind === "store" ? "the storage" : esc(wqText(s, q))}</b>${myConf(s) ? ": confirm it on the batch page" : ""}.` : ""}</div>
+    <div class="row" style="gap:8px"><button type="button" class="btn primary" data-open="${esc(ref)}">${awaiting(s) && canEdit() ? "Receive the batch" : "Open the batch"}</button>${canEdit() && !q ? `<button type="button" class="btn ghost" id="soloBtn">Take it out of the batch</button>` : ""}</div></div>`;
 }
 async function doSolo(){
   const s0 = current?.body; if (!s0 || !batchOf(s0)) return;
@@ -9008,6 +9031,20 @@ function confRows(list, sRow){
     out.push(sRow(x, `${q.kind === "store" ? "Storage: " : ""}${wqText(x)} · asked by ${q.tech}`));
   }
   return out;
+}
+
+/* ---------- counting work, not bags: a batch is one item on the board, its tiles, the Today strip and the Board tab ---------- */
+const unitKey = s => grouped(s) ? "B:" + s.batchId : s.id;
+const unitCount = list => new Set(list.map(unitKey)).size;
+/* Rows for a board list: a sample on its own, or one row for a batch (its reference, "Batch of n samples", where its samples are). */
+function unitRows(list, rowOf){
+  const out = [], seen = new Map();
+  for (const s of list){
+    if (!grouped(s)){ out.push(rowOf(s)); continue; }
+    const g = seen.get(s.batchId); if (g){ g.n++; g.where.add(rowOf(s).where); continue; }
+    const r = rowOf(s), x = { ...r, id: s.batchId, n: 1, where: new Set([r.where]) }; seen.set(s.batchId, x); out.push(x);
+  }
+  return out.map(r => r.n ? { id: r.id, type: r.type, what: `Batch of ${nS(r.n)}${r.what ? " · " + r.what : ""}`, where: [...r.where].filter(Boolean).join(", ") } : r);
 }
 
 /* ---------- upgrade of records written by earlier versions (runs once, under a lease) ---------- */

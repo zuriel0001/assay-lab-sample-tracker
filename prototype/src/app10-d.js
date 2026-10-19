@@ -18,12 +18,12 @@ function renderBoard(){
   // Release at once: limits and QC are for the people who evaluate (Results tab); the lab's board shows only the lab's work.
   const alerts = isStaff() && !relNow() ? list.filter(s => (s.results || s.amend) && openAlerts(s).length) : [], trends = isStaff() && (!relNow() || canEval()) ? crmTrendFlags() : [];
   // v24d: every released sample whose material is not yet on the shelf (or not yet confirmed there), those over the day allowed marked
-  const unstored = list.filter(s => s.stageKey === "released"), notStored = unstored.length, unstoredLate = unstored.filter(s => stageDue(s) && Date.now() > stageDue(s)).length;
+  const unstored = list.filter(s => s.stageKey === "released"), notStored = unitCount(unstored), unstoredLate = unitCount(unstored.filter(s => stageDue(s) && Date.now() > stageDue(s)));
   const dueNow = Date.now(), dueL = [...list.filter(s => overdueMaterials(s).length).map(s => ({ id: s.id, s, sec: s.section, route: s.route || "", items: overdueMaterials(s).map(m => m.item), n: overdueMaterials(s).length })),
     ...[...storeDue.values()].filter(x => !samples.has(x.id)).map(x => { const ms = (x.m || []).filter(m => m.dueAt && dueNow > m.dueAt); return { id: x.id, sec: x.sec, route: x.route, type: x.type, items: ms.map(m => m.item || "Material"), n: ms.length }; })]
     .filter(x => x.n && (!boardSec || x.sec === boardSec) && (!boardRoute || x.route === boardRoute));
   const dueS = dueL, dueM = dueL.reduce((n, x) => n + x.n, 0);
-  const flagged = waiting.filter(s => s.flag).length;
+  const flagged = unitCount(waiting.filter(s => s.flag));
   const relL = [...releasedToday.values()].filter(pass), reqL = isStaff() ? [...reqs.values()].filter(pass) : [];
   const confL = canEdit() ? [...confs.values()].filter(x => myConf(x)) : [];   // v24d: a witness's confirmation asked of the person signed in
   // v24c: every tile with a number opens the list of what it counts (and the lanes narrow to those samples when they are in the lab).
@@ -42,15 +42,16 @@ function renderBoard(){
     ...(isStaff() && !relNow() ? [{ k: "alerts", n: alerts.length, l: "Results past an action or permit limit, not yet recorded", tone: "bad", pick: alerts }] : []),
     ...(isStaff() && (!relNow() || canEval()) ? [{ k: "trends", n: trends.length, l: "Reference material trends", tone: "warn", link: ["batches", "Open Lab batches"],
       rows: trends.map(t => ({ id: "", type: t.crm + (t.k ? " " + t.k : ""), what: t.b ? "Batch " + t.b : "", where: t.msg })) }] : []),
-    ...(isStaff() ? [{ k: "req", n: reqL.length, l: "Re-assay requested", tone: "bad", rows: reqL.map(s => { const e = lastRedo(s); return sRow(s, "Requested" + (e ? ` by ${e.tech}${e.note ? ": " + e.note : ""}` : "")); }) }] : []),
-    { k: "rel", n: relL.length, l: "Results released today", tone: "ok", rows: relL.map(s => sRow(s, "Released " + fmt(s.relAt))) },
+    ...(isStaff() ? [{ k: "req", n: unitCount(reqL), l: "Re-assay requested", tone: "bad", rows: unitRows(reqL, s => { const e = lastRedo(s); return sRow(s, "Requested" + (e ? ` by ${e.tech}${e.note ? ": " + e.note : ""}` : "")); }) }] : []),
+    { k: "rel", n: unitCount(relL), l: "Results released today", tone: "ok", rows: unitRows(relL, s => sRow(s, "Released " + fmt(s.relAt))) },
     { k: "unstored", n: notStored, l: `Released, not yet put in storage${unstoredLate ? `, ${unstoredLate} over a day` : ""}`, tone: unstoredLate ? "warn" : "info", pick: unstored },
     { k: "retention", n: dueM, l: `Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}`, tone: "warn", link: ["storage", "Open Storage"],
       rows: dueS.map(x => x.s ? sRow(x.s, x.items.join(", ") + " past retention") : { id: x.id, type: x.type || "", what: x.route || "", where: x.items.join(", ") + " past retention" }) },
     { k: "recvToday", n: list.filter(s => isToday(recvOf(s))).length, l: "Received today", tone: "", pick: list.filter(s => isToday(recvOf(s))), hide: true },
     { k: "dueToday", n: list.filter(dueToday).length, l: "Results due today", tone: "", pick: list.filter(dueToday), hide: true }
   ];
-  sums.forEach(x => { if (!x.rows) x.rows = (x.pick || []).map(s => sRow(s)); if (x.link && !allowedTabs().includes(x.link[0])) delete x.link; });
+  // v24d: a batch processed as one counts once and is one row (its samples stay separate records)
+  sums.forEach(x => { if (x.pick){ x.n = unitCount(x.pick); if (!x.rows) x.rows = unitRows(x.pick, s => sRow(s)); } if (!x.rows) x.rows = []; if (x.link && !allowedTabs().includes(x.link[0])) delete x.link; });
   const cur = sums.find(x => x.k === boardPick && x.n);
   if (boardPick && !cur) boardPick = "";
   const shown = cur && cur.pick ? new Set(cur.pick) : null;
@@ -93,7 +94,7 @@ function renderBoard(){
   const lanes = laneDefs.map(x => {
     const items = list.filter(s => { const st = stage(s, s.stageKey); return (!shown || shown.has(s)) && (x.key === "__unknown" ? !st : relSet.has(s) ? x.key === "qc" : st && st.phase === x.key); })
       .sort((a, b) => (status(b).late - status(a).late) || (b.priority === "Urgent") - (a.priority === "Urgent") || a.stageAt - b.stageAt);
-    return `<div class="lane ph-${x.key}"><h4>${esc(x.name)} <span>${items.length}</span></h4>
+    return `<div class="lane ph-${x.key}"><h4>${esc(x.name)} <span${items.length !== laneCards(items).length ? ` title="${items.length} samples"` : ""}>${laneCards(items).length}</span></h4>
       <div class="cards">${laneCards(items).slice(0, 40).map(c => { if (c.docs) return batchChip(c, x.key); const s = c.s, stt = status(s), stp = stage(s, s.stageKey), od = overdueMaterials(s), tm = cardTime(s);
         return `<button class="chip ${tm.cls}${stt.late ? " late" : ""}${s.priority === "Urgent" ? " urgent" : ""}" data-open="${esc(s.id)}"${stageDue(s) && !stp?.final ? ` title="Due ${esc(fmt(stageDue(s)))}"` : ""}>
           <div class="ctop"><span class="cid">${esc(s.id)}${s.route ? ` <span class="rc">${esc(s.route)}</span>` : ""}</span></div>
@@ -384,7 +385,7 @@ async function register(){
     ids.forEach((id, i) => tagSets[i].forEach(tg => db.doc("tagidx/" + tagKey(tg)).set({ sid: id, tag: tg, at: now }).catch(() => {})));
     if (lab) ids.forEach(id => { flushLedger(id); syncStock(id); });
     msg.textContent = "";
-    $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? (mode === "register" ? "Sample registered." : "Sample submitted.") : `${n} samples ${mode === "register" ? "registered" : "submitted"}.`}</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>${batchName ? ` · ${esc(batchName)}` : ""}.` : ""} Write ${n === 1 ? "this ID" : "these IDs"} on the sample bag${n === 1 ? "" : "s"}, or print the label${n === 1 ? "" : "s"}${lab ? ". Received now: on the Board under “Received & logged”" : walk ? ". It shows “Awaiting receipt” on the Board until a lab technician confirms it" : ", then bring or send the sample to the Assay Lab. It shows “Awaiting receipt” on the Board until a lab technician confirms it has arrived"}:
+    $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? (mode === "register" ? "Sample registered." : "Sample submitted.") : `${n} samples ${mode === "register" ? "registered" : "submitted"}.`}</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>${batchName ? ` · ${esc(batchName)}` : ""}: processed as one, with one receipt, one workflow and one certificate.` : ""} Write ${n === 1 ? "this ID" : "these IDs"} on the sample bag${n === 1 ? "" : "s"}, or print the label${n === 1 ? "" : "s"}${lab ? ". Received now: on the Board under “Received & logged”" : walk ? ". It shows “Awaiting receipt” on the Board until a lab technician confirms it" : ", then bring or send the sample to the Assay Lab. It shows “Awaiting receipt” on the Board until a lab technician confirms it has arrived"}:
       <div class="label-strip" style="margin-top:8px">${ids.map((id, i) => `<code>${esc(id)}${tagSets[i].length ? ` · ${esc(tagSets[i].join(", "))}` : ""}</code>`).join("")}</div>
       <div class="small" style="margin-top:8px">Workflow: <span class="code">${esc(r.code)}</span> ${esc(r.name)}. Results about ${hoursLabel(routeTat(r))} after the lab receives ${n === 1 ? "it" : "them"} (an estimate).</div>
       <div class="row" style="margin-top:10px"><button type="button" class="btn primary" id="rLabels">Print ${n === 1 ? "label" : n + " labels"}</button><button type="button" class="btn" id="rCopy">Copy IDs</button>${n === 1 ? `<button type="button" class="btn" data-link="${esc(ids[0])}">Copy tracking link</button><button type="button" class="btn" data-open="${esc(ids[0])}">Track ${esc(ids[0])}</button>` : `<button type="button" class="btn" data-open="${esc(ref)}">Open the batch</button><button type="button" class="btn" data-link="${esc(ref)}">Copy batch link</button>`}<button type="button" class="btn" id="rSame">Same details again</button><button type="button" class="btn ghost" id="rAgain">${mode === "register" ? "Register more" : "Submit another"}</button></div></div>`;

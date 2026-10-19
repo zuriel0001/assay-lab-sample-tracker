@@ -49,10 +49,10 @@ function renderTrack(){
     v.dataset.ctx = "";
     const staff = isStaff() && allowedTabs().includes("board"), list = [...samples.values()];
     const today = staff ? [
-      ["in", "recvToday", list.filter(s => isToday(recvOf(s))).length, "Received today"],
-      ["due", "dueToday", list.filter(dueToday).length, "Results due today"],
-      ["late", "late", list.filter(s => { const i = curIdx(s); return i > 0 && i < targetIdx(s) && status(s).late; }).length, "Running late"],
-      ["rel", "rel", releasedToday.size, "Results released today"]   // each opens its list on the board (v24c); a zero does nothing
+      ["in", "recvToday", unitCount(list.filter(s => isToday(recvOf(s)))), "Received today"],   // v24d: a batch counts once
+      ["due", "dueToday", unitCount(list.filter(dueToday)), "Results due today"],
+      ["late", "late", unitCount(list.filter(s => { const i = curIdx(s); return i > 0 && i < targetIdx(s) && status(s).late; })), "Running late"],
+      ["rel", "rel", unitCount([...releasedToday.values()]), "Results released today"]   // each opens its list on the board (v24c); a zero does nothing
     ] : [];
     v.innerHTML = `<div class="stack">
       <div class="panel hero"><h2>Find a sample</h2>
@@ -224,7 +224,7 @@ function buildTrack(v, s){
   const ci = curIdx(s);
   let actions;
   if (!canEdit()) actions = `<p class="small muted" style="margin:0">${session ? "You can view this sample. Only lab staff can update it." : "Only lab staff update samples. <button class='btn ghost small' data-goto='login'>Staff sign in</button>"}</p>`;
-  else if (awaiting(s)) actions = receiptForm(s);
+  else if (awaiting(s)) actions = grouped(s) ? groupedForm(s) : receiptForm(s);   // v24d: a batch is received as one, on the batch page
   else if (st.closed) actions = `<p class="small muted" style="margin:0">This sample is closed${s.closedAt ? ` (${fmtFull(s.closedAt)})` : ""}.${(s.materials || []).length ? " A lab supervisor can reverse a material movement recorded by mistake, under Retained material." : ""}</p>`;
   else if (ci >= 0 && ci < tIdx) actions = grouped(s) ? groupedForm(s) : moveForm(s);
   else actions = grouped(s) ? groupedForm(s) : releasedForm(s);
@@ -240,10 +240,11 @@ function buildTrack(v, s){
         <div class="eta${st.late && !st.post && !st.closed ? " late" : !proj.eta && !st.closed ? " done" : ""}">${etaHtml}</div>
       </div>
     </div>
+    ${grouped(s) ? batchNote(s) : ""}
     ${s.flag && awaiting(s) ? `<div class="notice warn"><b>Flagged at receipt:</b> ${esc(s.flag)}</div>` : ""}
     ${(s.ledgerPending || []).length ? `<div class="notice warn">A ledger entry for this sample is still being saved. It is retried automatically.</div>` : ""}
     <div class="grid2">
-      <div class="panel stack"><h3>Workflow${s.routeName ? `: ${esc(s.routeName)}` : ""}</h3><ol class="rail">${rail}</ol>
+      <div class="panel stack"><h3>Workflow${s.routeName ? `: ${esc(s.routeName)}` : ""}${grouped(s) ? ` <span class="pill">with batch ${esc(s.batchId)}</span>` : ""}</h3><ol class="rail">${rail}</ol>
         ${qcBlock}
         <div class="actions" id="actBox">${actions}</div></div>
       <div class="stack">
@@ -367,7 +368,7 @@ function routeStopBoxes(s){
 function groupedForm(s){
   const ci = curIdx(s), ti = targetIdx(s), ri = redoIdx(s), inLab = ci >= 1 && ci < ti, canRedo = ri >= 0 && ci > ri && ci <= ti, after = !inLab && redoOk(s);
   const extra = (inLab && (canRedo || ci >= 1)) || after;
-  return `<div id="moveForm" class="stack" style="gap:10px">${batchNote(s)}
+  return `<div id="moveForm" class="stack" style="gap:10px"><p class="small muted" style="margin:0">Recorded with batch <button type="button" class="linkish mono" data-open="${esc(s.batchId)}">${esc(s.batchId)}</button>, on the batch page (see above).</p>
     ${extra ? `<details class="more" id="soloBox"><summary>${inLab ? "Re-assay, change the route or stop testing this sample alone" : "Re-assay this sample alone"}</summary>
       <div class="stack" style="gap:8px;margin-top:8px">
         <p class="small muted" style="margin:0">This takes ${esc(s.id)} out of batch ${esc(s.batchId)}: it carries on by itself from there, with its own certificate.</p>
