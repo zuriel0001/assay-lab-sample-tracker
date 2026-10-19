@@ -9010,7 +9010,6 @@ function jobBlock(){
     <div class="tbl-wrap"><table class="jrows"><thead><tr><th><input type="checkbox" id="jAll" aria-label="Tick all" checked></th><th>Sample</th><th>Code</th><th>Description</th><th>Analysis</th></tr></thead><tbody id="jRows"></tbody></table></div>
     <div class="row" style="gap:8px"><select class="inp" id="jAdd" style="width:auto;max-width:100%" aria-label="Add a sample"><option value="">+ Add a sample…</option>${JOB_TYPES.map(t => `<optgroup label="${esc(typeOf(t)?.name || t)}">${(ptField(t).o || []).map(p => `<option value="${esc(t + "|" + p)}">${esc(p)}</option>`).join("")}</optgroup>`).join("")}</select>
       <span class="small" id="jInfo"></span></div>
-    <p class="small muted" style="margin:0">Codes follow the shift and date, as on the plant's reports; type over any code or description to change it. Untick what was not sampled.</p>
   </div>`;
 }
 const jobTestOpts = (t, sel) => typeTests(typeOf(t)).filter(k => testOn(k) || k === sel).map(k => `<option value="${esc(k)}" ${k === sel ? "selected" : ""}>${esc(testOf(k)?.name || k)}</option>`).join("");
@@ -9032,7 +9031,7 @@ function jobHints(){
   job.rows.forEach((r, i) => { if (!r.on) return; const k = normKey(r.code); if (!k) return; if (seen.has(k)){ dup.add(i); dup.add(seen.get(k)); } else seen.set(k, i); });
   document.querySelectorAll("#jRows .j-code").forEach(el => el.classList.toggle("dup", dup.has(+el.dataset.j) || (job.rows[+el.dataset.j].on && !el.value.trim())));
   const info = $("#jInfo");
-  if (info){ info.textContent = dup.size ? "Same code twice" : `${on.length} of ${job.rows.length} samples ticked`; info.classList.toggle("bad-t", dup.size > 0); }
+  if (info){ info.textContent = dup.size ? "Same code twice" : `${on.length} of ${job.rows.length} samples ticked · untick what was not sampled`; info.classList.toggle("bad-t", dup.size > 0); }
   const all = $("#jAll"); if (all) all.checked = on.length === job.rows.length;
   submitLabel();
 }

@@ -32,7 +32,8 @@ const qrOf = (() => { const page = require("fs").readFileSync(path.join(process.
   // A logo the server would refuse (api-tests.js) is put straight into the database, to show the page ignores it too.
   "v15-tests.js": [['await A.evaluate(() => window.__dbPush("settings/stages", { ...window.__mirror["settings/stages"], logo: "javascript:alert(1)" })); await A.waitForTimeout(200);',
     'await H.broadcast("settings/stages", { ...store["settings/stages"], logo: "javascript:alert(1)" }); await A.waitForTimeout(400);']],
-  "v16-tests.js": [['const src = fs.readFileSync(H.FILE.replace("file://", ""), "utf8");', 'const src = fs.readFileSync(require("path").join(process.env.AZ_ROOT, "app/index.html"), "utf8");']]   // this build's page
+  "v16-tests.js": [['const src = fs.readFileSync(H.FILE.replace("file://", ""), "utf8");', 'const src = fs.readFileSync(require("path").join(process.env.AZ_ROOT, "app/index.html"), "utf8");']],   // this build's page
+  "v26-tests.js": [['const src = require("fs").readFileSync(H.FILE.replace("file://", ""), "utf8");', 'const src = require("fs").readFileSync(require("path").join(process.env.AZ_ROOT, "app/index.html"), "utf8");']]   // this build's page
 };
 let bad = 0;
 for (const s of suites){

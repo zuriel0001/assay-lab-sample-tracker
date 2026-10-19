@@ -89,6 +89,9 @@ Anyone can still register a sample at the lab (it waits for a technician's recei
   with its own results), one put-away, and for a critical batch one confirmation by the witness. A sample that needs
   something different is taken out of the batch (*Take it out of the batch* on its record, or a re-assay) and carries
   on by itself.
+- Submit a shift's samples with *Shift job*: pick the template (Mill shift, Elution run, Carbon activity), the shift and the date; the
+  codes are written as on the plant's reports; untick what was not sampled. The job is received as one, and the lab's report attached to
+  it releases every sample on one certificate.
 - Give a second account the *Viewer* role and the *Metallurgy* department (Settings): it sees the *Results* tab with each
   result's flags and records evaluations; *Re-assay requested* appears on the lab's board. A free personal account
   (outlook.com) works for a second test person.
@@ -203,7 +206,7 @@ admin is added to the account list on their first visit to Settings; upgrades an
 member signs in; permission errors from the server are shown as such; the header says *Test system*; the prototype's
 explanatory paragraphs are taken out (labels, warnings, status lines and each route's own description stay).
 
-### Test results (2026-10-18, v26 with the evening's sample type, analysis, purpose, section, board and type-size changes)
+### Test results (2026-10-19, v26 with shift jobs)
 
 | Suite | Result |
 |---|---|
@@ -221,17 +224,18 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 | Prototype `v14-tests.js` | 27 / 27 (Settings tabs, lab working hours, bag labels: each QR code holds this site's tracking link) |
 | Prototype `work-hours-unit.js` | 14 / 14 |
 | Prototype `v15-tests.js` | 46 / 46 (design refresh: tabs, header, theme, board chips, wall screen, progress, Today, logo) |
-| Prototype `v16-tests.js` | 43 / 43 (walk-ins without sign-in, Submit after sign-in, 80% passing 75 µm, reference material edits and history, Other reason, receiver, board tiles and lanes, ZIJIN) |
+| Prototype `v16-tests.js` | 42 / 42 (walk-ins without sign-in, Submit after sign-in, 80% passing 75 µm, reference material edits and history, Other reason, receiver, board tiles and lanes, ZIJIN) |
 | Prototype `v17-tests.js` | 25 / 25 (one entry tab: Register signed out, Submit signed in with Received now for lab staff; handed to and badge number) |
 | Prototype `v18-tests.js` | 71 / 71 (results from the lab's own CSV and Excel reports, kept files, drafts, No QC in this run, batch steps, re-assay from Storage and the Ledger, the shorter form, site sample code and badge). Needs the lab's two real reports, which are not in GitHub; without them it is skipped. |
 | Prototype `v20-tests.js` | 71 / 71 (blind QA/QC re-assay: picks, blind IDs, what technicians see, comparisons on both records; a batch or a single sample on Submit and Register; the batch page and receiving a batch; the custody log scrolling) |
 | Prototype `v21-tests.js` | 60 / 60 (lab batches optional, header search suggestions, recently opened, same details again, phone tables as cards, batch progress, wording) |
 | Prototype `v22-tests.js` | 29 / 29 (no QA/QC review step unless Settings use it: release from the last analysis step, Ready for release on the board, picked results not missing, sampling-point limits) |
+| Prototype `v26-tests.js` | 31 / 31 on the prototype and on this build (shift jobs: the Mill shift, Elution run and Carbon activity templates and their codes, one job received as one, a report releasing every sample on one certificate by analysis, materials by item, points filling in their analysis, CIL / CIP as CIL) |
 | Prototype `v25-tests.js` | 116 / 116 on the prototype and on this build (a batch processed as one: counted once and received as one, one board card, one workflow, one results file, one release on one batch certificate, one put-away, a sample taken out of its batch, a critical batch confirmed once by its witness; on a critical sample the witness confirms the storage and a disposal from their own account; the workflow complete once the material is on the shelf; from the last lab step the sample waits on Results released, released when its results are saved, two-person custody with a witness; scan a label, including the camera reading a printed label; receive several from the board; disposal witness, asked on the row being disposed; monthly ledger sign-off and summary; a results file never holds the release; turnaround; released results ticked on the workflow, the closing step too) |
-| Prototype `v24-tests.js` | 88 / 88 on the prototype and on this build (release at once, any results file accepted (a PDF, a file naming no samples), departments and evaluation, Results tab, re-assay requests, Belt cut sample, testwork as purpose, the new Submit form, Batches, Storage, Ledger, concise Routes, 16 px text, sign-off still selectable; v24c: sample types in Ore, Processing, Gold room, Environment and QC with no testwork or duplicate types, AuFx-named fire assay, an analysis list of exactly the sample type's own analyses, Environment from any site, every board tile with a number opening its list, What it is for and Section limited to what fits the sample type, 18 px text, Received now unticked so submissions wait under Awaiting receipt) |
+| Prototype `v24-tests.js` | 89 / 89 on the prototype and on this build (release at once, any results file accepted (a PDF, a file naming no samples), departments and evaluation, Results tab, re-assay requests, Belt cut sample, testwork as purpose, the new Submit form, Batches, Storage, Ledger, concise Routes, 16 px text, sign-off still selectable; v24c: sample types in Ore, Processing, Gold room, Environment and QC with no testwork or duplicate types, AuFx-named fire assay, an analysis list of exactly the sample type's own analyses, Environment from any site, every board tile with a number opening its list, What it is for and Section limited to what fits the sample type, 18 px text, Received now unticked so submissions wait under Awaiting receipt) |
 | Prototype `v23-tests.js` | 53 / 53 (the routes the lab runs: AuFx/AuSx, cyanide, carbon loading, elution, ore fire assay; routes not in use hidden but kept; sampling point lists; example plant limits; the shorter Submit form) |
 
-For v26 (with the evening's sample type, analysis, purpose, section, colour, board and type-size changes) every prototype suite was run on the prototype page and passes (run.js 107, results-tests 93, v12 71, v13 26, v14 27, v15 46, v16 42, v17 25, v20 71, v21 61, v22 29, v23 53, v24 88, v25 31, review 41 + 5, hours 7, work hours 14); on this build `v25-tests.js` (31), `v24-tests.js` (88), `azure-extra.js` (68), `api-tests.js`, `auth-tests.js` and `store-tests.js` were run; the older suites' rows above are from the v25 run of this build.
+For v26 with shift jobs every prototype suite was run on the prototype page and passes (run.js 107, results-tests 93, v12 71, v13 26, v14 27, v15 46, v16 42, v17 25, v20 71, v21 61, v22 29, v23 53, v24 89, v25 116, v26 31, review 41 + 5, hours 7, work hours 14), and every suite above was run on this build with the results in the table.
 
 No console errors in any suite. The 4 prototype checks that don't pass all expect a page **nobody is signed in to** to
 upgrade older records (3) or finish a lab batch a crashed device left half-made (1). On Azure the public can't

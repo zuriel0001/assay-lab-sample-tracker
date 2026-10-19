@@ -51,7 +51,7 @@ async function typeResults(page, id, vals){
 
   log("Submit: three short steps; a Belt cut sample fills in its analysis, purpose and section");
   await H.tab(Tc, "submit"); await Tc.waitForSelector("#rType");
-  check((await Tc.$$("#regForm .sub-step")).length === 3 && await Tc.$eval("#rRecvAtBox", d => !d.open) && /Received now/.test(await text(Tc, "#rRecvAtBox summary")), "the form has three steps and the time received just says now");
+  check(await Tc.$$eval("#regForm .sub-step", ss => ss.filter(x => !x.hidden).length) === 3 && await Tc.$eval("#rRecvAtBox", d => !d.open) && /Received now/.test(await text(Tc, "#rRecvAtBox summary")), "the form has three steps and the time received just says now");
   check(await Tc.$eval("#rSubBadge", e => e.closest(".pair") !== null) && await Tc.$eval("#rMore", d => !d.open), "the badge sits beside the name; the rest is under More details");
   await Tc.selectOption("#rType", "belt"); await Tc.waitForTimeout(250);
   check(await Tc.$eval("#rTest", e => e.value) === "aufx_m" && await Tc.$eval("#rPurpose", e => e.value) === "plant" && await Tc.$eval("#rSection", e => e.value) === "PLT",
@@ -69,7 +69,7 @@ async function typeResults(page, id, vals){
   const rcT = await Tc.$$eval("#rTest option", os => os.map(o => o.textContent));
   check(!(await Tc.$("#rTest optgroup")) && rcT[0] === "AuFx: fire assay, AAS finish" && rcT.slice(0, 3).every(x => /^AuFx: /.test(x)) && !rcT.some(x => /Carbon|Bullion|Slurry|Moisture|Specific gravity/.test(x)), "ore: one plain list, fire assay named AuFx first, nothing that does not apply to RC chips: " + rcT.join(" | "));
   await Tc.selectOption("#rType", "carbon"); await Tc.waitForTimeout(200);
-  check((await Tc.$$eval("#rTest option", os => os.map(o => o.value))).join() === "c_load,moisture", "carbon: Au loading and moisture only");
+  check((await Tc.$$eval("#rTest option", os => os.map(o => o.value))).join() === "c_load,c_act,moisture", "carbon: Au loading, carbon activity (v24d) and moisture only");
   await Tc.selectOption("#rType", "tsf"); await Tc.selectOption("#rPurpose", "env"); await Tc.waitForTimeout(200);
   check((await Tc.$$eval("#rPurpose option", os => os.map(o => o.textContent))).includes("Environmental compliance (any site)") && await Tc.$eval("#rTest", e => e.value) === "cn_spec" && /CN-SPEC/.test(await text(Tc, "#rRoute")), "Environment sends a sample from any site; on a TSF sample it gets cyanide speciation first");
   const pageSrc = await Tc.evaluate(() => [...document.scripts].map(x => x.textContent).find(t => t.includes("/* ROUTES-BEGIN")) || "");   // the page's own data, on any build
