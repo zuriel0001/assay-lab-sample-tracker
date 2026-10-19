@@ -132,10 +132,20 @@ function buildTrack(v, s){
     }
     else if (x.key === nextKey){
       cls = "current" + (st.late ? " late" : "");
-      const due = stageDue(s), left = keptMaterials(s).filter(m => !m.loc), t = plan[tIdx];
-      meta = [left.length ? `To put away: ${esc(left.map(m => m.item).join(", "))}` : "",
+      const due = stageDue(s), left = keptMaterials(s).filter(m => !m.loc), t = plan[tIdx], q = wqOf(s);
+      meta = [left.length ? `To put away: ${esc(left.map(m => m.item).join(", "))}` : q && q.kind === "store" ? `Waiting for <b>${esc(q.wit)}</b> to confirm the storage (put away by ${esc(q.tech)})`
+          : twoPerson(s) && shelvedAll(s) ? "On the shelf: a second person confirms the storage" : "",
         due ? (now > due ? `<b style="color:var(--bad)">${dur(overBy(due, now, t))} over the ${hoursLabel(t.hours)} allowed</b>` : `due ${fmt(due)}`) : ""].filter(Boolean).join(" · ");
       note = routeStageNote(s, x.key);
+    }
+    else if (x.phase === "store" && x.key === s.stageKey && !final){
+      /* v24d: on the shelf (and, for a critical sample, confirmed by the witness) the workflow is complete; each material is kept for its
+         own period after that, and its return or disposal shows as the closing step when the last one leaves. */
+      cls = "done"; mark = "✓";
+      const cf = (s.history || []).filter(h => h.key === x.key && h.wcf && !h.mat).at(-1), kept = keptMaterials(s), od = overdueMaterials(s), nextDue = Math.min(...kept.map(m => m.dueAt || Infinity)), q = wqOf(s);
+      meta = [cf ? `${fmt(cf.at)} · confirmed by ${esc(cf.tech)}${cf.put ? `, put away by ${esc(cf.put)}` : ""}` : `${fmt(e?.at || s.stageAt)}${by ? ` · ${esc(by)}` : ""}`,
+        `${kept.length} material${kept.length === 1 ? "" : "s"} kept` + (od.length ? ` · <b style="color:var(--bad)">${esc(od.map(m => m.item).join(", "))} past retention</b>` : isFinite(nextDue) ? `, next due ${fmtDate(nextDue)}` : ""),
+        q ? `<b>${esc(wqText(s, q))}: waiting for ${esc(q.wit)} to confirm</b>` : ""].filter(Boolean).join(" · ");
     }
     else if (final && x.key === s.stageKey){
       const bad = ["rejected", "cancelled"].includes(x.key);
@@ -200,7 +210,7 @@ function buildTrack(v, s){
   // Progress along the route up to the release of results, in the same colours as the board.
   const tone = !st.closed && !st.post ? { "t-ok": "ok", "t-soon": "warn", "t-late": "bad", "t-wait": "info" }[cardTime(s).cls] || st.cls : st.cls;
   const stepNo = wRes ? tIdx + 1 : Math.min(Math.max(curI, 0), tIdx) + 1, pct = curI >= tIdx ? 100 : wRes ? Math.round((tIdx - 0.5) / tIdx * 100) : Math.round(Math.max(curI, 0) / tIdx * 100);
-  const prog = st.closed ? "" : `<div class="prog${st.late && !st.post ? " late" : awaiting(s) ? " wait" : ""}"><div class="prog-t"><span>${curI >= tIdx ? "<b>Results released</b>" : `Step <b>${stepNo}</b> of ${tIdx + 1}${wRes ? ": waiting for the results" : ""}`}</span><span>${curI < tIdx && cardTime(s).left ? esc(cardTime(s).left) + " on this step" : ""}</span></div><div class="prog-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div></div>`;
+  const prog = st.closed ? "" : `<div class="prog${st.late && !st.post ? " late" : awaiting(s) ? " wait" : ""}"><div class="prog-t"><span>${curI > tIdx ? "<b>Workflow complete</b>" : curI >= tIdx ? "<b>Results released</b>" : `Step <b>${stepNo}</b> of ${tIdx + 1}${wRes ? ": waiting for the results" : ""}`}</span><span>${curI < tIdx && cardTime(s).left ? esc(cardTime(s).left) + " on this step" : ""}</span></div><div class="prog-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div></div>`;
 
   const showQc = !relNow() || canEval();   // v24: QC rules are for the people who evaluate
   const ret = s.retention || r?.retention || [], qcText = showQc ? s.qc || r?.qc || "" : "", trig = showQc ? s.triggers || r?.triggers || [] : [];
@@ -391,6 +401,7 @@ function releasedForm(s){
   const todo = left.length ? `Still to put away: ${esc(left.map(m => m.item).join(", "))}.`
     : kept.length ? `All material is on the shelf${isFinite(next) ? `; the next retention period ends ${fmtDate(next)}` : ""}.` : "";
   return `<div id="moveForm" class="stack" style="gap:10px">
+    ${wqPanel(s)}
     <p class="small" style="margin:0">Results released ${fmt(s.relAt || lastEntry(s, "released")?.at)}. ${todo}</p>
     <div class="form">${meBox("Recorded by")}${twoPerson(s) ? witnessField("mvWit") : ""}<label class="f full">Note<input id="mvNote" data-clear placeholder="e.g. Client asked for a copy of the certificate"></label></div>
     <div class="row"><button type="button" class="btn" data-step="note">Save note only</button></div>
@@ -400,13 +411,14 @@ function releasedForm(s){
 function materialsPanel(s){
   const edit = canEdit(), closed = !!stage(s, s.stageKey)?.final, now = Date.now();
   // v24d: the witness to a movement is shown with it (from the custody line written with it).
-  const witOf = m => (s.history || []).filter(h => h.mat === m.k && h.wit && (!m.outAt || h.at === m.outAt)).at(-1)?.wit || "";
+  const witOf = m => { const h = (s.history || []).filter(h => h.mat === m.k && (h.wit || h.wcf) && (!m.outAt || h.at === m.outAt)).at(-1); return h ? (h.wcf ? h.tech : h.wit) : ""; };
+  const q = wqOf(s);   // v24d: while a witness is asked, nothing else is recorded on the material
   const rows = (s.materials || []).map(m => {
     const od = m.status === "kept" && m.dueAt && now > m.dueAt;
-    const state = m.status === "kept" ? `${m.loc ? `Kept at <b>${esc(m.loc)}</b>` : `<span style="color:var(--warn)">Not yet put away</span>`}`
+    const state = m.status === "kept" ? `${m.loc ? `Kept at <b>${esc(m.loc)}</b>` : `<span style="color:var(--warn)">Not yet put away</span>`}${q && q.kind === "out" && q.k === m.k ? `<div class="small" style="color:var(--info)">${esc((DISPO[q.what] || q.what))}: waiting for ${esc(q.wit)} to confirm</div>` : ""}`
       : `${esc(DISPO[m.status] || m.status)} ${fmtDate(m.outAt)}${m.outTech ? ` by ${esc(m.outTech)}` : ""}${witOf(m) ? `, witness ${esc(witOf(m))}` : ""}${m.outRef ? ` · ${esc(m.outRef)}` : ""}`;
     let ctl = "";
-    if (edit && m.status === "kept"){
+    if (edit && m.status === "kept" && !q){
       // v24d: on the shelf, the route's return or disposal is offered once the retention period is over; before that, nothing that can't be undone is chosen for you.
       const def = m.loc && od ? m.dispo : "store";
       ctl = `<div class="row mat-row" style="gap:6px;margin-top:6px;flex-wrap:wrap">
@@ -422,7 +434,8 @@ function materialsPanel(s){
   }).join("");
   return `<div class="panel stack" id="matBox"><h3>Retained material</h3>
     <p class="small muted" style="margin:0">Each material is kept for its own period from the release of results, then returned or disposed. Every return, disposal or send-out is written to the ledger.</p>
-    ${edit && !closed && twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div class="form"><div class="full">${witnessField("mtWit")}</div></div>` : ""}
+    ${q ? `<div class="notice small" style="margin:0">Waiting for <b>${esc(q.wit)}</b> to confirm ${q.kind === "store" ? "the storage" : esc(wqText(s, q))}. Nothing else is recorded on the material until then.</div>` : ""}
+    ${edit && !closed && !q && twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div class="form"><div class="full">${witnessField("mtWit", "Witness (two-person custody: confirms a disposal from their own account)")}</div></div>` : ""}
     <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
     ${edit && !closed && !twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div id="mtWitBox" class="mat-wit" hidden>${witnessField("mtWit", "Witness to the disposal (a second person)")}</div>` : ""}</div>`;
 }
@@ -447,6 +460,7 @@ function bindTrack(v, s){
   v.querySelectorAll("[data-step]").forEach(b => b.addEventListener("click", () => doStep(b.dataset.step)));
   v.querySelectorAll("[data-receipt]").forEach(b => b.addEventListener("click", () => doReceipt(b.dataset.receipt)));
   v.querySelectorAll("[data-mat]").forEach(b => b.addEventListener("click", () => doMaterial(b.dataset.mat)));
+  bindWq(v);
   // v24d: the witness to a disposal is asked for on the material being disposed, only when Dispose is chosen.
   const wb = $("#mtWitBox", v);
   if (wb){
@@ -675,21 +689,27 @@ async function doCancel(){
 async function doMaterial(k){
   const s0 = current?.body; if (!s0) return;
   const what = val("#mx_" + k), ref = val("#mr_" + k);
+  if (wqOf(s0)){ toast(`Waiting for ${s0.wq.wit} to confirm. Withdraw that request first.`); return; }
   if (what === "store" && !ref){ toast("Type the storage location first."); $("#mr_" + k)?.focus(); return; }
   if (what === "external" && !ref){ toast("Type the external lab and waybill number first."); $("#mr_" + k)?.focus(); return; }
-  const wit = what === "disposed" ? disposalWitness("#mtWit") : needWitness(s0, "#mtWit"); if (wit === null) return;   // v24c: disposal needs a second person
+  // v24d: on a critical sample the witness confirms a disposal from their own account; putting material away first is confirmed as a whole
+  if (twoPerson(s0) && what === "disposed") return askOut(k, what, ref, val("#mtWit"));
+  const firstPut = twoPerson(s0) && what === "store" && s0.stageKey === "released";
+  const wit = what === "disposed" ? disposalWitness("#mtWit") : firstPut ? "" : needWitness(s0, "#mtWit"); if (wit === null) return;   // v24c: disposal needs a second person
   await act(s => {
     const mats = clone(s.materials || []), m = mats.find(x => x.k === k);
     if (!m || m.status !== "kept"){ toast("This material was already recorded by someone else."); return null; }
     const at = nowAfter(s), upd = { materials: mats }, moves = [], h = s.history || [];
     // The sample goes into storage (and off the board) once every material still kept has a place on the shelf.
-    const shelved = () => { if (s.stageKey === "released" && mats.every(x => x.status !== "kept" || x.loc)){ upd.stageKey = "storage"; upd.stageAt = at; } };
+    // (v24d: a critical sample moves into storage when the witness confirms it, not here)
+    const shelved = () => { if (s.stageKey === "released" && !twoPerson(s) && mats.every(x => x.status !== "kept" || x.loc)){ upd.stageKey = "storage"; upd.stageAt = at; } };
     if (what === "store"){
       m.loc = ref; shelved();
       upd.location = mats.filter(x => x.status === "kept" && x.loc).map(x => `${x.item}: ${x.loc}`).join("; ");
       const key = upd.stageKey || s.stageKey;
       upd.history = [...h, { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, ref: "", loc: ref, mat: k, ...(wit ? { wit } : {}), note: `${m.item} put away` }];
-      return { upd, msg: `${m.item} stored at ${ref}${upd.stageKey ? "" : `; ${mats.filter(x => x.status === "kept" && !x.loc).map(x => x.item).join(", ")} still to put away`}` };
+      const left = mats.filter(x => x.status === "kept" && !x.loc).map(x => x.item);
+      return { upd, msg: `${m.item} stored at ${ref}${upd.stageKey ? ". The workflow is complete" : left.length ? `; ${left.join(", ")} still to put away` : twoPerson(s) ? ". All on the shelf: ask a witness to confirm the storage" : ""}` };
     }
     m.outs = (m.outs || 0) + 1;
     Object.assign(m, { status: what, outAt: at, outBy: session.u, outTech: session.name, outRef: ref, outMid: `${s.id}~out~${k}~${m.outs}` });

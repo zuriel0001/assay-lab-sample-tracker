@@ -106,6 +106,33 @@ function sampleRule(a, cur, next, st){
   const e0 = (cur && cur.evals) || [], e1 = next.evals || [];
   if (!extends_(e0, e1)) return "An evaluation can't be changed or removed.";
   if (e1.slice(e0.length).some(e => !who(e))) return "An evaluation must be recorded under the name of the person signed in.";
+  return witnessProblem(a, cur, next, h1.slice(h0.length));
+}
+/* v24d: on a critical (two-person custody) sample, storage and disposal are confirmed by the witness from their own account. A request
+   (wq) names the witness and is made by the person signed in; only that witness confirms it or sends it back, never the person who asked;
+   the person who asked (or a lab supervisor) may withdraw it. Such a sample moves into storage, and its material is disposed of, only
+   with the witness's confirmation. */
+const critical = s => !!(s && (s.two || ["bullion", "conc"].includes(s.typeKey) || s.section === "GR"));
+const WQ_MSG = "Only the witness asked confirms this, from their own account.";
+function witnessProblem(a, cur, next, added){
+  const q0 = cur && cur.wq && cur.wq.id ? cur.wq : null, q1 = next.wq && next.wq.id ? next.wq : null;
+  if (q1 && !same(q1, q0)){
+    if (q0) return "A witness is already asked on this sample.";
+    if (q1.by !== a.u || q1.tech !== a.name || !q1.witU || q1.witU === a.u || next.wqU !== q1.witU || !added.some(e => e && e.wreq === q1.id)) return "A request to a witness is made by the person signed in, names someone else, and is recorded in the history.";
+  }
+  for (const e of added){
+    if (!e || !(e.wcf || e.wsb || e.wwd)) continue;
+    const id = e.wcf || e.wsb || e.wwd;
+    if (!q0 || q0.id !== id || q1) return WQ_MSG;
+    if ((e.wcf || e.wsb) && (a.u !== q0.witU || a.u === q0.by)) return WQ_MSG;
+    if (e.wwd && a.u !== q0.by && !APPROVERS.includes(a.role)) return "A request to a witness is withdrawn by the person who made it or a lab supervisor.";
+  }
+  if (q0 && !q1 && !added.some(e => e && (e.wcf || e.wsb || e.wwd) === q0.id)) return WQ_MSG;
+  if (!cur || !critical(cur)) return "";
+  const confirmed = kind => added.some(e => e && e.wcf && q0 && e.wcf === q0.id && q0.kind === kind);
+  if (next.stageKey === "storage" && cur.stageKey === "released" && !confirmed("store")) return "A two-person custody sample goes into storage when the witness confirms it.";
+  const m0 = new Map(((cur.materials) || []).map(m => [m.k, m]));
+  if ((next.materials || []).some(m => m && m.status === "disposed" && m0.get(m.k) && m0.get(m.k).status === "kept") && !confirmed("out")) return "On a two-person custody sample, the witness confirms a disposal from their own account.";
   return "";
 }
 /* v24, departments: someone who evaluates results (a department marked so in Settings, Metallurgy by default) but is not lab staff

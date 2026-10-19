@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="32e5bc187d96"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 c5b23e9da5e3) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="27f497bb3be0"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 7c48ca07486b) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2541,8 +2541,9 @@ function status(s){
   if (i >= t){
     const od = overdueMaterials(s, now), notStored = i === t && late;
     if (od.length) return { label: `Retention ended: ${od.map(m => m.item).join(", ")} due for ${od.every(m => m.dispo === "returned") ? "return" : "disposal or return"}`, cls: "warn", closed: false, late: true, post: true };
+    if (i === t && s.wq && s.wq.kind === "store") return { label: `Waiting for ${s.wq.wit} to confirm the storage`, cls: notStored ? "warn" : "info", closed: false, late: notStored, post: true };
     if (notStored) return { label: "Results released; material not yet put in storage", cls: "warn", closed: false, late: true, post: true };
-    return i === t ? { label: "Results released", cls: "ok", closed: false, late: false, post: true } : { label: "In storage", cls: "info", closed: false, late: false, post: true };
+    return i === t ? { label: "Results released", cls: "ok", closed: false, late: false, post: true } : { label: "Complete: in storage", cls: "ok", closed: false, late: false, post: true };
   }
   if (waitingRes(s)) return { label: late ? "Waiting for results (overdue)" : "Waiting for results", cls: late ? "warn" : "info", closed: false, late };
   return { label: late ? `Overdue at ${st.name}` : `In progress: ${st.name}`, cls: late ? "bad" : "gold", closed: false, late };
@@ -2606,7 +2607,7 @@ function updateChrome(){
   $("#who").textContent = session ? `${session.name} · ${ROLES[session.role]}` : window.__me?.signedIn ? `${window.__me.email} · no access yet` : "Not signed in";
   $("#signBtn").hidden = !session && !window.__me?.signedIn;
   $("#pwBtn").hidden = !(session && window.__me?.via === "email");
-  watchSectionResults(); resultsBadge(); watchStoreDue(); watchAccess(); watchBlinds(); watchReq(); watchStaffResults();
+  watchSectionResults(); resultsBadge(); watchStoreDue(); watchAccess(); watchBlinds(); watchReq(); watchStaffResults(); watchConf();
   tabCue();
 }
 /* Prototype only: the browser keeps the username and a fingerprint of the account, so a password or role change signs the person out. Real sign-in belongs on a server. */
@@ -2998,10 +2999,20 @@ function buildTrack(v, s){
     }
     else if (x.key === nextKey){
       cls = "current" + (st.late ? " late" : "");
-      const due = stageDue(s), left = keptMaterials(s).filter(m => !m.loc), t = plan[tIdx];
-      meta = [left.length ? `To put away: ${esc(left.map(m => m.item).join(", "))}` : "",
+      const due = stageDue(s), left = keptMaterials(s).filter(m => !m.loc), t = plan[tIdx], q = wqOf(s);
+      meta = [left.length ? `To put away: ${esc(left.map(m => m.item).join(", "))}` : q && q.kind === "store" ? `Waiting for <b>${esc(q.wit)}</b> to confirm the storage (put away by ${esc(q.tech)})`
+          : twoPerson(s) && shelvedAll(s) ? "On the shelf: a second person confirms the storage" : "",
         due ? (now > due ? `<b style="color:var(--bad)">${dur(overBy(due, now, t))} over the ${hoursLabel(t.hours)} allowed</b>` : `due ${fmt(due)}`) : ""].filter(Boolean).join(" · ");
       note = routeStageNote(s, x.key);
+    }
+    else if (x.phase === "store" && x.key === s.stageKey && !final){
+      /* v24d: on the shelf (and, for a critical sample, confirmed by the witness) the workflow is complete; each material is kept for its
+         own period after that, and its return or disposal shows as the closing step when the last one leaves. */
+      cls = "done"; mark = "✓";
+      const cf = (s.history || []).filter(h => h.key === x.key && h.wcf && !h.mat).at(-1), kept = keptMaterials(s), od = overdueMaterials(s), nextDue = Math.min(...kept.map(m => m.dueAt || Infinity)), q = wqOf(s);
+      meta = [cf ? `${fmt(cf.at)} · confirmed by ${esc(cf.tech)}${cf.put ? `, put away by ${esc(cf.put)}` : ""}` : `${fmt(e?.at || s.stageAt)}${by ? ` · ${esc(by)}` : ""}`,
+        `${kept.length} material${kept.length === 1 ? "" : "s"} kept` + (od.length ? ` · <b style="color:var(--bad)">${esc(od.map(m => m.item).join(", "))} past retention</b>` : isFinite(nextDue) ? `, next due ${fmtDate(nextDue)}` : ""),
+        q ? `<b>${esc(wqText(s, q))}: waiting for ${esc(q.wit)} to confirm</b>` : ""].filter(Boolean).join(" · ");
     }
     else if (final && x.key === s.stageKey){
       const bad = ["rejected", "cancelled"].includes(x.key);
@@ -3066,7 +3077,7 @@ function buildTrack(v, s){
   // Progress along the route up to the release of results, in the same colours as the board.
   const tone = !st.closed && !st.post ? { "t-ok": "ok", "t-soon": "warn", "t-late": "bad", "t-wait": "info" }[cardTime(s).cls] || st.cls : st.cls;
   const stepNo = wRes ? tIdx + 1 : Math.min(Math.max(curI, 0), tIdx) + 1, pct = curI >= tIdx ? 100 : wRes ? Math.round((tIdx - 0.5) / tIdx * 100) : Math.round(Math.max(curI, 0) / tIdx * 100);
-  const prog = st.closed ? "" : `<div class="prog${st.late && !st.post ? " late" : awaiting(s) ? " wait" : ""}"><div class="prog-t"><span>${curI >= tIdx ? "<b>Results released</b>" : `Step <b>${stepNo}</b> of ${tIdx + 1}${wRes ? ": waiting for the results" : ""}`}</span><span>${curI < tIdx && cardTime(s).left ? esc(cardTime(s).left) + " on this step" : ""}</span></div><div class="prog-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div></div>`;
+  const prog = st.closed ? "" : `<div class="prog${st.late && !st.post ? " late" : awaiting(s) ? " wait" : ""}"><div class="prog-t"><span>${curI > tIdx ? "<b>Workflow complete</b>" : curI >= tIdx ? "<b>Results released</b>" : `Step <b>${stepNo}</b> of ${tIdx + 1}${wRes ? ": waiting for the results" : ""}`}</span><span>${curI < tIdx && cardTime(s).left ? esc(cardTime(s).left) + " on this step" : ""}</span></div><div class="prog-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div></div>`;
 
   const showQc = !relNow() || canEval();   // v24: QC rules are for the people who evaluate
   const ret = s.retention || r?.retention || [], qcText = showQc ? s.qc || r?.qc || "" : "", trig = showQc ? s.triggers || r?.triggers || [] : [];
@@ -3253,6 +3264,7 @@ function releasedForm(s){
   const todo = left.length ? `Still to put away: ${esc(left.map(m => m.item).join(", "))}.`
     : kept.length ? `All material is on the shelf${isFinite(next) ? `; the next retention period ends ${fmtDate(next)}` : ""}.` : "";
   return `<div id="moveForm" class="stack" style="gap:10px">
+    ${wqPanel(s)}
     <p class="small" style="margin:0">Results released ${fmt(s.relAt || lastEntry(s, "released")?.at)}. ${todo}</p>
     <div class="form">${meBox("Recorded by")}${twoPerson(s) ? witnessField("mvWit") : ""}<label class="f full">Note<input id="mvNote" data-clear placeholder="e.g. Client asked for a copy of the certificate"></label></div>
     <div class="row"><button type="button" class="btn" data-step="note">Save note only</button></div>
@@ -3262,13 +3274,14 @@ function releasedForm(s){
 function materialsPanel(s){
   const edit = canEdit(), closed = !!stage(s, s.stageKey)?.final, now = Date.now();
   // v24d: the witness to a movement is shown with it (from the custody line written with it).
-  const witOf = m => (s.history || []).filter(h => h.mat === m.k && h.wit && (!m.outAt || h.at === m.outAt)).at(-1)?.wit || "";
+  const witOf = m => { const h = (s.history || []).filter(h => h.mat === m.k && (h.wit || h.wcf) && (!m.outAt || h.at === m.outAt)).at(-1); return h ? (h.wcf ? h.tech : h.wit) : ""; };
+  const q = wqOf(s);   // v24d: while a witness is asked, nothing else is recorded on the material
   const rows = (s.materials || []).map(m => {
     const od = m.status === "kept" && m.dueAt && now > m.dueAt;
-    const state = m.status === "kept" ? `${m.loc ? `Kept at <b>${esc(m.loc)}</b>` : `<span style="color:var(--warn)">Not yet put away</span>`}`
+    const state = m.status === "kept" ? `${m.loc ? `Kept at <b>${esc(m.loc)}</b>` : `<span style="color:var(--warn)">Not yet put away</span>`}${q && q.kind === "out" && q.k === m.k ? `<div class="small" style="color:var(--info)">${esc((DISPO[q.what] || q.what))}: waiting for ${esc(q.wit)} to confirm</div>` : ""}`
       : `${esc(DISPO[m.status] || m.status)} ${fmtDate(m.outAt)}${m.outTech ? ` by ${esc(m.outTech)}` : ""}${witOf(m) ? `, witness ${esc(witOf(m))}` : ""}${m.outRef ? ` · ${esc(m.outRef)}` : ""}`;
     let ctl = "";
-    if (edit && m.status === "kept"){
+    if (edit && m.status === "kept" && !q){
       // v24d: on the shelf, the route's return or disposal is offered once the retention period is over; before that, nothing that can't be undone is chosen for you.
       const def = m.loc && od ? m.dispo : "store";
       ctl = `<div class="row mat-row" style="gap:6px;margin-top:6px;flex-wrap:wrap">
@@ -3283,7 +3296,8 @@ function materialsPanel(s){
       <td>${state}</td></tr>${ctl ? `<tr class="mat-ctl"><td colspan="3" style="border-top:0;padding-top:0">${ctl}</td></tr>` : ""}`;
   }).join("");
   return `<div class="panel stack" id="matBox"><h3>Retained material</h3>
-    ${edit && !closed && twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div class="form"><div class="full">${witnessField("mtWit")}</div></div>` : ""}
+    ${q ? `<div class="notice small" style="margin:0">Waiting for <b>${esc(q.wit)}</b> to confirm ${q.kind === "store" ? "the storage" : esc(wqText(s, q))}. Nothing else is recorded on the material until then.</div>` : ""}
+    ${edit && !closed && !q && twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div class="form"><div class="full">${witnessField("mtWit", "Witness (two-person custody: confirms a disposal from their own account)")}</div></div>` : ""}
     <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
     ${edit && !closed && !twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div id="mtWitBox" class="mat-wit" hidden>${witnessField("mtWit", "Witness to the disposal (a second person)")}</div>` : ""}</div>`;
 }
@@ -3308,6 +3322,7 @@ function bindTrack(v, s){
   v.querySelectorAll("[data-step]").forEach(b => b.addEventListener("click", () => doStep(b.dataset.step)));
   v.querySelectorAll("[data-receipt]").forEach(b => b.addEventListener("click", () => doReceipt(b.dataset.receipt)));
   v.querySelectorAll("[data-mat]").forEach(b => b.addEventListener("click", () => doMaterial(b.dataset.mat)));
+  bindWq(v);
   // v24d: the witness to a disposal is asked for on the material being disposed, only when Dispose is chosen.
   const wb = $("#mtWitBox", v);
   if (wb){
@@ -3536,21 +3551,27 @@ async function doCancel(){
 async function doMaterial(k){
   const s0 = current?.body; if (!s0) return;
   const what = val("#mx_" + k), ref = val("#mr_" + k);
+  if (wqOf(s0)){ toast(`Waiting for ${s0.wq.wit} to confirm. Withdraw that request first.`); return; }
   if (what === "store" && !ref){ toast("Type the storage location first."); $("#mr_" + k)?.focus(); return; }
   if (what === "external" && !ref){ toast("Type the external lab and waybill number first."); $("#mr_" + k)?.focus(); return; }
-  const wit = what === "disposed" ? disposalWitness("#mtWit") : needWitness(s0, "#mtWit"); if (wit === null) return;   // v24c: disposal needs a second person
+  // v24d: on a critical sample the witness confirms a disposal from their own account; putting material away first is confirmed as a whole
+  if (twoPerson(s0) && what === "disposed") return askOut(k, what, ref, val("#mtWit"));
+  const firstPut = twoPerson(s0) && what === "store" && s0.stageKey === "released";
+  const wit = what === "disposed" ? disposalWitness("#mtWit") : firstPut ? "" : needWitness(s0, "#mtWit"); if (wit === null) return;   // v24c: disposal needs a second person
   await act(s => {
     const mats = clone(s.materials || []), m = mats.find(x => x.k === k);
     if (!m || m.status !== "kept"){ toast("This material was already recorded by someone else."); return null; }
     const at = nowAfter(s), upd = { materials: mats }, moves = [], h = s.history || [];
     // The sample goes into storage (and off the board) once every material still kept has a place on the shelf.
-    const shelved = () => { if (s.stageKey === "released" && mats.every(x => x.status !== "kept" || x.loc)){ upd.stageKey = "storage"; upd.stageAt = at; } };
+    // (v24d: a critical sample moves into storage when the witness confirms it, not here)
+    const shelved = () => { if (s.stageKey === "released" && !twoPerson(s) && mats.every(x => x.status !== "kept" || x.loc)){ upd.stageKey = "storage"; upd.stageAt = at; } };
     if (what === "store"){
       m.loc = ref; shelved();
       upd.location = mats.filter(x => x.status === "kept" && x.loc).map(x => `${x.item}: ${x.loc}`).join("; ");
       const key = upd.stageKey || s.stageKey;
       upd.history = [...h, { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, ref: "", loc: ref, mat: k, ...(wit ? { wit } : {}), note: `${m.item} put away` }];
-      return { upd, msg: `${m.item} stored at ${ref}${upd.stageKey ? "" : `; ${mats.filter(x => x.status === "kept" && !x.loc).map(x => x.item).join(", ")} still to put away`}` };
+      const left = mats.filter(x => x.status === "kept" && !x.loc).map(x => x.item);
+      return { upd, msg: `${m.item} stored at ${ref}${upd.stageKey ? ". The workflow is complete" : left.length ? `; ${left.join(", ")} still to put away` : twoPerson(s) ? ". All on the shelf: ask a witness to confirm the storage" : ""}` };
     }
     m.outs = (m.outs || 0) + 1;
     Object.assign(m, { status: what, outAt: at, outBy: session.u, outTech: session.name, outRef: ref, outMid: `${s.id}~out~${k}~${m.outs}` });
@@ -3667,12 +3688,14 @@ function renderBoard(){
   const dueS = dueL, dueM = dueL.reduce((n, x) => n + x.n, 0);
   const flagged = waiting.filter(s => s.flag).length;
   const relL = [...releasedToday.values()].filter(pass), reqL = isStaff() ? [...reqs.values()].filter(pass) : [];
+  const confL = canEdit() ? [...confs.values()].filter(x => myConf(x)) : [];   // v24d: a witness's confirmation asked of the person signed in
   // v24c: every tile with a number opens the list of what it counts (and the lanes narrow to those samples when they are in the lab).
   const stName = s => { try { return stage(s, s.stageKey)?.name || ""; } catch { return ""; } };
   const sRow = (s, where) => ({ id: s.id, type: s.type || typeOf(s.typeKey)?.name || "", what: [testOf(s.test)?.name, s.route].filter(Boolean).join(" · "), where: where ?? stName(s) });
   const lastRedo = s => (s.evals || []).filter(x => x.v === "redo").at(-1);
   // Summary tiles, zeros included: a tile with samples filters the board to them, a tile with a tab opens it.
   const sums = [
+    ...(confL.length ? [{ k: "conf", n: confL.length, l: "Waiting for your confirmation", tone: "gold", rows: confL.map(x => sRow(x, `${x.wq.kind === "store" ? "Storage: " : ""}${wqText(x)} · asked by ${x.wq.tech}`)) }] : []),
     { k: "await", n: waiting.length, l: `Awaiting receipt${flagged ? `, ${flagged} flagged` : ""}`, tone: flagged ? "warn" : "info", pick: waiting },
     { k: "lab", n: inProc.length, l: "In the lab, before results", tone: "gold", pick: inProc },
     { k: "late", n: late.length, l: "Running late", tone: "bad", pick: late },
@@ -8405,6 +8428,143 @@ function turnaroundPanel(list){
     </div></details>`;
 }
 
+/* ---------- v24d: a witness confirms from their own account (critical samples) ----------
+   On a two-person custody sample (bullion, gravity concentrate, anything from the gold room or marked so) putting the retained material
+   away and disposing of material are confirmed by the witness from their own account, the way a document is signed at two levels: the
+   first person records it and names the witness (wq on the sample: what, who asked, who is asked, and wqU, the witness's username, to
+   find it by); the witness opens the sample (its ID, a scan, or "Waiting for your confirmation" on the board) and confirms it, or sends
+   it back with a reason. Until then the step stays open. The server accepts the confirmation only from the witness named, never from the
+   person who asked. Other samples are not asked for this: their storage is complete once the material is on the shelf. */
+const wqOf = s => s && s.wq && s.wq.id ? s.wq : null;
+const shelvedAll = s => keptMaterials(s).length > 0 && keptMaterials(s).every(m => m.loc);
+const myConf = s => !!wqOf(s) && !!session && s.wq.witU === session.u;
+const userByName = n => (cfg.users || []).find(x => x.name === n) || null;
+function wqText(s, q = wqOf(s)){
+  if (!q) return "";
+  if (q.kind === "store") return keptMaterials(s).map(m => `${m.item} at ${m.loc}`).join("; ");
+  const m = (s.materials || []).find(x => x.k === q.k);
+  return `${m ? m.item : "Material"} to be ${(DISPO[q.what] || q.what).toLowerCase()}${q.ref ? ` (${q.ref})` : ""}`;
+}
+/* The second person, by account (the confirmation is theirs to make): lab staff other than the person signed in. */
+function witPick(id, label){
+  const others = (cfg.users || []).filter(x => x.u !== session?.u && ["tech", "super", "admin"].includes(x.role));
+  return `<label class="f"><span>${label} <span class="req">*</span></span><select id="${id}"><option value="">Choose the second person…</option>${others.map(x => `<option value="${esc(x.u)}">${esc(x.name)}</option>`).join("")}</select></label>`;
+}
+/* On the record, under the workflow: what is waiting for whom, and the buttons for the person who can act on it. */
+function wqPanel(s){
+  const q = wqOf(s), edit = canEdit();
+  if (q){
+    const what = q.kind === "store" ? `the storage: ${esc(wqText(s, q))}` : esc(wqText(s, q));
+    if (myConf(s)) return `<div class="notice wq-me stack" id="wqBox" style="gap:8px">
+      <div><b>Your confirmation is asked.</b> ${esc(q.tech)} asks you to witness ${what}. Asked ${fmt(q.at)}.</div>
+      <div class="row" style="gap:8px"><button type="button" class="btn primary" id="wqOk">Confirm${q.kind === "store" ? " storage" : ""}</button>
+        <input class="inp grow" id="wqWhy" data-clear placeholder="Reason, to send it back (e.g. wrong shelf)" style="flex:1 1 200px;width:auto">
+        <button type="button" class="btn" id="wqBack">Send back</button></div></div>`;
+    return `<div class="notice stack" id="wqBox" style="gap:8px"><div><b>Waiting for ${esc(q.wit)} to confirm</b> ${what} (asked by ${esc(q.tech)}, ${fmt(q.at)}). ${esc(q.wit)} opens this sample from their own account to confirm it.</div>
+      ${edit && (session.u === q.by || canApprove()) ? `<div class="row"><button type="button" class="btn ghost small" id="wqDrop">Withdraw the request</button></div>` : ""}</div>`;
+  }
+  if (edit && twoPerson(s) && s.stageKey === "released" && shelvedAll(s)) return `<div class="notice stack" id="wqBox" style="gap:8px">
+    <div><b>All material is on the shelf.</b> Two-person custody: a second person confirms the storage from their own account.</div>
+    <div class="form">${witPick("wqWit", "Witness to confirm the storage")}</div>
+    <div class="row"><button type="button" class="btn primary" id="wqAsk">Ask to confirm storage</button></div></div>`;
+  return "";
+}
+function bindWq(v){
+  $("#wqAsk", v)?.addEventListener("click", doAskStore);
+  $("#wqOk", v)?.addEventListener("click", doConfirm);
+  $("#wqBack", v)?.addEventListener("click", doSendBack);
+  $("#wqDrop", v)?.addEventListener("click", doWithdraw);
+}
+const wqId = at => "W" + at.toString(36).toUpperCase();
+async function doAskStore(){
+  const s0 = current?.body; if (!s0) return;
+  const w = (cfg.users || []).find(x => x.u === val("#wqWit"));
+  if (!w){ toast("Choose the witness who confirms the storage."); $("#wqWit")?.focus(); return; }
+  await act(s => {
+    if (wqOf(s) || !twoPerson(s) || s.stageKey !== "released" || !shelvedAll(s)) return null;
+    const at = nowAfter(s), q = { id: wqId(at), kind: "store", at, by: session.u, tech: session.name, wit: w.name, witU: w.u };
+    return { upd: { wq: q, wqU: w.u, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wreq: q.id,
+      note: `Put away: ${wqText(s, q)}. Asked ${w.name} to confirm` }] }, msg: `Asked ${w.name} to confirm the storage of ${s.id}` };
+  }, { anyStage: true, clear: ["wqWit"] });
+}
+/* A disposal on a critical sample: recorded as a request; the material leaves when the witness confirms. */
+async function askOut(k, what, ref, wn){
+  const w = userByName(wn);
+  if (!w){ toast("Two-person custody: choose the witness who confirms the disposal."); $("#mtWit")?.focus(); return; }
+  if (w.u === session.u){ toast("The witness must be someone other than you."); return; }
+  await act(s => {
+    const m = (s.materials || []).find(x => x.k === k);
+    if (wqOf(s) || !m || m.status !== "kept") return null;
+    const at = nowAfter(s), q = { id: wqId(at), kind: "out", k, what, ref: ref || "", at, by: session.u, tech: session.name, wit: w.name, witU: w.u };
+    return { upd: { wq: q, wqU: w.u, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wreq: q.id, mat: k,
+      note: `${wqText(s, q)}. Asked ${w.name} to confirm` }] }, msg: `Asked ${w.name} to confirm: ${m.item} to be ${(DISPO[what] || what).toLowerCase()}` };
+  }, { anyStage: true, clear: ["mx_" + k, "mr_" + k, "mtWit"] });
+}
+async function doConfirm(){
+  const s0 = current?.body; if (!s0 || !myConf(s0)) return;
+  await act(s => {
+    const q = wqOf(s); if (!q || q.witU !== session.u){ toast("This confirmation is no longer waiting for you."); return null; }
+    const at = nowAfter(s), h = s.history || [];
+    if (q.kind === "store"){
+      const upd = { wq: null, wqU: null, history: [...h, { key: "storage", sn: stage(s, "storage")?.name || "Retained in storage", at, by: session.u, tech: session.name, wcf: q.id, put: q.tech,
+        note: `Storage confirmed: ${wqText(s, q)}. Put away by ${q.tech}` }] };
+      if (s.stageKey === "released"){ upd.stageKey = "storage"; upd.stageAt = at; }
+      return { upd, msg: `${s.id}: storage confirmed. The workflow is complete` };
+    }
+    const mats = clone(s.materials || []), m = mats.find(x => x.k === q.k);
+    if (!m || m.status !== "kept"){ toast("This material was already recorded."); return null; }
+    m.outs = (m.outs || 0) + 1;
+    Object.assign(m, { status: q.what, outAt: at, outBy: q.by, outTech: q.tech, outRef: q.ref || "", outMid: `${s.id}~out~${q.k}~${m.outs}` });
+    const mv = { ...outMove(s, at, q.what, m.item, q.ref || "", "Confirmed by the witness", m.outMid, session.name), by: q.by, tech: q.tech };
+    const upd = { materials: mats, wq: null, wqU: null };
+    if (!mats.some(x => x.status === "kept")){
+      const ds = new Set(mats.map(x => x.status)), fin = ds.size === 1 ? [...ds][0] : "closed";
+      Object.assign(upd, { stageKey: fin, stageAt: at, open: false, onHand: false, closedAt: at });
+    }
+    upd.location = mats.filter(x => x.status === "kept" && x.loc).map(x => `${x.item}: ${x.loc}`).join("; ");
+    const key = upd.stageKey || s.stageKey;
+    upd.history = [...h, { key, sn: stage(s, key)?.name || key, at, by: session.u, tech: session.name, wcf: q.id, mat: q.k, put: q.tech, ref: q.ref || "",
+      note: `${m.item}: ${(DISPO[q.what] || q.what).toLowerCase()} by ${q.tech}, confirmed by the witness` }];
+    return { upd, moves: [mv], msg: upd.open === false ? `${s.id} closed: all material has left the lab` : `${m.item}: ${(DISPO[q.what] || q.what).toLowerCase()}, confirmed` };
+  }, { anyStage: true });
+}
+async function doSendBack(){
+  const s0 = current?.body; if (!s0 || !myConf(s0)) return;
+  const why = val("#wqWhy"); if (!why){ toast("Give the reason for sending it back."); $("#wqWhy")?.focus(); return; }
+  await act(s => {
+    const q = wqOf(s); if (!q || q.witU !== session.u) return null;
+    const at = nowAfter(s);
+    return { upd: { wq: null, wqU: null, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wsb: q.id, ...(q.k ? { mat: q.k } : {}),
+      note: `Not confirmed (${q.kind === "store" ? "storage: " : ""}${wqText(s, q)}): ${why}. Sent back to ${q.tech}` }] }, msg: `Sent back to ${q.tech}` };
+  }, { anyStage: true, clear: ["wqWhy"] });
+}
+async function doWithdraw(){
+  const s0 = current?.body, q0 = wqOf(s0); if (!q0 || !(session?.u === q0.by || canApprove())) return;
+  await act(s => {
+    const q = wqOf(s); if (!q) return null;
+    const at = nowAfter(s);
+    return { upd: { wq: null, wqU: null, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, wwd: q.id,
+      note: `Request to ${q.wit} withdrawn` }] }, msg: "Request withdrawn" };
+  }, { anyStage: true });
+}
+/* The samples waiting for the person signed in to confirm, for the board (and a note when a new one arrives). */
+const confs = new Map();
+let confSub = null, confU = "", confSeen = null;
+function watchConf(){
+  const u = db && session && canEdit() ? session.u : "";
+  if (u === confU) return;
+  if (confSub){ confSub(); confSub = null; }
+  confU = u; confs.clear(); confSeen = null;
+  if (!u) return;
+  confSub = db.collection("samples").where("wqU", "==", u).limit(100).onSnapshot(snap => {
+    confs.clear(); snap.docs.forEach(d => { const x = d.data(); if (x && x.id && x.wq && x.wq.witU === u) confs.set(x.id, x); });
+    const ids = [...confs.values()].map(x => x.wq.id);
+    if (confSeen){ const fresh = [...confs.values()].filter(x => !confSeen.has(x.wq.id)); if (fresh.length) toast(`${fresh[0].wq.tech} asks you to confirm ${fresh[0].id}${fresh.length > 1 ? ` and ${fresh.length - 1} more` : ""}. It is on the board under Waiting for your confirmation.`); }
+    confSeen = new Set(ids);
+    if (tab === "board") rerenderSoon();
+  }, () => {});
+}
+
 /* ---------- upgrade of records written by earlier versions (runs once, under a lease) ---------- */
 function upgradeSample(s){
   const upd = { v: 10 }, moves = [], fin = !!stage(s, s.stageKey)?.final;
@@ -8578,7 +8738,7 @@ setTab(tab);
   }, () => {});
   watchBatches();
   watchSectionResults(); resultsBadge(); watchStoreDue(); watchAccess();
-  watchReq(); watchStaffResults();
+  watchReq(); watchStaffResults(); watchConf();
   if (current) openSample(current.id); else renderTab();
   if (!session && (tab === "login" || tab === "register")) renderTab();
   setTimeout(maintenance, 1500);

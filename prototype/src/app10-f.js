@@ -172,7 +172,7 @@ setTab(tab);
   }, () => {});
   watchBatches();
   watchSectionResults(); resultsBadge(); watchStoreDue();
-  watchReq(); watchStaffResults();
+  watchReq(); watchStaffResults(); watchConf();
   if (current) openSample(current.id); else renderTab();
   if (!session && (tab === "login" || tab === "register")) renderTab();
   setTimeout(maintenance, 1500);

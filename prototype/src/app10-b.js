@@ -17,7 +17,7 @@ function updateChrome(){
   document.querySelectorAll("#tabs button[data-tab]").forEach(b => { b.hidden = !tabs.includes(b.dataset.tab); b.style.order = !session && b.dataset.tab === "register" ? -1 : ""; });
   $("#who").textContent = session ? `${session.name} · ${ROLES[session.role]}` : "Not signed in";
   $("#signBtn").hidden = !session;
-  watchSectionResults(); resultsBadge(); watchStoreDue(); watchBlinds(); watchReq(); watchStaffResults();
+  watchSectionResults(); resultsBadge(); watchStoreDue(); watchBlinds(); watchReq(); watchStaffResults(); watchConf();
   tabCue();
 }
 /* Prototype only: the browser keeps the username and a fingerprint of the account, so a password or role change signs the person out. Real sign-in belongs on a server. */

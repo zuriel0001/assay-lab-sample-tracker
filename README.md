@@ -158,7 +158,10 @@ comes only from the staff list in Settings, which only the admin saves; who appr
 on the request. The ledger, lab batches and stock records (which
 name shelves and tags) are staff only. Nobody deletes a sample, its stock record or a ledger day. A disposal written to the ledger must name a
 witness who is not the person recording it, and the monthly ledger sign-offs (signoff/<month>) are added only by a lab supervisor or the
-admin, in their own name, and never changed or deleted. Which sample a blind QA/QC sample
+admin, in their own name, and never changed or deleted. On a critical sample (two-person custody: bullion, gravity concentrate, the gold
+room) the storage and any disposal are confirmed by the witness from their own account: a request names a second person, only that person
+confirms it or sends it back (never the one who asked), and the sample goes into storage, or has material disposed of, only with that
+confirmation. Which sample a blind QA/QC sample
 re-assays is kept only in its link, which no one but lab supervisors and the admin can read, list or receive as a live change;
 the blind sample itself is a QA/QC submission with nothing pointing back, and only a supervisor or the admin can send a sample
 presented that way. The API only answers JSON requests from the site's own page, so another website
@@ -197,7 +200,7 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 
 | Suite | Result |
 |---|---|
-| `api-tests.js` | 247 / 247 (v24c: a disposal in the ledger names a witness who is not the recorder, except an old one brought forward by the upgrade of old records; ledger sign-offs only by a supervisor or the lab manager, in their own name, only added to, never deleted, read by staff only; v26: results files up to 5 MB, a section account opening its own section's file; release at once by the technician, evaluations by a Metallurgy viewer and nothing else, amendments still by a second person, sign-off still enforced when chosen) |
+| `api-tests.js` | 263 / 263 (v24d: on a two-person custody sample only the witness asked confirms storage or a disposal, from their own account; v24c: a disposal in the ledger names a witness who is not the recorder, except an old one brought forward by the upgrade of old records; ledger sign-offs only by a supervisor or the lab manager, in their own name, only added to, never deleted, read by staff only; v26: results files up to 5 MB, a section account opening its own section's file; release at once by the technician, evaluations by a Metallurgy viewer and nothing else, amendments still by a second person, sign-off still enforced when chosen) |
 | `store-tests.js` | 56 / 56 (28 in memory, 28 on the local Cosmos DB imitation) |
 | `auth-tests.js` | 51 / 51 |
 | `azure-extra.js` | 73 / 73 (including a page left open reloading itself onto a new version, a backup restored into a second copy of the site, a visitor's batch page updating live, and a sample on a route no longer in use moving on) |
@@ -217,7 +220,7 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 | Prototype `v20-tests.js` | 71 / 71 (blind QA/QC re-assay: picks, blind IDs, what technicians see, comparisons on both records; a batch or a single sample on Submit and Register; the batch page and receiving a batch; the custody log scrolling) |
 | Prototype `v21-tests.js` | 60 / 60 (lab batches optional, header search suggestions, recently opened, same details again, phone tables as cards, batch progress, wording) |
 | Prototype `v22-tests.js` | 29 / 29 (no QA/QC review step unless Settings use it: release from the last analysis step, Ready for release on the board, picked results not missing, sampling-point limits) |
-| Prototype `v25-tests.js` | 54 / 54 on the prototype and on this build (from the last lab step the sample waits on Results released, released when its results are saved, two-person custody with a witness; scan a label, including the camera reading a printed label; receive several from the board; disposal witness, asked on the row being disposed; monthly ledger sign-off and summary; a results file never holds the release; turnaround; released results ticked on the workflow, the closing step too) |
+| Prototype `v25-tests.js` | 68 / 68 on the prototype and on this build (on a critical sample the witness confirms the storage and a disposal from their own account; the workflow complete once the material is on the shelf; from the last lab step the sample waits on Results released, released when its results are saved, two-person custody with a witness; scan a label, including the camera reading a printed label; receive several from the board; disposal witness, asked on the row being disposed; monthly ledger sign-off and summary; a results file never holds the release; turnaround; released results ticked on the workflow, the closing step too) |
 | Prototype `v24-tests.js` | 88 / 88 on the prototype and on this build (release at once, any results file accepted (a PDF, a file naming no samples), departments and evaluation, Results tab, re-assay requests, Belt cut sample, testwork as purpose, the new Submit form, Batches, Storage, Ledger, concise Routes, 16 px text, sign-off still selectable; v24c: sample types in Ore, Processing, Gold room, Environment and QC with no testwork or duplicate types, AuFx-named fire assay, an analysis list of exactly the sample type's own analyses, Environment from any site, every board tile with a number opening its list, What it is for and Section limited to what fits the sample type, 18 px text, Received now unticked so submissions wait under Awaiting receipt) |
 | Prototype `v23-tests.js` | 53 / 53 (the routes the lab runs: AuFx/AuSx, cyanide, carbon loading, elution, ore fire assay; routes not in use hidden but kept; sampling point lists; example plant limits; the shorter Submit form) |
 

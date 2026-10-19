@@ -24,12 +24,14 @@ function renderBoard(){
   const dueS = dueL, dueM = dueL.reduce((n, x) => n + x.n, 0);
   const flagged = waiting.filter(s => s.flag).length;
   const relL = [...releasedToday.values()].filter(pass), reqL = isStaff() ? [...reqs.values()].filter(pass) : [];
+  const confL = canEdit() ? [...confs.values()].filter(x => myConf(x)) : [];   // v24d: a witness's confirmation asked of the person signed in
   // v24c: every tile with a number opens the list of what it counts (and the lanes narrow to those samples when they are in the lab).
   const stName = s => { try { return stage(s, s.stageKey)?.name || ""; } catch { return ""; } };
   const sRow = (s, where) => ({ id: s.id, type: s.type || typeOf(s.typeKey)?.name || "", what: [testOf(s.test)?.name, s.route].filter(Boolean).join(" · "), where: where ?? stName(s) });
   const lastRedo = s => (s.evals || []).filter(x => x.v === "redo").at(-1);
   // Summary tiles, zeros included: a tile with samples filters the board to them, a tile with a tab opens it.
   const sums = [
+    ...(confL.length ? [{ k: "conf", n: confL.length, l: "Waiting for your confirmation", tone: "gold", rows: confL.map(x => sRow(x, `${x.wq.kind === "store" ? "Storage: " : ""}${wqText(x)} · asked by ${x.wq.tech}`)) }] : []),
     { k: "await", n: waiting.length, l: `Awaiting receipt${flagged ? `, ${flagged} flagged` : ""}`, tone: flagged ? "warn" : "info", pick: waiting },
     { k: "lab", n: inProc.length, l: "In the lab, before results", tone: "gold", pick: inProc },
     { k: "late", n: late.length, l: "Running late", tone: "bad", pick: late },

@@ -154,6 +154,33 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   const bf = { dir: "out", kind: "disposed", sid: rid, item: "Whole sample", by: "", tech: "", note: "Brought forward from the earlier ledger" };
   check((await one("t1@site.com", { op: "update", path: lp, data: { m: { h1: { ...bf, at: Date.UTC(2026, 8, 3) } } } })).ok, "an old disposal brought forward by the upgrade of old records is history: no witness needed");
   check(!(await one("t1@site.com", { op: "update", path: lp, data: { m: { h2: { ...bf, at: Date.now() } } } })).ok, "but a new disposal can't pass as one");
+  // v24d: a critical (two-person custody) sample: storage and disposal are confirmed by the witness from their own account
+  { const gid = `GR-${day}-0901`, gp = "samples/" + gid, t0 = Date.now();
+    const gget = async () => (await one("t1@site.com", { op: "get", path: gp })).data;
+    const add = async (who, e, extra = {}) => { const g = await gget(); return one(who, { op: "update", path: gp, data: { history: [...g.history, { key: g.stageKey, at: Date.now(), ...e }], ...extra } }); };
+    check((await one("t1@site.com", { op: "set", path: gp, data: { id: gid, v: 13, section: "GR", typeKey: "bullion", type: "Bullion", stageKey: "released", stageAt: t0, open: true, onHand: true, recvAt: t0,
+      history: [{ key: "received", at: t0 - 2, ...T1 }, { key: "released", at: t0 - 1, ...T1 }], materials: [{ k: "m1", item: "Bar", status: "kept", loc: "Vault 1" }, { k: "m2", item: "Drillings", status: "kept", loc: "Vault 2" }] } })).ok, "a released gold room sample, its material in the vault");
+    check(!(await add("t1@site.com", { ...T1 }, { stageKey: "storage", stageAt: Date.now() })).ok, "it can't go into storage without the witness's confirmation");
+    const q = { id: "W1", kind: "store", at: Date.now(), ...T1, wit: "Tech One", witU: "t1" };
+    check(!(await add("t1@site.com", { ...T1, wreq: "W1" }, { wq: q, wqU: "t1" })).ok, "a request can't name the person making it");
+    const qs = { ...q, wit: "Super One", witU: "s1" };
+    check(!(await add("s1@site.com", { ...S1, wreq: "W1" }, { wq: qs, wqU: "s1" })).ok, "a request is made in the name of the person signed in");
+    check((await add("t1@site.com", { ...T1, wreq: "W1" }, { wq: qs, wqU: "s1" })).ok, "the technician asks the supervisor to confirm the storage");
+    check(!(await add("t1@site.com", { ...T1, wcf: "W1" }, { wq: null, wqU: null, stageKey: "storage", stageAt: Date.now() })).ok, "the person who asked can't confirm it");
+    check(!(await add("boss@site.com", { ...MG, wcf: "W1" }, { wq: null, wqU: null, stageKey: "storage", stageAt: Date.now() })).ok, "nor can anyone else but the witness asked (the lab manager)");
+    check(!(await one("t1@site.com", { op: "update", path: gp, data: { wq: null, wqU: null } })).ok, "the request can't just be dropped");
+    check((await add("s1@site.com", { key: "storage", ...S1, wcf: "W1" }, { wq: null, wqU: null, stageKey: "storage", stageAt: Date.now() })).ok, "the witness confirms from their own account; the sample goes into storage");
+    const g1 = await gget();
+    check(!(await one("t1@site.com", { op: "update", path: gp, data: { materials: [{ ...g1.materials[0], status: "disposed" }, g1.materials[1]], history: [...g1.history, { key: g1.stageKey, at: Date.now(), ...T1, mat: "m1" }] } })).ok, "its material can't be disposed of without the witness's confirmation");
+    const qo = { id: "W2", kind: "out", k: "m1", what: "disposed", ref: "", at: Date.now(), ...T1, wit: "Super One", witU: "s1" };
+    check((await add("t1@site.com", { ...T1, wreq: "W2", mat: "m1" }, { wq: qo, wqU: "s1" })).ok, "the technician asks the supervisor to confirm a disposal");
+    check(!(await add("s1@site.com", { ...S1, wreq: "W3" }, { wq: { ...qo, id: "W3" }, wqU: "s1" })).ok, "one request at a time");
+    check((await add("boss@site.com", { ...MG, wwd: "W2" }, { wq: null, wqU: null })).ok, "a lab supervisor or the lab manager may withdraw a request");
+    check((await add("t1@site.com", { ...T1, wreq: "W4", mat: "m1" }, { wq: { ...qo, id: "W4" }, wqU: "s1" })).ok, "asked again");
+    const g2 = await gget();
+    check((await one("s1@site.com", { op: "update", path: gp, data: { wq: null, wqU: null, materials: [{ ...g2.materials[0], status: "disposed" }, g2.materials[1]], history: [...g2.history, { key: g2.stageKey, at: Date.now(), ...S1, wcf: "W4", mat: "m1" }] } })).ok, "the witness confirms the disposal");
+    check((await add("t1@site.com", { ...T1, wreq: "W5" }, { wq: { ...qs, id: "W5" }, wqU: "s1" })).ok && (await add("s1@site.com", { ...S1, wsb: "W5" }, { wq: null, wqU: null })).ok, "a witness may send a request back");
+  }
   // v24c: monthly ledger sign-off: supervisors and the lab manager, in their own name, only added to
   const so = "signoff/2026-10", sg = (who, x = {}) => ({ at: Date.now(), ...who, role: "super", opening: 3, ins: 10, outs: 4, closing: 9, rev: 0, note: "", ...x });
   check(!(await one("t1@site.com", { op: "set", path: so, data: { id: "2026-10", month: "2026-10", signs: [sg(T1)] } })).ok, "a technician can't sign off the ledger");

@@ -177,7 +177,8 @@ const JSQR = [path.join(__dirname, "..", "..", "app", "jsqr.js"), process.env.AZ
   check(/^\w{4}-\w{4}-\w{4}-\w{4}$/.test(await Tc.$eval("#resPanel .mono.nw", e => e.textContent).catch(() => "")) && await Tc.$eval("#resPanel .mono.nw", e => getComputedStyle(e).whiteSpace).catch(() => "") === "nowrap", "the certificate's check code stays on one line");
   for (const m of doc(q1).materials){ await open(Tc, q1); await Tc.selectOption(`#mx_${m.k}`, "store"); await Tc.fill(`#mr_${m.k}`, "Rack " + m.k); await Tc.click(`[data-mat="${m.k}"]`); await waitFor(() => doc(q1).materials.find(x => x.k === m.k).loc, 6000); }
   await open(Tc, q1); await Tc.waitForTimeout(300); rr = await rail(Tc);
-  check(doc(q1).stageKey === "storage" && /done/.test(li(rr, "Results released").c) && /current/.test(li(rr, "Retained in storage").c) && /materials? kept/.test(li(rr, "Retained in storage").t) && /All material is on the shelf/.test(await text(Tc, "#moveForm")), "all on the shelf: storage is the open step and the panel says so");
+  check(doc(q1).stageKey === "storage" && /done/.test(li(rr, "Results released").c) && li(rr, "Retained in storage").m === "✓" && /materials? kept/.test(li(rr, "Retained in storage").t) && /Workflow complete/.test(await text(Tc, ".prog-t")) && /All material is on the shelf/.test(await text(Tc, "#moveForm")),
+    "all on the shelf: Retained in storage is ticked and the workflow is complete (v24d, 12:43), the material kept for its period");
   check((await Tc.$$eval('#matBox select[id^="mx_"]', ss => ss.map(x => x.value))).every(v => v === "store") && await Tc.$eval("#mtWitBox", b => b.hidden), "before the retention date nothing irreversible is chosen for you (no disposal, no witness asked)");
   for (const m of doc(q1).materials){ await open(Tc, q1); await Tc.selectOption(`#mx_${m.k}`, "disposed"); await Tc.selectOption("#mtWit", { label: "Lab Supervisor" }); await Tc.click(`[data-mat="${m.k}"]`); await waitFor(() => doc(q1).materials.find(x => x.k === m.k).status === "disposed", 6000); }
   await open(Tc, q1); await Tc.waitForTimeout(300); rr = await rail(Tc);
@@ -230,6 +231,49 @@ const JSQR = [path.join(__dirname, "..", "..", "app", "jsqr.js"), process.env.AZ
   for (const el of await Tc.$$("#resBox input[id^=rs_]")) await el.fill("1.5");
   await Tc.selectOption("#mvWit", { label: "Lab Supervisor" }); await Tc.click("#rsSave"); await waitFor(() => (doc(g3).certs || []).length, 6000);
   check((doc(g3).certs || []).length === 1 && doc(g3).history.find(h => h.key === "released")?.wit === "Lab Supervisor", "typed results with the witness chosen on the record release it too, witnessed");
+
+  log("Critical samples: the witness confirms storage and disposal from their own account (v24d, 12:54: 'only critical ones')");
+  for (const m of doc(g2).materials.filter(m => m.status === "kept")){ await open(Tc, g2); await Tc.selectOption(`#mx_${m.k}`, "store"); await Tc.fill(`#mr_${m.k}`, "Vault " + m.k); await Tc.click(`[data-mat="${m.k}"]`); await waitFor(() => doc(g2).materials.find(x => x.k === m.k).loc, 6000); }
+  await open(Tc, g2); await Tc.waitForTimeout(200); rr = await railOf(Tc);
+  check(doc(g2).stageKey === "released" && !!(await Tc.$("#wqAsk")) && /current/.test(li(rr, "Retained in storage").c) && /a second person confirms the storage/.test(li(rr, "Retained in storage").t),
+    "put away with no witness picked: it stays open, asking for a second person to confirm the storage");
+  await Tc.click("#wqAsk"); await Tc.waitForTimeout(250);
+  check(/Choose the witness/.test(await H.toastText(Tc)) && !doc(g2).wq, "the witness must be chosen");
+  check(!(await Tc.$$eval("#wqWit option", os => os.map(o => o.value))).includes("tech1"), "and is someone else");
+  await Tc.selectOption("#wqWit", "admin"); await Tc.click("#wqAsk"); await waitFor(() => doc(g2).wq, 5000);
+  await open(Tc, g2); await Tc.waitForTimeout(200); rr = await railOf(Tc);
+  check(doc(g2).wq?.witU === "admin" && doc(g2).wqU === "admin" && doc(g2).wq.by === "tech1" && !(await Tc.$("#wqOk")) && !!(await Tc.$("#wqDrop")) && /Waiting for Lab Manager to confirm the storage/.test(li(rr, "Retained in storage").t),
+    "asked: the step says it waits for the Lab Manager; the technician can withdraw it but not confirm it");
+  check(!(await Tc.$(`#mx_${doc(g2).materials[0].k}`)) && /Nothing else is recorded/.test(await text(Tc, "#matBox")), "nothing else is recorded on the material meanwhile");
+  await H.tab(Ad, "board"); await Ad.waitForSelector('[data-bpick="conf"]', { timeout: 8000 }).catch(() => {});
+  check(/^1\s*Waiting for your confirmation/.test(await text(Ad, '[data-bpick="conf"]')), "the Lab Manager's board shows it under Waiting for your confirmation: " + await text(Ad, '[data-bpick="conf"]'));
+  await open(Ad, g2); await Ad.waitForSelector("#wqOk", { timeout: 5000 }).catch(() => {});
+  check(/Your confirmation is asked\. Lab Technician A asks you to witness the storage: .*Vault/.test(await text(Ad, "#wqBox")), "opening the sample, the witness sees what was put away where");
+  await Ad.click("#wqOk"); await waitFor(() => doc(g2).stageKey === "storage", 6000);
+  await open(Tc, g2); await Tc.waitForTimeout(250); rr = await railOf(Tc);
+  const cf = doc(g2).history.at(-1);
+  check(doc(g2).stageKey === "storage" && !doc(g2).wq && cf.by === "admin" && cf.tech === "Lab Manager" && cf.put === "Lab Technician A" && cf.wcf,
+    "confirmed from the Lab Manager's own account: in storage, the confirmation in the custody line in the witness's name");
+  check(rr.every(x => /done|skipped/.test(x.c)) && /confirmed by Lab Manager, put away by Lab Technician A/.test(li(rr, "Retained in storage").t) && /Workflow complete/.test(await text(Tc, ".prog-t")),
+    "every step is ticked, Retained in storage confirmed by the witness: the workflow is complete");
+  const dk = doc(g2).materials.find(m => m.status === "kept").k;
+  await Tc.selectOption("#mtWit", { label: "Lab Manager" }); await Tc.selectOption(`#mx_${dk}`, "disposed"); await Tc.click(`[data-mat="${dk}"]`); await waitFor(() => doc(g2).wq, 5000);
+  check(doc(g2).wq?.kind === "out" && doc(g2).materials.find(m => m.k === dk).status === "kept" && !ledger().some(m => m.sid === g2 && m.dir === "out" && m.kind === "disposed"), "a disposal waits for the witness: nothing has left yet");
+  await open(Ad, g2); await Ad.waitForSelector("#wqOk", { timeout: 5000 }).catch(() => {});
+  await Ad.fill("#wqWhy", "Wrong bag on the trolley"); await Ad.click("#wqBack"); await waitFor(() => !doc(g2).wq, 5000);
+  check(!doc(g2).wq && doc(g2).history.at(-1).wsb && /Wrong bag on the trolley/.test(doc(g2).history.at(-1).note) && doc(g2).materials.find(m => m.k === dk).status === "kept", "the witness can send it back with a reason; nothing is disposed of");
+  await open(Tc, g2); await Tc.selectOption("#mtWit", { label: "Lab Manager" }); await Tc.selectOption(`#mx_${dk}`, "disposed"); await Tc.click(`[data-mat="${dk}"]`); await waitFor(() => doc(g2).wq, 5000);
+  await open(Ad, g2); await Ad.waitForSelector("#wqOk", { timeout: 5000 }).catch(() => {}); await Ad.click("#wqOk");
+  await waitFor(() => doc(g2).materials.find(m => m.k === dk).status === "disposed", 6000); await waitFor(() => ledger().some(m => m.sid === g2 && m.dir === "out" && m.kind === "disposed"), 8000);
+  const dmv = ledger().find(m => m.sid === g2 && m.dir === "out" && m.kind === "disposed");
+  check(doc(g2).materials.find(m => m.k === dk).status === "disposed" && dmv?.tech === "Lab Technician A" && dmv?.wit === "Lab Manager", "asked again and confirmed: disposed, in the ledger by the technician, witnessed by the Lab Manager: " + JSON.stringify(dmv && { tech: dmv.tech, wit: dmv.wit }));
+  await open(Tc, g2); await Tc.waitForTimeout(200);
+  check(/witness Lab Manager/.test(await text(Tc, "#matBox tbody")), "the material shows its witness");
+  await fillForm(Tc, "register", { section: "PLT", type: "plant_feed", purpose: "plant", submitter: "Shift F", count: 1, tags: "MA-NC" }); const n1 = await ids(Tc).then(x => x[0]);
+  await open(Tc, n1); await H.attachFile(Tc, `sample:${n1}`, "n.pdf", PDF); await H.saveAttach(Tc); await waitFor(() => (doc(n1).certs || []).length, 8000);
+  for (const m of doc(n1).materials){ await open(Tc, n1); await Tc.selectOption(`#mx_${m.k}`, "store"); await Tc.fill(`#mr_${m.k}`, "Rack " + m.k); await Tc.click(`[data-mat="${m.k}"]`); await waitFor(() => doc(n1).materials.find(x => x.k === m.k).loc, 6000); }
+  await open(Tc, n1); await Tc.waitForTimeout(200);
+  check(doc(n1).stageKey === "storage" && !doc(n1).wq && !(await Tc.$("#wqAsk")) && /Workflow complete/.test(await text(Tc, ".prog-t")), "an ordinary sample needs no witness: on the shelf, the workflow is complete");
 
   console.log("\nConsole errors:", JSON.stringify(errors));
   if (errors.length) process.exitCode = 1;

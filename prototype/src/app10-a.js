@@ -451,8 +451,9 @@ function status(s){
   if (i >= t){
     const od = overdueMaterials(s, now), notStored = i === t && late;
     if (od.length) return { label: `Retention ended: ${od.map(m => m.item).join(", ")} due for ${od.every(m => m.dispo === "returned") ? "return" : "disposal or return"}`, cls: "warn", closed: false, late: true, post: true };
+    if (i === t && s.wq && s.wq.kind === "store") return { label: `Waiting for ${s.wq.wit} to confirm the storage`, cls: notStored ? "warn" : "info", closed: false, late: notStored, post: true };
     if (notStored) return { label: "Results released; material not yet put in storage", cls: "warn", closed: false, late: true, post: true };
-    return i === t ? { label: "Results released", cls: "ok", closed: false, late: false, post: true } : { label: "In storage", cls: "info", closed: false, late: false, post: true };
+    return i === t ? { label: "Results released", cls: "ok", closed: false, late: false, post: true } : { label: "Complete: in storage", cls: "ok", closed: false, late: false, post: true };
   }
   if (waitingRes(s)) return { label: late ? "Waiting for results (overdue)" : "Waiting for results", cls: late ? "warn" : "info", closed: false, late };
   return { label: late ? `Overdue at ${st.name}` : `In progress: ${st.name}`, cls: late ? "bad" : "gold", closed: false, late };
