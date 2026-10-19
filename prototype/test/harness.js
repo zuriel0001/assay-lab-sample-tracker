@@ -142,7 +142,8 @@ async function fillForm(page, tabName, { section, type = "core", purpose = "exp"
 const ids = async page => {
   await page.waitForSelector("#rResult code", { timeout: 15000 });
   const out = await page.$$eval("#rResult code", els => els.map(e => e.textContent.split(" · ")[0]));
-  if (lastBatch && out.length > 1){ lastBatch = false; await page.evaluate(async xs => { const db = await window.claude.use("db"); for (const id of xs) try { await db.doc("samples/" + id).update({ solo: true }); } catch {} }, out).catch(() => {}); await page.waitForTimeout(200); }
+  // Straight into the store (as a test fixture, the way a page signed out could not): every open page gets the change.
+  if (lastBatch && out.length > 1){ lastBatch = false; for (const id of out){ const p = "samples/" + id; if (store[p]){ store[p] = { ...store[p], solo: true }; await broadcast(p, store[p]); } } await page.waitForTimeout(200); }
   return out;
 };
 const open = async (page, id) => { await page.fill("#lookupInput", id); await page.press("#lookupInput", "Enter"); await page.waitForSelector(".sid", { timeout: 8000 }); await page.waitForTimeout(250); };
