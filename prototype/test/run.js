@@ -284,7 +284,7 @@ const moves = id => ledger().filter(m => m.sid === id);
   check((await A.$$eval(".chip .haz", hs => hs.map(h => h.textContent))).includes("2P"), "two-person samples are marked on the board");
   store["samples/" + bb] = { ...doc(bb), stageKey: "released", stageAt: Date.now() - 30 * 3600e3, relAt: Date.now() - 30 * 3600e3, materials: [{ k: "m1", item: "Doré bar", days: 0, then: "Returned", dispo: "returned", status: "kept", dueAt: Date.now() - 30 * 3600e3, loc: "", outs: 0 }] };
   await broadcast("samples/" + bb, store["samples/" + bb]); await A.waitForTimeout(400);
-  check(/1\s*Released, not yet put in storage/.test((await A.textContent(".stats")).replace(/\s+/g, " ")), "released but not put away for more than 24 h is flagged");
+  check(/Released, not yet put in storage, 1 over a day/.test((await A.textContent(".stats")).replace(/\s+/g, " ")), "released but not put away for more than 24 h is flagged");
   await A.screenshot({ path: OUT + "/board-phases.png", fullPage: true });
 
   log("Ledger and month check");

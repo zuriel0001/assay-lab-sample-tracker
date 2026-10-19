@@ -144,7 +144,8 @@ function buildTrack(v, s){
       cls = "done"; mark = "✓";
       const cf = (s.history || []).filter(h => h.key === x.key && h.wcf && !h.mat).at(-1), kept = keptMaterials(s), od = overdueMaterials(s), nextDue = Math.min(...kept.map(m => m.dueAt || Infinity)), q = wqOf(s);
       meta = [cf ? `${fmt(cf.at)} · confirmed by ${esc(cf.tech)}${cf.put ? `, put away by ${esc(cf.put)}` : ""}` : `${fmt(e?.at || s.stageAt)}${by ? ` · ${esc(by)}` : ""}`,
-        `${kept.length} material${kept.length === 1 ? "" : "s"} kept` + (od.length ? ` · <b style="color:var(--bad)">${esc(od.map(m => m.item).join(", "))} past retention</b>` : isFinite(nextDue) ? `, next due ${fmtDate(nextDue)}` : ""),
+        `${kept.length} material${kept.length === 1 ? "" : "s"} kept` + (od.some(m => m.days) ? ` · <b style="color:var(--bad)">${esc(od.filter(m => m.days).map(m => m.item).join(", "))} past retention</b>` : "")
+          + (od.some(m => !m.days) ? ` · <b style="color:var(--warn)">${esc(od.filter(m => !m.days).map(m => m.item).join(", "))} due now (kept until release)</b>` : "") + (!od.length && isFinite(nextDue) ? `, next due ${fmtDate(nextDue)}` : ""),
         q ? `<b>${esc(wqText(s, q))}: waiting for ${esc(q.wit)} to confirm</b>` : ""].filter(Boolean).join(" · ");
     }
     else if (final && x.key === s.stageKey){
@@ -420,16 +421,16 @@ function materialsPanel(s){
     let ctl = "";
     if (edit && m.status === "kept" && !q){
       // v24d: on the shelf, the route's return or disposal is offered once the retention period is over; before that, nothing that can't be undone is chosen for you.
-      const def = m.loc && od ? m.dispo : "store";
+      const def = (m.loc && od) || (!m.loc && !m.days) ? m.dispo : "store";   // kept only until release: what the route says, at once
       ctl = `<div class="row mat-row" style="gap:6px;margin-top:6px;flex-wrap:wrap">
-        <select class="inp" id="mx_${m.k}" style="flex:1 1 170px;min-width:0;width:auto">${[["store", m.loc ? "Move to another location" : "Put away in storage"], ["returned", "Return"], ["disposed", "Dispose"], ["external", "Send to external lab"], ["archived", "Move to long-term archive"]].map(([k, l]) => `<option value="${k}" ${k === def ? "selected" : ""}>${l}${k === m.dispo ? " (route says)" : ""}</option>`).join("")}</select>
+        <select class="inp" id="mx_${m.k}" style="flex:1 1 250px;min-width:0;width:auto">${[["store", m.loc ? "Move to another location" : "Put away in storage"], ["returned", "Return"], ["disposed", "Dispose"], ["external", "Send to external lab"], ["archived", "Move to long-term archive"]].map(([k, l]) => `<option value="${k}" ${k === def ? "selected" : ""}>${l}${k === m.dispo ? " (route says)" : ""}</option>`).join("")}</select>
         <input class="inp" id="mr_${m.k}" data-clear style="flex:1 1 110px;min-width:0;width:auto" placeholder="Location or ref.">
         <button type="button" class="btn" data-mat="${m.k}">Record</button></div>`;
     } else if (m.status !== "kept" && canApprove()){
       ctl = `<details class="more" id="mu_box_${m.k}" style="margin-top:6px"><summary class="small">Reverse this (recorded by mistake)</summary><div class="row" style="gap:6px;margin-top:6px"><input class="inp" id="mu_${m.k}" data-clear style="flex:1 1 160px;width:auto" placeholder="Reason (required)"><button type="button" class="btn" data-undo="${m.k}">Reverse</button></div></details>`;
     }
     return `<tr><td><b>${esc(m.item)}</b><div class="small muted">Then: ${esc(lcFirst(m.then))}</div></td>
-      <td style="white-space:nowrap">${m.days ? fmtDate(m.dueAt) : "At release"}${od ? `<div class="small" style="color:var(--bad);font-weight:600">${dur(now - m.dueAt)} past</div>` : ""}</td>
+      <td style="white-space:nowrap">${m.days ? fmtDate(m.dueAt) : "At release"}${od ? (m.days ? `<div class="small" style="color:var(--bad);font-weight:600">${dur(now - m.dueAt)} past</div>` : `<div class="small" style="color:var(--warn);font-weight:600">Due now</div>`) : ""}</td>
       <td>${state}</td></tr>${ctl ? `<tr class="mat-ctl"><td colspan="3" style="border-top:0;padding-top:0">${ctl}</td></tr>` : ""}`;
   }).join("");
   return `<div class="panel stack" id="matBox"><h3>Retained material</h3>

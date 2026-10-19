@@ -450,8 +450,11 @@ function status(s){
   if (awaiting(s)) return { label: s.flag ? "Flagged at receipt" : late ? "Not yet received (overdue)" : "Awaiting receipt at lab", cls: s.flag || late ? "warn" : "info", closed: false, late };
   if (i >= t){
     const od = overdueMaterials(s, now), notStored = i === t && late;
-    if (od.length) return { label: `Retention ended: ${od.map(m => m.item).join(", ")} due for ${od.every(m => m.dispo === "returned") ? "return" : "disposal or return"}`, cls: "warn", closed: false, late: true, post: true };
+    // v24d: a witness asked to confirm is what the sample waits for; material kept "until release" (days 0) is due then, not overdue
     if (i === t && s.wq && s.wq.kind === "store") return { label: `Waiting for ${s.wq.wit} to confirm the storage`, cls: notStored ? "warn" : "info", closed: false, late: notStored, post: true };
+    const verb = xs => xs.every(m => m.dispo === "returned") ? "return" : "disposal or return";
+    if (od.length && od.every(m => !m.days)) return { label: `${od.map(m => m.item).join(", ")} due for ${verb(od)} at release`, cls: "warn", closed: false, late: notStored, post: true };
+    if (od.length) return { label: `Retention ended: ${od.map(m => m.item).join(", ")} due for ${verb(od)}`, cls: "warn", closed: false, late: true, post: true };
     if (notStored) return { label: "Results released; material not yet put in storage", cls: "warn", closed: false, late: true, post: true };
     return i === t ? { label: "Results released", cls: "ok", closed: false, late: false, post: true } : { label: "Complete: in storage", cls: "ok", closed: false, late: false, post: true };
   }

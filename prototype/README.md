@@ -254,6 +254,19 @@ the witness named on the record (v24c). On the server (`witnessProblem` in `api/
 signed in and names someone else, only the witness named confirms or sends it back, one request at a time, and a critical sample goes into
 storage or has material disposed of only with the witness's confirmation. `v25-tests.js`: **68 PASS**; `api-tests.js`: **263**.
 
+**19 October, 14:39 (Zuriel): "Run through the whole site, let's see if there is an anomaly".** A walk-through on the Azure build (the real
+page and API): a register built through the page as the lab would (a walk-in, RC chips, mill, CCD, carbon, environmental water, two gravity
+concentrates and a bullion bar, through receipt, analysis, waiting for results, release, storage, the witness's confirmation and a
+disposal), then every tab as technician, supervisor, lab manager (and each Settings page), viewer, metallurgist, section account and
+signed out, at computer width and on a phone in light and dark, with automatic checks for console errors, server refusals, sideways
+scrolling and text such as "undefined" or "NaN" (none found). Fixed from what the screenshots showed: the Results tab's table pushed its
+Evaluation column out of view on a computer (the Results column now wraps); the board's *Released, not yet put in storage* counted only
+those over a day (it now counts all, and says how many are over a day); a board card for a sample waiting for its results named its last
+step (now *Waiting for results*), and one waiting for a witness says so; material kept only until release (the gravity concentrate
+remainder) showed "Retention ended … 0m past" in red the moment results were released and offered *Put away* (it now says *Due now*, offers
+the route's return, and the sample's status says it is due at release); a critical sample waiting for its witness showed that retention
+note instead of *Waiting for … to confirm the storage*; the material action list was cut off ("Move to another locatio").
+
 **19 October, clean-up (Zuriel: "are there any redundant script to be removed …?").** The page itself had almost nothing to remove:
 no function is declared twice, no CSS rule repeats a selector's property, and one helper (`dayStart`) was unused (removed). The repository
 lost what the build and the site never use: `src/v9-backup.html` (184 KB, of which the build read only the first 248 lines) became

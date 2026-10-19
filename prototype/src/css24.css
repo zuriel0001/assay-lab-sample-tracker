@@ -184,3 +184,5 @@ table.tat-tbl tr.late td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
 ol.rail li.done.stop .dot{background:var(--bad);border-color:var(--bad)}
 .nw{white-space:nowrap}
 .mat-wit{margin-top:8px;max-width:380px}
+/* v24d: the Results column wraps, so the Evaluation column fits on a computer screen */
+.tbl-wrap table.restbl td[data-l="Results"]{white-space:normal;min-width:12em}

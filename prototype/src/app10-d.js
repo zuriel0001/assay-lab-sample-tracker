@@ -17,7 +17,8 @@ function renderBoard(){
   const qcAct = inProc.filter(s => Object.values(labsOf(s)).some(l => l.q === "fail" || l.q === "warn"));
   // Release at once: limits and QC are for the people who evaluate (Results tab); the lab's board shows only the lab's work.
   const alerts = isStaff() && !relNow() ? list.filter(s => (s.results || s.amend) && openAlerts(s).length) : [], trends = isStaff() && (!relNow() || canEval()) ? crmTrendFlags() : [];
-  const unstored = list.filter(s => s.stageKey === "released" && stageDue(s) && Date.now() > stageDue(s)), notStored = unstored.length;
+  // v24d: every released sample whose material is not yet on the shelf (or not yet confirmed there), those over the day allowed marked
+  const unstored = list.filter(s => s.stageKey === "released"), notStored = unstored.length, unstoredLate = unstored.filter(s => stageDue(s) && Date.now() > stageDue(s)).length;
   const dueNow = Date.now(), dueL = [...list.filter(s => overdueMaterials(s).length).map(s => ({ id: s.id, s, sec: s.section, route: s.route || "", items: overdueMaterials(s).map(m => m.item), n: overdueMaterials(s).length })),
     ...[...storeDue.values()].filter(x => !samples.has(x.id)).map(x => { const ms = (x.m || []).filter(m => m.dueAt && dueNow > m.dueAt); return { id: x.id, sec: x.sec, route: x.route, type: x.type, items: ms.map(m => m.item || "Material"), n: ms.length }; })]
     .filter(x => x.n && (!boardSec || x.sec === boardSec) && (!boardRoute || x.route === boardRoute));
@@ -43,7 +44,7 @@ function renderBoard(){
       rows: trends.map(t => ({ id: "", type: t.crm + (t.k ? " " + t.k : ""), what: t.b ? "Batch " + t.b : "", where: t.msg })) }] : []),
     ...(isStaff() ? [{ k: "req", n: reqL.length, l: "Re-assay requested", tone: "bad", rows: reqL.map(s => { const e = lastRedo(s); return sRow(s, "Requested" + (e ? ` by ${e.tech}${e.note ? ": " + e.note : ""}` : "")); }) }] : []),
     { k: "rel", n: relL.length, l: "Results released today", tone: "ok", rows: relL.map(s => sRow(s, "Released " + fmt(s.relAt))) },
-    { k: "unstored", n: notStored, l: "Released, not yet put in storage", tone: "warn", pick: unstored },
+    { k: "unstored", n: notStored, l: `Released, not yet put in storage${unstoredLate ? `, ${unstoredLate} over a day` : ""}`, tone: unstoredLate ? "warn" : "info", pick: unstored },
     { k: "retention", n: dueM, l: `Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}`, tone: "warn", link: ["storage", "Open Storage"],
       rows: dueS.map(x => x.s ? sRow(x.s, x.items.join(", ") + " past retention") : { id: x.id, type: x.type || "", what: x.route || "", where: x.items.join(", ") + " past retention" }) },
     { k: "recvToday", n: list.filter(s => isToday(recvOf(s))).length, l: "Received today", tone: "", pick: list.filter(s => isToday(recvOf(s))), hide: true },
@@ -96,7 +97,8 @@ function renderBoard(){
       <div class="cards">${items.slice(0, 40).map(s => { const stt = status(s), stp = stage(s, s.stageKey), od = overdueMaterials(s), tm = cardTime(s);
         return `<button class="chip ${tm.cls}${stt.late ? " late" : ""}${s.priority === "Urgent" ? " urgent" : ""}" data-open="${esc(s.id)}"${stageDue(s) && !stp?.final ? ` title="Due ${esc(fmt(stageDue(s)))}"` : ""}>
           <div class="ctop"><span class="cid">${esc(s.id)}${s.route ? ` <span class="rc">${esc(s.route)}</span>` : ""}</span></div>
-          ${showStep[x.key] && stp ? `<div class="cmeta"><b style="color:var(--ink)">${esc(stp.name)}</b>${s.reassays ? ` · <b style="color:var(--warn)">re-assay</b>` : ""}</div>` : ""}
+          ${showStep[x.key] && stp ? `<div class="cmeta"><b style="color:var(--ink)">${esc(waitingRes(s) ? "Waiting for results" : stp.name)}</b>${s.reassays ? ` · <b style="color:var(--warn)">re-assay</b>` : ""}</div>` : ""}
+          ${s.wq && s.wq.wit ? `<div class="cmeta"><b style="color:var(--info)">Waiting for ${esc(s.wq.wit)} to confirm</b></div>` : ""}
           ${curIdx(s) < targetIdx(s) ? Object.values(labsOf(s)).map(l => `<div class="cmeta">Batch <span class="mono">${esc(l.b)}</span>${l.q && l.q !== "pending" ? ` · <b style="color:var(--${{ ok: "ok", bad: "bad" }[qcCls(l.q)] || "warn"})">${esc(qcLabel(l.q))}</b>` : ""}</div>`).join("") : ""}
           ${alerts.includes(s) ? `<div class="cmeta"><b style="color:var(--bad)">Result past a limit</b></div>` : ""}
           ${awaiting(s) && s.handedTo ? `<div class="cmeta">Handed to ${esc(s.handedTo)}</div>` : ""}

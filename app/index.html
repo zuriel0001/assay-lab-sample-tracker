@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="27f497bb3be0"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 7c48ca07486b) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="cd9182ec80c8"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 80e847c9ac45) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -833,6 +833,8 @@ table.tat-tbl tr.late td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
 ol.rail li.done.stop .dot{background:var(--bad);border-color:var(--bad)}
 .nw{white-space:nowrap}
 .mat-wit{margin-top:8px;max-width:380px}
+/* v24d: the Results column wraps, so the Evaluation column fits on a computer screen */
+.tbl-wrap table.restbl td[data-l="Results"]{white-space:normal;min-width:12em}
 </style>
 
 <div class="wrap">
@@ -2540,8 +2542,11 @@ function status(s){
   if (awaiting(s)) return { label: s.flag ? "Flagged at receipt" : late ? "Not yet received (overdue)" : "Awaiting receipt at lab", cls: s.flag || late ? "warn" : "info", closed: false, late };
   if (i >= t){
     const od = overdueMaterials(s, now), notStored = i === t && late;
-    if (od.length) return { label: `Retention ended: ${od.map(m => m.item).join(", ")} due for ${od.every(m => m.dispo === "returned") ? "return" : "disposal or return"}`, cls: "warn", closed: false, late: true, post: true };
+    // v24d: a witness asked to confirm is what the sample waits for; material kept "until release" (days 0) is due then, not overdue
     if (i === t && s.wq && s.wq.kind === "store") return { label: `Waiting for ${s.wq.wit} to confirm the storage`, cls: notStored ? "warn" : "info", closed: false, late: notStored, post: true };
+    const verb = xs => xs.every(m => m.dispo === "returned") ? "return" : "disposal or return";
+    if (od.length && od.every(m => !m.days)) return { label: `${od.map(m => m.item).join(", ")} due for ${verb(od)} at release`, cls: "warn", closed: false, late: notStored, post: true };
+    if (od.length) return { label: `Retention ended: ${od.map(m => m.item).join(", ")} due for ${verb(od)}`, cls: "warn", closed: false, late: true, post: true };
     if (notStored) return { label: "Results released; material not yet put in storage", cls: "warn", closed: false, late: true, post: true };
     return i === t ? { label: "Results released", cls: "ok", closed: false, late: false, post: true } : { label: "Complete: in storage", cls: "ok", closed: false, late: false, post: true };
   }
@@ -3011,7 +3016,8 @@ function buildTrack(v, s){
       cls = "done"; mark = "✓";
       const cf = (s.history || []).filter(h => h.key === x.key && h.wcf && !h.mat).at(-1), kept = keptMaterials(s), od = overdueMaterials(s), nextDue = Math.min(...kept.map(m => m.dueAt || Infinity)), q = wqOf(s);
       meta = [cf ? `${fmt(cf.at)} · confirmed by ${esc(cf.tech)}${cf.put ? `, put away by ${esc(cf.put)}` : ""}` : `${fmt(e?.at || s.stageAt)}${by ? ` · ${esc(by)}` : ""}`,
-        `${kept.length} material${kept.length === 1 ? "" : "s"} kept` + (od.length ? ` · <b style="color:var(--bad)">${esc(od.map(m => m.item).join(", "))} past retention</b>` : isFinite(nextDue) ? `, next due ${fmtDate(nextDue)}` : ""),
+        `${kept.length} material${kept.length === 1 ? "" : "s"} kept` + (od.some(m => m.days) ? ` · <b style="color:var(--bad)">${esc(od.filter(m => m.days).map(m => m.item).join(", "))} past retention</b>` : "")
+          + (od.some(m => !m.days) ? ` · <b style="color:var(--warn)">${esc(od.filter(m => !m.days).map(m => m.item).join(", "))} due now (kept until release)</b>` : "") + (!od.length && isFinite(nextDue) ? `, next due ${fmtDate(nextDue)}` : ""),
         q ? `<b>${esc(wqText(s, q))}: waiting for ${esc(q.wit)} to confirm</b>` : ""].filter(Boolean).join(" · ");
     }
     else if (final && x.key === s.stageKey){
@@ -3283,16 +3289,16 @@ function materialsPanel(s){
     let ctl = "";
     if (edit && m.status === "kept" && !q){
       // v24d: on the shelf, the route's return or disposal is offered once the retention period is over; before that, nothing that can't be undone is chosen for you.
-      const def = m.loc && od ? m.dispo : "store";
+      const def = (m.loc && od) || (!m.loc && !m.days) ? m.dispo : "store";   // kept only until release: what the route says, at once
       ctl = `<div class="row mat-row" style="gap:6px;margin-top:6px;flex-wrap:wrap">
-        <select class="inp" id="mx_${m.k}" style="flex:1 1 170px;min-width:0;width:auto">${[["store", m.loc ? "Move to another location" : "Put away in storage"], ["returned", "Return"], ["disposed", "Dispose"], ["external", "Send to external lab"], ["archived", "Move to long-term archive"]].map(([k, l]) => `<option value="${k}" ${k === def ? "selected" : ""}>${l}${k === m.dispo ? " (route says)" : ""}</option>`).join("")}</select>
+        <select class="inp" id="mx_${m.k}" style="flex:1 1 250px;min-width:0;width:auto">${[["store", m.loc ? "Move to another location" : "Put away in storage"], ["returned", "Return"], ["disposed", "Dispose"], ["external", "Send to external lab"], ["archived", "Move to long-term archive"]].map(([k, l]) => `<option value="${k}" ${k === def ? "selected" : ""}>${l}${k === m.dispo ? " (route says)" : ""}</option>`).join("")}</select>
         <input class="inp" id="mr_${m.k}" data-clear style="flex:1 1 110px;min-width:0;width:auto" placeholder="Location or ref.">
         <button type="button" class="btn" data-mat="${m.k}">Record</button></div>`;
     } else if (m.status !== "kept" && canApprove()){
       ctl = `<details class="more" id="mu_box_${m.k}" style="margin-top:6px"><summary class="small">Reverse this (recorded by mistake)</summary><div class="row" style="gap:6px;margin-top:6px"><input class="inp" id="mu_${m.k}" data-clear style="flex:1 1 160px;width:auto" placeholder="Reason (required)"><button type="button" class="btn" data-undo="${m.k}">Reverse</button></div></details>`;
     }
     return `<tr><td><b>${esc(m.item)}</b><div class="small muted">Then: ${esc(lcFirst(m.then))}</div></td>
-      <td style="white-space:nowrap">${m.days ? fmtDate(m.dueAt) : "At release"}${od ? `<div class="small" style="color:var(--bad);font-weight:600">${dur(now - m.dueAt)} past</div>` : ""}</td>
+      <td style="white-space:nowrap">${m.days ? fmtDate(m.dueAt) : "At release"}${od ? (m.days ? `<div class="small" style="color:var(--bad);font-weight:600">${dur(now - m.dueAt)} past</div>` : `<div class="small" style="color:var(--warn);font-weight:600">Due now</div>`) : ""}</td>
       <td>${state}</td></tr>${ctl ? `<tr class="mat-ctl"><td colspan="3" style="border-top:0;padding-top:0">${ctl}</td></tr>` : ""}`;
   }).join("");
   return `<div class="panel stack" id="matBox"><h3>Retained material</h3>
@@ -3681,7 +3687,8 @@ function renderBoard(){
   const qcAct = inProc.filter(s => Object.values(labsOf(s)).some(l => l.q === "fail" || l.q === "warn"));
   // Release at once: limits and QC are for the people who evaluate (Results tab); the lab's board shows only the lab's work.
   const alerts = isStaff() && !relNow() ? list.filter(s => (s.results || s.amend) && openAlerts(s).length) : [], trends = isStaff() && (!relNow() || canEval()) ? crmTrendFlags() : [];
-  const unstored = list.filter(s => s.stageKey === "released" && stageDue(s) && Date.now() > stageDue(s)), notStored = unstored.length;
+  // v24d: every released sample whose material is not yet on the shelf (or not yet confirmed there), those over the day allowed marked
+  const unstored = list.filter(s => s.stageKey === "released"), notStored = unstored.length, unstoredLate = unstored.filter(s => stageDue(s) && Date.now() > stageDue(s)).length;
   const dueNow = Date.now(), dueL = [...list.filter(s => overdueMaterials(s).length).map(s => ({ id: s.id, s, sec: s.section, route: s.route || "", items: overdueMaterials(s).map(m => m.item), n: overdueMaterials(s).length })),
     ...[...storeDue.values()].filter(x => !samples.has(x.id)).map(x => { const ms = (x.m || []).filter(m => m.dueAt && dueNow > m.dueAt); return { id: x.id, sec: x.sec, route: x.route, type: x.type, items: ms.map(m => m.item || "Material"), n: ms.length }; })]
     .filter(x => x.n && (!boardSec || x.sec === boardSec) && (!boardRoute || x.route === boardRoute));
@@ -3707,7 +3714,7 @@ function renderBoard(){
       rows: trends.map(t => ({ id: "", type: t.crm + (t.k ? " " + t.k : ""), what: t.b ? "Batch " + t.b : "", where: t.msg })) }] : []),
     ...(isStaff() ? [{ k: "req", n: reqL.length, l: "Re-assay requested", tone: "bad", rows: reqL.map(s => { const e = lastRedo(s); return sRow(s, "Requested" + (e ? ` by ${e.tech}${e.note ? ": " + e.note : ""}` : "")); }) }] : []),
     { k: "rel", n: relL.length, l: "Results released today", tone: "ok", rows: relL.map(s => sRow(s, "Released " + fmt(s.relAt))) },
-    { k: "unstored", n: notStored, l: "Released, not yet put in storage", tone: "warn", pick: unstored },
+    { k: "unstored", n: notStored, l: `Released, not yet put in storage${unstoredLate ? `, ${unstoredLate} over a day` : ""}`, tone: unstoredLate ? "warn" : "info", pick: unstored },
     { k: "retention", n: dueM, l: `Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}`, tone: "warn", link: ["storage", "Open Storage"],
       rows: dueS.map(x => x.s ? sRow(x.s, x.items.join(", ") + " past retention") : { id: x.id, type: x.type || "", what: x.route || "", where: x.items.join(", ") + " past retention" }) },
     { k: "recvToday", n: list.filter(s => isToday(recvOf(s))).length, l: "Received today", tone: "", pick: list.filter(s => isToday(recvOf(s))), hide: true },
@@ -3760,7 +3767,8 @@ function renderBoard(){
       <div class="cards">${items.slice(0, 40).map(s => { const stt = status(s), stp = stage(s, s.stageKey), od = overdueMaterials(s), tm = cardTime(s);
         return `<button class="chip ${tm.cls}${stt.late ? " late" : ""}${s.priority === "Urgent" ? " urgent" : ""}" data-open="${esc(s.id)}"${stageDue(s) && !stp?.final ? ` title="Due ${esc(fmt(stageDue(s)))}"` : ""}>
           <div class="ctop"><span class="cid">${esc(s.id)}${s.route ? ` <span class="rc">${esc(s.route)}</span>` : ""}</span></div>
-          ${showStep[x.key] && stp ? `<div class="cmeta"><b style="color:var(--ink)">${esc(stp.name)}</b>${s.reassays ? ` · <b style="color:var(--warn)">re-assay</b>` : ""}</div>` : ""}
+          ${showStep[x.key] && stp ? `<div class="cmeta"><b style="color:var(--ink)">${esc(waitingRes(s) ? "Waiting for results" : stp.name)}</b>${s.reassays ? ` · <b style="color:var(--warn)">re-assay</b>` : ""}</div>` : ""}
+          ${s.wq && s.wq.wit ? `<div class="cmeta"><b style="color:var(--info)">Waiting for ${esc(s.wq.wit)} to confirm</b></div>` : ""}
           ${curIdx(s) < targetIdx(s) ? Object.values(labsOf(s)).map(l => `<div class="cmeta">Batch <span class="mono">${esc(l.b)}</span>${l.q && l.q !== "pending" ? ` · <b style="color:var(--${{ ok: "ok", bad: "bad" }[qcCls(l.q)] || "warn"})">${esc(qcLabel(l.q))}</b>` : ""}</div>`).join("") : ""}
           ${alerts.includes(s) ? `<div class="cmeta"><b style="color:var(--bad)">Result past a limit</b></div>` : ""}
           ${awaiting(s) && s.handedTo ? `<div class="cmeta">Handed to ${esc(s.handedTo)}</div>` : ""}
