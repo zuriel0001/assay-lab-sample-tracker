@@ -10,6 +10,8 @@ const batchOf = s => s && s.batchId && (s.batchSize || 0) > 1 && !s.solo ? s.bat
 const grouped = s => !!batchOf(s) && s.open !== false && !stage(s, s.stageKey)?.final;
 const nS = n => `${n} sample${n === 1 ? "" : "s"}`;
 const resIn = s => !resMissing(s);
+/* A sample's point (sampling point, carbon type, solution) as given at submission. */
+const ptOf = s => { const f = (typeOf(s?.typeKey)?.fields || [])[0]; return f && f.o ? (s.details || {})[f.l] || "" : ""; };
 const certOfBatch = (s, ref) => (s?.certs || []).filter(c => c.bref === ref).at(-1) || null;
 /* The members that move together and the step they are at: the earliest step among the received ones (any ahead wait there for it). */
 function batchState(docs){
@@ -45,11 +47,13 @@ function bwRail(st, ref){
     return `<li class="${done ? "done" : i === cur ? "current" + (late ? " late" : "") : "upcoming"}"><span class="dot">${done ? "✓" : ""}</span><div><div class="st-name">${esc(x.name)}</div><div class="st-meta">${meta}</div></div></li>`;
   }).join("")}</ol>`;
 }
-/* The materials of the batch, item by item over all its samples at the step: one put-away, one return or disposal for them all. */
+/* The materials of the batch, item by item over all its samples at the step: one put-away, one return or disposal for them all. A job's
+   samples keep different materials (pulp, filtrate, solution, carbon), so an item is its slot and its name. */
+const matKey = m => m.k + "-" + String(m.item || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
 function bwMats(st){
   const items = new Map(), now = Date.now(), two = st.at.some(twoPerson), q = st.at.map(wqOf).find(Boolean);
   st.at.forEach(s => keptMaterials(s).forEach(m => {
-    const x = items.get(m.k) || items.set(m.k, { k: m.k, item: m.item, then: m.then, dispo: m.dispo, days: m.days, n: 0, noLoc: 0, locs: new Set(), due: Infinity }).get(m.k);
+    const key = matKey(m), x = items.get(key) || items.set(key, { k: key, item: m.item, then: m.then, dispo: m.dispo, days: m.days, n: 0, noLoc: 0, locs: new Set(), due: Infinity }).get(key);
     x.n++; if (m.loc) x.locs.add(m.loc); else x.noLoc++; if (m.dueAt) x.due = Math.min(x.due, m.dueAt);
   }));
   if (!items.size) return "";
@@ -120,7 +124,8 @@ function bwPanel(c){
     if (!toRel){
       if (next?.phase === "qc" && plan[bi].phase !== "qc") at.forEach(s => { const h = qcEntryBlock(s); if (h) holds.push(`${s.id}: ${h}`); });
       act = `${holds.length ? `<div class="notice warn" id="bwHold"><b>Before ${esc(next?.name || "the next step")}:</b> ${esc(holds.slice(0, 4).join(" "))}${holds.length > 4 ? ` +${holds.length - 4} more` : ""}</div>` : ""}${form}
-        <div class="row"><button type="button" class="btn primary" id="bwNext" ${holds.length ? "disabled data-hold" : ""}>Move ${nS(n)} to: ${esc(next?.name || "")}</button></div>`;
+        <div class="row"><button type="button" class="btn primary" id="bwNext" ${holds.length ? "disabled data-hold" : ""}>Move ${nS(n)} to: ${esc(next?.name || "")}</button></div>
+        ${relNow() ? `<div class="row" style="gap:8px"><span class="pill" id="bwCount">Results in: ${n - missing.length} of ${n}</span><button type="button" class="btn" data-attach="sub:${esc(ref)}">Attach results file for the batch</button><span class="small muted">The report can come at any step: the batch is moved on and released with it.</span></div>` : ""}`;
     } else if (missing.length && !waiting){
       act = `${form}<div class="row"><button type="button" class="btn primary" id="bwWaitBtn">Move ${nS(n)} to: Results released</button></div>`;
     } else {
@@ -235,7 +240,8 @@ async function bwRelease(){
 }
 async function bwMat(k){
   const st = batchState(current?.docs || []); if (!st.lead) return;
-  const what = val("#bmx_" + k), ref = val("#bmr_" + k), bref = current.batch, ids = st.at.filter(s => keptMaterials(s).some(m => m.k === k)).map(s => s.id), two = st.at.some(twoPerson);
+  const what = val("#bmx_" + k), ref = val("#bmr_" + k), bref = current.batch, ids = st.at.filter(s => keptMaterials(s).some(m => matKey(m) === k)).map(s => s.id), two = st.at.some(twoPerson);
+  const slot = s => keptMaterials(s).find(m => matKey(m) === k)?.k;   // the material's own slot on each sample
   if (st.at.some(wqOf)){ toast("Waiting for the witness to confirm. Withdraw that request first."); return; }
   if (what === "store" && !ref){ toast("Type the storage location first."); $("#bmr_" + k)?.focus(); return; }
   if (what === "external" && !ref){ toast("Type the external lab and waybill number first."); $("#bmr_" + k)?.focus(); return; }
@@ -245,12 +251,12 @@ async function bwMat(k){
     if (!w){ toast("Two-person custody: choose the witness who confirms the disposal."); $("#bmWit")?.focus(); return; }
     if (w.u === session.u){ toast("The witness must be someone other than you."); return; }
     const id = wqId(Date.now());
-    await bwEach(`Asked ${w.name} to confirm`, ids, s => grouped(s) ? askOutUpd(s, k, what, ref, w, id, bref) : null, clear);
+    await bwEach(`Asked ${w.name} to confirm`, ids, s => grouped(s) && slot(s) ? askOutUpd(s, slot(s), what, ref, w, id, bref) : null, clear);
     return;
   }
   const firstPut = two && what === "store" && st.lead.stageKey === "released";
   const wit = what === "disposed" ? disposalWitness("#bmWit") : firstPut || !two ? "" : needWitness(st.lead, "#bmWit"); if (wit === null) return;
-  await bwEach(what === "store" ? "Put away" : DISPO[what], ids, s => grouped(s) && !wqOf(s) ? matUpd(s, k, what, ref, wit, bref) : null, clear);
+  await bwEach(what === "store" ? "Put away" : DISPO[what], ids, s => grouped(s) && !wqOf(s) && slot(s) ? matUpd(s, slot(s), what, ref, wit, bref) : null, clear);
 }
 async function bwAsk(){
   const st = batchState(current?.docs || []); if (!st.lead) return;
@@ -292,9 +298,14 @@ const soloNote = s => batchOf(s) ? `. Taken out of batch ${s.batchId}: processed
 /* ---------- the batch certificate: one number and check code; every sample with its own results ---------- */
 function certBatchHtml(ref, mem){
   const [s0, c] = mem[0], ans = [];
-  mem.forEach(([, x]) => (x.an || []).forEach(a => { if (!ans.some(y => y.k === a.k)) ans.push(a); }));
+  const sOf = (test, a) => (RESULTS[test]?.an || []).find(y => y.k === a.k)?.s || "";   // the short name (AuFx), which a certificate does not copy
+  const ansOf = list => { const out = []; list.forEach(([, x]) => (x.an || []).forEach(a => { if (a.t !== "pick" && !out.some(y => y.k === a.k)) out.push({ ...a, s: a.s || sOf(x.test, a) }); })); return out; };
+  ans.push(...ansOf(mem));   // the point is a column of its own
   const fact = (k, v) => `<tr><th>${k}</th><td>${v}</td></tr>`, uniq = f => [...new Set(mem.map(f).filter(Boolean))];
   const recv = mem.map(([s]) => s.recvAt || s.receivedAt).filter(Boolean), types = uniq(([s]) => s.type), labs = uniq(([, x]) => x.batch).join(", ");
+  const dsc = mem.some(([s]) => s.source), pts = mem.some(([s]) => ptOf(s));
+  // v24d: a job of several analyses reads one table per analysis (only its own columns), like the lab's report with its sections
+  const tests = [...new Set(mem.map(([, x]) => x.testName || ""))], groups = tests.length > 1 ? tests.map(t => [`${t} (${nS(mem.filter(([, x]) => (x.testName || "") === t).length)})`, mem.filter(([, x]) => (x.testName || "") === t)]) : [["", mem]];
   const exc = mem.flatMap(([s, x]) => [x.amends ? `${s.id}: replaces ${x.amends}. ${x.why || ""}` : "", x.qcNote ? `${s.id}: ${x.qcNote}` : "", x.acc ? `${s.id}: accepted outside a check by ${x.acc.tech}: ${x.acc.why}` : "",
     ...(x.soft || []).map(m => `${s.id}: note: ${m}`), ...(x.alerts || []).map(a => `${s.id}: ${a.line}. ${a.act}.${a.ack ? ` Recorded by ${a.ack.tech}: ${a.ack.note}` : ""}`)].filter(Boolean));
   return `<div class="cert">
@@ -304,18 +315,22 @@ function certBatchHtml(ref, mem){
       ${fact("Batch", `<b class="mono">${esc(ref)}</b>${s0.batchName ? ` · ${esc(s0.batchName)}` : ""}`)}${fact("Samples", `${mem.length}${s0.batchSize > mem.length ? ` of the ${esc(s0.batchSize)} submitted` : ""}`)}${fact("Sample type", esc(types.join(", ")))}
       ${fact("Submitted by", `${esc(s0.submitter)}${s0.section ? ` · ${esc(s0.section)} ${esc(sectionName(s0.section))}` : ""}`)}
       ${recv.length ? fact("Received", esc(fmtFull(Math.min(...recv))) + (Math.max(...recv) - Math.min(...recv) > 60000 ? ` to ${esc(fmtFull(Math.max(...recv)))}` : "")) : ""}
-      ${fact("Test", esc(c.testName || ""))}${fact("Method", `${c.route ? `<span class="mono">${esc(c.route)}</span> ` : ""}${esc(c.routeName || "")}`)}
+      ${uniq(([, x]) => x.testName).length > 1 ? fact("Analyses", `${uniq(([, x]) => x.testName).length}, as listed for each sample`) : fact("Test", esc(c.testName || ""))}${fact("Method", `${c.route ? `<span class="mono">${esc(c.route)}</span> ` : ""}${esc(c.routeName || "")}`)}
       ${labs ? fact(labs.includes(",") ? "Lab batches" : "Lab batch", `<span class="mono">${esc(labs)}</span>`) : ""}
     </table>
     ${c.file ? `<div class="cert-file">Results file: <b>${esc(c.file.name)}</b>${c.att ? (ans.length ? ". Results not shown below are in this file." : ". The results are in this file.") : ""}</div>` : ""}
-    ${ans.length ? `<div class="tbl-wrap"><table class="cert-res"><thead><tr><th>Sample ID</th><th>Site sample code</th>${ans.map(a => `<th>${esc(a.n)}${a.u ? ` (${esc(a.u)})` : ""}</th>`).join("")}</tr></thead><tbody>
-      ${mem.map(([s, x]) => `<tr><td class="mono">${esc(s.id)}</td><td class="mono">${esc(tagText(s)) || "—"}</td>${ans.map(a => `<td class="mono">${x.rows && x.rows[a.k] ? `<b>${esc(resText(x.rows[a.k], a))}</b>` : "—"}</td>`).join("")}</tr>`).join("")}
-      ${ans.some(a => a.dl != null) ? `<tr class="muted"><td colspan="2">Detection limit</td>${ans.map(a => `<td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>`).join("")}</tr>` : ""}</tbody></table></div>`
+    ${ans.length ? groups.map(([title, list]) => certTable(title, list, ansOf(list), dsc, pts && !dsc)).join("")
       : `<table class="cert-res"><thead><tr><th>Sample ID</th><th>Site sample code</th></tr></thead><tbody>${mem.map(([s]) => `<tr><td class="mono">${esc(s.id)}</td><td class="mono">${esc(tagText(s)) || "—"}</td></tr>`).join("")}</tbody></table>`}
     ${exc.length ? `<div class="cert-note">${exc.map(esc).join("<br>")}</div>` : ""}
     <div class="cert-sign"><div>Released by <b>${esc(c.tech)}</b>, ${esc(ROLE_SIGN[c.role] || "lab supervisor (QA/QC)")}</div><div>${esc(fmtFull(c.at))}${TZ() ? ` (${esc(TZ())})` : ""}</div></div>
     <div class="cert-foot">Results relate only to the samples as received. Values below the detection limit are shown as &lt;DL. Check this copy by looking up the batch reference or any of its sample IDs in the Assay Lab tracker: the certificate number and check code must match. Design prototype: not an official laboratory certificate.</div>
   </div>`;
+}
+function certTable(title, list, ans, dsc, pts){
+  const lead = 2 + (dsc ? 1 : 0) + (pts ? 1 : 0), sv = a => (a.t === "text" ? "cell-text" : "mono");
+  return `${title ? `<h4 class="cert-sec">${esc(title)}</h4>` : ""}<div class="tbl-wrap"><table class="cert-res"><thead><tr><th>Sample ID</th><th>Site sample code</th>${dsc ? "<th>Description</th>" : ""}${pts ? "<th>Sample</th>" : ""}${ans.map(a => `<th>${esc(anShort(a))}${a.u ? ` (${esc(a.u)})` : ""}</th>`).join("")}</tr></thead><tbody>
+    ${list.map(([s, x]) => `<tr><td class="mono">${esc(s.id)}</td><td class="mono">${esc(tagText(s)) || "—"}</td>${dsc ? `<td class="cell-desc">${esc(s.source || "")}</td>` : ""}${pts ? `<td>${esc(ptOf(s))}</td>` : ""}${ans.map(a => `<td class="${sv(a)}">${x.rows && x.rows[a.k] ? `<b>${esc(resText(x.rows[a.k], a))}</b>` : "—"}</td>`).join("")}</tr>`).join("")}
+    ${ans.some(a => a.dl != null) ? `<tr class="muted"><td colspan="${lead}">Detection limit</td>${ans.map(a => `<td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>`).join("")}</tr>` : ""}</tbody></table></div>`;
 }
 async function showBatchCert(ref, no){
   let docs = current?.batch === ref ? current.docs : null;
@@ -363,7 +378,7 @@ function batchChip(x, lane){
     <div class="cmeta"><span class="bn">${docs.length === s.batchSize ? `Batch of ${nS(docs.length)}` : `${docs.length} of ${esc(s.batchSize)} samples`}</span></div>
     <div class="cmeta"><b style="color:var(--ink)">${esc(names.slice(0, 2).join(", "))}${names.length > 2 ? "…" : ""}</b>${docs.some(d => d.reassays) ? ` · <b style="color:var(--warn)">re-assay</b>` : ""}</div>
     ${q ? `<div class="cmeta"><b style="color:var(--info)">Waiting for ${esc(q.wit)} to confirm</b></div>` : ""}
-    <div class="cmeta">${esc(s.type)}${s.batchName ? ` · ${esc(s.batchName)}` : ""}${urgent ? ` · <span class="urg">Urgent</span>` : ""}${docs.some(d => d.flag && awaiting(d)) ? ` · <b style="color:var(--warn)">Flagged</b>` : ""}</div>
+    <div class="cmeta">${new Set(docs.map(d => d.typeKey)).size > 1 ? `${new Set(docs.map(d => d.typeKey)).size} sample types` : esc(s.type)}${s.batchName ? ` · ${esc(s.batchName)}` : ""}${urgent ? ` · <span class="urg">Urgent</span>` : ""}${docs.some(d => d.flag && awaiting(d)) ? ` · <b style="color:var(--warn)">Flagged</b>` : ""}</div>
     ${hazTags(s).length || twoPerson(s) ? `<div class="cmeta">${hazPills(s)}${twoPerson(s) ? `<span class="haz two" title="Two-person custody">2P</span>` : ""}</div>` : ""}
     ${lane === "report" && late ? `<div class="cmeta"><b style="color:var(--warn)">Not yet put in storage</b></div>` : ""}
     ${left && lane !== "report" ? `<div class="cmeta left">${esc(left)}</div>` : ""}</button>`;

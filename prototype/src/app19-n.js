@@ -292,8 +292,8 @@ const qaOpen = id => samples.get(id) || (qaListOpen ? qaDoc(id) : qaDocs.get(id)
 let bRows = [{ code: "", src: "" }, { code: "", src: "" }];
 const formKind = () => document.querySelector('input[name="rKind"]:checked')?.value || "single";
 function kindPicker(){
-  const k = lsGet("regKind") === "batch" ? "batch" : "single";
-  return `<div class="seg" role="radiogroup" aria-label="Samples"><label><input type="radio" name="rKind" value="single" ${k === "single" ? "checked" : ""}><span>Single sample</span></label><label><input type="radio" name="rKind" value="batch" ${k === "batch" ? "checked" : ""}><span>Batch</span></label></div>`;
+  const k = ["batch", "job"].includes(lsGet("regKind")) ? lsGet("regKind") : "single";
+  return `<div class="seg" role="radiogroup" aria-label="Samples"><label><input type="radio" name="rKind" value="single" ${k === "single" ? "checked" : ""}><span>Single sample</span></label><label><input type="radio" name="rKind" value="batch" ${k === "batch" ? "checked" : ""}><span>Batch</span></label><label><input type="radio" name="rKind" value="job" ${k === "job" ? "checked" : ""}><span>Shift job</span></label></div>`;
 }
 function batchBlock(){
   return `<div class="full batch-box" id="rBatch" hidden>
@@ -341,19 +341,25 @@ function setRowCount(n){
 }
 function submitLabel(){
   const b = $("#rSubmit"), f = $("#regForm"); if (!b || !f) return;
-  const walk = f.dataset.mode === "register", lab = !!$("#rRecvNow")?.checked, n = formKind() === "batch" ? bRows.length : 1;
+  const walk = f.dataset.mode === "register", lab = !!$("#rRecvNow")?.checked, n = formKind() === "batch" ? bRows.length : formKind() === "job" ? (job?.rows || []).filter(r => r.on).length : 1;
   b.textContent = lab ? (n > 1 ? `Register ${n} samples and issue IDs` : "Register and issue ID") : walk ? (n > 1 ? `Register ${n} samples` : "Register and get sample ID") : (n > 1 ? `Submit ${n} samples` : "Submit and get sample ID");
 }
 function showKind(v){
-  const batch = formKind() === "batch";
+  const batch = formKind() === "batch", isJob = formKind() === "job";
   $("#rBatch", v).hidden = !batch;
-  v.querySelectorAll("[data-single]").forEach(x => { x.hidden = batch; });
+  v.querySelectorAll("[data-single]").forEach(x => { x.hidden = batch || isJob; });
+  // v24d: a shift job lists its samples (each with its own type and analysis) instead of one sample type and analysis
+  const j = $("#rJob", v); if (j) j.hidden = !isJob;
+  v.querySelectorAll(".sub-step.s1:not(.job-step)").forEach(x => { x.hidden = isJob; });
+  const d = $("#rDetails", v); if (d) d.hidden = isJob;
+  if (isJob){ const pu = $("#rPurpose", v); if (pu && !pu.value){ pu.value = "plant"; pu.dispatchEvent(new Event("change")); } }
   if (batch && !$("#rRows .r-code", v)) renderRows();
   submitLabel();
 }
 function bindKind(v){
   bRows = [{ code: "", src: "" }, { code: "", src: "" }];
-  v.querySelectorAll('input[name="rKind"]').forEach(r => r.addEventListener("change", () => { lsSet("regKind", formKind() === "batch" ? "batch" : ""); showKind(v); if (formKind() === "batch") $("#rRows .r-code", v)?.focus(); }));
+  v.querySelectorAll('input[name="rKind"]').forEach(r => r.addEventListener("change", () => { lsSet("regKind", formKind() === "single" ? "" : formKind()); showKind(v); if (formKind() === "batch") $("#rRows .r-code", v)?.focus(); }));
+  bindJob(v);
   $("#rCount", v).addEventListener("input", e => { const n = +e.target.value; if (n >= 2 && n <= 100) setRowCount(n); });
   $("#rCount", v).addEventListener("change", e => { const n = Math.floor(+e.target.value); if (n > 100) toast("Up to 100 samples in one batch."); if (n >= 2) setRowCount(n); e.target.value = bRows.length; });
   $("#rAddRow", v).addEventListener("click", () => { if (bRows.length >= 100) return toast("Up to 100 samples in one batch."); setRowCount(bRows.length + 1); $("#rCount", v).value = bRows.length; $(`#rRows .r-code[data-i="${bRows.length - 1}"]`, v)?.focus(); });
@@ -409,10 +415,10 @@ function renderBatchView(v){
   const quick = [...waiting.filter(s => typeOf(s.typeKey)?.cool == null), ...gcool], two = quick.some(twoPerson), lim = Math.min(...gcool.map(s => typeOf(s.typeKey).cool));
   const tally = {}; docs.forEach(s => { const st = status(s); tally[st.label] = (tally[st.label] || 0) + 1; });
   const done = docs.filter(s => curIdx(s) >= targetIdx(s)).length, etas = docs.filter(s => curIdx(s) < targetIdx(s) && !status(s).closed).map(s => projection(s).eta).filter(Boolean);
-  const eta = etas.length ? Math.max(...etas) : 0, srcCol = docs.some(s => s.source);
+  const eta = etas.length ? Math.max(...etas) : 0, srcCol = docs.some(s => s.source), mixed = new Set(docs.map(s => s.test)).size > 1 || new Set(docs.map(s => s.typeKey)).size > 1, ptCol = docs.some(ptOf);
   noteRecentBatch(c.batch, docs); pageTitle(c.batch);
   const row = s => { const st = status(s), last = (s.certs || []).at(-1);
-    return `<tr><td class="mono muted">${esc(s.batchIndex || "")}</td><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button></td><td class="mono">${esc(tagText(s)) || "—"}</td>${srcCol ? `<td>${esc(s.source || "")}</td>` : ""}
+    return `<tr><td class="mono muted">${esc(s.batchIndex || "")}</td><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button></td><td class="mono">${esc(tagText(s)) || "—"}</td>${srcCol ? `<td>${esc(s.source || "")}</td>` : ""}${ptCol || mixed ? `<td>${esc(ptOf(s) || s.type || "")}${mixed ? `<div class="small muted">${esc(s.testName || "")}</div>` : ""}</td>` : ""}
       <td><span class="pill ${st.cls}">${esc(st.label)}</span></td><td class="small">${last ? `Released ${esc(fmtDate(last.at))}` : ""}</td></tr>`; };
   const keepAt = $("#bvAt", v)?.value, keepWit = $("#bvWit", v)?.value, keepOk = $("#bvOk", v)?.checked;
   keepUi(v, ctx, () => {
@@ -420,7 +426,7 @@ function renderBatchView(v){
     <div class="panel stack">
       <div class="row" style="gap:10px"><div class="sid">${esc(c.batch)}</div><span class="pill info">${docs.length} samples</span><button type="button" class="btn ghost small" data-link="${esc(c.batch)}">Copy batch link</button></div>
       ${s0.batchName ? `<div><b>${esc(s0.batchName)}</b></div>` : ""}
-      <div class="small muted">${esc(s0.type || "")} · ${esc(s0.testName || s0.purpose || "")} · <span class="mono">${esc(s0.section || "")}</span> · ${esc(s0.submitter || "")} · ${fmt(s0.createdAt)}</div>
+      <div class="small muted">${mixed ? `${esc([...new Set(docs.map(s => s.type))].join(", "))} · ${new Set(docs.map(s => s.test)).size} analyses` : `${esc(s0.type || "")} · ${esc(s0.testName || s0.purpose || "")}`} · <span class="mono">${esc(s0.section || "")}</span> · ${esc(s0.submitter || "")} · ${fmt(s0.createdAt)}</div>
       <div class="bv-prog"><div class="bv-bar"><i style="width:${docs.length ? Math.round(done / docs.length * 100) : 0}%"></i></div><span class="small"><b>${done} of ${docs.length}</b> results released${eta ? ` · all expected by <b>${esc(fmt(eta))}</b>` : ""}</span></div>
       <div class="row" style="gap:6px">${Object.entries(tally).map(([l, n]) => `<span class="pill">${n} ${esc(l)}</span>`).join("")}</div>
       <div class="row"><button type="button" class="btn primary" id="bvLabels">Print ${docs.length} labels</button><button type="button" class="btn" id="bvCopy">Copy IDs</button></div>
@@ -434,7 +440,7 @@ function renderBatchView(v){
       <div class="row"><button type="button" class="btn primary" id="bvRecvBtn" ${batchRecvBusy ? "disabled" : ""}>Confirm receipt of ${quick.length}</button>${cool.length ? `<span class="small">One by one (cooler temperature): ${cool.map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>`).join(", ")}</span>` : ""}</div>
     </div>` : ""}
     ${bwPanel(c)}
-    <div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>#</th><th>Sample ID</th><th>Site sample code</th>${srcCol ? "<th>Source</th>" : ""}<th>Status</th><th></th></tr></thead><tbody>${docs.map(row).join("")}</tbody></table></div></div>
+    <div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>#</th><th>Sample ID</th><th>Site sample code</th>${srcCol ? "<th>Source</th>" : ""}${ptCol || mixed ? "<th>Sample</th>" : ""}<th>Status</th><th></th></tr></thead><tbody>${docs.map(row).join("")}</tbody></table></div></div>
   </div>`;
   if (keepWit && $("#bvWit", v)) $("#bvWit", v).value = keepWit;
   fillNames(v);

@@ -197,6 +197,7 @@ function renderSampleForm(mode){
       ${staff ? `<label class="f full" data-lab><span>Workflow route</span><select id="rRouteSel"><option value="">Automatic</option></select></label>` : ""}
       <div class="full" id="rRoute"></div>
     </div></div>
+    ${jobBlock()}
     <div class="sub-step s2"><div class="sub-t"><span class="num">2</span>What it is for</div><div class="form">
       <label class="f"><span>Purpose <span class="req">*</span></span><select id="rPurpose" required><option value="">Choose…</option>${purposeOptions()}</select></label>
       <label class="f"><span>Section <span class="req">*</span></span><select id="rSection" required><option value="">Choose…</option>${sectionOptions()}</select></label>
@@ -319,6 +320,7 @@ async function register(){
   if (!db){ toast("The shared register is not connected in this view."); return; }
   const btn = $("#rSubmit"), msg = $("#rMsg");
   const fail = (m, focus) => { toast(m); const el = focus && $(focus); if (el){ const d = el.closest("details"); if (d) d.open = true; el.focus(); } };
+  if (formKind() === "job") return registerJob();   // v24d: a shift's samples as one job
   const batch = formKind() === "batch", n = batch ? bRows.length : 1;
   if (batch && !(n >= 2 && n <= 100)) return fail("A batch has 2 to 100 samples. For one sample choose Single sample.", "#rCount");
   const code = val("#rSection"), tyK = val("#rType"), puK = val("#rPurpose"), teK = val("#rTest"), submitter = val("#rSubmitter");

@@ -192,3 +192,19 @@ ol.rail li.done.stop .dot{background:var(--bad);border-color:var(--bad)}
 #bwBox .rail{margin-bottom:0}
 #bmBox .tbl-wrap table td{vertical-align:top}
 .cert table{color:inherit}
+/* v24d: Submit › Shift job: the shift's samples, one row each */
+.job-step .jrows{width:100%}
+.jrows td{padding:4px 6px;vertical-align:middle}
+.jrows td:first-child,.jrows th:first-child{width:36px;text-align:center}
+.jrows .inp{min-height:38px;padding:6px 9px;font-size:14px;width:100%}
+.jrows .j-code{font-family:var(--f-mono);text-transform:uppercase;min-width:13em}
+.jrows .j-desc{min-width:16em}
+.jrows .j-test{min-width:12em}
+.jrows tr.off td{opacity:.5}
+.jrows .j-code.dup{border-color:var(--bad)}
+/* v24d: a job's certificate: one table per analysis; a wide one scrolls inside the certificate (and prints smaller) */
+.cert .tbl-wrap{overflow-x:auto}
+.cert h4.cert-sec{margin:14px 0 4px;font-size:14px}
+.cert .cert-res td.cell-text{font-size:12px;min-width:14em}
+@media print{ .cert .tbl-wrap{overflow:visible} .cert .cert-res{font-size:11px} }
+.cert .cert-res td.cell-desc{min-width:13em}

@@ -63,6 +63,8 @@ const rightFill = row => { const out = []; let carry = ""; for (let j = row.leng
 /* Reads a report laid out as a table: a sample column, one column per result (with units and method codes in rows above it, as the lab's
    LIMS prints them, or in the heading as "Au (g/t)"), repeat readings in a second column of the same result (Rep 2), and reference material
    readings in a table of expected and reported values at the foot, or as rows named after the material. */
+let knownMemo = null;
+const knownNames = () => knownMemo || (knownMemo = new Set(Object.values(RESULTS).flatMap(r => r.an).filter(a => a.s && !a.t).map(a => normCol(a.s))));
 function parseReport(grid, idx){
   const nc = Math.max(0, ...grid.map(r => r.length)), cell = (i, j) => (grid[i] || [])[j] || "";
   const crmIds = new Map((cfg.crms || []).flatMap(c => [c.id, ...(c.was || [])].map(x => [normKey(x), c.id])));
@@ -89,7 +91,9 @@ function parseReport(grid, idx){
      Units, repeat numbers and method codes sit in rows above it. */
   const isData = r => { const f = r.filter((t, j) => j !== idCol && t); return f.length > 0 && f.filter(isRead).length * 2 > f.length; };
   let head = -1, hs = 0;
-  for (let i = first - 1; i >= 0; i--){ const r = grid[i] || []; if (isData(r)) continue; const n = r.filter((t, j) => j !== idCol && t && colConcept(splitHead(t).name)).length; if (n > hs){ hs = n; head = i; } }
+  // v24d: a column named exactly as a result (Au CA-00 for carbon activity) counts too, so a title row with a stray symbol never wins
+  const known = knownNames();
+  for (let i = first - 1; i >= 0; i--){ const r = grid[i] || []; if (isData(r)) continue; const n = r.filter((t, j) => j !== idCol && t && (colConcept(splitHead(t).name) || known.has(normCol(splitHead(t).name)))).length; if (n > hs){ hs = n; head = i; } }
   if (head < 0) for (let i = first - 1; i >= Math.max(0, first - 3); i--){ const r = grid[i] || []; if (!isData(r) && r.filter(Boolean).length >= 2){ head = i; break; } }
   if (head < 0) return { error: "The file has no row of column names above the readings." };
   let units = null, reps = null, methods = null;

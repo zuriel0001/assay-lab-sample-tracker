@@ -300,17 +300,23 @@ const liveRoutes = () => (cfg.routes || []).filter(routeOn);
 const testOn = k => liveRoutes().some(r => (r.tests || []).includes(k));
 const typeOn = k => k === "other" || liveRoutes().some(r => (r.types || []).includes(k));
 /* Routes in use that perform a test, and `keep` (a sample's own route) even when it is no longer in use. */
-const routesForTest = (test, keep = "") => (cfg.routes || []).filter(r => (r.tests || []).includes(test) && (routeOn(r) || r.code === keep));
+const routesForTest = (test, keep = "") => (cfg.routes || []).filter(r => (r.tests || []).includes(test) && ((routeOn(r) && !r.job) || r.code === keep));   // v24d: the shift job route is only for a shift's samples
 /* Saved routes plus any default route the admin has not removed, so routes added in later versions still appear. */
 /* Settings store only routes an admin added or edited; every untouched default follows the latest version of the route library. */
 function mergeRoutes(saved, removed){
   const list = Array.isArray(saved) ? saved : [];
   const have = new Set(list.map(r => r.code)), gone = new Set(removed || []);
-  return [...clone(list).map(grind80).map(withQcp), ...clone(DEFAULT_ROUTES.filter(r => !have.has(r.code) && !gone.has(r.code)))];
+  return [...clone(list).map(grind80).map(cilOnly).map(withQcp), ...clone(DEFAULT_ROUTES.filter(r => !have.has(r.code) && !gone.has(r.code)))];
 }
 /* The lab pulverises to 80% passing 75 µm (version 16): routes saved with the earlier 85% wording are brought into line. */
 function grind80(r){
   (r.stages || []).forEach(x => ["name", "note"].forEach(k => { if (typeof x[k] === "string") x[k] = x[k].replace(/\b85% passing 75 µm/g, "80% passing 75 µm"); }));
+  return r;
+}
+/* v24d: the plant runs CIL only: routes saved under the old combined CIL and CIP names read "CIL". */
+function cilOnly(r){
+  const fix = t => typeof t === "string" ? t.replace(/\bCIL ?\/ ?CIP\b/g, "CIL") : t;
+  r.name = fix(r.name); r.desc = fix(r.desc); (r.stages || []).forEach(x => { x.name = fix(x.name); x.note = fix(x.note); });
   return r;
 }
 /* Routes saved before lab batches existed get the batch type of the default route (or of a default route for the same test), and QA/QC text that matches it. */

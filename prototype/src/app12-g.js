@@ -162,7 +162,7 @@ function ptGiven(s){ const a = anOf(s).find(x => x.t === "pick"), v = a && (s.de
 function limitHits(s, rows = effRows(s)){
   const out = [], pt = rows.pt?.raw || ptGiven(s);
   for (const l of cfg.limits || []){
-    if (l.route !== s.route || !rows[l.k]) continue;
+    if ((l.route !== s.route && l.route !== s.baseRoute) || !rows[l.k]) continue;   // v24d: a sample of a shift job keeps its own route's limits
     if (l.when && pt && pt !== l.when) continue;   // no sampling point given: the limit applies
     const x = resNum(rows[l.k]); if (x == null) continue;
     if (l.op === "<" ? x < +l.val : x > +l.val) out.push({ ...l, raw: rows[l.k].raw, v: x, key: `${l.id}|${l.k}|${rows[l.k].raw}` });

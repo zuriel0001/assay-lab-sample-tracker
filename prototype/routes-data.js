@@ -9,7 +9,7 @@ const PURPOSES = [
   { key: "recon",     g: "Processing", name: "Mine-to-mill reconciliation" },
   { key: "bullion",   g: "Gold room", name: "Bullion (gold pour)" },
   { key: "met_br",    g: "Metallurgical testwork", name: "Bottle roll test", sub: "met" },
-  { key: "met_cil",   g: "Metallurgical testwork", name: "CIL / CIP leach test", sub: "met" },
+  { key: "met_cil",   g: "Metallurgical testwork", name: "CIL leach test", sub: "met" },
   { key: "met_grg",   g: "Metallurgical testwork", name: "Gravity (GRG) test", sub: "met" },
   { key: "met_diag",  g: "Metallurgical testwork", name: "Diagnostic leach", sub: "met" },
   { key: "met_pri",   g: "Metallurgical testwork", name: "Preg-robbing test", sub: "met" },
@@ -45,10 +45,11 @@ const TESTS = [
   { key: "ausx_cn",      cat: "Processing", name: "Solution: AuSx & cyanide" },
   { key: "cn_only",      cat: "Processing", name: "Cyanide: NaCN, WAD & pH" },
   { key: "c_load",       cat: "Processing", name: "Carbon: Au loading" },
+  { key: "c_act",        cat: "Processing", name: "Carbon activity: Au in solution, 0 to 120 min" },
   { key: "elu_sol",      cat: "Processing", name: "Elution solution: AuSx, AgSx & Cu" },
   { key: "cn_sol",       cat: "Ore grade (AuFx)", name: "Cyanide-soluble gold (LeachWELL)" },
   { key: "bottle",       cat: "Metallurgical testwork", name: "Bottle roll cyanidation test" },
-  { key: "cil_test",     cat: "Metallurgical testwork", name: "CIL / CIP leach test with carbon" },
+  { key: "cil_test",     cat: "Metallurgical testwork", name: "CIL leach test with carbon" },
   { key: "pri",          cat: "Metallurgical testwork", name: "Preg-robbing test (gold-rob test, PRI)" },
   { key: "diag",         cat: "Metallurgical testwork", name: "Diagnostic leach (gold deportment)" },
   { key: "reagent",      cat: "Metallurgical testwork", name: "Cyanide & lime consumption (reagent optimisation)" },
@@ -69,7 +70,7 @@ const TESTS = [
   { key: "plant_solids", cat: "Processing", name: "Mill sample assay (head grade, grind, moisture)" },
   { key: "ccd",          cat: "Processing", name: "CCD survey (solution gold, wash efficiency)" },
   { key: "residue",      cat: "Processing", name: "Tails / residue gold loss (solid & solution)" },
-  { key: "cil_survey",   cat: "Processing", name: "CIL / CIP tank survey" },
+  { key: "cil_survey",   cat: "Processing", name: "CIL tank survey" },
   { key: "carbon",       cat: "Processing", name: "Carbon loading & activity" },
   { key: "eluate",       cat: "Processing", name: "Elution solution assay (eluate, strip & electrowinning solutions)" },
   { key: "elution",      cat: "Processing", name: "Carbon strip test (lab elution of loaded carbon)" },
@@ -85,12 +86,13 @@ const TESTS = [
 ];
 const SHIFT = { k: "shift", l: "Shift", o: ["Day", "Night"] };
 /* Sampling points, the same at submission (sample details) and on the results, so a limit for one point follows what the submitter chose. */
-const MILL_PTS = ["CIL feed", "Cyclone overflow", "Cyclone underflow", "CIL tank", "CIL tails", "Tails grab", "Other"];
+/* v24d: the points the plant samples at the end of a shift, in its own words (the shift reports). */
+const MILL_PTS = ["CIL feed", "Special CIL feed", "CIL tank", "CIL tails", "CIL tails launder", "COF (cyclone overflow)", "CUF (cyclone underflow)", "Tails grab", "Other"];
 const CCD_PTS = ["CCD feed", "CCD overflow", "CCD underflow", "CCD tails", "Other"];
 const TSF_PTS = ["TSF spigot", "Decant pond", "Return water", "Seepage / underdrain", "Other"];
 const PLANT_PTS = [...new Set([...MILL_PTS, ...CCD_PTS, ...TSF_PTS].filter(x => x !== "Other")), "Other"];
 const CARBON_PTS = ["CIL tank carbon", "Loaded carbon (to elution)", "Eluted carbon", "Regenerated carbon", "Fresh carbon"];
-const ELU_PTS = ["Pregnant solution", "Electrowinning head", "Electrowinning tails", "Lean eluate", "Other"];
+const ELU_PTS = ["Pregnant solution", "Electrowinning head", "Electrowinning tails", "Lean eluate", "Treated water", "Other"];
 const BELT_PTS = ["Mill feed conveyor", "Crusher product conveyor", "Stockpile reclaim conveyor", "Other"];
 /* What each sample type can be sent for (v24c): "What it is for" lists only these purposes, and Other. Environment can send a sample from
    any site (env); a testwork purpose is offered only on the samples that test is run on (bottle roll on ore and mill feed, carbon strip on
@@ -138,13 +140,13 @@ const TYPES = [
   { key: "belt", group: "Processing (crusher to TSF)", pur: "plant", name: "Belt cut sample (crusher / conveyor)", tests: ["aufx_m", "aufx", "moisture", "psd"],
     fields: [{ k: "point", l: "Conveyor", o: BELT_PTS }, SHIFT, { k: "time", l: "Cut time", ph: "e.g. 14:30" }],
     check: "Full cut in a sealed bag, conveyor and time labelled; weighed wet on arrival." },
-  { key: "plant_feed", group: "Processing (crusher to TSF)", pur: "plant", name: "Mill sample", tests: ["aufx_ausx", "aufx", "ausx", "cn_only", "psd"],
+  { key: "plant_feed", group: "Processing (crusher to TSF)", pur: "plant", name: "Mill sample", tests: ["aufx_ausx", "aufx", "ausx", "aufx_ausx_cn", "cn_only", "psd"],
     fields: [{ k: "point", l: "Sampling point", o: MILL_PTS }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
     check: "Shift and sampling point labelled; bucket sealed with no spillage." },
   { key: "ccd", group: "Processing (crusher to TSF)", pur: "plant", name: "CCD sample", hold: 24, holdWhat: "solution gold (solution not separated)", haz: ["cn"], tests: ["aufx_ausx_cn", "ausx_cn", "cn_only", "aufx_ausx", "ausx", "aufx"],
     fields: [{ k: "point", l: "Sampling point", o: CCD_PTS }, { k: "stage", l: "CCD thickener", ph: "e.g. CCD 1" }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
     check: "One container per thickener and stream, labelled; solution not separated in transit; delivered promptly." },
-  { key: "carbon", group: "Processing (crusher to TSF)", pur: "plant", name: "Carbon", haz: ["cn"], tests: ["c_load", "moisture"],
+  { key: "carbon", group: "Processing (crusher to TSF)", pur: "plant", name: "Carbon", haz: ["cn"], tests: ["c_load", "c_act", "moisture"],
     fields: [{ k: "ctype", l: "Carbon type", o: CARBON_PTS }, { k: "batch", l: "Tank / elution batch no." }],
     check: "Seal intact; gold-room custody form signed." },
   { key: "elution", group: "Processing (crusher to TSF)", pur: "plant", name: "Elution sample", hold: 168, holdWhat: "solution gold", haz: ["cn", "acid"], tests: ["elu_sol"],
@@ -177,7 +179,7 @@ const TYPES = [
   { key: "plant_tails", off: true, group: "Processing (crusher to TSF)", pur: "plant", name: "Plant tails / CIL residue", haz: ["cn"], tests: ["residue", "cn_sol", "psd", "diag", "leco", "settle", "detox", "cn_spec", "flot"],
     fields: [{ k: "point", l: "Sampling point", o: ["Final tails", "Last CIL tank", "Thickener underflow", "Detox discharge"] }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
     check: "Shift and sampling point labelled; solution not separated in transit." },
-  { key: "cil_slurry", off: true, group: "Processing (crusher to TSF)", pur: "plant", name: "CIL / CIP tank slurry", hold: 24, holdWhat: "free cyanide and solution gold", haz: ["cn"], tests: ["cil_survey", "solution", "cn_spec", "o2", "settle"],
+  { key: "cil_slurry", off: true, group: "Processing (crusher to TSF)", pur: "plant", name: "CIL tank slurry", hold: 24, holdWhat: "free cyanide and solution gold", haz: ["cn"], tests: ["cil_survey", "solution", "cn_spec", "o2", "settle"],
     fields: [{ k: "tanks", l: "Tank number(s)", ph: "e.g. Tanks 1–8" }, { k: "time", l: "Survey time", ph: "e.g. 08:00" }],
     check: "One container per tank, labelled; delivered promptly (cyanide degrades)." },
   { key: "solution", off: true, group: "Processing (crusher to TSF)", pur: "plant", name: "Process solution (leach, barren, process water)", hold: 336, holdWhat: "cyanide (NaOH-preserved)", haz: ["cn"], tests: ["solution", "cn_spec", "detox"],
@@ -299,7 +301,7 @@ const DEFAULT_ROUTES = [
     qc: "Calculated head within ±10% of the assayed head; residue duplicates within 10%; a reference ore leached each campaign.",
     triggers: ["Calculated and assayed head more than 10% apart: repeat residue assay, then the leach", "Extraction below 80%: diagnostic leach recommended", "Organic carbon above 0.2% (preg-robbing): repeat as a CIL test"],
     retention: [{ item: "Head reserve", days: 365, then: "Returned to MET" }, { item: "Leach residue", days: 180, then: "Disposed" }, { item: "Solutions", days: 30, then: "Cyanide destroyed, disposed" }] },
-  { code: "CIL-T", name: "CIL / CIP leach test with carbon", tests: ["cil_test"], types: ["met_comp", "core", "plant_feed", "*"], purposes: ["met"],
+  { code: "CIL-T", name: "CIL leach test with carbon", tests: ["cil_test"], types: ["met_comp", "core", "plant_feed", "*"], purposes: ["met"],
     desc: "Leach with activated carbon present, as in the plant. Used for preg-robbing ores and to size the carbon inventory.",
     stages: [
       S("log", "Composite log & head split", 2, "intake"),
@@ -485,7 +487,7 @@ const DEFAULT_ROUTES = [
     qc: "High-grade solution standard and blank each run; duplicate dilutions within 2%.",
     triggers: ["End-of-strip eluate above 5 mg/L Au: notify the elution operator (incomplete strip)", "Electrowinning cell discharge above 5 mg/L Au: check cells and current", "Duplicate dilutions differ by more than 2%: repeat"],
     retention: [{ item: "Eluate", days: 30, then: "Returned to the elution circuit / gold room" }] },
-  { code: "CIL-SVY", transit: 2, name: "CIL / CIP tank survey", tests: ["cil_survey"], types: ["cil_slurry"], purposes: ["plant"],
+  { code: "CIL-SVY", transit: 2, name: "CIL tank survey", tests: ["cil_survey"], types: ["cil_slurry"], purposes: ["plant"],
     desc: "Tank-by-tank profile of solution gold, carbon loading, cyanide and pH to check adsorption efficiency.",
     stages: [
       S("field", "Pulp density, pH & dissolved oxygen", 0.5, "test", "Marcy scale % solids, done on arrival."),
@@ -896,7 +898,7 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["AuSx far off the shift trend: repeat from the kept solution"],
     retention: [{ item: "Solution", days: 7, then: "Cyanide destroyed, disposed" }] },
-  { code: "AUFX-AUSX-CN", transit: 2, name: "Slurry: AuFx, AuSx & cyanide", tests: ["aufx_ausx_cn"], types: ["ccd", "tsf"], purposes: ["plant", "env", "recon", "met"],
+  { code: "AUFX-AUSX-CN", transit: 2, name: "Slurry: AuFx, AuSx & cyanide", tests: ["aufx_ausx_cn"], types: ["plant_feed", "ccd", "tsf"], purposes: ["plant", "env", "recon", "met"],
     desc: "CCD or TSF slurry: filtered, the solution read at once for cyanide (NaCN, WAD) and AuSx, the solids fire assayed for AuFx.",
     stages: [
       S("wet", "Weigh slurry & % solids", 0.25, "test"),
@@ -942,6 +944,23 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["Eluted carbon above 100 g/t Au: repeat and notify the elution operator", "Repeat differs by more than 10%: repeat the loading"],
     retention: [{ item: "Carbon sample", days: 30, then: "Returned to gold room" }] },
+  { code: "C-ACT", transit: 2, name: "Carbon activity", tests: ["c_act"], types: ["carbon"], purposes: ["plant", "met"],
+    desc: "Regenerated, stripped, loaded or virgin carbon: a weighed portion in a standard gold solution, the solution read for gold at 0, 15, 30, 45, 60 and 120 min.",
+    stages: [
+      S("wash", "Wash, screen & weigh carbon", 0.5, "prep", "About 1 g of carbon to 1000 mL of standard solution."),
+      S("contact", "Contact & aliquots at 0 to 120 min", 2.5, "test", "5 mL aliquot each time."),
+      S("aas", "Au in the aliquots by AAS", 1, "test", "", true),
+      S("qc", "QA/QC review", 0.5, "qc")
+    ],
+    triggers: ["Activity well below the virgin carbon run with it: report to the elution operator"],
+    retention: [{ item: "Carbon sample", days: 30, then: "Returned to gold room" }] },
+  /* v24d: a shift's samples submitted together (a job): received, analysed and released together with the lab's report for the job. Each
+     sample keeps its own analysis, results, limits and retention; the job only shares the steps. Not chosen for a sample on its own. */
+  { code: "JOB", job: true, transit: 2, name: "Plant shift job (one report)", tests: ["aufx_ausx", "aufx", "ausx", "aufx_ausx_cn", "ausx_cn", "cn_only", "c_load", "c_act", "elu_sol", "psd"],
+    types: ["plant_feed", "ccd", "tsf", "carbon", "elution"], purposes: ["plant", "recon", "met"],
+    desc: "The samples of one shift (mill, CCD, TSF, carbon, elution), received together, analysed, and released together when the lab's report for the job is attached.",
+    stages: [S("lab", "In analysis", 12, "test", "Preparation and analysis of every sample of the job; the report gives all the results.")],
+    retention: [{ item: "Sample remainder", days: 30, then: "Disposed" }] },
   { code: "ELU-AUSX", transit: 2, name: "Elution solution: AuSx, AgSx & Cu", tests: ["elu_sol"], types: ["elution"], purposes: ["plant", "recon", "met"],
     desc: "Pregnant solution, electrowinning head and tails and eluate: AuSx, AgSx and copper, with NaOH, NaCN and pH.",
     stages: [
@@ -1058,6 +1077,10 @@ const RESULTS = {
   ausx_cn:      { an: [PICK("Sampling point", PLANT_PTS), AUSX(), CNWAD(), NACN({ opt: true }), PH(), ...METALS()], qc: "Au_s" },
   cn_only:      { an: [PICK("Sampling point", PLANT_PTS), CNWAD(), NACN({ opt: true }), PH(), ...METALS()], qc: "wad" },
   c_load:       { an: [PICK("Carbon type", CARBON_PTS), A("Au_c", "Au loading", "g/t", 1, 2, { s: "Au loading" })], qc: "Au_c" },
+  /* v24d: carbon activity as the lab reports it: gold left in a standard solution after 0, 15, 30, 45, 60 and 120 min with the carbon
+     (columns Au CA-00 … Au CA-120), and the carbon mass and volumes from the activity sheet. */
+  c_act:        { an: [PICK("Carbon type", CARBON_PTS), ...[0, 15, 30, 45, 60, 120].map(m => A("ca" + m, `Au in solution at ${m} min`, "mg/L", 0.01, 2, { s: "Au CA-" + String(m).padStart(2, "0") })),
+                         A("cmass", "Carbon mass", "g", null, 3, { opt: true }), A("vol0", "Initial volume", "mL", null, 0, { opt: true }), A("aliq", "Aliquot", "mL", null, 0, { opt: true })], qc: "ca120" },
   elu_sol:      { an: [PICK("Solution", ELU_PTS), AUSX({ ul: 2000 }), AGSX(), ...METALS(), A("naoh", "NaOH", "%", null, 2, { opt: true }), NACN({ opt: true }), PH()], qc: "Au_s" }
 };
 /* Lab QC batch profiles. size: routine samples per batch; ins: QC positions per batch (pb preparation blank, cd crusher duplicate,

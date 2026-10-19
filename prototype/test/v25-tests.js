@@ -319,13 +319,14 @@ const JSQR = [path.join(__dirname, "..", "..", "app", "jsqr.js"), process.env.AZ
   check(/Batch of 4 samples/.test(await text(Tc, "#certBox")) && new RegExp(`${ref}-R1`).test(await text(Tc, "#certBox .cert-bar")), "a sample's own View certificate opens the batch certificate");
   await Tc.click("#certClose");
   check(!(await Tc.$('#matBox select[id^="mx_"]')) && /on the batch page/.test(await text(Tc, "#matBox")), "its material is recorded with the batch, not one by one");
-  for (const m of doc(bt[0]).materials){ await open(Tc, ref); await Tc.selectOption(`#bmx_${m.k}`, "store"); await Tc.fill(`#bmr_${m.k}`, "Rack B" + m.k); await Tc.click(`[data-bmat="${m.k}"]`); await waitFor(() => bt.every(id => doc(id).materials.find(x => x.k === m.k).loc), 6000); }
+  const mk = m => m.k + "-" + String(m.item || "").toLowerCase().replace(/[^a-z0-9]+/g, "");   // the batch page's key for a material: its slot and its name
+  for (const m of doc(bt[0]).materials){ await open(Tc, ref); await Tc.selectOption(`#bmx_${mk(m)}`, "store"); await Tc.fill(`#bmr_${mk(m)}`, "Rack B" + m.k); await Tc.click(`[data-bmat="${mk(m)}"]`); await waitFor(() => bt.every(id => doc(id).materials.find(x => x.k === m.k).loc), 6000); }
   await open(Tc, ref); await Tc.waitForTimeout(250); brl = await rail(Tc);
   check(bt.every(id => doc(id).stageKey === "storage") && brl.every(x => x.m === "✓") && /Workflow complete/.test(await text(Tc, "#bwAct")), "put away once for all four: in storage, every step of the batch ticked, Workflow complete");
   const dk1 = doc(bt[0]).materials[0].k;
-  await Tc.selectOption(`#bmx_${dk1}`, "disposed"); await Tc.waitForTimeout(100);
+  await Tc.selectOption(`#bmx_${mk(doc(bt[0]).materials[0])}`, "disposed"); await Tc.waitForTimeout(100);
   check(!(await Tc.$eval("#bmWitBox", b => b.hidden)), "choosing Dispose asks for the witness");
-  await Tc.selectOption("#bmWit", { label: "Lab Supervisor" }); await Tc.click(`[data-bmat="${dk1}"]`); await waitFor(() => bt.every(id => doc(id).materials.find(x => x.k === dk1).status === "disposed"), 6000);
+  await Tc.selectOption("#bmWit", { label: "Lab Supervisor" }); await Tc.click(`[data-bmat="${mk(doc(bt[0]).materials[0])}"]`); await waitFor(() => bt.every(id => doc(id).materials.find(x => x.k === dk1).status === "disposed"), 6000);
   await waitFor(() => ledger().filter(m => bt.includes(m.sid) && m.dir === "out" && m.kind === "disposed").length === 4, 8000);
   check(ledger().filter(m => bt.includes(m.sid) && m.dir === "out" && m.kind === "disposed" && m.wit === "Lab Supervisor").length === 4, "one disposal for the batch: each sample's material in the ledger, witnessed");
 
@@ -397,7 +398,7 @@ const JSQR = [path.join(__dirname, "..", "..", "app", "jsqr.js"), process.env.AZ
   check(bc.every(id => doc(id).history.at(-1).wit), "each step written with its witness");
   await H.attachFile(Tc, `sub:${ref3}`, "conc.pdf", PDF); await Tc.selectOption("#upWit", { label: "Lab Supervisor" }); await H.saveAttach(Tc); await waitFor(() => bc.every(id => (doc(id).certs || []).length), 10000);
   check(bc.every(id => doc(id).certs.at(-1).no === `${ref3}-R1` && doc(id).history.find(h => h.key === "released")?.wit === "Lab Supervisor"), "a file the site can't read releases the critical batch on one certificate, the witness on each release");
-  for (const m of doc(bc[0]).materials){ await open(Tc, ref3); await Tc.selectOption(`#bmx_${m.k}`, "store"); await Tc.fill(`#bmr_${m.k}`, "Vault C" + m.k); await Tc.click(`[data-bmat="${m.k}"]`); await waitFor(() => bc.every(id => doc(id).materials.find(x => x.k === m.k).loc), 6000); }
+  for (const m of doc(bc[0]).materials){ await open(Tc, ref3); await Tc.selectOption(`#bmx_${mk(m)}`, "store"); await Tc.fill(`#bmr_${mk(m)}`, "Vault C" + m.k); await Tc.click(`[data-bmat="${mk(m)}"]`); await waitFor(() => bc.every(id => doc(id).materials.find(x => x.k === m.k).loc), 6000); }
   await open(Tc, ref3); await Tc.waitForTimeout(200);
   check(bc.every(id => doc(id).stageKey === "released") && !!(await Tc.$("#bwAsk")), "on the shelf, a critical batch waits for a second person to confirm the storage");
   await Tc.selectOption("#bwWq", "admin"); await Tc.click("#bwAsk"); await waitFor(() => bc.every(id => doc(id).wq), 6000);

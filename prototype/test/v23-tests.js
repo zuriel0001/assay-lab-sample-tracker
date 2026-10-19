@@ -50,7 +50,7 @@ const rv = (id, k) => doc(id).results?.rows?.[k]?.v;
   log("Routes tab: only the routes the lab runs");
   await H.tab(Tc, "routes"); await Tc.waitForSelector("#rtList details.route");
   const codes = await Tc.$$eval("#rtList details.route", ds => ds.map(d => d.dataset.code));
-  check(codes.length === 27 && IN_USE.every(c => codes.includes(c)) && !codes.includes("BRT"), "27 routes listed (v24: the analytical routes are back): " + codes.join(", "));
+  check(codes.length === 29 && IN_USE.every(c => codes.includes(c)) && codes.includes("C-ACT") && codes.includes("JOB") && !codes.includes("BRT"), "29 routes listed (v24: the analytical routes are back; v24d: carbon activity and the shift job): " + codes.join(", "));
   check(!codes.includes("CCD-SVY") && !codes.includes("PLT-HEAD") && !codes.includes("CARBON"), "the old CCD survey, mill head and carbon routes are not listed");
   const head = await text(Tc, "#view-routes .panel h3");
   const cats = await Tc.$$eval("#view-routes .cat-name", xs => xs.map(x => x.textContent.trim()));
@@ -176,7 +176,7 @@ const rv = (id, k) => doc(id).results?.rows?.[k]?.v;
   const off = await text(Ad, "#limOff summary");
   check(/^Limits on routes not in use \(\d+\)$/.test(off) && !(await Ad.$("#limOffBox [data-lf]")), "the limits on routes not in use wait behind " + off);
   const opts = await Ad.$$eval("#view-stages [data-lf='route']", ss => ss[0] ? [...ss[0].options].map(o => o.value) : []);
-  check(opts.length <= 28, "a limit's route is chosen from the routes in use (" + opts.length + ")");
+  check(opts.length <= 30, "a limit's route is chosen from the routes in use (" + opts.length + ")");
   await Ad.click("#limOff summary"); await Ad.waitForTimeout(250);
   check(await Ad.$$eval("#limOffBox [data-lf='route']", ss => ss.length) > 0, "opening the group draws them");
 

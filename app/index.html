@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="f1f7967b64cb"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 7ffadfc609ae) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="d7768218276d"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 343ee0a5cf5a) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -841,6 +841,22 @@ ol.rail li.done.stop .dot{background:var(--bad);border-color:var(--bad)}
 #bwBox .rail{margin-bottom:0}
 #bmBox .tbl-wrap table td{vertical-align:top}
 .cert table{color:inherit}
+/* v24d: Submit › Shift job: the shift's samples, one row each */
+.job-step .jrows{width:100%}
+.jrows td{padding:4px 6px;vertical-align:middle}
+.jrows td:first-child,.jrows th:first-child{width:36px;text-align:center}
+.jrows .inp{min-height:38px;padding:6px 9px;font-size:14px;width:100%}
+.jrows .j-code{font-family:var(--f-mono);text-transform:uppercase;min-width:13em}
+.jrows .j-desc{min-width:16em}
+.jrows .j-test{min-width:12em}
+.jrows tr.off td{opacity:.5}
+.jrows .j-code.dup{border-color:var(--bad)}
+/* v24d: a job's certificate: one table per analysis; a wide one scrolls inside the certificate (and prints smaller) */
+.cert .tbl-wrap{overflow-x:auto}
+.cert h4.cert-sec{margin:14px 0 4px;font-size:14px}
+.cert .cert-res td.cell-text{font-size:12px;min-width:14em}
+@media print{ .cert .tbl-wrap{overflow:visible} .cert .cert-res{font-size:11px} }
+.cert .cert-res td.cell-desc{min-width:13em}
 </style>
 
 <div class="wrap">
@@ -911,7 +927,7 @@ const PURPOSES = [
   { key: "recon",     g: "Processing", name: "Mine-to-mill reconciliation" },
   { key: "bullion",   g: "Gold room", name: "Bullion (gold pour)" },
   { key: "met_br",    g: "Metallurgical testwork", name: "Bottle roll test", sub: "met" },
-  { key: "met_cil",   g: "Metallurgical testwork", name: "CIL / CIP leach test", sub: "met" },
+  { key: "met_cil",   g: "Metallurgical testwork", name: "CIL leach test", sub: "met" },
   { key: "met_grg",   g: "Metallurgical testwork", name: "Gravity (GRG) test", sub: "met" },
   { key: "met_diag",  g: "Metallurgical testwork", name: "Diagnostic leach", sub: "met" },
   { key: "met_pri",   g: "Metallurgical testwork", name: "Preg-robbing test", sub: "met" },
@@ -947,10 +963,11 @@ const TESTS = [
   { key: "ausx_cn",      cat: "Processing", name: "Solution: AuSx & cyanide" },
   { key: "cn_only",      cat: "Processing", name: "Cyanide: NaCN, WAD & pH" },
   { key: "c_load",       cat: "Processing", name: "Carbon: Au loading" },
+  { key: "c_act",        cat: "Processing", name: "Carbon activity: Au in solution, 0 to 120 min" },
   { key: "elu_sol",      cat: "Processing", name: "Elution solution: AuSx, AgSx & Cu" },
   { key: "cn_sol",       cat: "Ore grade (AuFx)", name: "Cyanide-soluble gold (LeachWELL)" },
   { key: "bottle",       cat: "Metallurgical testwork", name: "Bottle roll cyanidation test" },
-  { key: "cil_test",     cat: "Metallurgical testwork", name: "CIL / CIP leach test with carbon" },
+  { key: "cil_test",     cat: "Metallurgical testwork", name: "CIL leach test with carbon" },
   { key: "pri",          cat: "Metallurgical testwork", name: "Preg-robbing test (gold-rob test, PRI)" },
   { key: "diag",         cat: "Metallurgical testwork", name: "Diagnostic leach (gold deportment)" },
   { key: "reagent",      cat: "Metallurgical testwork", name: "Cyanide & lime consumption (reagent optimisation)" },
@@ -971,7 +988,7 @@ const TESTS = [
   { key: "plant_solids", cat: "Processing", name: "Mill sample assay (head grade, grind, moisture)" },
   { key: "ccd",          cat: "Processing", name: "CCD survey (solution gold, wash efficiency)" },
   { key: "residue",      cat: "Processing", name: "Tails / residue gold loss (solid & solution)" },
-  { key: "cil_survey",   cat: "Processing", name: "CIL / CIP tank survey" },
+  { key: "cil_survey",   cat: "Processing", name: "CIL tank survey" },
   { key: "carbon",       cat: "Processing", name: "Carbon loading & activity" },
   { key: "eluate",       cat: "Processing", name: "Elution solution assay (eluate, strip & electrowinning solutions)" },
   { key: "elution",      cat: "Processing", name: "Carbon strip test (lab elution of loaded carbon)" },
@@ -987,12 +1004,13 @@ const TESTS = [
 ];
 const SHIFT = { k: "shift", l: "Shift", o: ["Day", "Night"] };
 /* Sampling points, the same at submission (sample details) and on the results, so a limit for one point follows what the submitter chose. */
-const MILL_PTS = ["CIL feed", "Cyclone overflow", "Cyclone underflow", "CIL tank", "CIL tails", "Tails grab", "Other"];
+/* v24d: the points the plant samples at the end of a shift, in its own words (the shift reports). */
+const MILL_PTS = ["CIL feed", "Special CIL feed", "CIL tank", "CIL tails", "CIL tails launder", "COF (cyclone overflow)", "CUF (cyclone underflow)", "Tails grab", "Other"];
 const CCD_PTS = ["CCD feed", "CCD overflow", "CCD underflow", "CCD tails", "Other"];
 const TSF_PTS = ["TSF spigot", "Decant pond", "Return water", "Seepage / underdrain", "Other"];
 const PLANT_PTS = [...new Set([...MILL_PTS, ...CCD_PTS, ...TSF_PTS].filter(x => x !== "Other")), "Other"];
 const CARBON_PTS = ["CIL tank carbon", "Loaded carbon (to elution)", "Eluted carbon", "Regenerated carbon", "Fresh carbon"];
-const ELU_PTS = ["Pregnant solution", "Electrowinning head", "Electrowinning tails", "Lean eluate", "Other"];
+const ELU_PTS = ["Pregnant solution", "Electrowinning head", "Electrowinning tails", "Lean eluate", "Treated water", "Other"];
 const BELT_PTS = ["Mill feed conveyor", "Crusher product conveyor", "Stockpile reclaim conveyor", "Other"];
 /* What each sample type can be sent for (v24c): "What it is for" lists only these purposes, and Other. Environment can send a sample from
    any site (env); a testwork purpose is offered only on the samples that test is run on (bottle roll on ore and mill feed, carbon strip on
@@ -1040,13 +1058,13 @@ const TYPES = [
   { key: "belt", group: "Processing (crusher to TSF)", pur: "plant", name: "Belt cut sample (crusher / conveyor)", tests: ["aufx_m", "aufx", "moisture", "psd"],
     fields: [{ k: "point", l: "Conveyor", o: BELT_PTS }, SHIFT, { k: "time", l: "Cut time", ph: "e.g. 14:30" }],
     check: "Full cut in a sealed bag, conveyor and time labelled; weighed wet on arrival." },
-  { key: "plant_feed", group: "Processing (crusher to TSF)", pur: "plant", name: "Mill sample", tests: ["aufx_ausx", "aufx", "ausx", "cn_only", "psd"],
+  { key: "plant_feed", group: "Processing (crusher to TSF)", pur: "plant", name: "Mill sample", tests: ["aufx_ausx", "aufx", "ausx", "aufx_ausx_cn", "cn_only", "psd"],
     fields: [{ k: "point", l: "Sampling point", o: MILL_PTS }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
     check: "Shift and sampling point labelled; bucket sealed with no spillage." },
   { key: "ccd", group: "Processing (crusher to TSF)", pur: "plant", name: "CCD sample", hold: 24, holdWhat: "solution gold (solution not separated)", haz: ["cn"], tests: ["aufx_ausx_cn", "ausx_cn", "cn_only", "aufx_ausx", "ausx", "aufx"],
     fields: [{ k: "point", l: "Sampling point", o: CCD_PTS }, { k: "stage", l: "CCD thickener", ph: "e.g. CCD 1" }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
     check: "One container per thickener and stream, labelled; solution not separated in transit; delivered promptly." },
-  { key: "carbon", group: "Processing (crusher to TSF)", pur: "plant", name: "Carbon", haz: ["cn"], tests: ["c_load", "moisture"],
+  { key: "carbon", group: "Processing (crusher to TSF)", pur: "plant", name: "Carbon", haz: ["cn"], tests: ["c_load", "c_act", "moisture"],
     fields: [{ k: "ctype", l: "Carbon type", o: CARBON_PTS }, { k: "batch", l: "Tank / elution batch no." }],
     check: "Seal intact; gold-room custody form signed." },
   { key: "elution", group: "Processing (crusher to TSF)", pur: "plant", name: "Elution sample", hold: 168, holdWhat: "solution gold", haz: ["cn", "acid"], tests: ["elu_sol"],
@@ -1079,7 +1097,7 @@ const TYPES = [
   { key: "plant_tails", off: true, group: "Processing (crusher to TSF)", pur: "plant", name: "Plant tails / CIL residue", haz: ["cn"], tests: ["residue", "cn_sol", "psd", "diag", "leco", "settle", "detox", "cn_spec", "flot"],
     fields: [{ k: "point", l: "Sampling point", o: ["Final tails", "Last CIL tank", "Thickener underflow", "Detox discharge"] }, SHIFT, { k: "period", l: "Composite period", ph: "e.g. 06:00–18:00" }],
     check: "Shift and sampling point labelled; solution not separated in transit." },
-  { key: "cil_slurry", off: true, group: "Processing (crusher to TSF)", pur: "plant", name: "CIL / CIP tank slurry", hold: 24, holdWhat: "free cyanide and solution gold", haz: ["cn"], tests: ["cil_survey", "solution", "cn_spec", "o2", "settle"],
+  { key: "cil_slurry", off: true, group: "Processing (crusher to TSF)", pur: "plant", name: "CIL tank slurry", hold: 24, holdWhat: "free cyanide and solution gold", haz: ["cn"], tests: ["cil_survey", "solution", "cn_spec", "o2", "settle"],
     fields: [{ k: "tanks", l: "Tank number(s)", ph: "e.g. Tanks 1–8" }, { k: "time", l: "Survey time", ph: "e.g. 08:00" }],
     check: "One container per tank, labelled; delivered promptly (cyanide degrades)." },
   { key: "solution", off: true, group: "Processing (crusher to TSF)", pur: "plant", name: "Process solution (leach, barren, process water)", hold: 336, holdWhat: "cyanide (NaOH-preserved)", haz: ["cn"], tests: ["solution", "cn_spec", "detox"],
@@ -1201,7 +1219,7 @@ const DEFAULT_ROUTES = [
     qc: "Calculated head within ±10% of the assayed head; residue duplicates within 10%; a reference ore leached each campaign.",
     triggers: ["Calculated and assayed head more than 10% apart: repeat residue assay, then the leach", "Extraction below 80%: diagnostic leach recommended", "Organic carbon above 0.2% (preg-robbing): repeat as a CIL test"],
     retention: [{ item: "Head reserve", days: 365, then: "Returned to MET" }, { item: "Leach residue", days: 180, then: "Disposed" }, { item: "Solutions", days: 30, then: "Cyanide destroyed, disposed" }] },
-  { code: "CIL-T", name: "CIL / CIP leach test with carbon", tests: ["cil_test"], types: ["met_comp", "core", "plant_feed", "*"], purposes: ["met"],
+  { code: "CIL-T", name: "CIL leach test with carbon", tests: ["cil_test"], types: ["met_comp", "core", "plant_feed", "*"], purposes: ["met"],
     desc: "Leach with activated carbon present, as in the plant. Used for preg-robbing ores and to size the carbon inventory.",
     stages: [
       S("log", "Composite log & head split", 2, "intake"),
@@ -1387,7 +1405,7 @@ const DEFAULT_ROUTES = [
     qc: "High-grade solution standard and blank each run; duplicate dilutions within 2%.",
     triggers: ["End-of-strip eluate above 5 mg/L Au: notify the elution operator (incomplete strip)", "Electrowinning cell discharge above 5 mg/L Au: check cells and current", "Duplicate dilutions differ by more than 2%: repeat"],
     retention: [{ item: "Eluate", days: 30, then: "Returned to the elution circuit / gold room" }] },
-  { code: "CIL-SVY", transit: 2, name: "CIL / CIP tank survey", tests: ["cil_survey"], types: ["cil_slurry"], purposes: ["plant"],
+  { code: "CIL-SVY", transit: 2, name: "CIL tank survey", tests: ["cil_survey"], types: ["cil_slurry"], purposes: ["plant"],
     desc: "Tank-by-tank profile of solution gold, carbon loading, cyanide and pH to check adsorption efficiency.",
     stages: [
       S("field", "Pulp density, pH & dissolved oxygen", 0.5, "test", "Marcy scale % solids, done on arrival."),
@@ -1798,7 +1816,7 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["AuSx far off the shift trend: repeat from the kept solution"],
     retention: [{ item: "Solution", days: 7, then: "Cyanide destroyed, disposed" }] },
-  { code: "AUFX-AUSX-CN", transit: 2, name: "Slurry: AuFx, AuSx & cyanide", tests: ["aufx_ausx_cn"], types: ["ccd", "tsf"], purposes: ["plant", "env", "recon", "met"],
+  { code: "AUFX-AUSX-CN", transit: 2, name: "Slurry: AuFx, AuSx & cyanide", tests: ["aufx_ausx_cn"], types: ["plant_feed", "ccd", "tsf"], purposes: ["plant", "env", "recon", "met"],
     desc: "CCD or TSF slurry: filtered, the solution read at once for cyanide (NaCN, WAD) and AuSx, the solids fire assayed for AuFx.",
     stages: [
       S("wet", "Weigh slurry & % solids", 0.25, "test"),
@@ -1844,6 +1862,23 @@ const DEFAULT_ROUTES = [
     ],
     triggers: ["Eluted carbon above 100 g/t Au: repeat and notify the elution operator", "Repeat differs by more than 10%: repeat the loading"],
     retention: [{ item: "Carbon sample", days: 30, then: "Returned to gold room" }] },
+  { code: "C-ACT", transit: 2, name: "Carbon activity", tests: ["c_act"], types: ["carbon"], purposes: ["plant", "met"],
+    desc: "Regenerated, stripped, loaded or virgin carbon: a weighed portion in a standard gold solution, the solution read for gold at 0, 15, 30, 45, 60 and 120 min.",
+    stages: [
+      S("wash", "Wash, screen & weigh carbon", 0.5, "prep", "About 1 g of carbon to 1000 mL of standard solution."),
+      S("contact", "Contact & aliquots at 0 to 120 min", 2.5, "test", "5 mL aliquot each time."),
+      S("aas", "Au in the aliquots by AAS", 1, "test", "", true),
+      S("qc", "QA/QC review", 0.5, "qc")
+    ],
+    triggers: ["Activity well below the virgin carbon run with it: report to the elution operator"],
+    retention: [{ item: "Carbon sample", days: 30, then: "Returned to gold room" }] },
+  /* v24d: a shift's samples submitted together (a job): received, analysed and released together with the lab's report for the job. Each
+     sample keeps its own analysis, results, limits and retention; the job only shares the steps. Not chosen for a sample on its own. */
+  { code: "JOB", job: true, transit: 2, name: "Plant shift job (one report)", tests: ["aufx_ausx", "aufx", "ausx", "aufx_ausx_cn", "ausx_cn", "cn_only", "c_load", "c_act", "elu_sol", "psd"],
+    types: ["plant_feed", "ccd", "tsf", "carbon", "elution"], purposes: ["plant", "recon", "met"],
+    desc: "The samples of one shift (mill, CCD, TSF, carbon, elution), received together, analysed, and released together when the lab's report for the job is attached.",
+    stages: [S("lab", "In analysis", 12, "test", "Preparation and analysis of every sample of the job; the report gives all the results.")],
+    retention: [{ item: "Sample remainder", days: 30, then: "Disposed" }] },
   { code: "ELU-AUSX", transit: 2, name: "Elution solution: AuSx, AgSx & Cu", tests: ["elu_sol"], types: ["elution"], purposes: ["plant", "recon", "met"],
     desc: "Pregnant solution, electrowinning head and tails and eluate: AuSx, AgSx and copper, with NaOH, NaCN and pH.",
     stages: [
@@ -1960,6 +1995,10 @@ const RESULTS = {
   ausx_cn:      { an: [PICK("Sampling point", PLANT_PTS), AUSX(), CNWAD(), NACN({ opt: true }), PH(), ...METALS()], qc: "Au_s" },
   cn_only:      { an: [PICK("Sampling point", PLANT_PTS), CNWAD(), NACN({ opt: true }), PH(), ...METALS()], qc: "wad" },
   c_load:       { an: [PICK("Carbon type", CARBON_PTS), A("Au_c", "Au loading", "g/t", 1, 2, { s: "Au loading" })], qc: "Au_c" },
+  /* v24d: carbon activity as the lab reports it: gold left in a standard solution after 0, 15, 30, 45, 60 and 120 min with the carbon
+     (columns Au CA-00 … Au CA-120), and the carbon mass and volumes from the activity sheet. */
+  c_act:        { an: [PICK("Carbon type", CARBON_PTS), ...[0, 15, 30, 45, 60, 120].map(m => A("ca" + m, `Au in solution at ${m} min`, "mg/L", 0.01, 2, { s: "Au CA-" + String(m).padStart(2, "0") })),
+                         A("cmass", "Carbon mass", "g", null, 3, { opt: true }), A("vol0", "Initial volume", "mL", null, 0, { opt: true }), A("aliq", "Aliquot", "mL", null, 0, { opt: true })], qc: "ca120" },
   elu_sol:      { an: [PICK("Solution", ELU_PTS), AUSX({ ul: 2000 }), AGSX(), ...METALS(), A("naoh", "NaOH", "%", null, 2, { opt: true }), NACN({ opt: true }), PH()], qc: "Au_s" }
 };
 /* Lab QC batch profiles. size: routine samples per batch; ins: QC positions per batch (pb preparation blank, cd crusher duplicate,
@@ -2398,17 +2437,23 @@ const liveRoutes = () => (cfg.routes || []).filter(routeOn);
 const testOn = k => liveRoutes().some(r => (r.tests || []).includes(k));
 const typeOn = k => k === "other" || liveRoutes().some(r => (r.types || []).includes(k));
 /* Routes in use that perform a test, and `keep` (a sample's own route) even when it is no longer in use. */
-const routesForTest = (test, keep = "") => (cfg.routes || []).filter(r => (r.tests || []).includes(test) && (routeOn(r) || r.code === keep));
+const routesForTest = (test, keep = "") => (cfg.routes || []).filter(r => (r.tests || []).includes(test) && ((routeOn(r) && !r.job) || r.code === keep));   // v24d: the shift job route is only for a shift's samples
 /* Saved routes plus any default route the admin has not removed, so routes added in later versions still appear. */
 /* Settings store only routes an admin added or edited; every untouched default follows the latest version of the route library. */
 function mergeRoutes(saved, removed){
   const list = Array.isArray(saved) ? saved : [];
   const have = new Set(list.map(r => r.code)), gone = new Set(removed || []);
-  return [...clone(list).map(grind80).map(withQcp), ...clone(DEFAULT_ROUTES.filter(r => !have.has(r.code) && !gone.has(r.code)))];
+  return [...clone(list).map(grind80).map(cilOnly).map(withQcp), ...clone(DEFAULT_ROUTES.filter(r => !have.has(r.code) && !gone.has(r.code)))];
 }
 /* The lab pulverises to 80% passing 75 µm (version 16): routes saved with the earlier 85% wording are brought into line. */
 function grind80(r){
   (r.stages || []).forEach(x => ["name", "note"].forEach(k => { if (typeof x[k] === "string") x[k] = x[k].replace(/\b85% passing 75 µm/g, "80% passing 75 µm"); }));
+  return r;
+}
+/* v24d: the plant runs CIL only: routes saved under the old combined CIL and CIP names read "CIL". */
+function cilOnly(r){
+  const fix = t => typeof t === "string" ? t.replace(/\bCIL ?\/ ?CIP\b/g, "CIL") : t;
+  r.name = fix(r.name); r.desc = fix(r.desc); (r.stages || []).forEach(x => { x.name = fix(x.name); x.note = fix(x.note); });
   return r;
 }
 /* Routes saved before lab batches existed get the batch type of the default route (or of a default route for the same test), and QA/QC text that matches it. */
@@ -3896,6 +3941,7 @@ function renderSampleForm(mode){
       ${staff ? `<label class="f full" data-lab><span>Workflow route</span><select id="rRouteSel"><option value="">Automatic</option></select></label>` : ""}
       <div class="full" id="rRoute"></div>
     </div></div>
+    ${jobBlock()}
     <div class="sub-step s2"><div class="sub-t"><span class="num">2</span>What it is for</div><div class="form">
       <label class="f"><span>Purpose <span class="req">*</span></span><select id="rPurpose" required><option value="">Choose…</option>${purposeOptions()}</select></label>
       <label class="f"><span>Section <span class="req">*</span></span><select id="rSection" required><option value="">Choose…</option>${sectionOptions()}</select></label>
@@ -4018,6 +4064,7 @@ async function register(){
   if (!db){ toast("The shared register is not connected in this view."); return; }
   const btn = $("#rSubmit"), msg = $("#rMsg");
   const fail = (m, focus) => { toast(m); const el = focus && $(focus); if (el){ const d = el.closest("details"); if (d) d.open = true; el.focus(); } };
+  if (formKind() === "job") return registerJob();   // v24d: a shift's samples as one job
   const batch = formKind() === "batch", n = batch ? bRows.length : 1;
   if (batch && !(n >= 2 && n <= 100)) return fail("A batch has 2 to 100 samples. For one sample choose Single sample.", "#rCount");
   const code = val("#rSection"), tyK = val("#rType"), puK = val("#rPurpose"), teK = val("#rTest"), submitter = val("#rSubmitter");
@@ -4958,7 +5005,7 @@ function ptGiven(s){ const a = anOf(s).find(x => x.t === "pick"), v = a && (s.de
 function limitHits(s, rows = effRows(s)){
   const out = [], pt = rows.pt?.raw || ptGiven(s);
   for (const l of cfg.limits || []){
-    if (l.route !== s.route || !rows[l.k]) continue;
+    if ((l.route !== s.route && l.route !== s.baseRoute) || !rows[l.k]) continue;   // v24d: a sample of a shift job keeps its own route's limits
     if (l.when && pt && pt !== l.when) continue;   // no sampling point given: the limit applies
     const x = resNum(rows[l.k]); if (x == null) continue;
     if (l.op === "<" ? x < +l.val : x > +l.val) out.push({ ...l, raw: rows[l.k].raw, v: x, key: `${l.id}|${l.k}|${rows[l.k].raw}` });
@@ -6882,6 +6929,8 @@ const rightFill = row => { const out = []; let carry = ""; for (let j = row.leng
 /* Reads a report laid out as a table: a sample column, one column per result (with units and method codes in rows above it, as the lab's
    LIMS prints them, or in the heading as "Au (g/t)"), repeat readings in a second column of the same result (Rep 2), and reference material
    readings in a table of expected and reported values at the foot, or as rows named after the material. */
+let knownMemo = null;
+const knownNames = () => knownMemo || (knownMemo = new Set(Object.values(RESULTS).flatMap(r => r.an).filter(a => a.s && !a.t).map(a => normCol(a.s))));
 function parseReport(grid, idx){
   const nc = Math.max(0, ...grid.map(r => r.length)), cell = (i, j) => (grid[i] || [])[j] || "";
   const crmIds = new Map((cfg.crms || []).flatMap(c => [c.id, ...(c.was || [])].map(x => [normKey(x), c.id])));
@@ -6908,7 +6957,9 @@ function parseReport(grid, idx){
      Units, repeat numbers and method codes sit in rows above it. */
   const isData = r => { const f = r.filter((t, j) => j !== idCol && t); return f.length > 0 && f.filter(isRead).length * 2 > f.length; };
   let head = -1, hs = 0;
-  for (let i = first - 1; i >= 0; i--){ const r = grid[i] || []; if (isData(r)) continue; const n = r.filter((t, j) => j !== idCol && t && colConcept(splitHead(t).name)).length; if (n > hs){ hs = n; head = i; } }
+  // v24d: a column named exactly as a result (Au CA-00 for carbon activity) counts too, so a title row with a stray symbol never wins
+  const known = knownNames();
+  for (let i = first - 1; i >= 0; i--){ const r = grid[i] || []; if (isData(r)) continue; const n = r.filter((t, j) => j !== idCol && t && (colConcept(splitHead(t).name) || known.has(normCol(splitHead(t).name)))).length; if (n > hs){ hs = n; head = i; } }
   if (head < 0) for (let i = first - 1; i >= Math.max(0, first - 3); i--){ const r = grid[i] || []; if (!isData(r) && r.filter(Boolean).length >= 2){ head = i; break; } }
   if (head < 0) return { error: "The file has no row of column names above the readings." };
   let units = null, reps = null, methods = null;
@@ -7667,8 +7718,8 @@ const qaOpen = id => samples.get(id) || (qaListOpen ? qaDoc(id) : qaDocs.get(id)
 let bRows = [{ code: "", src: "" }, { code: "", src: "" }];
 const formKind = () => document.querySelector('input[name="rKind"]:checked')?.value || "single";
 function kindPicker(){
-  const k = lsGet("regKind") === "batch" ? "batch" : "single";
-  return `<div class="seg" role="radiogroup" aria-label="Samples"><label><input type="radio" name="rKind" value="single" ${k === "single" ? "checked" : ""}><span>Single sample</span></label><label><input type="radio" name="rKind" value="batch" ${k === "batch" ? "checked" : ""}><span>Batch</span></label></div>`;
+  const k = ["batch", "job"].includes(lsGet("regKind")) ? lsGet("regKind") : "single";
+  return `<div class="seg" role="radiogroup" aria-label="Samples"><label><input type="radio" name="rKind" value="single" ${k === "single" ? "checked" : ""}><span>Single sample</span></label><label><input type="radio" name="rKind" value="batch" ${k === "batch" ? "checked" : ""}><span>Batch</span></label><label><input type="radio" name="rKind" value="job" ${k === "job" ? "checked" : ""}><span>Shift job</span></label></div>`;
 }
 function batchBlock(){
   return `<div class="full batch-box" id="rBatch" hidden>
@@ -7716,19 +7767,25 @@ function setRowCount(n){
 }
 function submitLabel(){
   const b = $("#rSubmit"), f = $("#regForm"); if (!b || !f) return;
-  const walk = f.dataset.mode === "register", lab = !!$("#rRecvNow")?.checked, n = formKind() === "batch" ? bRows.length : 1;
+  const walk = f.dataset.mode === "register", lab = !!$("#rRecvNow")?.checked, n = formKind() === "batch" ? bRows.length : formKind() === "job" ? (job?.rows || []).filter(r => r.on).length : 1;
   b.textContent = lab ? (n > 1 ? `Register ${n} samples and issue IDs` : "Register and issue ID") : walk ? (n > 1 ? `Register ${n} samples` : "Register and get sample ID") : (n > 1 ? `Submit ${n} samples` : "Submit and get sample ID");
 }
 function showKind(v){
-  const batch = formKind() === "batch";
+  const batch = formKind() === "batch", isJob = formKind() === "job";
   $("#rBatch", v).hidden = !batch;
-  v.querySelectorAll("[data-single]").forEach(x => { x.hidden = batch; });
+  v.querySelectorAll("[data-single]").forEach(x => { x.hidden = batch || isJob; });
+  // v24d: a shift job lists its samples (each with its own type and analysis) instead of one sample type and analysis
+  const j = $("#rJob", v); if (j) j.hidden = !isJob;
+  v.querySelectorAll(".sub-step.s1:not(.job-step)").forEach(x => { x.hidden = isJob; });
+  const d = $("#rDetails", v); if (d) d.hidden = isJob;
+  if (isJob){ const pu = $("#rPurpose", v); if (pu && !pu.value){ pu.value = "plant"; pu.dispatchEvent(new Event("change")); } }
   if (batch && !$("#rRows .r-code", v)) renderRows();
   submitLabel();
 }
 function bindKind(v){
   bRows = [{ code: "", src: "" }, { code: "", src: "" }];
-  v.querySelectorAll('input[name="rKind"]').forEach(r => r.addEventListener("change", () => { lsSet("regKind", formKind() === "batch" ? "batch" : ""); showKind(v); if (formKind() === "batch") $("#rRows .r-code", v)?.focus(); }));
+  v.querySelectorAll('input[name="rKind"]').forEach(r => r.addEventListener("change", () => { lsSet("regKind", formKind() === "single" ? "" : formKind()); showKind(v); if (formKind() === "batch") $("#rRows .r-code", v)?.focus(); }));
+  bindJob(v);
   $("#rCount", v).addEventListener("input", e => { const n = +e.target.value; if (n >= 2 && n <= 100) setRowCount(n); });
   $("#rCount", v).addEventListener("change", e => { const n = Math.floor(+e.target.value); if (n > 100) toast("Up to 100 samples in one batch."); if (n >= 2) setRowCount(n); e.target.value = bRows.length; });
   $("#rAddRow", v).addEventListener("click", () => { if (bRows.length >= 100) return toast("Up to 100 samples in one batch."); setRowCount(bRows.length + 1); $("#rCount", v).value = bRows.length; $(`#rRows .r-code[data-i="${bRows.length - 1}"]`, v)?.focus(); });
@@ -7784,10 +7841,10 @@ function renderBatchView(v){
   const quick = [...waiting.filter(s => typeOf(s.typeKey)?.cool == null), ...gcool], two = quick.some(twoPerson), lim = Math.min(...gcool.map(s => typeOf(s.typeKey).cool));
   const tally = {}; docs.forEach(s => { const st = status(s); tally[st.label] = (tally[st.label] || 0) + 1; });
   const done = docs.filter(s => curIdx(s) >= targetIdx(s)).length, etas = docs.filter(s => curIdx(s) < targetIdx(s) && !status(s).closed).map(s => projection(s).eta).filter(Boolean);
-  const eta = etas.length ? Math.max(...etas) : 0, srcCol = docs.some(s => s.source);
+  const eta = etas.length ? Math.max(...etas) : 0, srcCol = docs.some(s => s.source), mixed = new Set(docs.map(s => s.test)).size > 1 || new Set(docs.map(s => s.typeKey)).size > 1, ptCol = docs.some(ptOf);
   noteRecentBatch(c.batch, docs); pageTitle(c.batch);
   const row = s => { const st = status(s), last = (s.certs || []).at(-1);
-    return `<tr><td class="mono muted">${esc(s.batchIndex || "")}</td><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button></td><td class="mono">${esc(tagText(s)) || "—"}</td>${srcCol ? `<td>${esc(s.source || "")}</td>` : ""}
+    return `<tr><td class="mono muted">${esc(s.batchIndex || "")}</td><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button></td><td class="mono">${esc(tagText(s)) || "—"}</td>${srcCol ? `<td>${esc(s.source || "")}</td>` : ""}${ptCol || mixed ? `<td>${esc(ptOf(s) || s.type || "")}${mixed ? `<div class="small muted">${esc(s.testName || "")}</div>` : ""}</td>` : ""}
       <td><span class="pill ${st.cls}">${esc(st.label)}</span></td><td class="small">${last ? `Released ${esc(fmtDate(last.at))}` : ""}</td></tr>`; };
   const keepAt = $("#bvAt", v)?.value, keepWit = $("#bvWit", v)?.value, keepOk = $("#bvOk", v)?.checked;
   keepUi(v, ctx, () => {
@@ -7795,7 +7852,7 @@ function renderBatchView(v){
     <div class="panel stack">
       <div class="row" style="gap:10px"><div class="sid">${esc(c.batch)}</div><span class="pill info">${docs.length} samples</span><button type="button" class="btn ghost small" data-link="${esc(c.batch)}">Copy batch link</button></div>
       ${s0.batchName ? `<div><b>${esc(s0.batchName)}</b></div>` : ""}
-      <div class="small muted">${esc(s0.type || "")} · ${esc(s0.testName || s0.purpose || "")} · <span class="mono">${esc(s0.section || "")}</span> · ${esc(s0.submitter || "")} · ${fmt(s0.createdAt)}</div>
+      <div class="small muted">${mixed ? `${esc([...new Set(docs.map(s => s.type))].join(", "))} · ${new Set(docs.map(s => s.test)).size} analyses` : `${esc(s0.type || "")} · ${esc(s0.testName || s0.purpose || "")}`} · <span class="mono">${esc(s0.section || "")}</span> · ${esc(s0.submitter || "")} · ${fmt(s0.createdAt)}</div>
       <div class="bv-prog"><div class="bv-bar"><i style="width:${docs.length ? Math.round(done / docs.length * 100) : 0}%"></i></div><span class="small"><b>${done} of ${docs.length}</b> results released${eta ? ` · all expected by <b>${esc(fmt(eta))}</b>` : ""}</span></div>
       <div class="row" style="gap:6px">${Object.entries(tally).map(([l, n]) => `<span class="pill">${n} ${esc(l)}</span>`).join("")}</div>
       <div class="row"><button type="button" class="btn primary" id="bvLabels">Print ${docs.length} labels</button><button type="button" class="btn" id="bvCopy">Copy IDs</button></div>
@@ -7809,7 +7866,7 @@ function renderBatchView(v){
       <div class="row"><button type="button" class="btn primary" id="bvRecvBtn" ${batchRecvBusy ? "disabled" : ""}>Confirm receipt of ${quick.length}</button>${cool.length ? `<span class="small">One by one (cooler temperature): ${cool.map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>`).join(", ")}</span>` : ""}</div>
     </div>` : ""}
     ${bwPanel(c)}
-    <div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>#</th><th>Sample ID</th><th>Site sample code</th>${srcCol ? "<th>Source</th>" : ""}<th>Status</th><th></th></tr></thead><tbody>${docs.map(row).join("")}</tbody></table></div></div>
+    <div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>#</th><th>Sample ID</th><th>Site sample code</th>${srcCol ? "<th>Source</th>" : ""}${ptCol || mixed ? "<th>Sample</th>" : ""}<th>Status</th><th></th></tr></thead><tbody>${docs.map(row).join("")}</tbody></table></div></div>
   </div>`;
   if (keepWit && $("#bvWit", v)) $("#bvWit", v).value = keepWit;
   fillNames(v);
@@ -8659,6 +8716,8 @@ const batchOf = s => s && s.batchId && (s.batchSize || 0) > 1 && !s.solo ? s.bat
 const grouped = s => !!batchOf(s) && s.open !== false && !stage(s, s.stageKey)?.final;
 const nS = n => `${n} sample${n === 1 ? "" : "s"}`;
 const resIn = s => !resMissing(s);
+/* A sample's point (sampling point, carbon type, solution) as given at submission. */
+const ptOf = s => { const f = (typeOf(s?.typeKey)?.fields || [])[0]; return f && f.o ? (s.details || {})[f.l] || "" : ""; };
 const certOfBatch = (s, ref) => (s?.certs || []).filter(c => c.bref === ref).at(-1) || null;
 /* The members that move together and the step they are at: the earliest step among the received ones (any ahead wait there for it). */
 function batchState(docs){
@@ -8694,11 +8753,13 @@ function bwRail(st, ref){
     return `<li class="${done ? "done" : i === cur ? "current" + (late ? " late" : "") : "upcoming"}"><span class="dot">${done ? "✓" : ""}</span><div><div class="st-name">${esc(x.name)}</div><div class="st-meta">${meta}</div></div></li>`;
   }).join("")}</ol>`;
 }
-/* The materials of the batch, item by item over all its samples at the step: one put-away, one return or disposal for them all. */
+/* The materials of the batch, item by item over all its samples at the step: one put-away, one return or disposal for them all. A job's
+   samples keep different materials (pulp, filtrate, solution, carbon), so an item is its slot and its name. */
+const matKey = m => m.k + "-" + String(m.item || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
 function bwMats(st){
   const items = new Map(), now = Date.now(), two = st.at.some(twoPerson), q = st.at.map(wqOf).find(Boolean);
   st.at.forEach(s => keptMaterials(s).forEach(m => {
-    const x = items.get(m.k) || items.set(m.k, { k: m.k, item: m.item, then: m.then, dispo: m.dispo, days: m.days, n: 0, noLoc: 0, locs: new Set(), due: Infinity }).get(m.k);
+    const key = matKey(m), x = items.get(key) || items.set(key, { k: key, item: m.item, then: m.then, dispo: m.dispo, days: m.days, n: 0, noLoc: 0, locs: new Set(), due: Infinity }).get(key);
     x.n++; if (m.loc) x.locs.add(m.loc); else x.noLoc++; if (m.dueAt) x.due = Math.min(x.due, m.dueAt);
   }));
   if (!items.size) return "";
@@ -8769,7 +8830,8 @@ function bwPanel(c){
     if (!toRel){
       if (next?.phase === "qc" && plan[bi].phase !== "qc") at.forEach(s => { const h = qcEntryBlock(s); if (h) holds.push(`${s.id}: ${h}`); });
       act = `${holds.length ? `<div class="notice warn" id="bwHold"><b>Before ${esc(next?.name || "the next step")}:</b> ${esc(holds.slice(0, 4).join(" "))}${holds.length > 4 ? ` +${holds.length - 4} more` : ""}</div>` : ""}${form}
-        <div class="row"><button type="button" class="btn primary" id="bwNext" ${holds.length ? "disabled data-hold" : ""}>Move ${nS(n)} to: ${esc(next?.name || "")}</button></div>`;
+        <div class="row"><button type="button" class="btn primary" id="bwNext" ${holds.length ? "disabled data-hold" : ""}>Move ${nS(n)} to: ${esc(next?.name || "")}</button></div>
+        ${relNow() ? `<div class="row" style="gap:8px"><span class="pill" id="bwCount">Results in: ${n - missing.length} of ${n}</span><button type="button" class="btn" data-attach="sub:${esc(ref)}">Attach results file for the batch</button><span class="small muted">The report can come at any step: the batch is moved on and released with it.</span></div>` : ""}`;
     } else if (missing.length && !waiting){
       act = `${form}<div class="row"><button type="button" class="btn primary" id="bwWaitBtn">Move ${nS(n)} to: Results released</button></div>`;
     } else {
@@ -8884,7 +8946,8 @@ async function bwRelease(){
 }
 async function bwMat(k){
   const st = batchState(current?.docs || []); if (!st.lead) return;
-  const what = val("#bmx_" + k), ref = val("#bmr_" + k), bref = current.batch, ids = st.at.filter(s => keptMaterials(s).some(m => m.k === k)).map(s => s.id), two = st.at.some(twoPerson);
+  const what = val("#bmx_" + k), ref = val("#bmr_" + k), bref = current.batch, ids = st.at.filter(s => keptMaterials(s).some(m => matKey(m) === k)).map(s => s.id), two = st.at.some(twoPerson);
+  const slot = s => keptMaterials(s).find(m => matKey(m) === k)?.k;   // the material's own slot on each sample
   if (st.at.some(wqOf)){ toast("Waiting for the witness to confirm. Withdraw that request first."); return; }
   if (what === "store" && !ref){ toast("Type the storage location first."); $("#bmr_" + k)?.focus(); return; }
   if (what === "external" && !ref){ toast("Type the external lab and waybill number first."); $("#bmr_" + k)?.focus(); return; }
@@ -8894,12 +8957,12 @@ async function bwMat(k){
     if (!w){ toast("Two-person custody: choose the witness who confirms the disposal."); $("#bmWit")?.focus(); return; }
     if (w.u === session.u){ toast("The witness must be someone other than you."); return; }
     const id = wqId(Date.now());
-    await bwEach(`Asked ${w.name} to confirm`, ids, s => grouped(s) ? askOutUpd(s, k, what, ref, w, id, bref) : null, clear);
+    await bwEach(`Asked ${w.name} to confirm`, ids, s => grouped(s) && slot(s) ? askOutUpd(s, slot(s), what, ref, w, id, bref) : null, clear);
     return;
   }
   const firstPut = two && what === "store" && st.lead.stageKey === "released";
   const wit = what === "disposed" ? disposalWitness("#bmWit") : firstPut || !two ? "" : needWitness(st.lead, "#bmWit"); if (wit === null) return;
-  await bwEach(what === "store" ? "Put away" : DISPO[what], ids, s => grouped(s) && !wqOf(s) ? matUpd(s, k, what, ref, wit, bref) : null, clear);
+  await bwEach(what === "store" ? "Put away" : DISPO[what], ids, s => grouped(s) && !wqOf(s) && slot(s) ? matUpd(s, slot(s), what, ref, wit, bref) : null, clear);
 }
 async function bwAsk(){
   const st = batchState(current?.docs || []); if (!st.lead) return;
@@ -8941,9 +9004,14 @@ const soloNote = s => batchOf(s) ? `. Taken out of batch ${s.batchId}: processed
 /* ---------- the batch certificate: one number and check code; every sample with its own results ---------- */
 function certBatchHtml(ref, mem){
   const [s0, c] = mem[0], ans = [];
-  mem.forEach(([, x]) => (x.an || []).forEach(a => { if (!ans.some(y => y.k === a.k)) ans.push(a); }));
+  const sOf = (test, a) => (RESULTS[test]?.an || []).find(y => y.k === a.k)?.s || "";   // the short name (AuFx), which a certificate does not copy
+  const ansOf = list => { const out = []; list.forEach(([, x]) => (x.an || []).forEach(a => { if (a.t !== "pick" && !out.some(y => y.k === a.k)) out.push({ ...a, s: a.s || sOf(x.test, a) }); })); return out; };
+  ans.push(...ansOf(mem));   // the point is a column of its own
   const fact = (k, v) => `<tr><th>${k}</th><td>${v}</td></tr>`, uniq = f => [...new Set(mem.map(f).filter(Boolean))];
   const recv = mem.map(([s]) => s.recvAt || s.receivedAt).filter(Boolean), types = uniq(([s]) => s.type), labs = uniq(([, x]) => x.batch).join(", ");
+  const dsc = mem.some(([s]) => s.source), pts = mem.some(([s]) => ptOf(s));
+  // v24d: a job of several analyses reads one table per analysis (only its own columns), like the lab's report with its sections
+  const tests = [...new Set(mem.map(([, x]) => x.testName || ""))], groups = tests.length > 1 ? tests.map(t => [`${t} (${nS(mem.filter(([, x]) => (x.testName || "") === t).length)})`, mem.filter(([, x]) => (x.testName || "") === t)]) : [["", mem]];
   const exc = mem.flatMap(([s, x]) => [x.amends ? `${s.id}: replaces ${x.amends}. ${x.why || ""}` : "", x.qcNote ? `${s.id}: ${x.qcNote}` : "", x.acc ? `${s.id}: accepted outside a check by ${x.acc.tech}: ${x.acc.why}` : "",
     ...(x.soft || []).map(m => `${s.id}: note: ${m}`), ...(x.alerts || []).map(a => `${s.id}: ${a.line}. ${a.act}.${a.ack ? ` Recorded by ${a.ack.tech}: ${a.ack.note}` : ""}`)].filter(Boolean));
   return `<div class="cert">
@@ -8953,18 +9021,22 @@ function certBatchHtml(ref, mem){
       ${fact("Batch", `<b class="mono">${esc(ref)}</b>${s0.batchName ? ` · ${esc(s0.batchName)}` : ""}`)}${fact("Samples", `${mem.length}${s0.batchSize > mem.length ? ` of the ${esc(s0.batchSize)} submitted` : ""}`)}${fact("Sample type", esc(types.join(", ")))}
       ${fact("Submitted by", `${esc(s0.submitter)}${s0.section ? ` · ${esc(s0.section)} ${esc(sectionName(s0.section))}` : ""}`)}
       ${recv.length ? fact("Received", esc(fmtFull(Math.min(...recv))) + (Math.max(...recv) - Math.min(...recv) > 60000 ? ` to ${esc(fmtFull(Math.max(...recv)))}` : "")) : ""}
-      ${fact("Test", esc(c.testName || ""))}${fact("Method", `${c.route ? `<span class="mono">${esc(c.route)}</span> ` : ""}${esc(c.routeName || "")}`)}
+      ${uniq(([, x]) => x.testName).length > 1 ? fact("Analyses", `${uniq(([, x]) => x.testName).length}, as listed for each sample`) : fact("Test", esc(c.testName || ""))}${fact("Method", `${c.route ? `<span class="mono">${esc(c.route)}</span> ` : ""}${esc(c.routeName || "")}`)}
       ${labs ? fact(labs.includes(",") ? "Lab batches" : "Lab batch", `<span class="mono">${esc(labs)}</span>`) : ""}
     </table>
     ${c.file ? `<div class="cert-file">Results file: <b>${esc(c.file.name)}</b>${c.att ? (ans.length ? ". Results not shown below are in this file." : ". The results are in this file.") : ""}</div>` : ""}
-    ${ans.length ? `<div class="tbl-wrap"><table class="cert-res"><thead><tr><th>Sample ID</th><th>Site sample code</th>${ans.map(a => `<th>${esc(a.n)}${a.u ? ` (${esc(a.u)})` : ""}</th>`).join("")}</tr></thead><tbody>
-      ${mem.map(([s, x]) => `<tr><td class="mono">${esc(s.id)}</td><td class="mono">${esc(tagText(s)) || "—"}</td>${ans.map(a => `<td class="mono">${x.rows && x.rows[a.k] ? `<b>${esc(resText(x.rows[a.k], a))}</b>` : "—"}</td>`).join("")}</tr>`).join("")}
-      ${ans.some(a => a.dl != null) ? `<tr class="muted"><td colspan="2">Detection limit</td>${ans.map(a => `<td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>`).join("")}</tr>` : ""}</tbody></table></div>`
+    ${ans.length ? groups.map(([title, list]) => certTable(title, list, ansOf(list), dsc, pts && !dsc)).join("")
       : `<table class="cert-res"><thead><tr><th>Sample ID</th><th>Site sample code</th></tr></thead><tbody>${mem.map(([s]) => `<tr><td class="mono">${esc(s.id)}</td><td class="mono">${esc(tagText(s)) || "—"}</td></tr>`).join("")}</tbody></table>`}
     ${exc.length ? `<div class="cert-note">${exc.map(esc).join("<br>")}</div>` : ""}
     <div class="cert-sign"><div>Released by <b>${esc(c.tech)}</b>, ${esc(ROLE_SIGN[c.role] || "lab supervisor (QA/QC)")}</div><div>${esc(fmtFull(c.at))}${TZ() ? ` (${esc(TZ())})` : ""}</div></div>
     <div class="cert-foot">Results relate only to the samples as received. Values below the detection limit are shown as &lt;DL. Check this copy by looking up the batch reference or any of its sample IDs in the Assay Lab tracker: the certificate number and check code must match. Design prototype: not an official laboratory certificate.</div>
   </div>`;
+}
+function certTable(title, list, ans, dsc, pts){
+  const lead = 2 + (dsc ? 1 : 0) + (pts ? 1 : 0), sv = a => (a.t === "text" ? "cell-text" : "mono");
+  return `${title ? `<h4 class="cert-sec">${esc(title)}</h4>` : ""}<div class="tbl-wrap"><table class="cert-res"><thead><tr><th>Sample ID</th><th>Site sample code</th>${dsc ? "<th>Description</th>" : ""}${pts ? "<th>Sample</th>" : ""}${ans.map(a => `<th>${esc(anShort(a))}${a.u ? ` (${esc(a.u)})` : ""}</th>`).join("")}</tr></thead><tbody>
+    ${list.map(([s, x]) => `<tr><td class="mono">${esc(s.id)}</td><td class="mono">${esc(tagText(s)) || "—"}</td>${dsc ? `<td class="cell-desc">${esc(s.source || "")}</td>` : ""}${pts ? `<td>${esc(ptOf(s))}</td>` : ""}${ans.map(a => `<td class="${sv(a)}">${x.rows && x.rows[a.k] ? `<b>${esc(resText(x.rows[a.k], a))}</b>` : "—"}</td>`).join("")}</tr>`).join("")}
+    ${ans.some(a => a.dl != null) ? `<tr class="muted"><td colspan="${lead}">Detection limit</td>${ans.map(a => `<td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>`).join("")}</tr>` : ""}</tbody></table></div>`;
 }
 async function showBatchCert(ref, no){
   let docs = current?.batch === ref ? current.docs : null;
@@ -9012,7 +9084,7 @@ function batchChip(x, lane){
     <div class="cmeta"><span class="bn">${docs.length === s.batchSize ? `Batch of ${nS(docs.length)}` : `${docs.length} of ${esc(s.batchSize)} samples`}</span></div>
     <div class="cmeta"><b style="color:var(--ink)">${esc(names.slice(0, 2).join(", "))}${names.length > 2 ? "…" : ""}</b>${docs.some(d => d.reassays) ? ` · <b style="color:var(--warn)">re-assay</b>` : ""}</div>
     ${q ? `<div class="cmeta"><b style="color:var(--info)">Waiting for ${esc(q.wit)} to confirm</b></div>` : ""}
-    <div class="cmeta">${esc(s.type)}${s.batchName ? ` · ${esc(s.batchName)}` : ""}${urgent ? ` · <span class="urg">Urgent</span>` : ""}${docs.some(d => d.flag && awaiting(d)) ? ` · <b style="color:var(--warn)">Flagged</b>` : ""}</div>
+    <div class="cmeta">${new Set(docs.map(d => d.typeKey)).size > 1 ? `${new Set(docs.map(d => d.typeKey)).size} sample types` : esc(s.type)}${s.batchName ? ` · ${esc(s.batchName)}` : ""}${urgent ? ` · <span class="urg">Urgent</span>` : ""}${docs.some(d => d.flag && awaiting(d)) ? ` · <b style="color:var(--warn)">Flagged</b>` : ""}</div>
     ${hazTags(s).length || twoPerson(s) ? `<div class="cmeta">${hazPills(s)}${twoPerson(s) ? `<span class="haz two" title="Two-person custody">2P</span>` : ""}</div>` : ""}
     ${lane === "report" && late ? `<div class="cmeta"><b style="color:var(--warn)">Not yet put in storage</b></div>` : ""}
     ${left && lane !== "report" ? `<div class="cmeta left">${esc(left)}</div>` : ""}</button>`;
@@ -9046,6 +9118,235 @@ function unitRows(list, rowOf){
   }
   return out.map(r => r.n ? { id: r.id, type: r.type, what: `Batch of ${nS(r.n)}${r.what ? " · " + r.what : ""}`, where: [...r.where].filter(Boolean).join(", ") } : r);
 }
+
+/* ---------- v24d: a shift's samples as one job (Submit › Shift job) ----------
+   At the end of a shift the plant sends the same samples every time (mill, CCD, TSF, carbon), the elution run its solutions, and now and
+   then carbon for an activity test. A template lists them as the plant's reports do: point, code, description and analysis. The submitter
+   picks the template, the shift and the date (codes follow: ML + NS/DS + point + date, as on the reports), unticks what was not sampled,
+   adds anything extra, and submits: one batch, received, analysed and released together with the lab's report for the job (route JOB).
+   Each sample keeps its own ID, label, analysis, results, limits and retention. */
+const JOB_SHIFT = {
+  N: { code: "NS", name: "Night shift", t: ["19:00", "22:00", "01:00", "04:00"], h: ["01", "03", "05", "19", "21", "23"], p: ["2200", "0400"] },
+  D: { code: "DS", name: "Day shift", t: ["07:00", "10:00", "13:00", "16:00"], h: ["07", "09", "11", "13", "15", "17"], p: ["1000", "1600"] }
+};
+const ABCD = ["A", "B", "C", "D"];
+/* The analysis a point usually gets (the shift reports); a point not listed takes its type's first. */
+const POINT_TEST = {
+  "CIL feed": "aufx_ausx", "Special CIL feed": "aufx_ausx", "CIL tails": "aufx_ausx", "COF (cyclone overflow)": "aufx_ausx", "CUF (cyclone underflow)": "aufx_ausx",
+  "CIL tank": "aufx_ausx_cn", "CIL tails launder": "ausx", "Tails grab": "cn_only",
+  "CCD overflow": "ausx_cn", "CCD feed": "aufx_ausx", "CCD underflow": "aufx_ausx", "CCD tails": "aufx_ausx",
+  "TSF spigot": "cn_only", "Decant pond": "ausx_cn", "Return water": "ausx_cn", "Seepage / underdrain": "ausx_cn"
+};
+const JOB_TYPES = ["plant_feed", "ccd", "tsf", "carbon", "elution"];
+const ptField = t => (typeOf(t)?.fields || [])[0] || { k: "point", l: "Sampling point", o: [] };
+const pointTest = (t, pt) => { const k = POINT_TEST[pt]; return k && typeTests(typeOf(t)).includes(k) ? k : t === "carbon" ? "c_load" : t === "elution" ? "elu_sol" : typeOf(t)?.tests?.[0] || ""; };
+/* Codes and descriptions: {S} NS/DS, {SN} Night shift / Day shift, {D} the date as yyyymmdd, {#1} {#2} "#" and an elution number (blank: nothing). */
+const R = (t, pt, test, code, desc, det) => ({ t, pt, test, code, desc, ...(det ? { det } : {}) });
+const JOB_TPL = [
+  { key: "mill", name: "Mill shift", shift: true, n: [["n1", "Stripped carbon: elution no."], ["n2", "Loaded carbon: elution no."]], rows: S => [
+    ...ABCD.map((x, i) => R("ccd", "CCD overflow", "ausx_cn", `ML{S}REC${x}{D}`, `{SN} ${S.t[i]} CCD #1 overflow sample`)),
+    ...ABCD.map((x, i) => R("plant_feed", "Tails grab", "cn_only", `ML{S}TLS${x}{D}`, `{SN} ${S.t[i]} tails grab sample`)),
+    ...["A", "B"].map((x, i) => R("tsf", "TSF spigot", "cn_only", `TSF{S}PG${x}{D}`, `{SN} tails dam spigot sample ${x} ${S.p[i]}HRS`)),
+    R("carbon", "Eluted carbon", "c_load", "ML{S}CBST{D}{#1}", "Mill {sn} stripped carbon for the elution circuit{#1}"),
+    ...Array.from({ length: 10 }, (_, i) => R("carbon", "CIL tank carbon", "c_load", `ML{S}CL${String(i + 1).padStart(2, "0")}{D}`, `Mill {sn} carbon from CIL tank ${i + 1}`)),
+    R("carbon", "Loaded carbon (to elution)", "c_load", "ML{S}CBLD{D}{#2}", "Mill {sn} loaded carbon for the elution circuit{#2}"),
+    ...S.h.map(h => R("plant_feed", "CIL tails launder", "ausx", `ML{S}CT${h}{D}`, `Mill {sn} CIL tails launder ${h}00 hours special sample`)),
+    R("tsf", "Decant pond", "ausx_cn", "ML{S}POND{D}", "Decant pond solution"),
+    R("plant_feed", "CIL feed", "aufx_ausx", "ML{S}CLF1{D}", "Mill {sn} CIL feed 1"),
+    R("plant_feed", "CIL feed", "aufx", "ML{S}CLF2{D}", "Mill {sn} CIL feed 2"),
+    R("plant_feed", "CIL tails", "aufx_ausx", "ML{S}CLTL{D}", "Mill {sn} CIL tails"),
+    R("plant_feed", "COF (cyclone overflow)", "aufx_ausx", "ML{S}COF {D}", "Mill {sn} cyclone overflow"),
+    R("plant_feed", "CUF (cyclone underflow)", "aufx_ausx", "ML{S}CUF {D}", "Mill {sn} cyclone underflow"),
+    R("ccd", "CCD tails", "aufx_ausx", "ML{S}TDDS{D}", "{SN} CCD tails sample"),
+    R("plant_feed", "CIL tank", "aufx_ausx_cn", "ML{S}TK11{D}", "{SN} tank 11 sample"),
+    R("plant_feed", "Special CIL feed", "aufx_ausx", "ML{S}SPFD{D}", "Mill {sn} special CIL feed")
+  ] },
+  { key: "elution", name: "Elution run", shift: false, n: [["n1", "Strip no."]], rows: () => [
+    ...Array.from({ length: 10 }, (_, i) => (i + 1) * 60).map(m => R("elution", "Electrowinning tails", "elu_sol", `MLSPE${String(m).padStart(3, "0")}{D}`, `Electrowinning tails solution ${m} mins`, { bv: `${m} min` })),
+    ...Array.from({ length: 11 }, (_, i) => i * 60).map(m => R("elution", "Electrowinning head", "elu_sol", `MLSPH${String(m).padStart(3, "0")}{D}`, `Electrowinning head solution ${m} mins`, { bv: `${m} min` })),
+    ...Array.from({ length: 12 }, (_, i) => (i + 1) * 30).map(m => R("elution", "Pregnant solution", "elu_sol", `MLSPP${String(m).padStart(3, "0")}{D}`, `Pregnant solution ${String(m).padStart(3, "0")} mins`, { bv: `${m} min` })),
+    R("elution", "Lean eluate", "elu_sol", "MLSPLNAF{D}", "Lean eluate solution after strip"),
+    R("elution", "Lean eluate", "elu_sol", "MLSPLNBF{D}", "Lean eluate solution before strip"),
+    R("elution", "Treated water", "elu_sol", "MLSPTRTD{D}", "Mill special treated water")
+  ] },
+  { key: "cact", name: "Carbon activity", shift: true, n: [["n1", "Elution no."]], rows: () => [
+    R("carbon", "Regenerated carbon", "c_act", "ML{S}CBRG{D}", "Mill {sn} regen carbon from the elution circuit"),
+    R("carbon", "Eluted carbon", "c_act", "MLSCBST{D}{#1}", "Mill special stripped carbon for the elution circuit{#1}"),
+    R("carbon", "Loaded carbon (to elution)", "c_act", "MLSCBLD{D}{#1}", "Mill special loaded carbon for the elution circuit{#1}"),
+    R("carbon", "Fresh carbon", "c_act", "", "Virgin carbon: type its code (e.g. the supplier's name)")
+  ] }
+];
+const jobTpl = k => JOB_TPL.find(x => x.key === k) || JOB_TPL[0];
+const dayCode = v => String(v || "").replace(/-/g, "");   // a date input's yyyy-mm-dd as yyyymmdd
+let job = null;   // { tpl, shift, date, n: {n1, n2}, rows: [{ on, t, pt, test, code, desc, det, ec, ed }] } (ec / ed: code / description typed over)
+function jobFill(x, ctx){
+  const S = JOB_SHIFT[ctx.shift] || JOB_SHIFT.N, num = k => ctx.n[k] ? "#" + String(ctx.n[k]).replace(/^#/, "") : "";
+  return String(x).replace(/\{S\}/g, S.code).replace(/\{SN\}/g, S.name).replace(/\{sn\}/g, S.name.toLowerCase()).replace(/\{D\}/g, dayCode(ctx.date)).replace(/\{#1\}/g, num("n1")).replace(/\{#2\}/g, num("n2"));
+}
+/* The rows for the template, shift, date and numbers: generated codes and descriptions follow them, what was typed over stays. */
+function jobRows(keep){
+  const T = jobTpl(job.tpl), S = JOB_SHIFT[job.shift] || JOB_SHIFT.N, base = T.rows(S);
+  const old = keep && keep.length === base.length ? keep : null;
+  job.rows = [...base.map((r, i) => {
+    const o = old && old[i];
+    return { on: o ? o.on : true, t: r.t, pt: r.pt, test: o?.test || r.test, code: o?.ec ? o.code : jobFill(r.code, job), desc: o?.ed ? o.desc : jobFill(r.desc, job), det: r.det || null, ec: !!o?.ec, ed: !!o?.ed, gen: [r.code, r.desc] }; }),
+    ...(keep || []).filter(r => r.extra)];
+}
+function jobBlock(){
+  return `<div class="sub-step s1 job-step" id="rJob" hidden><div class="sub-t"><span class="num">1</span>Shift samples</div>
+    <div class="form">
+      <label class="f"><span>Template</span><select id="jTpl">${JOB_TPL.map(x => `<option value="${x.key}">${esc(x.name)}</option>`).join("")}</select></label>
+      <label class="f" id="jShiftBox"><span>Shift</span><select id="jShift"><option value="N">Night shift (NS)</option><option value="D">Day shift (DS)</option></select></label>
+      <label class="f"><span>Date on the codes</span><input id="jDate" type="date"></label>
+      <div class="f" id="jNums"></div>
+    </div>
+    <div class="tbl-wrap"><table class="jrows"><thead><tr><th><input type="checkbox" id="jAll" aria-label="Tick all" checked></th><th>Sample</th><th>Code</th><th>Description</th><th>Analysis</th></tr></thead><tbody id="jRows"></tbody></table></div>
+    <div class="row" style="gap:8px"><select class="inp" id="jAdd" style="width:auto;max-width:100%" aria-label="Add a sample"><option value="">+ Add a sample…</option>${JOB_TYPES.map(t => `<optgroup label="${esc(typeOf(t)?.name || t)}">${(ptField(t).o || []).map(p => `<option value="${esc(t + "|" + p)}">${esc(p)}</option>`).join("")}</optgroup>`).join("")}</select>
+      <span class="small" id="jInfo"></span></div>
+    <p class="small muted" style="margin:0">Codes follow the shift and date, as on the plant's reports; type over any code or description to change it. Untick what was not sampled.</p>
+  </div>`;
+}
+const jobTestOpts = (t, sel) => typeTests(typeOf(t)).filter(k => testOn(k) || k === sel).map(k => `<option value="${esc(k)}" ${k === sel ? "selected" : ""}>${esc(testOf(k)?.name || k)}</option>`).join("");
+function renderJob(){
+  const body = $("#jRows"); if (!body || !job) return;
+  const T = jobTpl(job.tpl);
+  $("#jShiftBox").hidden = !T.shift;
+  const nb = $("#jNums"); if (nb && nb.dataset.tpl !== T.key){ nb.dataset.tpl = T.key; nb.innerHTML = `<div class="form">${T.n.map(([k, l]) => `<label class="f"><span>${esc(l)}</span><input id="jN_${k}" inputmode="numeric" maxlength="8" placeholder="e.g. 31" value="${esc(job.n[k] || "")}"></label>`).join("")}</div>`; }
+  body.innerHTML = job.rows.map((r, i) => `<tr class="${r.on ? "" : "off"}"><td><input type="checkbox" data-jon="${i}" ${r.on ? "checked" : ""} aria-label="Include ${esc(r.code)}"></td>
+    <td><span class="small muted">${esc(typeOf(r.t)?.name || r.t)}</span><div><b>${esc(r.pt)}</b></div></td>
+    <td><input class="inp j-code" data-j="${i}" value="${esc(r.code)}" aria-label="Code, row ${i + 1}" autocomplete="off" spellcheck="false"></td>
+    <td><input class="inp j-desc" data-j="${i}" value="${esc(r.desc)}" aria-label="Description, row ${i + 1}" autocomplete="off"></td>
+    <td><select class="inp j-test" data-j="${i}" aria-label="Analysis, row ${i + 1}">${jobTestOpts(r.t, r.test)}</select></td></tr>`).join("");
+  jobHints();
+}
+function jobHints(){
+  if (!job) return;
+  const on = job.rows.filter(r => r.on), seen = new Map(), dup = new Set();
+  job.rows.forEach((r, i) => { if (!r.on) return; const k = normKey(r.code); if (!k) return; if (seen.has(k)){ dup.add(i); dup.add(seen.get(k)); } else seen.set(k, i); });
+  document.querySelectorAll("#jRows .j-code").forEach(el => el.classList.toggle("dup", dup.has(+el.dataset.j) || (job.rows[+el.dataset.j].on && !el.value.trim())));
+  const info = $("#jInfo");
+  if (info){ info.textContent = dup.size ? "Same code twice" : `${on.length} of ${job.rows.length} samples ticked`; info.classList.toggle("bad-t", dup.size > 0); }
+  const all = $("#jAll"); if (all) all.checked = on.length === job.rows.length;
+  submitLabel();
+}
+function bindJob(v){
+  const tp = $("#jTpl", v); if (!tp) return;
+  /* In the morning the night shift's samples come in (the shift began the day before); in the evening the day shift's. */
+  const hr = +localInput(Date.now()).slice(11, 13), night = hr >= 6 && hr < 18, back = night || hr < 6 ? 1 : 0;
+  job = { tpl: lsGet("jobTpl") || "mill", shift: night ? "N" : "D", date: localInput(Date.now() - back * 86400e3).slice(0, 10), n: {}, rows: [] };
+  if (!JOB_TPL.some(x => x.key === job.tpl)) job.tpl = "mill";
+  tp.value = job.tpl; $("#jShift", v).value = job.shift; $("#jDate", v).value = job.date;
+  jobRows(); renderJob();
+  const again = () => { jobRows(job.rows); renderJob(); };
+  tp.onchange = () => { job.tpl = tp.value; lsSet("jobTpl", tp.value); job.n = {}; jobRows(); renderJob(); };
+  $("#jShift", v).onchange = e => { job.shift = e.target.value; again(); };
+  $("#jDate", v).onchange = e => { job.date = e.target.value; again(); };
+  $("#jNums", v).addEventListener("input", e => { const m = e.target.id.match(/^jN_(n\d)$/); if (!m) return; job.n[m[1]] = e.target.value.trim(); job.rows.forEach(r => { if (!r.extra){ if (!r.ec) r.code = jobFill(r.gen[0], job); if (!r.ed) r.desc = jobFill(r.gen[1], job); } });
+    document.querySelectorAll("#jRows .j-code").forEach(el => { el.value = job.rows[+el.dataset.j].code; }); document.querySelectorAll("#jRows .j-desc").forEach(el => { el.value = job.rows[+el.dataset.j].desc; }); jobHints(); });
+  const rows = $("#jRows", v);
+  rows.addEventListener("input", e => { const el = e.target, r = job.rows[+el.dataset.j]; if (!r) return;
+    if (el.classList.contains("j-code")){ r.code = el.value; r.ec = true; } else if (el.classList.contains("j-desc")){ r.desc = el.value; r.ed = true; } jobHints(); });
+  rows.addEventListener("change", e => { const el = e.target;
+    if (el.dataset.jon != null){ job.rows[+el.dataset.jon].on = el.checked; el.closest("tr").classList.toggle("off", !el.checked); jobHints(); }
+    else if (el.classList.contains("j-test")) job.rows[+el.dataset.j].test = el.value; });
+  $("#jAll", v).onchange = e => { job.rows.forEach(r => { r.on = e.target.checked; }); renderJob(); };
+  $("#jAdd", v).onchange = e => {
+    const [t, pt] = e.target.value.split("|"); e.target.value = ""; if (!t) return;
+    if (job.rows.length >= 100) return toast("Up to 100 samples in one job.");
+    job.rows.push({ on: true, extra: true, t, pt, test: pointTest(t, pt), code: "", desc: "", det: null, ec: true, ed: true, gen: ["", ""] });
+    renderJob(); $(`#jRows .j-code[data-j="${job.rows.length - 1}"]`)?.focus();
+  };
+}
+/* The submission: one batch of the ticked rows, each sample on the job route with its own analysis (its own route's retention and limits). */
+async function registerJob(){
+  const mode = $("#regForm")?.dataset.mode || "register", walk = mode === "register", lab = !walk && canEdit() && !!$("#rRecvNow")?.checked;
+  if (!db){ toast("The shared register is not connected in this view."); return; }
+  const btn = $("#rSubmit"), msg = $("#rMsg");
+  const fail = (m, focus) => { toast(m); const el = focus && $(focus); if (el){ const d = el.closest("details"); if (d) d.open = true; el.focus(); } };
+  const rows = (job?.rows || []).filter(r => r.on), n = rows.length;
+  if (!n) return fail("Tick at least one sample.", "#jAll");
+  if (n > 100) return fail("Up to 100 samples in one job.");
+  const blank = rows.findIndex(r => !r.code.trim()); if (blank >= 0) return fail("Every ticked sample needs its code.", `#jRows .j-code[data-j="${job.rows.indexOf(rows[blank])}"]`);
+  const tags = rows.map(r => normTag(r.code)); if (new Set(tags.map(normKey)).size !== n) return fail("The same code appears twice in this job.", "#jRows .j-code.dup");
+  const noTest = rows.find(r => !r.test); if (noTest) return fail(`Choose the analysis for ${noTest.code}.`);
+  const code = val("#rSection"), puK = val("#rPurpose") || "plant", submitter = val("#rSubmitter");
+  if (!submitter) return fail("Type the name of the person submitting.", "#rSubmitter");
+  if (!code) return fail("Choose the submitting section.", "#rSection");
+  const handTo = lab ? "" : val("#rHandTo").slice(0, 60), handBadge = lab ? "" : val("#rHandBadge").slice(0, 20), subBadge = val("#rSubBadge").slice(0, 20);
+  if (walk && !handTo) return fail("Type the name of the technician you handed it to.", "#rHandTo");
+  if (walk && !handBadge) return fail("Type the technician's badge number.", "#rHandBadge");
+  const now = Date.now();
+  let recvAt = null, wit = "";
+  if (lab){
+    recvAt = fromInput($("#rRecvAt").value);
+    if (!(recvAt > 0)) return fail("Enter the date and time received.", "#rRecvAt");
+    if (recvAt > now + 5 * 60000) return fail("The time received can't be in the future.", "#rRecvAt");
+    if (rows.some(r => twoPerson({ typeKey: r.t, section: code }))){ $("#rWitBox").hidden = false; if (!(wit = val("#rWit"))) return fail("Two-person custody: choose the witness.", "#rWit"); }
+  }
+  const JR = routeByCode("JOB"), T = jobTpl(job.tpl), S = JOB_SHIFT[job.shift] || JOB_SHIFT.N;
+  const when = job.date ? fmtDate(fromInput(job.date + "T12:00")) : fmtDate(now);
+  const batchName = `${T.name}${T.shift ? `, ${S.name.toLowerCase()}` : ""}, ${when}`;
+  btn.disabled = true; msg.textContent = "Checking the codes…";
+  try {
+    const owners = new Array(n); await pool(tags.map((t, i) => [t, i]), 6, async ([t, i]) => { owners[i] = await tagOwner(t); return true; });
+    const used = owners.findIndex(Boolean); if (used >= 0) throw { code: "tagused", tag: tags[used], id: owners[used] };
+    msg.textContent = "Issuing IDs…";
+    const start = lab ? "received" : "submitted", priority = $("#rPriority").value, notes = val("#rNotes");
+    const per = rows.map(r => {
+      const t = typeOf(r.t), nat = routeFor(r.t, r.test, puK), route = JR || nat;
+      if (!route) throw { code: "noroute", test: r.test };
+      const rf = routeFields(route, r.test);
+      if (JR) Object.assign(rf, { retention: clone(nat?.retention || rf.retention), triggers: clone(nat?.triggers || []), qcg: [], qcp: "", qc: "", baseRoute: nat?.code || "" });
+      return { r, t, rf };
+    });
+    const startName = per[0].rf.plan.find(x => x.key === start)?.name || "Submitted";
+    const recvOf = t => lab ? { bags: 1, mass: null, unit: "kg", seal: "none", cond: "Good", temp: "", holdH: null, warn: [], ...(wit && twoPerson({ typeKey: t, section: code }) ? { wit } : {}) } : null;
+    const base = { v: 13, purpose: purposeOf(puK)?.name || puK, purposeKey: puK, submitter, ...(subBadge ? { subBadge } : {}), ...(handTo ? { handedTo: handTo } : {}), ...(handBadge ? { handedBadge: handBadge } : {}),
+      section: code, receivedBy: lab ? session.name : "", receivedAt: recvAt, recvAt, reassays: 0, collectedAt: null, containers: 1, massKg: null, seal: "", priority, analyses: [], notes,
+      createdAt: now, createdBy: lab ? session.u : "public", createdByName: lab ? session.name : submitter, updatedAt: now, stageKey: start, stageAt: lab ? recvAt : now, location: "", flag: "",
+      open: true, onHand: lab, lab: true, ...(lab ? { sx: 1 } : {}), ...(walk ? { via: "walkin" } : {}), batchKey: `${code}-${now.toString(36)}-${tabId.slice(0, 4)}`, batchSize: n, batchName, job: T.key };
+    const make = (id, i, batchId) => {
+      const { r, t, rf } = per[i], recv = recvOf(r.t), w = recv?.wit || "";
+      const details = { [ptField(r.t).l]: r.pt, ...(T.shift && (t?.fields || []).some(f => f.k === "shift") ? { Shift: S.name.replace(/ shift$/, "") } : {}), ...(r.det?.bv ? { "Time or bed volume": r.det.bv } : {}), ...(r.t === "elution" && job.n.n1 ? { "Elution batch / strip no.": job.n.n1 } : {}) };
+      const body = { ...base, ...rf, id, type: t?.name || r.t, typeKey: r.t, details, hazards: [...(t?.haz || [])], recv, batchIndex: i + 1, ...(batchId && n > 1 ? { batchId } : {}),
+        tags: [tags[i]], tagNo: tags[i], source: r.desc.trim().slice(0, 120), siteRef: "", siteRefU: "",
+        history: [lab ? { key: start, sn: startName, at: recvAt, by: session.u, tech: session.name, note: `Received and registered at the lab with ${batchName}`, ref: "", ...(w ? { wit: w } : {}) }
+                      : { key: start, sn: startName, at: now, by: "public", name: submitter, note: `Submitted with ${batchName}${walk ? " (walk-in)" : ""}`, ref: "", ...(handTo ? { hand: handTo } : {}), ...(handBadge ? { badge: handBadge } : {}) }] };
+      if (n === 1){ delete body.batchKey; body.batchSize = 1; }
+      if (lab){ body.inMid = `${id}~in`; body.ledgerPending = [inMove(body, recvAt, recv, "Registered at the lab", w)]; body.lp = true; }
+      return body;
+    };
+    const stamp = dayStamp(lab ? recvAt : now);
+    const [first] = await claimIds(code, stamp, 1, id => make(id, 0, n > 1 ? "B-" + id : ""));
+    const ref = n > 1 ? "B-" + first : "";
+    msg.textContent = n > 1 ? `Saved 1 of ${n}…` : "";
+    const ids = n > 1 ? [first, ...await claimIds(code, stamp, n - 1, (id, i) => make(id, i + 1, ref), d => msg.textContent = `Saved ${d + 1} of ${n}…`, +first.split("-").pop() + 1)] : [first];
+    ids.forEach((id, i) => db.doc("tagidx/" + tagKey(tags[i])).set({ sid: id, tag: tags[i], at: now }).catch(() => {}));
+    if (lab) ids.forEach(id => { flushLedger(id); syncStock(id); });
+    msg.textContent = "";
+    $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? "Sample" : `${n} samples`} ${walk ? "registered" : "submitted"}: ${esc(batchName)}.</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>: processed as one, with one receipt, one workflow and one certificate when the lab's report is attached.` : ""} Write the IDs on the bags, or print the labels:
+      <div class="label-strip" style="margin-top:8px">${ids.map((id, i) => `<code>${esc(id)} · ${esc(tags[i])}</code>`).join("")}</div>
+      <div class="row" style="margin-top:10px"><button type="button" class="btn primary" id="rLabels">Print ${n === 1 ? "label" : n + " labels"}</button><button type="button" class="btn" id="rCopy">Copy IDs</button>${ref ? `<button type="button" class="btn" data-open="${esc(ref)}">Open the batch</button><button type="button" class="btn" data-link="${esc(ref)}">Copy batch link</button>` : `<button type="button" class="btn" data-open="${esc(ids[0])}">Track ${esc(ids[0])}</button>`}<button type="button" class="btn ghost" id="rAgain">${walk ? "Register more" : "Submit another"}</button></div></div>`;
+    noteIssued(ids, ref, { ...base, type: batchName }, tags.map(t => [t]));
+    const labels = ids.map((id, i) => labelOf({ ...base, id, type: per[i].t?.name || per[i].r.t, tags: [tags[i]] }));
+    $("#rLabels").onclick = () => showLabels(labels);
+    $("#rCopy").onclick = () => navigator.clipboard.writeText(ids.map((id, i) => `${id}\t${tags[i]}`).join("\n")).then(() => toast("IDs copied"), () => toast("Copy blocked here. Select the IDs and copy them."));
+    $("#rAgain").onclick = () => { $(walk ? "#view-register" : "#view-submit").innerHTML = ""; renderSampleForm(mode); };
+    btn.disabled = true;
+  } catch (e) {
+    btn.disabled = false; msg.textContent = "";
+    if (e && e.code === "tagused") toast(`Code ${e.tag} is already on open sample ${e.id}. Change it, or untick it.`);
+    else if (e && e.code === "noroute") toast(`No workflow route performs ${testOf(e.test)?.name || e.test}. Ask the lab manager.`);
+    else if (e && e.code === "busy") toast("Could not issue an ID. Try again in a moment.");
+    else writeFailed(e);
+  }
+}
+/* On a single sample's form: choosing the sampling point fills in the analysis it usually gets, until the analysis is chosen by hand. */
+document.addEventListener("change", e => {
+  const el = e.target; if (!el.matches || !el.matches('#rDetails select[id^="rD_"]')) return;
+  const ty = $("#rType")?.value, te = $("#rTest"); if (!ty || !te || te.dataset.touched || ptField(ty).k !== el.id.slice(3)) return;
+  const k = pointTest(ty, el.value); if (k && [...te.options].some(o => o.value === k)){ te.value = k; refreshFormRoute(); }
+});
 
 /* ---------- upgrade of records written by earlier versions (runs once, under a lease) ---------- */
 function upgradeSample(s){

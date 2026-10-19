@@ -120,7 +120,7 @@ async function typeResults(page, id, vals){
   await Tc.selectOption("#rType", "belt"); await Tc.waitForTimeout(250);
   check(await Tc.$eval("#rSection", e => e.value) === "PLT", "and gives way when it does not (GEO → PLT for a belt cut)");
   const groups = await Tc.$$eval("#rPurpose optgroup", gs => gs.map(g => g.label)), pur = await Tc.$$eval("#rPurpose option", os => os.map(o => o.textContent));
-  check(groups.includes("Metallurgical testwork") && pur.includes("Bottle roll test") && pur.includes("CIL / CIP leach test"), "What it is for lists the testwork, grouped: " + groups.join(", "));
+  check(groups.includes("Metallurgical testwork") && pur.includes("Bottle roll test") && pur.includes("CIL leach test"), "What it is for lists the testwork, grouped: " + groups.join(", "));
   await fillForm(Tc, "register", { section: "PLT", type: "belt", purpose: "plant", test: "aufx_m", submitter: "Shift boss", count: 1, tags: "BC-0601", details: { point: "Mill feed conveyor" } });
   const [b1] = await ids(Tc);
   const steps = doc(b1).plan.map(x => x.key).filter(k => !["submitted", "received", "released", "storage"].includes(k));
