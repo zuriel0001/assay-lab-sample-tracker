@@ -227,6 +227,25 @@ const log = t => console.log("• " + t);
   await T.click('[data-step="next"]').catch(() => {});
   check(!!(await waitFor(() => doc(svy).stageKey !== k0, 6000)) && rail0.some(x => /Wash efficiency/.test(x)), `with the route no longer in use, it keeps its steps and moves on (${k0} → ${doc(svy).stageKey})`);
 
+  log("A page left open picks up a new version of the site (v24d)");
+  const build = await T.$eval('meta[name="build"]', m => m.content).catch(() => "");
+  const served = await T.evaluate(() => fetch("version.json", { cache: "no-store" }).then(r => r.json()).then(j => j.build).catch(() => ""));
+  check(/^[a-f0-9]{12}$/.test(build) && served === build && !(await T.evaluate(() => window.__checkBuild())) && !(await T.$("#newVersion")), "the page carries its build id, version.json matches it, and nothing is offered");
+  await T.route(/version\.json/, r => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ build: "0123456789ab" }) }));
+  await open(T, svy); await T.fill("#mvNote", "Half-written note");
+  await T.evaluate(() => { window.__stillHere = 1; });
+  check(await T.evaluate(() => window.__checkBuild()) === "0123456789ab" && /new version of the tracker/.test(await T.textContent("#newVersion").catch(() => "")) && !!(await T.$("#newVersionGo")), "a newer version shows a bar with Reload now");
+  const hide = () => T.evaluate(() => { Object.defineProperty(document, "hidden", { configurable: true, get: () => true }); document.dispatchEvent(new Event("visibilitychange")); });
+  await hide(); await T.waitForTimeout(600);
+  check(await T.evaluate(() => window.__stillHere === 1).catch(() => false), "with a note typed and not saved, it does not reload, even in the background");
+  await T.fill("#mvNote", ""); await T.waitForTimeout(3100);
+  const reloaded = T.waitForNavigation({ timeout: 8000 }).then(() => true, () => false);
+  await hide().catch(() => {});
+  check(await reloaded, "with nothing unsaved it reloads itself once the page is in the background");
+  await T.unroute(/version\.json/);
+  await T.waitForSelector(".sid", { timeout: 8000 }).catch(() => {});
+  check(await T.evaluate(() => window.__stillHere).catch(() => 1) === undefined && await T.textContent(".sid").catch(() => "") === svy && !(await T.$("#newVersion")), "after the reload the same sample is open again, on the new version");
+
   log("Page errors");
   check(!errors.length, "no console errors" + (errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""));
   console.log(`\n${pass} PASS, ${fail} FAIL`);

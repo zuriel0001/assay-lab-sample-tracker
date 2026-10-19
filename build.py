@@ -442,6 +442,8 @@ put('''  $("#userAdd").onclick = () => {''', '''  v.querySelectorAll("[data-acc-
   });
   $("#userAdd").onclick = () => {''')
 put('''      draftDirty = false; draft = null; renderStages();''', '''      draftDirty = false; draft = null; renderStages(); markAccessGiven(mine.users);''')
+# v24d: unsaved Settings changes keep a page that is out of date from reloading itself (app/azure-shim.js, "a new version of the site").
+put('let draft = null, draftDirty = false, routeIdx = 0;', 'let draft = null, draftDirty = false, routeIdx = 0;\nwindow.__unsaved = () => draftDirty;')
 # v24c: the QR reader for browsers that can't read codes themselves is served from this site (app/jsqr.js), not a CDN.
 put('''const JSQR_SRC = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";''', '''const JSQR_SRC = "jsqr.js";''')
 
@@ -459,5 +461,12 @@ SHELL_HEAD = (
     'img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>\n'
 )
 page = SHELL_HEAD.replace('<meta charset="utf-8">', f'<meta charset="utf-8"><!-- Built by sample-tracking-azure/build.py from {os.path.basename(SRC)} (sha256 {src_hash}) -->', 1) + page + "</body></html>\n"
+# 10. Which version this is (v24d). A page left open keeps running the version it loaded; app/azure-shim.js compares this with
+#     app/version.json (never cached) and reloads the page, or offers to, once a newer version is published. The id covers the page
+#     and the shim, so a change to either counts.
+shim = open(os.path.join(HERE, "app", "azure-shim.js"), encoding="utf-8").read()
+build_id = hashlib.sha256((page + shim).encode()).hexdigest()[:12]
+page = page.replace('<meta charset="utf-8">', f'<meta charset="utf-8"><meta name="build" content="{build_id}">', 1)
 open(out, "w", encoding="utf-8").write(page)
-print(f"{out}: {len(page)} bytes from {os.path.basename(SRC)} ({src_hash})")
+open(os.path.join(HERE, "app", "version.json"), "w", encoding="utf-8").write(json.dumps({"build": build_id}) + "\n")
+print(f"{out}: {len(page)} bytes from {os.path.basename(SRC)} ({src_hash}), build {build_id}")

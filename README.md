@@ -171,8 +171,9 @@ can't make a signed-in person's browser change records.
 | `prototype/` | In the GitHub repository only: the prototype's source, tests and route tables (the project's `sample-tracking` folder, without its old version archives). `build.py` and `test/run-suites.js` read it from here; the site deploy uses only `app/` and `api/`. |
 | `app/index.html` | The page. Built by `build.py` from the prototype's `assay-lab-sample-tracker.html` (v26), which it never edits. Every patch must match exactly once, so a changed prototype fails the build loudly. |
 | `app/jsqr.js` | jsQR 1.4.0 (Apache 2.0), unchanged: the QR reader the Scan button loads in browsers that can't read codes themselves (v24c). |
-| `app/azure-shim.js` | Gives the page the shared-database interface it was written for, over `/api/db`: documents, where-filters, live snapshots (by polling for changes), short leases; plus the signed-in person (`/api/me`) and downloads. |
-| `app/staticwebapp.config.json` | Node 22 API, Microsoft sign-in only (GitHub sign-in turned off), `/login` and `/logout`. |
+| `app/azure-shim.js` | Gives the page the shared-database interface it was written for, over `/api/db`: documents, where-filters, live snapshots (by polling for changes), short leases; plus the signed-in person (`/api/me`) and downloads. It also watches for a new version of the site (v24d): a page left open keeps running the version it loaded, so every few minutes, and when the page comes back to the front, it reads `version.json`; once a newer version is out it reloads itself while in the background or after two minutes without use (never with something typed and unsaved, a dialog open or a change on its way), and until then a bar offers *Reload now*. |
+| `app/version.json` | Written by `build.py`: the build id it also puts in the page (`<meta name="build">`), from the page and the shim together. Served with `Cache-Control: no-store`. |
+| `app/staticwebapp.config.json` | Node 22 API, Microsoft sign-in only (GitHub sign-in turned off), `/login` and `/logout`; the page and the shim are revalidated on every load (`no-cache`), `version.json` is never cached. |
 | `api/db`, `api/me`, `api/auth` | Azure Functions (HTTP) behind `/api`. |
 | `api/health` | `GET /api/health`: tries the database steps a sample submission takes (read, query, changes, lease) and lists which work. Nothing private in the answer; repeats within 30 seconds are answered from memory. |
 | `api/lib/core.js` | Accounts (sign-in email and how it signs in → role from Settings; `ADMIN_EMAILS` are admins), the read/write rules above and the record-keeping rules (checked inside each write, on the record as it is at that moment). |
@@ -184,7 +185,7 @@ can't make a signed-in person's browser change records.
 | `test/auth-tests.js` | 51 checks of email sign-in: sign-up, forged and expired sessions, password guessing, resets, an email login not taking a Microsoft account's access, the Functions entry point. |
 | `test/store-tests.js` | 28 checks on each store; Cosmos runs against `@vercel/cosmosdb-server` (a local Cosmos imitation) or a real account. |
 | `test/run-suites.js` | Runs the prototype's own eighteen suites against this build (real page, real API over HTTP), unchanged except where tracking links carry this site's address or a check writes straight to the database (its ADJUST list), then `azure-extra.js`. |
-| `test/azure-extra.js` | 68 browser checks of what is new: Microsoft sign-in, email sign-up and sign-in, password change and reset, first admin, accounts by email, requesting and approving access, upgrade on staff sign-in, what the public sees, the backup download and restore, a batch registered signed out, a sample on a route no longer in use, the server refusing a tampered page's changes. |
+| `test/azure-extra.js` | 73 browser checks of what is new: Microsoft sign-in, email sign-up and sign-in, password change and reset, first admin, accounts by email, requesting and approving access, upgrade on staff sign-in, what the public sees, the backup download and restore, a batch registered signed out, a sample on a route no longer in use, the server refusing a tampered page's changes, a page left open picking up a new version (not while a note is typed; the same sample open again after the reload). |
 
 Patches `build.py` makes to the page: start after `/api/me` answers; tracking links use this site's address; the
 sign-in tab has *Sign in* and *Sign up*, each with Microsoft or email; accounts have a sign-in email and a *Sign in with* choice instead of a password; the first
@@ -199,7 +200,7 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 | `api-tests.js` | 247 / 247 (v24c: a disposal in the ledger names a witness who is not the recorder, except an old one brought forward by the upgrade of old records; ledger sign-offs only by a supervisor or the lab manager, in their own name, only added to, never deleted, read by staff only; v26: results files up to 5 MB, a section account opening its own section's file; release at once by the technician, evaluations by a Metallurgy viewer and nothing else, amendments still by a second person, sign-off still enforced when chosen) |
 | `store-tests.js` | 56 / 56 (28 in memory, 28 on the local Cosmos DB imitation) |
 | `auth-tests.js` | 51 / 51 |
-| `azure-extra.js` | 68 / 68 (including a backup restored into a second copy of the site, a visitor's batch page updating live, and a sample on a route no longer in use moving on) |
+| `azure-extra.js` | 73 / 73 (including a page left open reloading itself onto a new version, a backup restored into a second copy of the site, a visitor's batch page updating live, and a sample on a route no longer in use moving on) |
 | Prototype `run.js` | 107 / 107 |
 | Prototype `results-tests.js` | 92 / 93 |
 | Prototype `v12-tests.js` | 68 / 71 |

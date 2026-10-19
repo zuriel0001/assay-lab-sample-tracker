@@ -220,6 +220,11 @@ signed-in page finish the upgrade of old records and their ledger movements befo
 the upgrade, so `run.js` there could check before it was done), and `review-tests-v11.js` 9b waits for the pulp's save before disposing
 of the coarse reject.
 
+**19 October, 11:08 (Zuriel): "the 'Result released' is still not checked though the result was released".** The screenshot was the
+page as it was before 03:41 (the witness box still above the table): the fix was live, but a page left open keeps running the version
+it loaded. The Azure build now notices a new version and moves onto it by itself (`app/azure-shim.js`, `app/version.json`, see the
+Azure README); pages opened before this change need one reload by hand.
+
 **19 October, clean-up (Zuriel: "are there any redundant script to be removed …?").** The page itself had almost nothing to remove:
 no function is declared twice, no CSS rule repeats a selector's property, and one helper (`dayStart`) was unused (removed). The repository
 lost what the build and the site never use: `src/v9-backup.html` (184 KB, of which the build read only the first 248 lines) became

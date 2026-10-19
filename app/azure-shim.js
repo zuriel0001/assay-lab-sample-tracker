@@ -21,9 +21,13 @@ const report = e => { try { console.error(e); } catch {} };
 
 /* ---------- requests: operations issued together go to the server in one request ---------- */
 let queue = [], flushT = null;
+let writing = 0, lastWrite = 0;   // changes on their way to the server: a page does not reload itself while one is (see "a new version of the site")
+const READS = new Set(["get", "query", "changes", "export"]);
 function call(op){
+  if (!READS.has(op.op)){ writing++; lastWrite = Date.now(); }
   return new Promise((resolve, reject) => {
-    queue.push({ op, resolve, reject });
+    const done = f => x => { if (!READS.has(op.op)){ writing--; lastWrite = Date.now(); } f(x); };
+    queue.push({ op, resolve: done(resolve), reject: done(reject) });
     if (queue.length >= 40) flush(); else if (!flushT) flushT = setTimeout(flush, 0);
   });
 }
@@ -270,6 +274,59 @@ window.__restore = async (backup, progress) => {
   restoreState = null;
   return all.length;
 };
+
+/* ---------- a new version of the site (v24d) ---------- */
+/* A page left open keeps running the version it loaded, however long ago. Every few minutes, and whenever the page comes back to the
+   front, it asks for version.json (never cached; build.py writes it with the build id it also puts in this page). When a newer version is
+   out, the page reloads itself at the next safe moment: while it is in the background, or after two minutes without use, and never while
+   something typed is not yet saved, a dialog is open or a change is on its way to the server. Until then a bar offers to reload now.
+   Reloading keeps the address, so an open sample opens again. */
+const BUILD = document.querySelector('meta[name="build"]')?.content || "";
+let newBuild = "", lastUse = Date.now();
+["keydown", "pointerdown", "input"].forEach(t => document.addEventListener(t, () => { lastUse = Date.now(); }, true));
+const shown = el => el.isConnected && el.getClientRects().length > 0;
+const changedField = el => {
+  if (!el.dataset.typed || !shown(el) || el.id === "lookupInput" || el.id === "heroInput" || el.type === "file") return false;
+  if (el.tagName === "SELECT"){ const d = [...el.options].find(o => o.defaultSelected) || el.options[0]; return !!d && el.value !== d.value; }
+  if (el.type === "checkbox" || el.type === "radio") return el.checked !== el.defaultChecked;
+  return el.value.trim() !== "" && el.value !== el.defaultValue;
+};
+const unsaved = () => writing > 0 || Date.now() - lastWrite < 3000 || !!document.querySelector(".modal, dialog[open]") ||
+  (window.__unsaved && window.__unsaved()) || [...document.querySelectorAll("input, textarea, select")].some(changedField);
+const reloadIfSafe = () => { if (newBuild && !unsaved()) location.reload(); };
+function newVersionBar(){
+  if (document.getElementById("newVersion") || !document.body) return;
+  const b = document.createElement("div");
+  b.id = "newVersion"; b.setAttribute("role", "status");
+  const st = document.createElement("style");   // centred above the page's foot (above the tab bar on a phone)
+  st.textContent = "#newVersion{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));margin:0 auto;width:fit-content;max-width:640px;z-index:60;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;" +
+    "box-sizing:border-box;padding:10px 10px 10px 16px;border-radius:8px;background:var(--ink,#1d2321);color:var(--panel,#fff);box-shadow:0 6px 24px rgba(0,0,0,.28);font:inherit}" +
+    "@media (max-width:760px){#newVersion{bottom:calc(80px + env(safe-area-inset-bottom,0px))}}";
+  document.head.appendChild(st);
+  b.innerHTML = '<span>A new version of the tracker is out. This page reloads itself when nothing is being typed.</span>' +
+    '<button type="button" id="newVersionGo" style="font:inherit;font-weight:600;padding:6px 14px;border-radius:6px;border:0;background:var(--accent,#9a6b12);color:var(--accent-ink,#fff);cursor:pointer">Reload now</button>';
+  b.querySelector("button").onclick = () => location.reload();
+  document.body.appendChild(b);
+}
+async function checkBuild(){
+  if (!BUILD || newBuild) return newBuild;
+  try {
+    const r = await fetch("version.json", { cache: "no-store", credentials: "same-origin" });
+    const v = r.ok ? (await r.json()).build : "";
+    if (v && v !== BUILD){ newBuild = v; if (document.hidden) reloadIfSafe(); if (newBuild) newVersionBar(); }
+  } catch {}
+  return newBuild;
+}
+window.__checkBuild = checkBuild;   // for the tests
+let lastCheck = Date.now();
+setInterval(() => {
+  if (newBuild){ if (document.hidden || Date.now() - lastUse > 120000) reloadIfSafe(); }
+  else if (!document.hidden && Date.now() - lastCheck > 180000){ lastCheck = Date.now(); checkBuild(); }
+}, 15000);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) reloadIfSafe();
+  else if (!newBuild && Date.now() - lastCheck > 20000){ lastCheck = Date.now(); checkBuild(); }
+});
 
 /* The page starts once the signed-in person is known, so it opens on the right tab. */
 const meReady = fetchMe().then(m => { window.__me = m; });
