@@ -180,3 +180,7 @@ ul.scan-log li.warn{border-left-color:var(--warn);background:var(--warn-soft)}
 details.tat > summary{gap:10px}
 table.tat-tbl tr.late td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
 .row > .grow,.pick-note > .grow{flex:1 1 auto}
+/* v24d: a closing step that stopped the work (rejected, cancelled) is marked in red; check codes stay on one line; the disposal witness sits under the material being disposed */
+ol.rail li.done.stop .dot{background:var(--bad);border-color:var(--bad)}
+.nw{white-space:nowrap}
+.mat-wit{margin-top:8px;max-width:380px}

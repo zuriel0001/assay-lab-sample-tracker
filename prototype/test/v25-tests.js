@@ -92,10 +92,12 @@ const JSQR = [path.join(__dirname, "..", "..", "app", "jsqr.js"), process.env.AZ
   await open(Tc, m1); await H.attachFile(Tc, `sample:${m1}`, "report.pdf", PDF); await H.saveAttach(Tc); await waitFor(() => (doc(m1).materials || []).length, 8000);
   await open(Tc, m1); await Tc.waitForTimeout(300);
   const mk = (doc(m1).materials || []).find(m => m.status === "kept")?.k;
-  check(!!mk && /Witness, to dispose/.test(await text(Tc, "label:has(#mtWit)")), "released: the retained material carries a witness field for disposal");
-  await Tc.selectOption(`#mx_${mk}`, "disposed"); await Tc.click(`[data-mat="${mk}"]`); await Tc.waitForTimeout(300);
+  check(!!mk && await Tc.$eval("#mtWitBox", b => b.hidden).catch(() => false), "released: no witness is asked for while nothing is being disposed");
+  await Tc.selectOption(`#mx_${mk}`, "disposed"); await Tc.waitForTimeout(100);
+  check(/Witness to the disposal/.test(await text(Tc, "label:has(#mtWit)")) && await Tc.$eval("#mtWitBox", (b, k) => !b.hidden && !!b.closest("tr.mat-ctl")?.querySelector("#mx_" + k), mk).catch(() => false), "choosing Dispose asks for the witness, on that material's row");
+  await Tc.click(`[data-mat="${mk}"]`); await Tc.waitForTimeout(300);
   check(/second person/.test(await H.toastText(Tc)) && doc(m1).materials.find(m => m.k === mk).status === "kept", "disposing with no witness is refused");
-  await Tc.selectOption("#mtWit", { label: "Lab Supervisor" }); await Tc.selectOption(`#mx_${mk}`, "disposed"); await Tc.click(`[data-mat="${mk}"]`);
+  await Tc.selectOption(`#mx_${mk}`, "disposed"); await Tc.selectOption("#mtWit", { label: "Lab Supervisor" }); await Tc.click(`[data-mat="${mk}"]`);
   await waitFor(() => doc(m1).materials.find(m => m.k === mk).status === "disposed", 6000);
   await waitFor(() => ledger().some(m => m.sid === m1 && m.dir === "out"), 5000);
   const dm = ledger().find(m => m.sid === m1 && m.dir === "out");
@@ -160,6 +162,30 @@ const JSQR = [path.join(__dirname, "..", "..", "app", "jsqr.js"), process.env.AZ
   const heads = await Ad.$$eval("#tatBox table.tat-tbl thead th:first-child", ts => ts.map(t => t.textContent.trim()));
   const plt = await Ad.$$eval("#tatBox table.tat-tbl tbody tr", rs => rs.map(r => [...r.children].map(c => c.textContent.trim())));
   check(heads.join() === "Section,Analysis" && plt.some(r => /^PLT/.test(r[0]) && +r[3] >= 1) && plt.some(r => /Slurry: AuFx & AuSx/.test(r[0]) && +r[3] >= 1), "by section and by analysis, the late one counted against PLT and its analysis: " + JSON.stringify(plt));
+
+  log("The workflow ticks Results released once they are (v24d, 02:05: 'after the result is released, that section of the workflow still stays unchecked')");
+  const rail = page => page.$$eval(".rail li", ls => ls.map(l => ({ n: l.querySelector(".st-name")?.textContent.trim(), c: l.className, m: l.querySelector(".dot")?.textContent, t: l.querySelector(".st-meta")?.textContent.replace(/\s+/g, " ").trim() })));
+  const li = (r, n) => r.find(x => x.n?.startsWith(n)) || {};
+  await fillForm(Tc, "register", { section: "PLT", type: "ccd", purpose: "plant", submitter: "Shift D", count: 1, tags: "CCD-RAIL" }); const [q1] = await ids(Tc);
+  await open(Tc, q1); await H.attachFile(Tc, `sample:${q1}`, "ccd.csv", Buffer.from("Sample,AuFx\nX,1.2\n")); await H.saveAttach(Tc); await waitFor(() => (doc(q1).certs || []).length, 8000);
+  await open(Tc, q1); await Tc.waitForTimeout(300);
+  let rr = await rail(Tc), rl = li(rr, "Results released"), sto = li(rr, "Retained in storage");
+  const items = doc(q1).materials.map(m => m.item);
+  check(doc(q1).stageKey === "released" && /done/.test(rl.c) && rl.m === "✓" && / · Lab Technician A$/.test(rl.t) && !/Started|due/.test(rl.t), "released: Results released is ticked, with when and who: " + JSON.stringify(rl));
+  check(/current/.test(sto.c) && sto.t.startsWith("To put away: " + items.join(", ")) && / · due /.test(sto.t), "the storage step is the open one, naming the material to put away and when it is due: " + sto.t);
+  check(new RegExp("Still to put away: " + items.join(", ")).test(await text(Tc, "#moveForm")), "and the action panel says what is still to put away");
+  check(/^\w{4}-\w{4}-\w{4}-\w{4}$/.test(await Tc.$eval("#resPanel .mono.nw", e => e.textContent).catch(() => "")) && await Tc.$eval("#resPanel .mono.nw", e => getComputedStyle(e).whiteSpace).catch(() => "") === "nowrap", "the certificate's check code stays on one line");
+  for (const m of doc(q1).materials){ await open(Tc, q1); await Tc.selectOption(`#mx_${m.k}`, "store"); await Tc.fill(`#mr_${m.k}`, "Rack " + m.k); await Tc.click(`[data-mat="${m.k}"]`); await waitFor(() => doc(q1).materials.find(x => x.k === m.k).loc, 6000); }
+  await open(Tc, q1); await Tc.waitForTimeout(300); rr = await rail(Tc);
+  check(doc(q1).stageKey === "storage" && /done/.test(li(rr, "Results released").c) && /current/.test(li(rr, "Retained in storage").c) && /materials? kept/.test(li(rr, "Retained in storage").t) && /All material is on the shelf/.test(await text(Tc, "#moveForm")), "all on the shelf: storage is the open step and the panel says so");
+  check((await Tc.$$eval('#matBox select[id^="mx_"]', ss => ss.map(x => x.value))).every(v => v === "store") && await Tc.$eval("#mtWitBox", b => b.hidden), "before the retention date nothing irreversible is chosen for you (no disposal, no witness asked)");
+  for (const m of doc(q1).materials){ await open(Tc, q1); await Tc.selectOption(`#mx_${m.k}`, "disposed"); await Tc.selectOption("#mtWit", { label: "Lab Supervisor" }); await Tc.click(`[data-mat="${m.k}"]`); await waitFor(() => doc(q1).materials.find(x => x.k === m.k).status === "disposed", 6000); }
+  await open(Tc, q1); await Tc.waitForTimeout(300); rr = await rail(Tc);
+  const last = rr.at(-1);
+  check(doc(q1).open === false && rr.every(x => /done|skipped/.test(x.c)) && last.m === "✓" && / · Lab Technician A$/.test(last.t), "closed: every step is ticked, the closing step too: " + JSON.stringify(last));
+  check((await text(Tc, "#matBox tbody")).includes("witness Lab Supervisor"), "the witness to each disposal shows on the material");
+  await open(Tc, r1); await Tc.waitForTimeout(200); rr = await rail(Tc);
+  check(/done stop/.test(rr.at(-1).c) && rr.at(-1).m === "✕" && /^Rejected/.test(rr.at(-1).n), "a rejected sample's last step is marked as stopped (✕), not left open");
 
   console.log("\nConsole errors:", JSON.stringify(errors));
   if (errors.length) process.exitCode = 1;

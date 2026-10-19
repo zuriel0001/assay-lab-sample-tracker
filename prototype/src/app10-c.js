@@ -116,10 +116,25 @@ function buildTrack(v, s){
   const railStages = [...plan.filter((x, i) => i >= firstI && i <= lastI), ...FINALS.filter(x => x.key === s.stageKey)];
   // Who did each step: the receiver on "Received & logged", the technician on the others, the submitter on "Submitted".
   const byOf = (x, e) => x.key === "received" ? s.receivedBy || e?.tech || "" : e?.tech || (e?.name ? `${e.name} (submitter)` : "");
+  /* v24d: released results are done (ticked, with when and who), though the sample stays at that step until its material is on the shelf:
+     what is left, putting the material away and its due time, shows on the storage step. A closed sample's closing step is done too. */
+  const tKey = plan[tIdx]?.key, relDone = s.stageKey === tKey && !!(released || s.relAt), nextKey = relDone ? plan[tIdx + 1]?.key || "" : "";
   const rail = railStages.map(x => {
     const i = stageIdx(s, x.key), e = lastEntry(s, x.key), by = byOf(x, e);
     let cls = "upcoming", meta = "", note = "", mark = "";
-    if (x.key === s.stageKey){
+    if (relDone && x.key === tKey){ cls = "done"; mark = "✓"; meta = `${fmt(released?.at || s.relAt)}${by ? ` · ${esc(by)}` : ""}`; }
+    else if (x.key === nextKey){
+      cls = "current" + (st.late ? " late" : "");
+      const due = stageDue(s), left = keptMaterials(s).filter(m => !m.loc), t = plan[tIdx];
+      meta = [left.length ? `To put away: ${esc(left.map(m => m.item).join(", "))}` : "",
+        due ? (now > due ? `<b style="color:var(--bad)">${dur(overBy(due, now, t))} over the ${hoursLabel(t.hours)} allowed</b>` : `due ${fmt(due)}`) : ""].filter(Boolean).join(" · ");
+      note = routeStageNote(s, x.key);
+    }
+    else if (final && x.key === s.stageKey){
+      const bad = ["rejected", "cancelled"].includes(x.key);
+      cls = "done" + (bad ? " stop" : ""); mark = bad ? "✕" : "✓"; meta = `${fmt(e?.at || s.closedAt || s.stageAt)}${by ? ` · ${esc(by)}` : ""}`;
+    }
+    else if (x.key === s.stageKey){
       cls = "current" + (st.late ? " late" : "");
       const due = stageDue(s);
       if (x.phase === "store"){
@@ -359,8 +374,12 @@ function moveForm(s){
   </div>`;
 }
 function releasedForm(s){
+  // v24d: says what is left to do: material still to put away, or (all on the shelf) the next retention date.
+  const kept = keptMaterials(s), left = kept.filter(m => !m.loc), next = Math.min(...kept.map(m => m.dueAt || Infinity));
+  const todo = left.length ? `Still to put away: ${esc(left.map(m => m.item).join(", "))}.`
+    : kept.length ? `All material is on the shelf${isFinite(next) ? `; the next retention period ends ${fmtDate(next)}` : ""}.` : "";
   return `<div id="moveForm" class="stack" style="gap:10px">
-    <p class="small" style="margin:0">Results released ${fmt(s.relAt || lastEntry(s, "released")?.at)}. Put the retained material away and record returns or disposal under <b>Retained material</b>; each material has its own retention date.</p>
+    <p class="small" style="margin:0">Results released ${fmt(s.relAt || lastEntry(s, "released")?.at)}. ${todo}</p>
     <div class="form">${meBox("Recorded by")}${twoPerson(s) ? witnessField("mvWit") : ""}<label class="f full">Note<input id="mvNote" data-clear placeholder="e.g. Client asked for a copy of the certificate"></label></div>
     <div class="row"><button type="button" class="btn" data-step="note">Save note only</button></div>
     ${redoOk(s) ? redoBox(s) : ""}
@@ -368,16 +387,19 @@ function releasedForm(s){
 }
 function materialsPanel(s){
   const edit = canEdit(), closed = !!stage(s, s.stageKey)?.final, now = Date.now();
+  // v24d: the witness to a movement is shown with it (from the custody line written with it).
+  const witOf = m => (s.history || []).filter(h => h.mat === m.k && h.wit && (!m.outAt || h.at === m.outAt)).at(-1)?.wit || "";
   const rows = (s.materials || []).map(m => {
     const od = m.status === "kept" && m.dueAt && now > m.dueAt;
     const state = m.status === "kept" ? `${m.loc ? `Kept at <b>${esc(m.loc)}</b>` : `<span style="color:var(--warn)">Not yet put away</span>`}`
-      : `${esc(DISPO[m.status] || m.status)} ${fmtDate(m.outAt)}${m.outTech ? ` by ${esc(m.outTech)}` : ""}${m.outRef ? ` · ${esc(m.outRef)}` : ""}`;
+      : `${esc(DISPO[m.status] || m.status)} ${fmtDate(m.outAt)}${m.outTech ? ` by ${esc(m.outTech)}` : ""}${witOf(m) ? `, witness ${esc(witOf(m))}` : ""}${m.outRef ? ` · ${esc(m.outRef)}` : ""}`;
     let ctl = "";
     if (edit && m.status === "kept"){
-      const def = m.loc && od ? m.dispo : m.loc ? m.dispo : "store";
-      ctl = `<div class="row" style="gap:6px;margin-top:6px;flex-wrap:wrap">
-        <select class="inp" id="mx_${m.k}" style="width:auto;max-width:100%">${[["store", m.loc ? "Move to another location" : "Put away in storage"], ["returned", "Return"], ["disposed", "Dispose"], ["external", "Send to external lab"], ["archived", "Move to long-term archive"]].map(([k, l]) => `<option value="${k}" ${k === def ? "selected" : ""}>${l}${k === m.dispo ? " (route says)" : ""}</option>`).join("")}</select>
-        <input class="inp" id="mr_${m.k}" data-clear style="flex:1 1 140px;width:auto" placeholder="Location or reference">
+      // v24d: on the shelf, the route's return or disposal is offered once the retention period is over; before that, nothing that can't be undone is chosen for you.
+      const def = m.loc && od ? m.dispo : "store";
+      ctl = `<div class="row mat-row" style="gap:6px;margin-top:6px;flex-wrap:wrap">
+        <select class="inp" id="mx_${m.k}" style="flex:0 1 auto;min-width:0;width:auto;max-width:100%">${[["store", m.loc ? "Move to another location" : "Put away in storage"], ["returned", "Return"], ["disposed", "Dispose"], ["external", "Send to external lab"], ["archived", "Move to long-term archive"]].map(([k, l]) => `<option value="${k}" ${k === def ? "selected" : ""}>${l}${k === m.dispo ? " (route says)" : ""}</option>`).join("")}</select>
+        <input class="inp" id="mr_${m.k}" data-clear style="flex:1 1 110px;min-width:0;width:auto" placeholder="Location or ref.">
         <button type="button" class="btn" data-mat="${m.k}">Record</button></div>`;
     } else if (m.status !== "kept" && canApprove()){
       ctl = `<details class="more" id="mu_box_${m.k}" style="margin-top:6px"><summary class="small">Reverse this (recorded by mistake)</summary><div class="row" style="gap:6px;margin-top:6px"><input class="inp" id="mu_${m.k}" data-clear style="flex:1 1 160px;width:auto" placeholder="Reason (required)"><button type="button" class="btn" data-undo="${m.k}">Reverse</button></div></details>`;
@@ -388,8 +410,9 @@ function materialsPanel(s){
   }).join("");
   return `<div class="panel stack" id="matBox"><h3>Retained material</h3>
     <p class="small muted" style="margin:0">Each material is kept for its own period from the release of results, then returned or disposed. Every return, disposal or send-out is written to the ledger.</p>
-    ${edit && !closed && (s.materials || []).some(m => m.status === "kept") ? `<div class="form">${twoPerson(s) ? witnessField("mtWit") : witnessField("mtWit", "Witness, to dispose (a second person)", false)}</div>` : ""}
-    <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    ${edit && !closed && twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div class="form"><div class="full">${witnessField("mtWit")}</div></div>` : ""}
+    <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${edit && !closed && !twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div id="mtWitBox" class="mat-wit" hidden>${witnessField("mtWit", "Witness to the disposal (a second person)")}</div>` : ""}</div>`;
 }
 function bindTrack(v, s){
   const rt = $("#rcTest", v), rr = $("#rcRoute", v);
@@ -412,6 +435,13 @@ function bindTrack(v, s){
   v.querySelectorAll("[data-step]").forEach(b => b.addEventListener("click", () => doStep(b.dataset.step)));
   v.querySelectorAll("[data-receipt]").forEach(b => b.addEventListener("click", () => doReceipt(b.dataset.receipt)));
   v.querySelectorAll("[data-mat]").forEach(b => b.addEventListener("click", () => doMaterial(b.dataset.mat)));
+  // v24d: the witness to a disposal is asked for on the material being disposed, only when Dispose is chosen.
+  const wb = $("#mtWitBox", v);
+  if (wb){
+    const sels = [...v.querySelectorAll('#matBox select[id^="mx_"]')];
+    const sync = () => { const d = sels.find(x => x.value === "disposed"), td = d?.closest("td"); if (td && wb.parentNode !== td) td.appendChild(wb); wb.hidden = !td; };
+    sels.forEach(x => x.addEventListener("change", sync)); syncers.push(sync); sync();
+  }
   v.querySelectorAll("[data-undo]").forEach(b => b.addEventListener("click", () => doUndo(b.dataset.undo)));
   $("#corrBtn", v)?.addEventListener("click", doCorrection);
   $("#redoBtn", v)?.addEventListener("click", doRedo);

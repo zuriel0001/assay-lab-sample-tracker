@@ -204,7 +204,9 @@ const next = async (page, n = 1) => { for (let i = 0; i < n; i++){ await page.cl
   R("9a", rel.materials.length >= 2 && rel.materials.every(m => Math.abs(m.dueAt - (rel.relAt + m.days * DAY)) < 2000) && new Set(rel.materials.map(m => m.days)).size > 1, `released ${e1}: ${rel.materials.map(m => `${m.item} ${m.days} d`).join(", ")}, each from the release time`);
   await open(Tc, e1);
   await Tc.selectOption("#mx_m1", "store"); await Tc.fill("#mr_m1", "B3"); await Tc.click('[data-mat="m1"]'); await Tc.waitForTimeout(1100);
-  await Tc.selectOption("#mtWit", { index: 1 }); await Tc.selectOption("#mx_m2", "disposed"); await Tc.click('[data-mat="m2"]'); await Tc.waitForTimeout(1100);   // v24c: disposal needs a witness
+  await H.waitFor(() => doc(e1).materials[0].loc === "B3", 6000); await Tc.waitForFunction(() => !document.querySelector('[data-mat="m2"]')?.disabled, null, { timeout: 8000 }).catch(() => {});   // the pulp's save has finished (it clears the witness box when it does)
+  await Tc.selectOption("#mx_m2", "disposed"); await Tc.selectOption("#mtWit", { index: 1 }); await Tc.click('[data-mat="m2"]'); await Tc.waitForTimeout(1100);   // v24c: disposal needs a witness
+  if (doc(e1).materials[1].status === "kept"){ await Tc.selectOption("#mx_m2", "disposed"); await Tc.selectOption("#mtWit", { index: 1 }); await Tc.click('[data-mat="m2"]'); await Tc.waitForTimeout(1100); }   // once more if a re-render from another page's write took the click
   await H.waitFor(() => moves(e1).some(m => m.dir === "out"), 6000);   // the ledger write follows the sample update
   const e1d = doc(e1);
   R("9b", e1d.materials[0].loc === "B3" && e1d.materials[1].status === "disposed" && e1d.open === true && moves(e1).filter(m => m.dir === "out").length === 1, `pulp stored at "B3" (bug 17) and coarse reject disposed separately; sample still open for the pulp; OUT movements: ${moves(e1).filter(m => m.dir === "out").length}`);

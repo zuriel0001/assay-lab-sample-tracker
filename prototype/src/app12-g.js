@@ -286,19 +286,19 @@ const covText = c => c === "calc" ? "Calculated" : c ? `Lab batch <span class="m
 const qcLabel = q => ({ pass: "QC passed", warn: "QC warnings to accept", fail: "QC failed", accepted: "QC accepted by supervisor", none: "No QC in this run", pending: "waiting for batch results" })[q] || "";
 const qcCls = q => ({ pass: "ok", accepted: "ok", none: "info", warn: "warn", fail: "bad", pending: "info" })[q] || "";
 const qcClear = q => q === "pass" || q === "none";
-const certLine = c => `<button type="button" class="linkish" data-cert="${c.v}">${esc(c.no)}</button> (${fmtDate(c.at)}${c.code ? `, check code <span class="mono">${esc(c.code)}</span>` : ""})`;
+const certLine = c => `<button type="button" class="linkish" data-cert="${c.v}">${esc(c.no)}</button> (${fmtDate(c.at)}${c.code ? `, check code <span class="mono nw">${esc(c.code)}</span>` : ""})`;
 function resultsPanel(s){
   const ci = curIdx(s), ti = targetIdx(s), ph = stage(s, s.stageKey)?.phase, certs = s.certs || [], last = certs.at(-1);
   const entering = canEdit() && ci >= 0 && ci < ti && (ph === "test" || ph === "qc");
   const attachable = relNow() && canEdit() && !entering && canTakeFile(s);   // v24: a results file is taken at any step after receipt
   if (!s.results && !certs.length && !entering && !attachable && !Object.keys(labsOf(s)).length) return "";
-  if (!canSeeResults(s)) return certs.length ? `<div class="panel stack" id="resPanel"><h3>Results</h3><p class="small muted" style="margin:0">Results were released on ${fmtDate(last.at)} on certificate <b class="mono">${esc(last.no)}</b>${last.code ? `, check code <span class="mono">${esc(last.code)}</span>` : ""}. The lab sends them to the submitting section; ask the Assay Lab for the certificate. A copy you hold is genuine if its number and check code match these.</p></div>` : "";
+  if (!canSeeResults(s)) return certs.length ? `<div class="panel stack" id="resPanel"><h3>Results</h3><p class="small muted" style="margin:0">Results were released on ${fmtDate(last.at)} on certificate <b class="mono">${esc(last.no)}</b>${last.code ? `, check code <span class="mono nw">${esc(last.code)}</span>` : ""}. The lab sends them to the submitting section; ask the Assay Lab for the certificate. A copy you hold is genuine if its number and check code match these.</p></div>` : "";
   const rows = s.results?.rows || {}, ans = anOf(s), draft = s.results && (!last || s.results.at > last.at);
   const checks = draft ? resultChecks(s) : [], bad = checks.filter(c => !c.ok);
   const over = draft ? overRes(s) : [];
   const parts = [reqNote(s)];
   if (last) parts.push(`<div class="stack" style="gap:6px">
-      <div class="row" style="gap:8px"><span class="pill ok">Released</span><b>Certificate ${esc(last.no)}</b><span class="small muted">${fmtFull(last.at)} by ${esc(last.tech)}${last.code ? ` · check code <span class="mono">${esc(last.code)}</span>` : ""}</span>
+      <div class="row" style="gap:8px"><span class="pill ok">Released</span><b>Certificate ${esc(last.no)}</b><span class="small muted">${fmtFull(last.at)} by ${esc(last.tech)}${last.code ? ` · check code <span class="mono nw">${esc(last.code)}</span>` : ""}</span>
         <button type="button" class="btn small" data-cert="${last.v}">View certificate</button></div>
       ${last.amends ? `<div class="small"><span class="pill warn">Amended</span> Replaces ${esc(last.amends)}: ${esc(last.why || "")}</div>` : ""}
       ${last.qcNote ? `<div class="small muted">${esc(last.qcNote)}</div>` : ""}${last.acc ? `<div class="small muted">Accepted outside a check by ${esc(last.acc.tech)}: ${esc(last.acc.why)}</div>` : ""}

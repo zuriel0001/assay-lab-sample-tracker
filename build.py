@@ -307,7 +307,6 @@ put('''Sends the sample back to <b>${esc(p[ri].name)}</b> and moves the expected
 drop('''<p class="small muted" style="margin:0">A correction never adds a ledger movement. ${canApprove() ? "Skipped steps stay on the record as skipped, with the reason. A skip can't reach or pass QA/QC or the release of results." : "Only a lab supervisor can skip steps."}</p>''')
 drop('''<p class="small muted" style="margin:0">Only routes that perform the chosen test are listed. Steps already done stay in the chain of custody; the sample carries on from the same step in the new route if it has one.</p>''')
 drop('''<p class="small muted" style="margin:0">Writes an outbound ledger movement and closes the sample.</p>''')
-put('''. Put the retained material away and record returns or disposal under <b>Retained material</b>; each material has its own retention date.</p>''', '''.</p>''')
 drop('''<p class="small muted" style="margin:0">Each material is kept for its own period from the release of results, then returned or disposed. Every return, disposal or send-out is written to the ledger.</p>''')
 put('''Describe it in the note; it is printed on the record.</div>''', '''Describe it in the note.</div>''')
 put('''. The lab sends them to the submitting section; ask the Assay Lab for the certificate. A copy you hold is genuine if its number and check code match these.</p>''', '''.</p>''')

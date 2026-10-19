@@ -216,6 +216,9 @@ async function useQcStep(browser, on = true){
   await p.waitForSelector("#cfgQcStep");
   await p.selectOption("#cfgQcStep", on ? "1" : "0"); await p.click("#cfgSave");
   if (!await waitFor(() => store["settings/stages"]?.qcStep === on && store["settings/stages"]?.relMode === "signoff", 6000)) throw new Error("could not set the QA/QC review step");
+  /* This page is signed in, so it also runs the one-off upgrade of old records and writes their ledger movements (on the Azure build only a
+     staff page can). Let that finish before closing it: an upgrade cut short is picked up by the next staff page, but suites check it at once. */
+  await waitFor(() => !(leases["meta/schema"]?.exp > Date.now() + 2000) && !Object.keys(store).some(k => k.startsWith("samples/") && store[k] && (!(+store[k].v >= 13) || store[k].lp)), 15000);
   pages.splice(pages.indexOf(p), 1); await p.context().close();
 }
 /* v23: the lab's own routes (AuFx, AuSx, cyanide, carbon loading) are in use and 38 older ones are retired. Suites written around the older
