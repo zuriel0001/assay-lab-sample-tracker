@@ -727,7 +727,8 @@ async function sampleWrite(id, fn, after){
     return true;
   } catch { return false; }
 }
-async function pool(items, n, fn){ let i = 0, ok = 0; await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length){ const x = items[i++]; if (await fn(x)) ok++; } })); return ok; }
+/* Runs fn on the items, n at a time; step(done, total) after each (v24d: a job of 80 samples says how far it has got). */
+async function pool(items, n, fn, step){ let i = 0, ok = 0, done = 0; await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length){ const x = items[i++]; if (await fn(x)) ok++; done++; if (step) step(done, items.length); } })); return ok; }
 async function claimBatchId(prefix, body){
   const stamp = dayStamp(Date.now()), hint = db.doc(`meta/bcounter-${prefix}-${stamp}`);
   let n = 1; try { const h = await hint.get(); n = ((h.exists && +h.data().last) || 0) + 1; } catch {}

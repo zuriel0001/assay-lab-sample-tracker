@@ -274,3 +274,18 @@ ol.rail li.done.stop .dot{background:var(--bad);border-color:var(--bad)}
 .vz .seg .btn{border:0;background:transparent;color:var(--muted);min-height:34px;border-radius:999px;padding:0 14px;box-shadow:none}
 .vz .seg .btn.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.14)}
 @media (max-width:520px){.vz-tile .vz-v{font-size:17px}.vz-tile{padding:8px 10px}}
+/* v24d (20 Oct): tank profile pair, bars (recovery by size, preg-robbing index) */
+.vz-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.vz-ct-t{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.vz-barbox{min-height:0}
+.vz-svg .vz-bar{fill:var(--vz-1)}
+.vz-svg .vz-val{font-size:12px;fill:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
+.vz-svg .vz-lab{fill:var(--muted);font-size:12px}
+.vz-t tr.vz-tot td{border-top:2px solid var(--line)}
+.vz-t .vz-mass{width:6.5em;padding:4px 6px;min-height:32px}
+.cert .vz-pair .vz-svg{width:100%;height:auto}
+/* v24d (20 Oct): four ways to submit; on a phone they sit two by two */
+@media (max-width:560px){
+  #regForm .seg[aria-label="Samples"]{display:grid;grid-template-columns:1fr 1fr;width:100%;border-radius:18px}
+  #regForm .seg[aria-label="Samples"] span{justify-content:center;min-height:40px;padding:0 10px;white-space:nowrap;width:100%}
+}

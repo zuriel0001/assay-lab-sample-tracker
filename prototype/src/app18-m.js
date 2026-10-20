@@ -493,7 +493,7 @@ async function saveUpload(){
     }
     if (P.samples.length){
       msg("Saving sample results…");
-      const n = await pool(P.samples, 4, x => sampleWrite(x.sid, s => {
+      const n = await pool(P.samples, 8, x => sampleWrite(x.sid, s => {
         if (!readyForResults(s)) return null;
         const bk = batchKeys(s), defs = anOf(s), rows = { ...rowsOf(s) };
         for (const [k, v] of Object.entries(x.rows)){ const a = defs.find(y => y.k === k); if (!a || bk.has(k)) continue; const r = parseRes(v.raw, a); if (r && !r.bad && !r.amb) rows[k] = { ...r, by: session.u, src: "file" }; }
@@ -501,7 +501,7 @@ async function saveUpload(){
         return { results: { v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: patch(s.results?.rows, all), batch: s.results?.batch || "", inst, file: fileTag(f) }, fids: [...new Set([...(s.fids || []), f.id])],
           resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null,
           history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, note: `Results from file ${f.name}: ${resSummary(defs, all)}` }] };
-      }));
+      }), (d, t) => msg(`Saving sample results… ${d} of ${t}`));
       done.push(`results on ${n} sample record${n === 1 ? "" : "s"}`);
     }
     if (loose && targets.length){
@@ -509,13 +509,13 @@ async function saveUpload(){
       msg("Releasing…");
       const inst = f.labRef || f.name;
       const relIds = [], keptIds = [], subs = new Set(), inSub = new Set();   // v24d: say what happened to each: released, or results kept but not released
-      await pool(targets, 4, sid => sampleWrite(sid, s => { if (!canTakeFile(s)) return null; if (grouped(s)){ subs.add(s.batchId); inSub.add(sid); } return fileResults(s, f, inst, wit); },
-        upd => upd.relAt ? relIds.push(sid) : inSub.has(sid) ? 0 : keptIds.push(sid)));
+      await pool(targets, 8, sid => sampleWrite(sid, s => { if (!canTakeFile(s)) return null; if (grouped(s)){ subs.add(s.batchId); inSub.add(sid); } return fileResults(s, f, inst, wit); },
+        upd => upd.relAt ? relIds.push(sid) : inSub.has(sid) ? 0 : keptIds.push(sid)), (d, t) => msg(`Keeping the file with the samples… ${d} of ${t}`));
       if (relIds.length) done.push(`${relIds.length} released with the file`);
       if (keptIds.length) done.push(`results kept on ${listAnd(keptIds)}, not released yet`);
       for (const ref of subs){   // a batch processed as one: released together, on one batch certificate, once all its results are in
         msg(`Releasing batch ${ref}…`);
-        const r = await releaseGroup(ref, wit, true);
+        const r = await releaseGroup(ref, wit, true, (d, t) => msg(`Releasing batch ${ref}… ${d} of ${t}`));
         done.push(r.n ? `batch ${ref}: ${nS(r.n)} released on certificate ${r.no}` : `batch ${ref}: results kept, not released yet${r.why ? ` (${r.why.replace(/\.$/, "")})` : ""}`);
       }
       for (const b of new Set(targets.flatMap(id => Object.values(labsOf(bs(id) || {})).map(l => l.b)))) await closeBatchIfDone(b);

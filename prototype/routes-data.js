@@ -87,7 +87,7 @@ const TESTS = [
 const SHIFT = { k: "shift", l: "Shift", o: ["Day", "Night"] };
 /* Sampling points, the same at submission (sample details) and on the results, so a limit for one point follows what the submitter chose. */
 /* v24d: the points the plant samples at the end of a shift, in its own words (the shift reports). */
-const MILL_PTS = ["CIL feed", "Special CIL feed", "CIL tank", "CIL tails", "CIL tails launder", "COF (cyclone overflow)", "CUF (cyclone underflow)", "Tails grab", "Other"];
+const MILL_PTS = ["CIL feed", "Special CIL feed", "Pre-leach feed", "CIL tank", "CIL tails", "CIL tails launder", "COF (cyclone overflow)", "CUF (cyclone underflow)", "Tails grab", "Process water", "Other"];
 const CCD_PTS = ["CCD feed", "CCD overflow", "CCD underflow", "CCD tails", "Other"];
 const TSF_PTS = ["TSF spigot", "Decant pond", "Return water", "Seepage / underdrain", "Other"];
 const PLANT_PTS = [...new Set([...MILL_PTS, ...CCD_PTS, ...TSF_PTS].filter(x => x !== "Other")), "Other"];
@@ -1082,7 +1082,7 @@ const RESULTS = {
   water:    { an: [A("pH", "pH", "", null, 1), A("ec", "Conductivity", "µS/cm", null, 0), A("tss", "Suspended solids", "mg/L", 1, 0), A("wad", "WAD cyanide", "mg/L", 0.005, 3), A("free", "Free cyanide", "mg/L", 0.005, 3, { opt: true }),
                    A("As", "Arsenic", "mg/L", 0.001, 3), A("Hg", "Mercury", "mg/L", 0.0001, 4), A("Cu", "Copper", "mg/L", 0.001, 3), A("Fe", "Iron", "mg/L", 0.01, 2, { opt: true })], qc: "wad" },
   soil:     { an: [A("As", "Arsenic", "mg/kg", 1, 0), A("Hg", "Mercury", "mg/kg", 0.01, 2), A("Pb", "Lead", "mg/kg", 1, 0), A("Cu", "Copper", "mg/kg", 1, 0), A("cn", "Total cyanide", "mg/kg", 0.5, 1), A("pH", "pH", "", null, 1)] },
-  aufx_ausx:    { an: [PICK("Sampling point", PLANT_PTS), AUFX(), AUSX(), AGSX(), PH(), NACN({ opt: true }), SOLIDS(), SCREEN()], qc: "Au" },
+  aufx_ausx:    { an: [PICK("Sampling point", PLANT_PTS), AUFX(), AUSX(), AGSX(), PH(), NACN({ opt: true }), SOLIDS(), SCREEN(), ...METALS()], qc: "Au" },
   aufx:         { an: [PICK("Sampling point", PLANT_PTS), AUFX(), SOLIDS(), SCREEN()], qc: "Au" },
   aufx_m:       { an: [PICK("Conveyor", BELT_PTS), A("h2o", "Moisture", "%", null, 2, { s: "Moisture" }), AUFX()], qc: "Au" },
   ausx:         { an: [PICK("Sampling point", PLANT_PTS), AUSX(), AGSX(), PH(), NACN({ opt: true })], qc: "Au_s" },

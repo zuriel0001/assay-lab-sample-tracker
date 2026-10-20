@@ -49,8 +49,8 @@ async function release(P, j, name, lines){
   log("The day shift's Mill shift: regenerated carbon, CIL tank 11, spigot samples without a time");
   await jobForm(Tc, "mill", "D", "2026-10-20");
   let cs = await codes(Tc); const on = async c => Tc.isChecked(`[data-jon="${cs.indexOf(c)}"]`);
-  check(cs.length === 38 && /^36 of 38 samples ticked/.test(await text(Tc, "#jInfo")) && await on("MLDSCBRG20261020") && !(await on("MLDSCBST20261020")) && !(await on("MLDSCBLD20261020")),
-    "38 listed, 36 ticked: the regenerated carbon in, the stripped and loaded carbon (the night shift's) out");
+  check(cs.length === 39 && /^37 of 39 samples ticked/.test(await text(Tc, "#jInfo")) && await on("MLDSCBRG20261020") && !(await on("MLDSCBST20261020")) && !(await on("MLDSCBLD20261020")),
+    "39 listed, 37 ticked: carbon from all 11 tanks, the regenerated carbon in, the stripped and loaded carbon (the night shift's) out");
   check(!(await Tc.isVisible("#jN_n1")) && !(await Tc.isVisible("#jN_n2")), "no elution number asked while no ticked sample's code carries one");
   const desc = async c => Tc.inputValue(`#jRows .j-desc[data-j="${cs.indexOf(c)}"]`);
   check(/CIL tank 11 0700 hours/.test(await desc("MLDSCT0720261020")) && /spigot sample A$/.test(await desc("TSFDSPGA20261020")) && cs.indexOf("MLDSCL0620261020") < cs.indexOf("MLDSCL0120261020"),
@@ -59,11 +59,11 @@ async function release(P, j, name, lines){
   check(await sel("MLDSCUF 20261020") === "aufx" && await sel("MLDSTK1120261020") === "aufx_ausx" && await sel("MLDSCBRG20261020") === "c_load", "the analyses the reports give: CUF AuFx with grind, tank 11 AuFx & AuSx, regenerated carbon its loading");
   await Tc.uncheck(`[data-jon="${cs.indexOf("MLDSCT1720261020")}"]`); await Tc.waitForTimeout(100);
   await Tc.selectOption("#jShift", "N"); await Tc.waitForTimeout(200); cs = await codes(Tc);
-  check(!(await on("MLNSCBRG20261020")) && await on("MLNSCBST20261020") && await on("MLNSCBLD20261020") && await Tc.isVisible("#jN_n1") && /^36 of 38/.test(await text(Tc, "#jInfo")) && !(await on("MLNSCT2320261020")),
+  check(!(await on("MLNSCBRG20261020")) && await on("MLNSCBST20261020") && await on("MLNSCBLD20261020") && await Tc.isVisible("#jN_n1") && /^37 of 39/.test(await text(Tc, "#jInfo")) && !(await on("MLNSCT2320261020")),
     "the night shift: stripped and loaded carbon ticked with their elution numbers, regenerated out; a row unticked by hand stays unticked");
   await Tc.selectOption("#jShift", "D"); await Tc.waitForTimeout(200); cs = await codes(Tc);
   const mill = await submit(Tc);
-  check(mill.ids.length === 35 && mill.tags.includes("MLDSCBRG20261020") && !mill.tags.some(t => /CBST|CBLD|CT17/.test(t)) && /Mill shift, day shift/.test(doc(mill.ids[0]).batchName), "35 day-shift samples submitted as one job");
+  check(mill.ids.length === 36 && mill.tags.includes("MLDSCBRG20261020") && !mill.tags.some(t => /CBST|CBLD|CT17/.test(t)) && /Mill shift, day shift/.test(doc(mill.ids[0]).batchName), "36 day-shift samples submitted as one job");
 
   log("One code, two analyses: the regenerated carbon for its activity as well");
   await jobForm(Tc, "cact", "D", "2026-10-20"); await Tc.fill("#jN_n1", "40"); await Tc.waitForTimeout(100);

@@ -322,7 +322,7 @@ async function register(){
   if (!db){ toast("The shared register is not connected in this view."); return; }
   const btn = $("#rSubmit"), msg = $("#rMsg");
   const fail = (m, focus) => { toast(m); const el = focus && $(focus); if (el){ const d = el.closest("details"); if (d) d.open = true; el.focus(); } };
-  if (formKind() === "job") return registerJob();   // v24d: a shift's samples as one job
+  if (isJobKind(formKind())) return registerJob();   // v24d: a shift's samples as one job
   const batch = formKind() === "batch", n = batch ? bRows.length : 1;
   if (batch && !(n >= 2 && n <= 100)) return fail("A batch has 2 to 100 samples. For one sample choose Single sample.", "#rCount");
   const code = val("#rSection"), tyK = val("#rType"), puK = val("#rPurpose"), teK = val("#rTest"), submitter = val("#rSubmitter");

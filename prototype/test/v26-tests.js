@@ -40,9 +40,9 @@ const live = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => v
   await Tc.fill("#jN_n1", "31"); await Tc.fill("#jN_n2", "32"); await Tc.waitForTimeout(200);
   const codes = () => Tc.$$eval("#jRows .j-code", es => es.map(e => e.value));
   let cs = await codes();
-  check(cs.length === 38 && cs.includes("MLNSCOF 20261018") && cs.includes("MLNSCUF 20261018") && cs.includes("MLNSRECA20261018") && cs.includes("TSFNSPGB20261018") && cs.includes("MLNSCBST20261018#31") && cs.includes("MLNSCBLD20261018#32") && cs.includes("MLNSCL1020261018"),
-    "38 samples listed with the plant's codes: ML + NS + point + date (" + cs.slice(30, 34).join(", ") + ")");
-  check(/37 of 38 samples ticked/.test(await text(Tc, "#jInfo")) && /Submit 37 samples/.test(await text(Tc, "#rSubmit")) && !(await Tc.isChecked(`[data-jon="${cs.indexOf("MLNSCBRG20261018")}"]`)), "37 of 38 ticked (the regenerated carbon is the day shift's), Submit 37 samples");
+  check(cs.length === 39 && cs.includes("MLNSCOF 20261018") && cs.includes("MLNSCUF 20261018") && cs.includes("MLNSRECA20261018") && cs.includes("TSFNSPGB20261018") && cs.includes("MLNSCBST20261018#31") && cs.includes("MLNSCBLD20261018#32") && cs.includes("MLNSCL1020261018"),
+    "39 samples listed (carbon from all 11 CIL tanks) with the plant's codes: ML + NS + point + date (" + cs.slice(30, 34).join(", ") + ")");
+  check(/38 of 39 samples ticked/.test(await text(Tc, "#jInfo")) && /Submit 38 samples/.test(await text(Tc, "#rSubmit")) && !(await Tc.isChecked(`[data-jon="${cs.indexOf("MLNSCBRG20261018")}"]`)), "38 of 39 ticked (the regenerated carbon is the day shift's), Submit 38 samples");
   const rowOf = c => cs.indexOf(c);
   const sel = async c => Tc.$eval(`#jRows .j-test[data-j="${rowOf(c)}"]`, e => e.value);
   check(await sel("MLNSCOF 20261018") === "aufx_ausx" && await sel("MLNSTK1120261018") === "aufx_ausx" && await sel("MLNSCUF 20261018") === "aufx" && await sel("MLNSRECA20261018") === "ausx_cn" && await sel("MLNSCL0620261018") === "c_load" && await sel("MLNSTLSA20261018") === "cn_only",
@@ -55,7 +55,7 @@ const live = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => v
   await Tc.selectOption("#jAdd", "plant_feed|CIL tank"); await Tc.waitForTimeout(150);
   const last = (await codes()).length - 1;
   await Tc.fill(`#jRows .j-code[data-j="${last}"]`, "MLNSTK0920261018"); await Tc.fill(`#jRows .j-desc[data-j="${last}"]`, "Night shift tank 9 sample");
-  check(await Tc.$eval(`#jRows .j-test[data-j="${last}"]`, e => e.value) === "aufx_ausx_cn" && /36 of 39 samples ticked/.test(await text(Tc, "#jInfo")), "two unticked, one CIL tank sample added with its analysis: 36 of 39");
+  check(await Tc.$eval(`#jRows .j-test[data-j="${last}"]`, e => e.value) === "aufx_ausx_cn" && /37 of 40 samples ticked/.test(await text(Tc, "#jInfo")), "two unticked, one CIL tank sample added with its analysis: 37 of 40");
   await Tc.fill("#rSubmitter", "Shift metallurgist");
   await Tc.fill(`#jRows .j-code[data-j="1"]`, "MLNSRECA20261018"); await Tc.click("#rSubmit"); await Tc.waitForTimeout(300);
   check(/same code appears twice/i.test(await H.toastText(Tc)) && !(await Tc.$("#rResult code")), "the same code twice is refused");
@@ -64,8 +64,8 @@ const live = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => v
   const res = await Tc.$$eval("#rResult code", els => els.map(e => e.textContent.split(" · ")));
   const ids = res.map(x => x[0]), tags = res.map(x => x[1]), ref = doc(ids[0]).batchId;
   const by = c => doc(ids[tags.indexOf(c)]);
-  check(ids.length === 36 && ids.every(id => doc(id).batchId === ref && doc(id).batchSize === 36 && doc(id).route === "JOB" && doc(id).job === "mill") && /Mill shift, night shift/.test(doc(ids[0]).batchName),
-    "one job of 36 samples on the shift job route: " + doc(ids[0]).batchName);
+  check(ids.length === 37 && ids.every(id => doc(id).batchId === ref && doc(id).batchSize === 37 && doc(id).route === "JOB" && doc(id).job === "mill") && /Mill shift, night shift/.test(doc(ids[0]).batchName),
+    "one job of 37 samples on the shift job route: " + doc(ids[0]).batchName);
   const cof = by("MLNSCOF 20261018"), tank = by("MLNSCL0620261018"), sp = by("TSFNSPGA20261018");
   check(cof.typeKey === "plant_feed" && cof.test === "aufx_ausx" && cof.details["Sampling point"] === "COF (cyclone overflow)" && cof.baseRoute === "AUFX-AUSX" && cof.retention.some(r => r.item === "Pulp") && /cyclone overflow/.test(cof.source),
     "each sample keeps its own type, point, analysis, description and its own route's retention (COF: pulp and filtrate)");
@@ -74,13 +74,13 @@ const live = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => v
 
   log("The job is one item: one card, one receipt");
   await H.tab(Tc, "board"); await Tc.waitForTimeout(600);
-  check(/^1\s*Awaiting receipt/.test(await text(Tc, '.stats.tiles [data-bpick="await"]')) && /Batch of 36 samples/.test(await text(Tc, `.chip.bchip[data-open="${ref}"]`)) && /4 sample types/.test(await text(Tc, `.chip.bchip[data-open="${ref}"]`)),
+  check(/^1\s*Awaiting receipt/.test(await text(Tc, '.stats.tiles [data-bpick="await"]')) && /Batch of 37 samples/.test(await text(Tc, `.chip.bchip[data-open="${ref}"]`)) && /4 sample types/.test(await text(Tc, `.chip.bchip[data-open="${ref}"]`)),
     "Awaiting receipt: 1, one card (4 sample types, the job's name)");
   await open(Tc, ref); await Tc.waitForSelector("#bvRecv", { timeout: 6000 }).catch(() => {});
-  check(/Confirm receipt of 36/.test(await text(Tc, "#bvRecvBtn")) && !!(await Tc.$("#bvTemp")), "one receipt for the 36 (the TSF bottles bring the cooler temperature)");
+  check(/Confirm receipt of 37/.test(await text(Tc, "#bvRecvBtn")) && !!(await Tc.$("#bvTemp")), "one receipt for the 37 (the TSF bottles bring the cooler temperature)");
   await Tc.fill("#bvTemp", "5"); await Tc.check("#bvOk"); await Tc.click("#bvRecvBtn"); await waitFor(() => ids.every(id => doc(id).stageKey === "received"), 20000);
   await open(Tc, ref); await Tc.waitForTimeout(300);
-  check(ids.every(id => doc(id).stageKey === "received") && /Move 36 samples to: In analysis/.test(await text(Tc, "#bwNext")) && !!(await Tc.$(`#bwAct [data-attach="sub:${ref}"]`)), "received; the job can move on, and its report can be attached at any step");
+  check(ids.every(id => doc(id).stageKey === "received") && /Move 37 samples to: In analysis/.test(await text(Tc, "#bwNext")) && !!(await Tc.$(`#bwAct [data-attach="sub:${ref}"]`)), "received; the job can move on, and its report can be attached at any step");
   check(/CCD sample, Mill sample, TSF sample, Carbon · 7 analyses/.test(await text(Tc, "#view-track .panel .small.muted")) && /COF \(cyclone overflow\)/.test(await text(Tc, "#view-track table.cardy")), "the batch page names the types and analyses, and each sample's point");
 
   log("The lab's report for the job releases every sample on one certificate");
@@ -97,7 +97,7 @@ const live = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => v
     row("MLNSTLSA20261018", "tails grab A", ["5.00", "1.00", "2.00", "0.10", "", "", "10.5", "55", "", "", "", "", "", "29.00"]),
     row("MLNSTK0920261018", "tank 9", ["", "", "", "", "", "0.30", "10.9", "60", "36.0", "", "", "0.009", "", "20.00"])];
   const dlg = await H.attachFile(Tc, `sub:${ref}`, "night-shift-report.csv", Buffer.from(lines.join("\n") + "\n"));
-  check(new RegExp(`Released together with this file: batch ${ref}`).test(dlg) && /36 samples, on one batch certificate/.test(dlg) && /Moved on to analysis when saved/.test(dlg), "the dialog: all 36 released together, moved on to analysis first");
+  check(new RegExp(`Released together with this file: batch ${ref}`).test(dlg) && /37 samples, on one batch certificate/.test(dlg) && /Moved on to analysis when saved/.test(dlg), "the dialog: all 36 released together, moved on to analysis first");
   await H.saveAttach(Tc); await waitFor(() => ids.every(id => (doc(id).certs || []).length), 30000);
   const cs0 = ids.map(id => doc(id).certs.at(-1));
   check(cs0.every(c => c.no === `${ref}-R1` && c.code === cs0[0].code) && ids.every(id => doc(id).stageKey === "released"), "released together: one certificate " + cs0[0].no);
@@ -105,7 +105,7 @@ const live = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => v
     "each sample's values read by its code (COF with its screen, carbon loading, CCD WAD, the added tank 9)");
   await open(Tc, ref); await Tc.click("[data-bcert]"); await Tc.waitForSelector("#certBox .cert", { timeout: 5000 }).catch(() => {});
   const heads = await Tc.$$eval("#certBox h4.cert-sec", hs => hs.map(h => h.textContent.trim()));
-  check(heads.length === 7 && heads.some(h => /^Carbon: Au loading \(12 samples\)$/.test(h)) && heads.some(h => /^Slurry: AuFx & AuSx \(\d+ samples\)$/.test(h)), "the certificate reads one table per analysis: " + heads.join(" | "));
+  check(heads.length === 7 && heads.some(h => /^Carbon: Au loading \(13 samples\)$/.test(h)) && heads.some(h => /^Slurry: AuFx & AuSx \(\d+ samples\)$/.test(h)), "the certificate reads one table per analysis: " + heads.join(" | "));
   const carbonCols = await Tc.$$eval("#certBox h4.cert-sec", hs => { const h = hs.find(x => /^Carbon/.test(x.textContent)); return [...h.nextElementSibling.querySelectorAll("thead th")].map(t => t.textContent.trim()); });
   check(carbonCols.join("|") === "Sample|Au loading (g/t)", "a section has only its own columns (the sample's ID, code and description in one): " + carbonCols.join(", "));
   await Tc.click("#certClose");

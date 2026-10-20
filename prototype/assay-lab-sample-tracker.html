@@ -920,6 +920,21 @@ ol.rail li.done.stop .dot{background:var(--bad);border-color:var(--bad)}
 .vz .seg .btn{border:0;background:transparent;color:var(--muted);min-height:34px;border-radius:999px;padding:0 14px;box-shadow:none}
 .vz .seg .btn.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.14)}
 @media (max-width:520px){.vz-tile .vz-v{font-size:17px}.vz-tile{padding:8px 10px}}
+/* v24d (20 Oct): tank profile pair, bars (recovery by size, preg-robbing index) */
+.vz-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.vz-ct-t{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.vz-barbox{min-height:0}
+.vz-svg .vz-bar{fill:var(--vz-1)}
+.vz-svg .vz-val{font-size:12px;fill:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
+.vz-svg .vz-lab{fill:var(--muted);font-size:12px}
+.vz-t tr.vz-tot td{border-top:2px solid var(--line)}
+.vz-t .vz-mass{width:6.5em;padding:4px 6px;min-height:32px}
+.cert .vz-pair .vz-svg{width:100%;height:auto}
+/* v24d (20 Oct): four ways to submit; on a phone they sit two by two */
+@media (max-width:560px){
+  #regForm .seg[aria-label="Samples"]{display:grid;grid-template-columns:1fr 1fr;width:100%;border-radius:18px}
+  #regForm .seg[aria-label="Samples"] span{justify-content:center;min-height:40px;padding:0 10px;white-space:nowrap;width:100%}
+}
 </style>
 
 <div class="wrap">
@@ -1066,7 +1081,7 @@ const TESTS = [
 const SHIFT = { k: "shift", l: "Shift", o: ["Day", "Night"] };
 /* Sampling points, the same at submission (sample details) and on the results, so a limit for one point follows what the submitter chose. */
 /* v24d: the points the plant samples at the end of a shift, in its own words (the shift reports). */
-const MILL_PTS = ["CIL feed", "Special CIL feed", "CIL tank", "CIL tails", "CIL tails launder", "COF (cyclone overflow)", "CUF (cyclone underflow)", "Tails grab", "Other"];
+const MILL_PTS = ["CIL feed", "Special CIL feed", "Pre-leach feed", "CIL tank", "CIL tails", "CIL tails launder", "COF (cyclone overflow)", "CUF (cyclone underflow)", "Tails grab", "Process water", "Other"];
 const CCD_PTS = ["CCD feed", "CCD overflow", "CCD underflow", "CCD tails", "Other"];
 const TSF_PTS = ["TSF spigot", "Decant pond", "Return water", "Seepage / underdrain", "Other"];
 const PLANT_PTS = [...new Set([...MILL_PTS, ...CCD_PTS, ...TSF_PTS].filter(x => x !== "Other")), "Other"];
@@ -2061,7 +2076,7 @@ const RESULTS = {
   water:    { an: [A("pH", "pH", "", null, 1), A("ec", "Conductivity", "µS/cm", null, 0), A("tss", "Suspended solids", "mg/L", 1, 0), A("wad", "WAD cyanide", "mg/L", 0.005, 3), A("free", "Free cyanide", "mg/L", 0.005, 3, { opt: true }),
                    A("As", "Arsenic", "mg/L", 0.001, 3), A("Hg", "Mercury", "mg/L", 0.0001, 4), A("Cu", "Copper", "mg/L", 0.001, 3), A("Fe", "Iron", "mg/L", 0.01, 2, { opt: true })], qc: "wad" },
   soil:     { an: [A("As", "Arsenic", "mg/kg", 1, 0), A("Hg", "Mercury", "mg/kg", 0.01, 2), A("Pb", "Lead", "mg/kg", 1, 0), A("Cu", "Copper", "mg/kg", 1, 0), A("cn", "Total cyanide", "mg/kg", 0.5, 1), A("pH", "pH", "", null, 1)] },
-  aufx_ausx:    { an: [PICK("Sampling point", PLANT_PTS), AUFX(), AUSX(), AGSX(), PH(), NACN({ opt: true }), SOLIDS(), SCREEN()], qc: "Au" },
+  aufx_ausx:    { an: [PICK("Sampling point", PLANT_PTS), AUFX(), AUSX(), AGSX(), PH(), NACN({ opt: true }), SOLIDS(), SCREEN(), ...METALS()], qc: "Au" },
   aufx:         { an: [PICK("Sampling point", PLANT_PTS), AUFX(), SOLIDS(), SCREEN()], qc: "Au" },
   aufx_m:       { an: [PICK("Conveyor", BELT_PTS), A("h2o", "Moisture", "%", null, 2, { s: "Moisture" }), AUFX()], qc: "Au" },
   ausx:         { an: [PICK("Sampling point", PLANT_PTS), AUSX(), AGSX(), PH(), NACN({ opt: true })], qc: "Au_s" },
@@ -4023,7 +4038,7 @@ async function register(){
   if (!db){ toast("The shared register is not connected in this view."); return; }
   const btn = $("#rSubmit"), msg = $("#rMsg");
   const fail = (m, focus) => { toast(m); const el = focus && $(focus); if (el){ const d = el.closest("details"); if (d) d.open = true; el.focus(); } };
-  if (formKind() === "job") return registerJob();   // v24d: a shift's samples as one job
+  if (isJobKind(formKind())) return registerJob();   // v24d: a shift's samples as one job
   const batch = formKind() === "batch", n = batch ? bRows.length : 1;
   if (batch && !(n >= 2 && n <= 100)) return fail("A batch has 2 to 100 samples. For one sample choose Single sample.", "#rCount");
   const code = val("#rSection"), tyK = val("#rType"), puK = val("#rPurpose"), teK = val("#rTest"), submitter = val("#rSubmitter");
@@ -5465,7 +5480,8 @@ async function sampleWrite(id, fn, after){
     return true;
   } catch { return false; }
 }
-async function pool(items, n, fn){ let i = 0, ok = 0; await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length){ const x = items[i++]; if (await fn(x)) ok++; } })); return ok; }
+/* Runs fn on the items, n at a time; step(done, total) after each (v24d: a job of 80 samples says how far it has got). */
+async function pool(items, n, fn, step){ let i = 0, ok = 0, done = 0; await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length){ const x = items[i++]; if (await fn(x)) ok++; done++; if (step) step(done, items.length); } })); return ok; }
 async function claimBatchId(prefix, body){
   const stamp = dayStamp(Date.now()), hint = db.doc(`meta/bcounter-${prefix}-${stamp}`);
   let n = 1; try { const h = await hint.get(); n = ((h.exists && +h.data().last) || 0) + 1; } catch {}
@@ -7255,7 +7271,7 @@ async function saveUpload(){
     }
     if (P.samples.length){
       msg("Saving sample results…");
-      const n = await pool(P.samples, 4, x => sampleWrite(x.sid, s => {
+      const n = await pool(P.samples, 8, x => sampleWrite(x.sid, s => {
         if (!readyForResults(s)) return null;
         const bk = batchKeys(s), defs = anOf(s), rows = { ...rowsOf(s) };
         for (const [k, v] of Object.entries(x.rows)){ const a = defs.find(y => y.k === k); if (!a || bk.has(k)) continue; const r = parseRes(v.raw, a); if (r && !r.bad && !r.amb) rows[k] = { ...r, by: session.u, src: "file" }; }
@@ -7263,7 +7279,7 @@ async function saveUpload(){
         return { results: { v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: patch(s.results?.rows, all), batch: s.results?.batch || "", inst, file: fileTag(f) }, fids: [...new Set([...(s.fids || []), f.id])],
           resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null,
           history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, note: `Results from file ${f.name}: ${resSummary(defs, all)}` }] };
-      }));
+      }), (d, t) => msg(`Saving sample results… ${d} of ${t}`));
       done.push(`results on ${n} sample record${n === 1 ? "" : "s"}`);
     }
     if (loose && targets.length){
@@ -7271,13 +7287,13 @@ async function saveUpload(){
       msg("Releasing…");
       const inst = f.labRef || f.name;
       const relIds = [], keptIds = [], subs = new Set(), inSub = new Set();   // v24d: say what happened to each: released, or results kept but not released
-      await pool(targets, 4, sid => sampleWrite(sid, s => { if (!canTakeFile(s)) return null; if (grouped(s)){ subs.add(s.batchId); inSub.add(sid); } return fileResults(s, f, inst, wit); },
-        upd => upd.relAt ? relIds.push(sid) : inSub.has(sid) ? 0 : keptIds.push(sid)));
+      await pool(targets, 8, sid => sampleWrite(sid, s => { if (!canTakeFile(s)) return null; if (grouped(s)){ subs.add(s.batchId); inSub.add(sid); } return fileResults(s, f, inst, wit); },
+        upd => upd.relAt ? relIds.push(sid) : inSub.has(sid) ? 0 : keptIds.push(sid)), (d, t) => msg(`Keeping the file with the samples… ${d} of ${t}`));
       if (relIds.length) done.push(`${relIds.length} released with the file`);
       if (keptIds.length) done.push(`results kept on ${listAnd(keptIds)}, not released yet`);
       for (const ref of subs){   // a batch processed as one: released together, on one batch certificate, once all its results are in
         msg(`Releasing batch ${ref}…`);
-        const r = await releaseGroup(ref, wit, true);
+        const r = await releaseGroup(ref, wit, true, (d, t) => msg(`Releasing batch ${ref}… ${d} of ${t}`));
         done.push(r.n ? `batch ${ref}: ${nS(r.n)} released on certificate ${r.no}` : `batch ${ref}: results kept, not released yet${r.why ? ` (${r.why.replace(/\.$/, "")})` : ""}`);
       }
       for (const b of new Set(targets.flatMap(id => Object.values(labsOf(bs(id) || {})).map(l => l.b)))) await closeBatchIfDone(b);
@@ -7617,9 +7633,10 @@ const qaOpen = id => samples.get(id) || (qaListOpen ? qaDoc(id) : qaDocs.get(id)
    label and tracking link; batchId (B- and the batch's first ID) ties them together and opens the whole batch from the search box. */
 let bRows = [{ code: "", src: "" }, { code: "", src: "" }];
 const formKind = () => document.querySelector('input[name="rKind"]:checked')?.value || "single";
+const isJobKind = k => k === "job" || k === "met";   // v24d: a plant shift job, or (20 Oct) a MET Lab job: the same list of samples, its own templates
 function kindPicker(){
-  const k = ["batch", "job"].includes(lsGet("regKind")) ? lsGet("regKind") : "single";
-  return `<div class="seg" role="radiogroup" aria-label="Samples"><label><input type="radio" name="rKind" value="single" ${k === "single" ? "checked" : ""}><span>Single sample</span></label><label><input type="radio" name="rKind" value="batch" ${k === "batch" ? "checked" : ""}><span>Batch</span></label><label><input type="radio" name="rKind" value="job" ${k === "job" ? "checked" : ""}><span>Shift job</span></label></div>`;
+  const k = ["batch", "job", "met"].includes(lsGet("regKind")) ? lsGet("regKind") : "single";
+  return `<div class="seg" role="radiogroup" aria-label="Samples"><label><input type="radio" name="rKind" value="single" ${k === "single" ? "checked" : ""}><span>Single sample</span></label><label><input type="radio" name="rKind" value="batch" ${k === "batch" ? "checked" : ""}><span>Batch</span></label><label><input type="radio" name="rKind" value="job" ${k === "job" ? "checked" : ""}><span>Shift job</span></label><label><input type="radio" name="rKind" value="met" ${k === "met" ? "checked" : ""}><span>MET Lab job</span></label></div>`;
 }
 function batchBlock(){
   return `<div class="full batch-box" id="rBatch" hidden>
@@ -7667,18 +7684,18 @@ function setRowCount(n){
 }
 function submitLabel(){
   const b = $("#rSubmit"), f = $("#regForm"); if (!b || !f) return;
-  const walk = f.dataset.mode === "register", lab = !!$("#rRecvNow")?.checked, n = formKind() === "batch" ? bRows.length : formKind() === "job" ? (job?.rows || []).filter(r => r.on).length : 1;
+  const walk = f.dataset.mode === "register", lab = !!$("#rRecvNow")?.checked, n = formKind() === "batch" ? bRows.length : isJobKind(formKind()) ? (job?.rows || []).filter(r => r.on).length : 1;
   b.textContent = lab ? (n > 1 ? `Register ${n} samples and issue IDs` : "Register and issue ID") : walk ? (n > 1 ? `Register ${n} samples` : "Register and get sample ID") : (n > 1 ? `Submit ${n} samples` : "Submit and get sample ID");
 }
 function showKind(v){
-  const batch = formKind() === "batch", isJob = formKind() === "job";
+  const batch = formKind() === "batch", isJob = isJobKind(formKind());
   $("#rBatch", v).hidden = !batch;
   v.querySelectorAll("[data-single]").forEach(x => { x.hidden = batch || isJob; });
   // v24d: a shift job lists its samples (each with its own type and analysis) instead of one sample type and analysis
   const j = $("#rJob", v); if (j) j.hidden = !isJob;
   v.querySelectorAll(".sub-step.s1:not(.job-step)").forEach(x => { x.hidden = isJob; });
   const d = $("#rDetails", v); if (d) d.hidden = isJob;
-  if (isJob){ const pu = $("#rPurpose", v); if (pu && !pu.value){ pu.value = "plant"; pu.dispatchEvent(new Event("change")); } }
+  if (isJob && job){ jobGroup(v); jobDefaults(v); }   // the kind's templates; the template's purpose and section (process control from PLT; a MET Lab job from MET)
   if (batch && !$("#rRows .r-code", v)) renderRows();
   submitLabel();
 }
@@ -7729,8 +7746,15 @@ async function watchBatchRef(text, seq){
   put(first.docs); $("#lookupInput").value = T;
   try { history.replaceState(null, "", "#" + T.replace(/[^A-Za-z0-9._~-]/g, "")); } catch {}
   renderTrack();
-  unsubCurrent = q.onSnapshot(snap => { if (seq !== openSeq || current?.batch !== T) return; put(snap.docs); if (tab === "track" && !typingIn("#view-track")) renderTrack(); }, () => {});
+  unsubCurrent = q.onSnapshot(snap => { if (seq !== openSeq || current?.batch !== T) return; put(snap.docs); batchSoon(); }, () => {});
   return true;
+}
+/* v24d (20 Oct): a job of 80 samples changes 80 records at a time (receipt, results, release): the batch page is drawn at once for the first
+   change, then at most every 200 ms while they keep coming, and once more after the last. */
+function batchSoon(){
+  clearTimeout(batchSoon.t);
+  const wait = Math.max(0, (batchSoon.at || 0) + 200 - Date.now());
+  batchSoon.t = setTimeout(() => { batchSoon.at = Date.now(); if (tab === "track" && current?.batch && !typingIn("#view-track")) renderTrack(); }, wait);
 }
 let batchRecvBusy = false;
 function renderBatchView(v){
@@ -8813,7 +8837,7 @@ function batchCode(ref, no, at, certs){
   const h = seed => { let x = seed; for (const ch of body){ x ^= ch.codePointAt(0); x = Math.imul(x, 0x01000193) >>> 0; } return x.toString(16).padStart(8, "0"); };
   return (h(0x811c9dc5) + h(0x2f6b1a3d)).toUpperCase().match(/.{4}/g).join("-");
 }
-async function releaseGroup(ref, wit, quiet){
+async function releaseGroup(ref, wit, quiet, step){
   const none = { n: 0, no: "", why: "" }, say = why => { if (!quiet) toast(why); return { ...none, why }; };
   if (!canRelease()) return say(relNow() ? "Only lab staff release results." : "Only a lab supervisor can release results.");
   let docs;
@@ -8829,12 +8853,12 @@ async function releaseGroup(ref, wit, quiet){
   const certs = ready.map(s => [s.id, { ...makeCert(s, at, ""), no, bref: ref, bv: v, bn: ready.length }]), code = batchCode(ref, no, at, certs);
   certs.forEach(([, c]) => { c.code = code; });
   const byId = new Map(ready.map(s => [s.id, s])), cert = new Map(certs);
-  const n = await pool(ready.map(s => s.id), 4, id => sampleWrite(id, s => {
+  const n = await pool(ready.map(s => s.id), 8, id => sampleWrite(id, s => {
     const s0 = byId.get(id);
     if (!grouped(s) || (s.results?.v || 0) !== (s0.results?.v || 0) || s.stageKey !== s0.stageKey) return null;   // changed meanwhile: not released with the others
     const w = walkToRelease(s, from, wit); if (w.t > at) return null;
     return releaseUpdate({ ...s, history: w.history }, at, `Released with batch ${ref}`, twoPerson(s) ? wit : "", "", "", cert.get(id));
-  }));
+  }), step);
   for (const b of new Set(ready.flatMap(s => Object.values(labsOf(s)).map(l => l.b)))) await closeBatchIfDone(b);
   if (n && n < ready.length && !quiet) toast(`${n} of ${ready.length} released on ${no}; the others changed meanwhile. Open them to check.`);
   return { n, no, why: n ? "" : "the samples changed meanwhile" };
@@ -9053,30 +9077,36 @@ const JOB_SHIFT = {
   D: { code: "DS", name: "Day shift", t: ["07:00", "10:00", "13:00", "16:00"], h: ["07", "09", "11", "13", "15", "17"], p: null, ct: "CIL tank 11" }
 };
 const ABCD = ["A", "B", "C", "D"];
+const pad2 = n => String(n).padStart(2, "0");
+/* v24d (20 Oct): the plant has 11 CIL tanks; a tank out of use is unticked, not left out. */
+const TANKS = Array.from({ length: 11 }, (_, i) => i + 1);
+/* The bottle roll's size fractions (µm), the same every time: −53A from wet sizing, −53B from dry sizing. */
+const BRT_FR = [["+425", "+425 µm"], ["+212", "+212 µm"], ["+150", "+150 µm"], ["+106", "+106 µm"], ["+75", "+75 µm"], ["+53", "+53 µm"], ["-53A", "−53 µm, wet sizing"], ["-53B", "−53 µm, dry sizing"]];
 /* The analysis a point usually gets (the shift reports); a point not listed takes its type's first. */
 const POINT_TEST = {
   "CIL feed": "aufx_ausx", "Special CIL feed": "aufx_ausx", "CIL tails": "aufx_ausx", "COF (cyclone overflow)": "aufx_ausx", "CUF (cyclone underflow)": "aufx_ausx",
   "CIL tank": "aufx_ausx_cn", "CIL tails launder": "ausx", "Tails grab": "cn_only",
   "CCD overflow": "ausx_cn", "CCD feed": "aufx_ausx", "CCD underflow": "aufx_ausx", "CCD tails": "aufx_ausx",
-  "TSF spigot": "cn_only", "Decant pond": "ausx_cn", "Return water": "ausx_cn", "Seepage / underdrain": "ausx_cn"
+  "TSF spigot": "cn_only", "Decant pond": "ausx_cn", "Return water": "ausx_cn", "Seepage / underdrain": "ausx_cn", "Pre-leach feed": "aufx_ausx", "Process water": "ausx_cn"
 };
 const JOB_TYPES = ["plant_feed", "ccd", "tsf", "carbon", "elution"];
 const ptField = t => (typeOf(t)?.fields || [])[0] || { k: "point", l: "Sampling point", o: [] };
 const pointTest = (t, pt) => { const k = POINT_TEST[pt]; return k && typeTests(typeOf(t)).includes(k) ? k : t === "carbon" ? "c_load" : t === "elution" ? "elu_sol" : typeOf(t)?.tests?.[0] || ""; };
 /* Codes and descriptions: {S} NS/DS, {SN} Night shift / Day shift, {D} the date as yyyymmdd ({D-1} the day before), {#1} {#2} "#" and an
-   elution number (blank: nothing). */
+   elution number (blank: nothing), {n1} a number as two digits (01). det: what the sample is within its job, kept in its details: tank (0 the
+   pre-leach feed), frac and side (a bottle roll's fraction, feed or tails), pair and role (a preg-robbing test and its control), bv (time). */
 const R = (t, pt, test, code, desc, det) => ({ t, pt, test, code, desc, ...(det ? { det } : {}) });
 const OFF = (r, ...shifts) => ({ ...r, off: shifts });   // listed, but not ticked at first on these shifts
 const JOB_TPL = [
-  { key: "mill", name: "Mill shift", shift: true, n: [["n1", "Stripped carbon: elution no."], ["n2", "Loaded carbon: elution no."]], rows: S => [
+  { key: "mill", name: "Mill shift", group: "Plant", pur: "plant", sec: "PLT", shift: true, n: [["n1", "Stripped carbon: elution no."], ["n2", "Loaded carbon: elution no."]], rows: S => [
     ...ABCD.map((x, i) => R("ccd", "CCD overflow", "ausx_cn", `ML{S}REC${x}{D}`, `{SN} ${S.t[i]} CCD #1 overflow sample`)),
     ...ABCD.map((x, i) => R("plant_feed", "Tails grab", "cn_only", `ML{S}TLS${x}{D}`, `{SN} ${S.t[i]} tails grab sample`)),
     ...["A", "B"].map((x, i) => R("tsf", "TSF spigot", "cn_only", `TSF{S}PG${x}{D}`, `{SN} tails dam spigot sample ${x}${S.p ? ` ${S.p[i]}HRS` : ""}`)),
     OFF(R("carbon", "Eluted carbon", "c_load", "ML{S}CBST{D}{#1}", "Mill {sn} stripped carbon for the elution circuit{#1}"), "D"),
     OFF(R("carbon", "Regenerated carbon", "c_load", "ML{S}CBRG{D}", "Mill {sn} regen carbon from the elution circuit"), "N"),
-    ...[6, 7, 8, 9, 10].map(i => R("carbon", "CIL tank carbon", "c_load", `ML{S}CL${String(i).padStart(2, "0")}{D}`, `Mill {sn} carbon from CIL tank ${i}`)),
+    ...TANKS.filter(i => i >= 6).map(i => R("carbon", "CIL tank carbon", "c_load", `ML{S}CL${pad2(i)}{D}`, `Mill {sn} carbon from CIL tank ${i}`, { tank: i })),
     OFF(R("carbon", "Loaded carbon (to elution)", "c_load", "ML{S}CBLD{D}{#2}", "Mill {sn} loaded carbon for the elution circuit{#2}"), "D"),
-    ...[1, 2, 3, 4, 5].map(i => R("carbon", "CIL tank carbon", "c_load", `ML{S}CL${String(i).padStart(2, "0")}{D}`, `Mill {sn} carbon from CIL tank ${i}`)),
+    ...TANKS.filter(i => i < 6).map(i => R("carbon", "CIL tank carbon", "c_load", `ML{S}CL${pad2(i)}{D}`, `Mill {sn} carbon from CIL tank ${i}`, { tank: i })),
     ...S.h.map(h => R("plant_feed", "CIL tails launder", "ausx", `ML{S}CT${h}{D}`, `Mill {sn} ${S.ct} ${h}00 hours special sample`)),
     R("tsf", "Decant pond", "ausx_cn", "ML{S}POND{D}", "Decant pond solution"),
     R("plant_feed", "CIL feed", "aufx_ausx", "ML{S}CLF1{D}", "Mill {sn} CIL feed 1"),
@@ -9085,10 +9115,10 @@ const JOB_TPL = [
     R("plant_feed", "COF (cyclone overflow)", "aufx_ausx", "ML{S}COF {D}", "Mill {sn} cyclone overflow"),
     R("plant_feed", "CUF (cyclone underflow)", "aufx", "ML{S}CUF {D}", "Mill {sn} cyclone underflow"),
     R("ccd", "CCD tails", "aufx_ausx", "ML{S}TDDS{D}", "{SN} CCD tails sample"),
-    R("plant_feed", "CIL tank", "aufx_ausx", "ML{S}TK11{D}", "{SN} tank 11 sample"),
+    R("plant_feed", "CIL tank", "aufx_ausx", "ML{S}TK11{D}", "{SN} tank 11 sample", { tank: 11 }),
     R("plant_feed", "Special CIL feed", "aufx_ausx", "ML{S}SPFD{D}", "Mill {sn} special CIL feed")
   ] },
-  { key: "elution", name: "Elution run", shift: false, n: [["n1", "Strip no."]], rows: () => [
+  { key: "elution", name: "Elution run", group: "Plant", pur: "plant", sec: "PLT", shift: false, n: [["n1", "Strip no."]], rows: () => [
     ...Array.from({ length: 10 }, (_, i) => (i + 1) * 60).map(m => R("elution", "Electrowinning tails", "elu_sol", `MLSPE${String(m).padStart(3, "0")}{D}`, `Electrowinning tails solution ${m} mins`, { bv: `${m} min` })),
     ...Array.from({ length: 11 }, (_, i) => i * 60).map(m => R("elution", "Electrowinning head", "elu_sol", `MLSPH${String(m).padStart(3, "0")}{D}`, `Electrowinning head solution ${m} mins`, { bv: `${m} min` })),
     ...Array.from({ length: 12 }, (_, i) => (i + 1) * 30).map(m => R("elution", "Pregnant solution", "elu_sol", `MLSPP${String(m).padStart(3, "0")}{D}`, `Pregnant solution ${String(m).padStart(3, "0")} mins`, { bv: `${m} min` })),
@@ -9096,40 +9126,64 @@ const JOB_TPL = [
     R("elution", "Lean eluate", "elu_sol", "MLSPLNBF{D}", "Lean eluate solution before strip"),
     R("elution", "Treated water", "elu_sol", "MLSPTRTD{D}", "Mill special treated water")
   ] },
-  { key: "cact", name: "Carbon activity", shift: true, n: [["n1", "Elution no."]], rows: () => [
+  { key: "cact", name: "Carbon activity", group: "Plant", pur: "plant", sec: "PLT", shift: true, n: [["n1", "Elution no."]], rows: () => [
     R("carbon", "Regenerated carbon", "c_act", "ML{S}CBRG{D}", "Mill {sn} regen carbon from the elution circuit"),
     R("carbon", "Eluted carbon", "c_act", "MLSCBST{D}{#1}", "Mill special stripped carbon for the elution circuit{#1}"),
     R("carbon", "Loaded carbon (to elution)", "c_act", "MLSCBLD{D-1}{#1}", "Mill special loaded carbon for the elution circuit{#1}"),   // sampled the day before its strip (the lab's report)
     { ...R("carbon", "Fresh carbon", "c_act", "", "Virgin carbon"), ph: "Type its code, e.g. the supplier's name" }
+  ] },
+  /* v24d (20 Oct): the MET Lab's routine jobs, from its reports. Codes: MLSP (mill special) for the tank profile, MLAB for the MET Lab's own. */
+  { key: "tank", name: "Tank profile", group: "MET Lab", pur: "plant", sec: "MET", shift: false, n: [], rows: () => [
+    R("plant_feed", "Pre-leach feed", "aufx_ausx", "MLSPPLFD{D}", "Pre-leach feed", { tank: 0 }),
+    ...TANKS.map(i => R("plant_feed", "CIL tank", "aufx_ausx", `MLSPTK${pad2(i)}{D}`, `Mill special tank ${pad2(i)} slurry sample`, { tank: i })),
+    R("plant_feed", "Process water", "ausx_cn", "PROCWATE{D}", "Mill special process water sample")
+  ] },
+  { key: "brt", name: "Bottle roll (BRT)", group: "MET Lab", pur: "met_br", sec: "MET", shift: false, mass: true, n: [["n1", "Filtrate no.", "01"]], rows: () => [
+    ...BRT_FR.map(([f, l]) => R("plant_feed", "BRT feed", "aufx", `MLABPF${f}{D}`, `BRT feed ${l}`, { frac: f, side: "Feed" })),
+    ...BRT_FR.map(([f, l]) => R("plant_feed", "BRT tails", "aufx", `MLABPT${f}{D}`, `BRT tails ${l}`, { frac: f, side: "Tails" })),
+    R("plant_feed", "BRT filtrate", "ausx", "MLABSL{n1}{D}", "BRT filtrate solution")
+  ] },
+  { key: "preg", name: "Preg-robbing test", group: "MET Lab", pur: "met_pri", sec: "MET", shift: false, cnt: [["n", "Samples tested", 15]], n: [["sp", "Spike (mg/L Au)", "", "Spike (mg/L)"]], rows: (S, C) => [
+    ...Array.from({ length: C.n }, (_, i) => R("plant_feed", "Preg-rob test", "ausx", `MLABPREG${pad2(i + 1)}{D}`, `Preg-rob test ${pad2(i + 1)}: ore with the spiked solution`, { pair: i + 1, role: "Test" })),
+    ...Array.from({ length: C.n }, (_, i) => R("plant_feed", "Preg-rob control", "ausx", `MLABPREG${pad2(C.n + i + 1)}{D}`, `Preg-rob control for ${pad2(i + 1)}`, { pair: i + 1, role: "Control" }))
+  ] },
+  { key: "qaqc", name: "QA/QC set", group: "MET Lab", pur: "qc", sec: "MET", shift: false, cnt: [["pps", "Process plant samples (PPS)", 45], ["cb", "Carbon samples (CB)", 26], ["sl", "Filtrate solutions (SL)", 15]], n: [], rows: (S, C) => [
+    ...Array.from({ length: C.pps }, (_, i) => R("plant_feed", "Process plant sample", "aufx", `MLABPPS${pad2(i + 1)}{D}`, `MET QA/QC process plant sample ${pad2(i + 1)}`)),
+    ...Array.from({ length: C.cb }, (_, i) => R("carbon", "Carbon sample", "c_load", `MLABCB${pad2(i + 1)}{D}`, `MET QA/QC carbon sample ${pad2(i + 1)}`)),
+    ...Array.from({ length: C.sl }, (_, i) => R("plant_feed", "BRT filtrate", "ausx", `MLABSL${pad2(i + 1)}{D}`, `MET QA/QC filtrate solution ${pad2(i + 1)}`))
   ] }
 ];
+/* Counts for a template's numbered sets (what was typed, or its usual number), up to 99 each. */
+const jobCounts = T => Object.fromEntries((T.cnt || []).map(([k, , d]) => { const v = job?.c?.[k]; return [k, Math.max(0, Math.min(99, v == null || v === "" ? d : +v || 0))]; }));
+const jobNum = (T, k) => { const e = (T.n || []).find(x => x[0] === k); return job?.n?.[k] != null && job.n[k] !== "" ? job.n[k] : e?.[2] || ""; };
 const jobTpl = k => JOB_TPL.find(x => x.key === k) || JOB_TPL[0];
 const dayCode = v => String(v || "").replace(/-/g, "");   // a date input's yyyy-mm-dd as yyyymmdd
 let job = null;   // { tpl, shift, date, n: {n1, n2}, rows: [{ on, t, pt, test, code, desc, det, ec, ed }] } (ec / ed: code / description typed over)
 function jobFill(x, ctx){
   const S = JOB_SHIFT[ctx.shift] || JOB_SHIFT.N, num = k => ctx.n[k] ? "#" + String(ctx.n[k]).replace(/^#/, "") : "";
   const t0 = Date.parse(String(ctx.date || "") + "T12:00:00Z"), before = isFinite(t0) ? dayCode(new Date(t0 - 86400e3).toISOString().slice(0, 10)) : "";
-  return String(x).replace(/\{S\}/g, S.code).replace(/\{SN\}/g, S.name).replace(/\{sn\}/g, S.name.toLowerCase()).replace(/\{D-1\}/g, before).replace(/\{D\}/g, dayCode(ctx.date)).replace(/\{#1\}/g, num("n1")).replace(/\{#2\}/g, num("n2"));
+  const n1 = String(jobNum(jobTpl(ctx.tpl), "n1")).replace(/\D/g, ""), two = n1 ? pad2(+n1) : "";
+  return String(x).replace(/\{S\}/g, S.code).replace(/\{SN\}/g, S.name).replace(/\{sn\}/g, S.name.toLowerCase()).replace(/\{D-1\}/g, before).replace(/\{D\}/g, dayCode(ctx.date)).replace(/\{#1\}/g, num("n1")).replace(/\{#2\}/g, num("n2")).replace(/\{n1\}/g, two);
 }
 /* The rows for the template, shift, date and numbers: generated codes and descriptions follow them, what was typed over stays. */
 function jobRows(keep){
-  const T = jobTpl(job.tpl), S = JOB_SHIFT[job.shift] || JOB_SHIFT.N, base = T.rows(S);
+  const T = jobTpl(job.tpl), S = JOB_SHIFT[job.shift] || JOB_SHIFT.N, base = T.rows(S, jobCounts(T));
   const old = keep && keep.length === base.length ? keep : null;
   job.rows = [...base.map((r, i) => {
     const o = old && old[i];
     const on0 = !(r.off || []).includes(job.shift), fresh = r.ph && !o?.ec ? lsGet("jobFresh") || "" : "";
-    return { on: o?.ut ? o.on : on0, ut: !!o?.ut, ph: r.ph || "", t: r.t, pt: r.pt, test: o?.test || r.test, code: o?.ec ? o.code : fresh || jobFill(r.code, job), desc: o?.ed ? o.desc : jobFill(r.desc, job), det: r.det || null, ec: !!o?.ec || !!fresh, ed: !!o?.ed, gen: [r.code, r.desc] }; }),
+    return { on: o?.ut ? o.on : on0, ut: !!o?.ut, ph: r.ph || "", t: r.t, pt: r.pt, test: o?.test || r.test, code: o?.ec ? o.code : fresh || jobFill(r.code, job), desc: o?.ed ? o.desc : jobFill(r.desc, job), det: r.det || null, mass: o?.mass || "", ec: !!o?.ec || !!fresh, ed: !!o?.ed, gen: [r.code, r.desc] }; }),
     ...(keep || []).filter(r => r.extra)];
 }
 function jobBlock(){
   return `<div class="sub-step s1 job-step" id="rJob" hidden><div class="sub-t"><span class="num">1</span>Shift samples</div>
     <div class="form">
-      <label class="f"><span>Template</span><select id="jTpl">${JOB_TPL.map(x => `<option value="${x.key}">${esc(x.name)}</option>`).join("")}</select></label>
+      <label class="f"><span>Template</span><select id="jTpl" data-g="Plant">${JOB_TPL.filter(x => x.group === "Plant").map(x => `<option value="${x.key}">${esc(x.name)}</option>`).join("")}</select></label>
       <label class="f" id="jShiftBox"><span>Shift</span><select id="jShift"><option value="N">Night shift (NS)</option><option value="D">Day shift (DS)</option></select></label>
       <label class="f"><span>Date on the codes</span><input id="jDate" type="date"></label>
       <div class="f" id="jNums"></div>
     </div>
-    <div class="tbl-wrap"><table class="jrows"><thead><tr><th><input type="checkbox" id="jAll" aria-label="Tick all" checked></th><th>Sample</th><th>Code</th><th>Description</th><th>Analysis</th></tr></thead><tbody id="jRows"></tbody></table></div>
+    <div class="tbl-wrap"><table class="jrows"><thead><tr><th><input type="checkbox" id="jAll" aria-label="Tick all" checked></th><th>Sample</th><th>Code</th><th>Description</th><th>Analysis</th><th id="jMassH" hidden>Mass (g)</th></tr></thead><tbody id="jRows"></tbody></table></div>
     <div class="row" style="gap:8px"><select class="inp" id="jAdd" style="width:auto;max-width:100%" aria-label="Add a sample"><option value="">+ Add a sample…</option>${JOB_TYPES.map(t => `<optgroup label="${esc(typeOf(t)?.name || t)}">${(ptField(t).o || []).map(p => `<option value="${esc(t + "|" + p)}">${esc(p)}</option>`).join("")}</optgroup>`).join("")}</select>
       <span class="small" id="jInfo"></span></div>
   </div>`;
@@ -9139,12 +9193,13 @@ function renderJob(){
   const body = $("#jRows"); if (!body || !job) return;
   const T = jobTpl(job.tpl);
   $("#jShiftBox").hidden = !T.shift;
-  const nb = $("#jNums"); if (nb && nb.dataset.tpl !== T.key){ nb.dataset.tpl = T.key; nb.innerHTML = `<div class="form">${T.n.map(([k, l]) => `<label class="f"><span>${esc(l)}</span><input id="jN_${k}" inputmode="numeric" maxlength="8" placeholder="e.g. 31" value="${esc(job.n[k] || "")}"></label>`).join("")}</div>`; }
+  const nb = $("#jNums"); if (nb && nb.dataset.tpl !== T.key){ nb.dataset.tpl = T.key; nb.innerHTML = `<div class="form">${(T.cnt || []).map(([k, l, d]) => `<label class="f"><span>${esc(l)}</span><input id="jC_${k}" type="number" min="0" max="99" step="1" inputmode="numeric" value="${esc(job.c?.[k] ?? d)}"></label>`).join("")}${T.n.map(([k, l, d, dl]) => `<label class="f"><span>${esc(l)}</span><input id="jN_${k}" ${dl ? 'inputmode="decimal"' : 'inputmode="numeric"'} maxlength="8" placeholder="${esc(d || (dl ? "e.g. 2.5" : "e.g. 31"))}" value="${esc(job.n[k] || "")}"></label>`).join("")}</div>`; }
+  $("#jMassH").hidden = !T.mass;
   body.innerHTML = job.rows.map((r, i) => `<tr class="${r.on ? "" : "off"}"><td><input type="checkbox" data-jon="${i}" ${r.on ? "checked" : ""} aria-label="Include ${esc(r.code)}"></td>
     <td><span class="small muted">${esc(typeOf(r.t)?.name || r.t)}</span><div><b>${esc(r.pt)}</b></div></td>
     <td><input class="inp j-code" data-j="${i}" value="${esc(r.code)}" aria-label="Code, row ${i + 1}" placeholder="${esc(r.ph || "")}" autocomplete="off" spellcheck="false"></td>
     <td><input class="inp j-desc" data-j="${i}" value="${esc(r.desc)}" aria-label="Description, row ${i + 1}" autocomplete="off"></td>
-    <td><select class="inp j-test" data-j="${i}" aria-label="Analysis, row ${i + 1}">${jobTestOpts(r.t, r.test)}</select></td></tr>`).join("");
+    <td><select class="inp j-test" data-j="${i}" aria-label="Analysis, row ${i + 1}">${jobTestOpts(r.t, r.test)}</select></td>${T.mass ? `<td>${r.det?.frac ? `<input class="inp j-mass" data-j="${i}" inputmode="decimal" value="${esc(r.mass || "")}" aria-label="Mass in grams, ${esc(r.code)}" placeholder="g">` : ""}</td>` : ""}</tr>`).join("");
   jobHints();
 }
 function jobHints(){
@@ -9156,7 +9211,7 @@ function jobHints(){
   if (info){ info.textContent = dup.size ? "Same code twice" : `${on.length} of ${job.rows.length} samples ticked · untick what was not sampled`; info.classList.toggle("bad-t", dup.size > 0); }
   const all = $("#jAll"); if (all) all.checked = on.length === job.rows.length;
   // a number that goes into codes (elution no. after #) is asked for while a ticked sample's code carries it; one that does not (strip no.) always
-  const inCode = (r, k) => String(r.gen?.[0] || "").includes(`{#${k.slice(1)}}`);
+  const inCode = (r, k) => String(r.gen?.[0] || "").includes(`{#${k.slice(1)}}`) || String(r.gen?.[0] || "").includes(`{${k}}`);
   jobTpl(job.tpl).n.forEach(([k]) => { const el = $("#jN_" + k)?.closest("label"); if (el) el.hidden = job.rows.some(r => inCode(r, k)) && !on.some(r => inCode(r, k)); });
   submitLabel();
 }
@@ -9164,19 +9219,21 @@ function bindJob(v){
   const tp = $("#jTpl", v); if (!tp) return;
   /* In the morning the night shift's samples come in (the shift began the day before); in the evening the day shift's. */
   const hr = +localInput(Date.now()).slice(11, 13), night = hr >= 6 && hr < 18, back = night || hr < 6 ? 1 : 0;
-  job = { tpl: lsGet("jobTpl") || "mill", shift: night ? "N" : "D", date: localInput(Date.now() - back * 86400e3).slice(0, 10), n: {}, rows: [] };
+  job = { tpl: lsGet("jobTpl_Plant") || lsGet("jobTpl") || "mill", shift: night ? "N" : "D", date: localInput(Date.now() - back * 86400e3).slice(0, 10), n: {}, c: {}, rows: [] };
   if (!JOB_TPL.some(x => x.key === job.tpl)) job.tpl = "mill";
   tp.value = job.tpl; $("#jShift", v).value = job.shift; $("#jDate", v).value = job.date;
-  jobRows(); renderJob();
+  jobRows(); renderJob(); if (isJobKind(formKind())){ jobGroup(v); jobDefaults(v); }
   const again = () => { jobRows(job.rows); renderJob(); };
-  tp.onchange = () => { job.tpl = tp.value; lsSet("jobTpl", tp.value); job.n = {}; jobRows(); renderJob(); };
+  tp.onchange = () => { job.tpl = tp.value; lsSet("jobTpl_" + jobTpl(tp.value).group, tp.value); job.n = {}; job.c = {}; jobRows(); renderJob(); jobDefaults(v); };
   $("#jShift", v).onchange = e => { job.shift = e.target.value; again(); };
   $("#jDate", v).onchange = e => { job.date = e.target.value; again(); };
-  $("#jNums", v).addEventListener("input", e => { const m = e.target.id.match(/^jN_(n\d)$/); if (!m) return; job.n[m[1]] = e.target.value.trim(); job.rows.forEach(r => { if (!r.extra){ if (!r.ec) r.code = jobFill(r.gen[0], job); if (!r.ed) r.desc = jobFill(r.gen[1], job); } });
+  $("#jNums", v).addEventListener("input", e => {
+    const c = e.target.id.match(/^jC_(\w+)$/); if (c){ job.c[c[1]] = e.target.value; jobRows(job.rows); renderJob(); return; }   // a count: the numbered rows follow
+    const m = e.target.id.match(/^jN_(\w+)$/); if (!m) return; job.n[m[1]] = e.target.value.trim(); job.rows.forEach(r => { if (!r.extra){ if (!r.ec) r.code = jobFill(r.gen[0], job); if (!r.ed) r.desc = jobFill(r.gen[1], job); } });
     document.querySelectorAll("#jRows .j-code").forEach(el => { el.value = job.rows[+el.dataset.j].code; }); document.querySelectorAll("#jRows .j-desc").forEach(el => { el.value = job.rows[+el.dataset.j].desc; }); jobHints(); });
   const rows = $("#jRows", v);
   rows.addEventListener("input", e => { const el = e.target, r = job.rows[+el.dataset.j]; if (!r) return;
-    if (el.classList.contains("j-code")){ r.code = el.value; r.ec = true; } else if (el.classList.contains("j-desc")){ r.desc = el.value; r.ed = true; } jobHints(); });
+    if (el.classList.contains("j-code")){ r.code = el.value; r.ec = true; } else if (el.classList.contains("j-desc")){ r.desc = el.value; r.ed = true; } else if (el.classList.contains("j-mass")){ r.mass = el.value.trim(); return; } jobHints(); });
   rows.addEventListener("change", e => { const el = e.target;
     if (el.dataset.jon != null){ Object.assign(job.rows[+el.dataset.jon], { on: el.checked, ut: true }); el.closest("tr").classList.toggle("off", !el.checked); jobHints(); }
     else if (el.classList.contains("j-test")) job.rows[+el.dataset.j].test = el.value; });
@@ -9187,6 +9244,21 @@ function bindJob(v){
     job.rows.push({ on: true, extra: true, t, pt, test: pointTest(t, pt), code: "", desc: "", det: null, ec: true, ed: true, gen: ["", ""] });
     renderJob(); $(`#jRows .j-code[data-j="${job.rows.length - 1}"]`)?.focus();
   };
+}
+/* Shift job lists the plant's templates, MET Lab job the MET Lab's (20 Oct: "MET Lab … should be independent"); each kind remembers its last. */
+function jobGroup(v){
+  const g = formKind() === "met" ? "MET Lab" : "Plant", tp = $("#jTpl", v || document); if (!tp || !job) return;
+  const list = JOB_TPL.filter(x => x.group === g);
+  if (tp.dataset.g !== g){ tp.dataset.g = g; tp.innerHTML = list.map(x => `<option value="${x.key}">${esc(x.name)}</option>`).join(""); }
+  if (!list.some(x => x.key === job.tpl)){ const last = lsGet("jobTpl_" + g); job.tpl = list.some(x => x.key === last) ? last : list[0].key; job.n = {}; job.c = {}; jobRows(); }
+  tp.value = job.tpl; renderJob();
+  const t = $("#rJob .sub-t", v || document); if (t) t.innerHTML = `<span class="num">1</span>${g === "MET Lab" ? "MET Lab samples" : "Shift samples"}`;
+}
+/* The template's purpose and section (a MET Lab job from MET), filled in until the submitter picks their own. */
+function jobDefaults(v){
+  const T = jobTpl(job.tpl), pu = $("#rPurpose", v || document), sc = $("#rSection", v || document); if (!pu || !sc) return;
+  if (!pu.value || pu.value === job.pu0){ if ([...pu.options].some(o => o.value === T.pur)){ pu.value = T.pur; job.pu0 = T.pur; } }
+  if (!sc.value || sc.value === job.sc0){ if ([...sc.options].some(o => o.value === T.sec)){ sc.value = T.sec; sc.dataset.auto = "1"; job.sc0 = T.sec; } }
 }
 /* The submission: one batch of the ticked rows, each sample on the job route with its own analysis (its own route's retention and limits). */
 async function registerJob(){
@@ -9238,7 +9310,10 @@ async function registerJob(){
       open: true, onHand: lab, lab: true, ...(lab ? { sx: 1 } : {}), ...(walk ? { via: "walkin" } : {}), batchKey: `${code}-${now.toString(36)}-${tabId.slice(0, 4)}`, batchSize: n, batchName, job: T.key };
     const make = (id, i, batchId) => {
       const { r, t, rf } = per[i], recv = recvOf(r.t), w = recv?.wit || "";
-      const details = { [ptField(r.t).l]: r.pt, ...(T.shift && (t?.fields || []).some(f => f.k === "shift") ? { Shift: S.name.replace(/ shift$/, "") } : {}), ...(r.det?.bv ? { "Time or bed volume": r.det.bv } : {}), ...(r.t === "elution" && job.n.n1 ? { "Elution batch / strip no.": job.n.n1 } : {}) };
+      const d = r.det || {}, mass = String(r.mass || "").replace(",", ".").trim();
+      const details = { [ptField(r.t).l]: r.pt, ...(T.shift && (t?.fields || []).some(f => f.k === "shift") ? { Shift: S.name.replace(/ shift$/, "") } : {}), ...(d.bv ? { "Time or bed volume": d.bv } : {}), ...(r.t === "elution" && job.n.n1 ? { "Elution batch / strip no.": job.n.n1 } : {}),
+        ...(d.tank != null ? { "CIL tank": d.tank === 0 ? "Pre-leach" : String(d.tank) } : {}), ...(d.frac ? { "Size fraction": d.frac, BRT: d.side } : {}), ...(d.frac && mass && isFinite(+mass) && +mass > 0 ? { "Mass (g)": String(+mass) } : {}),
+        ...(d.pair ? { "Preg-rob pair": pad2(d.pair), "Preg-rob": d.role } : {}), ...Object.fromEntries((T.n || []).filter(x => x[3] && job.n[x[0]]).map(x => [x[3], job.n[x[0]]])) };
       const body = { ...base, ...rf, id, type: t?.name || r.t, typeKey: r.t, details, hazards: [...(t?.haz || [])], recv, batchIndex: i + 1, ...(batchId && n > 1 ? { batchId } : {}),
         tags: [tags[i]], tagNo: tags[i], source: r.desc.trim().slice(0, 120), siteRef: "", siteRefU: "",
         history: [lab ? { key: start, sn: startName, at: recvAt, by: session.u, tech: session.name, note: `Received and registered at the lab with ${batchName}`, ref: "", ...(w ? { wit: w } : {}) }
@@ -9295,6 +9370,7 @@ function minsOf(s){
   m = t.match(/^(\d{1,2}):(\d{2})$/); return m ? +m[1] * 60 + +m[2] : null;
 }
 const vzNum = v => v == null || !isFinite(v) ? "—" : Math.abs(v) >= 100 ? v.toFixed(1) : Math.abs(v) >= 10 ? v.toFixed(1) : Math.abs(v) >= 1 ? v.toFixed(2) : v.toFixed(3);
+const vzG = v => v == null || !isFinite(v) ? "—" : v.toFixed(2);   // gold in solids (g/t), two decimals as the lab reports it
 const vzPct = v => v == null || !isFinite(v) ? "—" : v.toFixed(1) + "%";
 const vzItems = docs => docs.filter(s => canSeeResults(s) && s.results?.rows).map(s => ({ s, rows: s.results.rows, test: s.test }));
 /* ---- elution: the strip profile ---- */
@@ -9358,7 +9434,7 @@ function vzSvg(o, w, h){
   const vs = o.series.flatMap(x => x.pts.map(p => p.v)), xs = o.series.flatMap(x => x.pts.map(p => p.t));
   let y0 = o.zero ? 0 : Math.min(...vs), y1 = Math.max(...vs); if (y1 === y0){ y1 += 1; y0 = Math.max(0, y0 - 1); }
   const ys = niceStep(y1 - y0, ph < 140 ? 3 : 5); y0 = Math.floor(y0 / ys) * ys; y1 = Math.ceil(y1 / ys) * ys;
-  const x0 = 0, x1 = Math.max(...xs, 1), xt = o.xticks ? o.xticks.filter(t => t <= x1) : (() => { const st = niceStep(x1, Math.max(2, Math.floor(pw / 56))); const a = []; for (let t = 0; t <= x1 + 1e-9; t += st) a.push(+t.toFixed(6)); return a; })();
+  const x0 = o.x0 ?? 0, x1 = Math.max(...xs, x0 + 1), xt = o.xticks ? o.xticks.filter(t => t <= x1) : (() => { const st = niceStep(x1, Math.max(2, Math.floor(pw / 56))); const a = []; for (let t = 0; t <= x1 + 1e-9; t += st) a.push(+t.toFixed(6)); return a; })();
   const X = t => L + (t - x0) / (x1 - x0) * pw, Y = v => T + (y1 - v) / (y1 - y0) * ph;
   const yt = []; for (let v = y0; v <= y1 + ys / 1e6; v += ys) yt.push(+v.toFixed(6));
   const fy = v => Math.abs(v) >= 1000 ? (v / 1000).toFixed(v % 1000 ? 1 : 0) + "K" : String(+v.toFixed(3));
@@ -9366,7 +9442,7 @@ function vzSvg(o, w, h){
   return { html: `<svg class="vz-svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(o.title)}">
     ${yt.map(v => `<line class="vz-grid" x1="${L}" x2="${w - R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}"/><text class="vz-tick" x="${L - 6}" y="${(Y(v) + 4).toFixed(1)}" text-anchor="end">${fy(v)}</text>`).join("")}
     <line class="vz-axis" x1="${L}" x2="${w - R}" y1="${T + ph}" y2="${T + ph}"/>
-    ${xt.map(t => `<text class="vz-tick" x="${X(t).toFixed(1)}" y="${T + ph + 16}" text-anchor="middle">${t}</text>`).join("")}
+    ${xt.map(t => `<text class="vz-tick" x="${X(t).toFixed(1)}" y="${T + ph + 16}" text-anchor="middle">${esc(o.xfmt ? o.xfmt(t) : String(t))}</text>`).join("")}
     <text class="vz-unit" x="${L - 6}" y="11" text-anchor="end">${esc(o.yunit)}</text><text class="vz-unit" x="${w - R}" y="${h - 2}" text-anchor="end">${esc(o.xunit)}</text>
     ${lines}
     ${o.live ? `<line class="vz-cross" x1="0" x2="0" y1="${T}" y2="${T + ph}" visibility="hidden"/><g class="vz-hl"></g><rect class="vz-hit" x="${L - 8}" y="0" width="${pw + 16}" height="${h}" fill="transparent"/>` : ""}
@@ -9377,7 +9453,8 @@ const vzLegend = series => series.length > 1 ? `<div class="vz-legend">${series.
 function vzSlot(id, o){ vzStore.set(id, o); return `${vzLegend(o.series)}<div class="vz-chart" id="${id}" tabindex="0" aria-label="${esc(o.title)}. Use the arrow keys to read the values."><div class="vz-tip" hidden></div></div>`; }
 function vzDraw(el){
   const o = vzStore.get(el.id); if (!o) return;
-  const w = Math.max(260, Math.floor(el.clientWidth || 600)), h = w < 480 ? 220 : 280;
+  if (o.bars){ const w = Math.max(240, Math.floor(el.clientWidth || 600)); if (el.dataset.w === String(w) && el.dataset.k === o.key) return; el.dataset.w = String(w); el.dataset.k = o.key; el.innerHTML = vzBars(o.bars, w, o); return; }
+  const w = Math.max(240, Math.floor(el.clientWidth || 600)), h = o.h || (w < 480 ? 220 : 280);
   if (el.dataset.w === String(w) && el.dataset.k === o.key) return;
   el.dataset.w = String(w); el.dataset.k = o.key;
   const g = vzSvg({ ...o, live: true }, w, h), tip = el.querySelector(".vz-tip");
@@ -9389,7 +9466,7 @@ function vzDraw(el){
     cur = i; const t = ts[i], x = g.X(t); cross.setAttribute("x1", x); cross.setAttribute("x2", x); cross.setAttribute("visibility", "visible");
     const at = o.series.map(s => [s, s.pts.find(p => p.t === t)]).filter(([, p]) => p);
     hl.innerHTML = at.map(([s, p]) => `<circle cx="${x}" cy="${g.Y(p.v)}" r="6" style="fill:${s.color}"/>`).join("");
-    tip.textContent = ""; const hd = document.createElement("div"); hd.className = "vz-tt"; hd.textContent = `${t} ${o.xunit}`; tip.appendChild(hd);
+    tip.textContent = ""; const hd = document.createElement("div"); hd.className = "vz-tt"; hd.textContent = o.xname ? o.xname(t) : `${t} ${o.xunit}`; tip.appendChild(hd);
     at.forEach(([s, p]) => { const r = document.createElement("div"); r.className = "vz-tr"; const k = document.createElement("i"); k.className = "vz-key"; k.style.setProperty("--c", s.color);
       const b = document.createElement("b"); b.textContent = `${vzNum(p.v)} ${o.yunit}`; const l = document.createElement("span"); l.textContent = s.label; r.append(k, b, l); tip.appendChild(r); });
     tip.hidden = false; const tw = tip.offsetWidth, left = x + 12 + tw > el.clientWidth ? x - 12 - tw : x + 12; tip.style.left = Math.max(0, left) + "px"; tip.style.top = (g.T + 4) + "px";
@@ -9406,7 +9483,107 @@ function bindViz(v){
   if (!vzRo && window.ResizeObserver) vzRo = new ResizeObserver(es => es.forEach(e => vzDraw(e.target)));
   els.forEach(el => { vzDraw(el); vzRo?.observe(el); });
   v.querySelectorAll("[data-vzmetal]").forEach(b => b.onclick = () => { vzMetal = b.dataset.vzmetal; if (current?.batch) renderTrack(); });
+  $("#brtSave", v)?.addEventListener("click", brtSaveMasses);
 }
+/* ---- v24d (20 Oct): tanks, bottle roll and preg-robbing ---- */
+/* A sample's place down the CIL: 0 the pre-leach feed, 1 to 11 the tanks (its job's details), or null. */
+const tankOf = s => { const t = (s?.details || {})["CIL tank"]; return t == null ? null : t === "Pre-leach" ? 0 : isFinite(+t) ? +t : null; };
+const tankName = t => t === 0 ? "Pre-leach feed" : `Tank ${t}`, tankTick = t => t === 0 ? "Feed" : "T" + t;
+const SLURRY = new Set(["aufx_ausx", "aufx_ausx_cn", "aufx"]);
+function tankProfile(items){
+  const pts = items.filter(x => SLURRY.has(x.test) && tankOf(x.s) != null).map(x => ({ t: tankOf(x.s), fx: resNum(x.rows?.Au), sx: resNum(x.rows?.Au_s), pH: resNum(x.rows?.pH), sol: resNum(x.rows?.sol), id: x.s.id })).sort((a, b) => a.t - b.t);
+  const fx = pts.filter(p => p.fx != null), sx = pts.filter(p => p.sx != null), pw = items.find(x => ptOf(x.s) === "Process water");
+  const out = { pts, fx, sx, pw: pw ? { au: resNum(pw.rows?.Au_s), wad: resNum(pw.rows?.wad), cn: resNum(pw.rows?.cn) } : null };
+  const feed = fx.find(p => p.t === 0), lastF = fx.filter(p => p.t > 0).at(-1);
+  out.leach = feed && lastF && feed.fx > 0 ? { pct: (feed.fx - lastF.fx) / feed.fx * 100, feed, last: lastF } : null;
+  const top = sx.filter(p => p.t > 0).reduce((a, b) => !a || b.sx > a.sx ? b : a, null), lastS = sx.filter(p => p.t > 0).at(-1);
+  out.ads = top && lastS && top.sx > 0 && lastS !== top ? { pct: (top.sx - lastS.sx) / top.sx * 100, top, last: lastS } : null;
+  return out;
+}
+const tankShows = items => tankProfile(items).pts.filter(p => p.fx != null || p.sx != null).length >= 3;
+function tankTiles(p){
+  const t = [];
+  if (p.leach) t.push(["Leach efficiency", vzPct(p.leach.pct), `AuFx ${vzG(p.leach.feed.fx)} g/t in the feed → ${vzG(p.leach.last.fx)} g/t in ${tankName(p.leach.last.t).toLowerCase()}`]);
+  if (p.ads) t.push(["Adsorption efficiency", vzPct(p.ads.pct), `AuSx ${vzNum(p.ads.top.sx)} mg/L in ${tankName(p.ads.top.t).toLowerCase()} → ${vzNum(p.ads.last.sx)} mg/L in ${tankName(p.ads.last.t).toLowerCase()}`]);
+  const ls = p.sx.filter(x => x.t > 0).at(-1); if (ls) t.push(["Gold in solution, last tank", `${vzNum(ls.sx)} mg/L`, tankName(ls.t)]);
+  if (p.pw && (p.pw.au != null || p.pw.wad != null)) t.push(["Process water", p.pw.au != null ? `${vzNum(p.pw.au)} mg/L` : "—", [p.pw.wad != null ? `WAD ${vzNum(p.pw.wad)} mg/L` : "", p.pw.cn != null ? `NaCN ${p.pw.cn} mg/L` : ""].filter(Boolean).join(" · ") || "gold in solution"]);
+  return t;
+}
+const tankTable = p => `<table class="vz-t"><thead><tr><th>Where</th><th>AuFx (g/t)</th><th>AuSx (mg/L)</th><th>pH</th><th>Solids (%)</th></tr></thead><tbody>${p.pts.map(x => `<tr><td>${esc(tankName(x.t))}</td><td class="mono">${vzG(x.fx)}</td><td class="mono">${vzNum(x.sx)}</td><td class="mono">${x.pH != null ? x.pH.toFixed(1) : "—"}</td><td class="mono">${x.sol != null ? x.sol.toFixed(1) : "—"}</td></tr>`).join("")}</tbody></table>`;
+const tankCharts = p => [
+  p.fx.length >= 2 ? { key: "tfx" + p.fx.map(x => x.fx).join(","), title: "Gold in solids down the tanks, AuFx (g/t)", yunit: "g/t", xunit: "", zero: true, h: 220, xticks: p.fx.map(x => x.t), xfmt: tankTick, xname: tankName, series: [{ label: "AuFx", color: "var(--vz-1)", pts: p.fx.map(x => ({ t: x.t, v: x.fx })) }] } : null,
+  p.sx.length >= 2 ? { key: "tsx" + p.sx.map(x => x.sx).join(","), title: "Gold in solution down the tanks, AuSx (mg/L)", yunit: "mg/L", xunit: "", zero: true, h: 220, xticks: p.sx.map(x => x.t), xfmt: tankTick, xname: tankName, series: [{ label: "AuSx", color: "var(--vz-2)", pts: p.sx.map(x => ({ t: x.t, v: x.sx })) }] } : null
+].filter(Boolean);
+/* Carbon in the CIL tanks (the Mill shift): gold loading tank by tank. */
+const carbonByTank = items => items.filter(x => x.test === "c_load" && tankOf(x.s) > 0).map(x => ({ t: tankOf(x.s), v: resNum(x.rows?.Au_c) })).filter(p => p.v != null).sort((a, b) => a.t - b.t);
+/* Bottle roll: feed and tails by size; recovery by size from each fraction's grades, and with the masses the calculated head and tails. */
+function brtCalc(items){
+  const one = (f, side) => items.find(x => (x.s.details || {})["Size fraction"] === f && (x.s.details || {}).BRT === side);
+  const mass = x => { const m = +String((x?.s.details || {})["Mass (g)"] || "").replace(",", "."); return m > 0 ? m : null; };
+  const fr = BRT_FR.map(([f, l]) => { const a = one(f, "Feed"), b = one(f, "Tails"); const F = a ? resNum(a.rows?.Au) : null, T = b ? resNum(b.rows?.Au) : null;
+    return { f, l, a, b, F, T, mF: mass(a), mT: mass(b), rec: F > 0 && T != null ? (F - T) / F * 100 : null }; }).filter(x => x.a || x.b);
+  const withF = fr.filter(x => x.F != null), withT = fr.filter(x => x.T != null);
+  const head = withF.length && withF.every(x => x.mF) ? withF.reduce((a, x) => a + x.mF * x.F, 0) / withF.reduce((a, x) => a + x.mF, 0) : null;
+  const tails = withT.length && withT.every(x => x.mT) ? withT.reduce((a, x) => a + x.mT * x.T, 0) / withT.reduce((a, x) => a + x.mT, 0) : null;
+  const units = head != null ? withF.reduce((a, x) => a + x.mF * x.F, 0) : 0; fr.forEach(x => { x.dist = head != null && x.F != null ? x.mF * x.F / units * 100 : null; });
+  const fil = items.find(x => ptOf(x.s) === "BRT filtrate");
+  return { fr, head, tails, rec: head > 0 && tails != null ? (head - tails) / head * 100 : null, fil: fil ? resNum(fil.rows?.Au_s) : null, filId: fil?.s.id, needM: fr.some(x => (x.a && !x.mF) || (x.b && !x.mT)) };
+}
+const brtShows = items => brtCalc(items).fr.filter(x => x.F != null || x.T != null).length >= 2;
+function brtTiles(b){
+  return [["Calculated head", b.head != null ? `${vzG(b.head)} g/t` : "—", b.head != null ? "feed fractions, weighted by mass" : "needs the feed masses"],
+    ["Calculated tails", b.tails != null ? `${vzG(b.tails)} g/t` : "—", b.tails != null ? "tails fractions, weighted by mass" : "needs the tails masses"],
+    ["Overall recovery", b.rec != null ? vzPct(b.rec) : "—", b.rec != null ? "from the calculated head and tails" : "needs every fraction's mass"],
+    ...(b.fil != null ? [["Filtrate", `${vzNum(b.fil)} mg/L`, "gold in solution after the roll"]] : [])];
+}
+/* Horizontal bars for a share (recovery by size, preg-robbing index): 16 px bars from zero, the value at the tip. */
+function vzBars(rows, w, o = {}){
+  const L = o.L || 120, R = 56, rh = 28, T = 6, h = T + rows.length * rh + 22, max = Math.max(100, ...rows.map(r => r.v || 0)), X = v => L + Math.max(0, Math.min(v, max)) / max * (w - L - R);
+  return `<svg class="vz-svg vz-bars" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(o.title || "")}">
+    ${[0, 25, 50, 75, 100].map(v => `<line class="vz-grid" x1="${X(v).toFixed(1)}" x2="${X(v).toFixed(1)}" y1="${T}" y2="${T + rows.length * rh}"/><text class="vz-tick" x="${X(v).toFixed(1)}" y="${T + rows.length * rh + 16}" text-anchor="middle">${v}%</text>`).join("")}
+    ${rows.map((r, i) => { const y = T + i * rh + 6, x1 = X(r.v || 0), bw = Math.max(0, x1 - L);
+      return `<g><title>${esc(r.label)}: ${esc(r.v == null ? "—" : vzPct(r.v))}</title><text class="vz-tick vz-lab" x="${L - 8}" y="${y + 12}" text-anchor="end">${esc(r.label)}</text>
+        ${r.v != null && bw > 0 ? `<path class="vz-bar" d="M${L},${y} h${Math.max(0, bw - 4).toFixed(1)} a4,4 0 0 1 4,4 v8 a4,4 0 0 1 -4,4 h-${Math.max(0, bw - 4).toFixed(1)} z"/>` : ""}
+        <text class="vz-val" x="${(r.v != null && bw > 0 ? x1 : L) + 6}" y="${y + 12}">${esc(r.v == null ? "—" : vzPct(r.v))}</text></g>`; }).join("")}
+  </svg>`;
+}
+function brtTable(b, edit){
+  const mIn = (x, side) => { const s = side === "Feed" ? x.a : x.b, m = side === "Feed" ? x.mF : x.mT; return !s ? "—" : edit ? `<input class="inp vz-mass" data-brtm="${esc(s.s.id)}" value="${m ?? ""}" inputmode="decimal" placeholder="g" aria-label="${esc(side)} ${esc(x.l)} mass in grams">` : m != null ? String(m) : "—"; };
+  return `<table class="vz-t"><thead><tr><th>Fraction</th><th>Feed mass (g)</th><th>Feed AuFx (g/t)</th><th>Tails mass (g)</th><th>Tails AuFx (g/t)</th><th>Recovery</th><th>Gold in the feed</th></tr></thead><tbody>
+    ${b.fr.map(x => `<tr><td>${esc(x.l)}</td><td class="mono">${mIn(x, "Feed")}</td><td class="mono">${vzG(x.F)}</td><td class="mono">${mIn(x, "Tails")}</td><td class="mono">${vzG(x.T)}</td><td class="mono"><b>${vzPct(x.rec)}</b></td><td class="mono">${vzPct(x.dist)}</td></tr>`).join("")}
+    ${b.head != null || b.tails != null ? `<tr class="vz-tot"><td><b>Calculated</b></td><td class="mono">${b.head != null ? Math.round(b.fr.reduce((a, x) => a + (x.mF || 0), 0)) : "—"}</td><td class="mono"><b>${vzG(b.head)}</b></td><td class="mono">${b.tails != null ? Math.round(b.fr.reduce((a, x) => a + (x.mT || 0), 0)) : "—"}</td><td class="mono"><b>${vzG(b.tails)}</b></td><td class="mono"><b>${vzPct(b.rec)}</b></td><td class="mono">${b.head != null ? "100.0%" : "—"}</td></tr>` : ""}</tbody></table>`;
+}
+async function brtSaveMasses(){
+  if (!canEdit() || !current?.batch) return;
+  const els = [...document.querySelectorAll("[data-brtm]")], want = new Map();
+  for (const el of els){ const raw = el.value.trim().replace(",", "."); if (raw && !(+raw > 0)){ toast("A mass is a number of grams above 0."); el.focus(); return; } want.set(el.dataset.brtm, raw ? String(+raw) : ""); }
+  const ids = [...want.keys()].filter(id => { const s = current.docs.find(d => d.id === id); return s && ((s.details || {})["Mass (g)"] || "") !== want.get(id); });
+  if (!ids.length){ toast("No mass changed."); return; }
+  const ok = await pool(ids, 4, id => sampleWrite(id, s => { const d = { ...(s.details || {}) }; if (want.get(id)) d["Mass (g)"] = want.get(id); else delete d["Mass (g)"]; return { details: d }; }));
+  toast(ok === ids.length ? `Masses saved: ${nS(ok)}` : `${ok} of ${ids.length} saved. Try the others again.`);
+  if (current?.batch) renderTrack();
+}
+/* Preg-robbing: each test (ore with the spiked solution) against its control; index = gold the ore took out of solution, as a share of the control's. */
+function pregCalc(items){
+  const by = new Map();
+  items.forEach(x => { const d = x.s.details || {}, k = d["Preg-rob pair"]; if (!k || !d["Preg-rob"]) return; const e = by.get(k) || { k }; e[d["Preg-rob"] === "Control" ? "c" : "t"] = x; by.set(k, e); });
+  const rows = [...by.values()].sort((a, b) => a.k.localeCompare(b.k)).map(e => { const T = e.t ? resNum(e.t.rows?.Au_s) : null, C = e.c ? resNum(e.c.rows?.Au_s) : null;
+    return { k: e.k, tCode: e.t ? tagText(e.t.s) || e.t.s.id : "—", cCode: e.c ? tagText(e.c.s) || e.c.s.id : "—", T, C, pri: C > 0 && T != null ? (C - T) / C * 100 : null }; });
+  const spike = items.map(x => (x.s.details || {})["Spike (mg/L)"]).find(Boolean) || "";
+  return { rows, spike, done: rows.filter(r => r.pri != null) };
+}
+const pregShows = items => pregCalc(items).done.length >= 1;
+function pregTiles(p){
+  const d = p.done, avg = d.reduce((a, r) => a + r.pri, 0) / (d.length || 1), hi = d.reduce((a, r) => r.pri > a.pri ? r : a, d[0]), lo = d.reduce((a, r) => r.pri < a.pri ? r : a, d[0]);
+  return [["Preg-robbing index, average", vzPct(avg), `${d.length} sample${d.length === 1 ? "" : "s"}`], ["Highest", vzPct(hi.pri), `sample ${hi.k}`], ["Lowest", vzPct(lo.pri), `sample ${lo.k}`], ...(p.spike ? [["Spike", `${p.spike} mg/L`, "gold added to the solution"]] : [])];
+}
+const pregTable = (p, cls = "vz-t") => `<table class="${cls}"><thead><tr><th>Sample</th><th>Test</th><th>AuSx (mg/L)</th><th>Control</th><th>AuSx (mg/L)</th><th>Preg-robbing index</th></tr></thead><tbody>
+  ${p.rows.map(r => `<tr><td class="mono">${esc(r.k)}</td><td class="mono">${esc(r.tCode)}</td><td class="mono">${vzNum(r.T)}</td><td class="mono">${esc(r.cCode)}</td><td class="mono">${vzNum(r.C)}</td><td class="mono"><b>${vzPct(r.pri)}</b></td></tr>`).join("")}</tbody></table>`;
+const PREG_NOTE = "Preg-robbing index = (control − test) ÷ control: the share of the spiked gold the ore took out of solution.";
+const BRT_NOTE = "Recovery by size = (feed − tails) ÷ feed for each fraction. The calculated head and tails weight each fraction's grade by its mass; overall recovery = (head − tails) ÷ head. −53A from wet sizing, −53B from dry sizing.";
+/* A bar chart's place on the batch page: drawn at the panel's width. */
+function vzBarSlot(id, rows, o){ vzStore.set(id, { bars: rows, ...o }); return `<div class="vz-chart vz-barbox" id="${id}" aria-label="${esc(o.title)}"></div>`; }
+
 /* ---- the panels ---- */
 function plantViews(docs){
   const items = vzItems(docs); let out = "";
@@ -9422,6 +9599,30 @@ function plantViews(docs){
     out += `<div class="panel stack vz" id="vzCa"><div><h3 style="margin:0">Carbon activity</h3><div class="small muted">Gold left in the standard solution with each carbon, mg/L, 0 to 120 min</div></div>
       ${vzSlot("vzCaC", o)}<div class="tbl-wrap">${caTable(ca)}</div><div class="small muted">${esc(caNote(ca))}</div></div>`;
   }
+  if (tankShows(items)){
+    const p = tankProfile(items), cs = tankCharts(p);
+    out += `<div class="panel stack vz" id="vzTank"><div><h3 style="margin:0">Tank profile</h3><div class="small muted">Gold in the solids and in solution from the pre-leach feed down the CIL tanks</div></div>
+      ${vzTilesHtml(tankTiles(p))}<div class="vz-pair">${cs.map((o, i) => `<div><div class="vz-ct-t">${esc(o.title)}</div>${vzSlot("vzTankC" + i, o)}</div>`).join("")}</div>
+      <details class="vz-more" id="vzTankTbl"><summary>Values</summary><div class="tbl-wrap">${tankTable(p)}</div></details></div>`;
+  }
+  const cb = carbonByTank(items);
+  if (cb.length >= 3){
+    const o = { key: "cb" + cb.map(x => x.v).join(","), title: "Gold on carbon tank by tank (g/t)", yunit: "g/t", xunit: "", zero: true, h: 220, xticks: cb.map(x => x.t), xfmt: t => "T" + t, xname: t => `Tank ${t}`, series: [{ label: "Au loading", color: "var(--vz-1)", pts: cb }] };
+    out += `<div class="panel stack vz" id="vzCarb"><div><h3 style="margin:0">Carbon in the CIL tanks</h3><div class="small muted">Gold on carbon, g/t, tank 1 to 11</div></div>${vzSlot("vzCarbC", o)}
+      <details class="vz-more" id="vzCarbTbl"><summary>Values</summary><div class="tbl-wrap"><table class="vz-t"><thead><tr><th>Tank</th><th>Au loading (g/t)</th></tr></thead><tbody>${cb.map(x => `<tr><td>Tank ${x.t}</td><td class="mono">${vzNum(x.v)}</td></tr>`).join("")}</tbody></table></div></details></div>`;
+  }
+  if (brtShows(items)){
+    const b = brtCalc(items), edit = canEdit(), rows = b.fr.map(x => ({ label: x.l, v: x.rec }));
+    out += `<div class="panel stack vz" id="vzBrt"><div><h3 style="margin:0">Bottle roll</h3><div class="small muted">Recovery by size from the feed and tails fractions${b.needM ? ". Type the fraction masses for the calculated head, tails and overall recovery." : ""}</div></div>
+      ${vzTilesHtml(brtTiles(b))}<div><div class="vz-ct-t">Recovery by size</div>${vzBarSlot("vzBrtC", rows, { key: "brt" + rows.map(r => r.v).join(","), title: "Recovery by size fraction", L: 136 })}</div>
+      <div class="tbl-wrap">${brtTable(b, edit)}</div>${edit ? `<div class="row"><button type="button" class="btn" id="brtSave">Save masses</button></div>` : ""}<div class="small muted">${esc(BRT_NOTE)}</div></div>`;
+  }
+  if (pregShows(items)){
+    const p = pregCalc(items), rows = p.rows.map(r => ({ label: `${r.k}`, v: r.pri }));
+    out += `<div class="panel stack vz" id="vzPreg"><div><h3 style="margin:0">Preg-robbing</h3><div class="small muted">Each test against its control</div></div>
+      ${vzTilesHtml(pregTiles(p))}<div><div class="vz-ct-t">Preg-robbing index by sample</div>${vzBarSlot("vzPregC", rows, { key: "preg" + rows.map(r => r.v).join(","), title: "Preg-robbing index by sample", L: 44 })}</div>
+      <details class="vz-more" id="vzPregTbl"><summary>Values</summary><div class="tbl-wrap">${pregTable(p)}</div></details><div class="small muted">${esc(PREG_NOTE)}</div></div>`;
+  }
   return out;
 }
 /* On the batch certificate: the same pictures, static, sized for the page and printed in the light theme. */
@@ -9435,6 +9636,26 @@ function plantCert(mem){
   if (ca.length){
     const o = { title: "Carbon activity: gold left in solution with each carbon", yunit: "mg/L", xunit: "min", xticks: CA_T, series: caSeries(ca) };
     out += `<div class="cert-fig vz"><h4 class="cert-sec">Carbon activity: gold left in solution (mg/L)</h4>${vzLegend(o.series)}${vzSvg(o, 680, 220).html}<div class="cert-note">${esc(caNote(ca))}</div></div>`;
+  }
+  if (tankShows(items)){
+    const p = tankProfile(items);
+    out += `<div class="cert-fig vz"><h4 class="cert-sec">Tank profile</h4>${vzTilesHtml(tankTiles(p))}<div class="vz-pair">${tankCharts(p).map(o => `<div><div class="vz-ct-t">${esc(o.title)}</div>${vzSvg(o, 330, 200).html}</div>`).join("")}</div></div>`;
+  }
+  const cb = carbonByTank(items);
+  if (cb.length >= 3){
+    const o = { title: "Gold on carbon tank by tank (g/t)", yunit: "g/t", xunit: "", zero: true, xticks: cb.map(x => x.t), xfmt: t => "T" + t, series: [{ label: "Au loading", color: "var(--vz-1)", pts: cb }] };
+    out += `<div class="cert-fig vz"><h4 class="cert-sec">Carbon in the CIL tanks: gold on carbon (g/t)</h4>${vzSvg(o, 680, 200).html}</div>`;
+  }
+  if (brtShows(items)){
+    // the certificate keeps to the lab's results: recovery by size from each fraction's grades (the masses are MET's, on the batch page)
+    const b = brtCalc(items);
+    out += `<div class="cert-fig vz"><h4 class="cert-sec">Bottle roll: recovery by size</h4><div class="tbl-wrap"><table class="cert-res"><thead><tr><th>Fraction</th><th>Feed AuFx (g/t)</th><th>Tails AuFx (g/t)</th><th>Recovery</th></tr></thead><tbody>
+      ${b.fr.map(x => `<tr><td>${esc(x.l)}</td><td class="mono"><b>${vzG(x.F)}</b></td><td class="mono"><b>${vzG(x.T)}</b></td><td class="mono"><b>${vzPct(x.rec)}</b></td></tr>`).join("")}</tbody></table></div>
+      ${vzBars(b.fr.map(x => ({ label: x.l, v: x.rec })), 680, { title: "Recovery by size fraction", L: 136 })}<div class="cert-note">Recovery by size = (feed − tails) ÷ feed for each fraction. −53A from wet sizing, −53B from dry sizing.${b.fil != null ? ` Filtrate: ${vzNum(b.fil)} mg/L gold in solution.` : ""}</div></div>`;
+  }
+  if (pregShows(items)){
+    const p = pregCalc(items);
+    out += `<div class="cert-fig vz"><h4 class="cert-sec">Preg-robbing${p.spike ? ` (spike ${esc(p.spike)} mg/L)` : ""}</h4><div class="tbl-wrap">${pregTable(p, "cert-res")}</div><div class="cert-note">${esc(PREG_NOTE)}</div></div>`;
   }
   return out;
 }

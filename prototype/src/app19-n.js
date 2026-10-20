@@ -291,9 +291,10 @@ const qaOpen = id => samples.get(id) || (qaListOpen ? qaDoc(id) : qaDocs.get(id)
    label and tracking link; batchId (B- and the batch's first ID) ties them together and opens the whole batch from the search box. */
 let bRows = [{ code: "", src: "" }, { code: "", src: "" }];
 const formKind = () => document.querySelector('input[name="rKind"]:checked')?.value || "single";
+const isJobKind = k => k === "job" || k === "met";   // v24d: a plant shift job, or (20 Oct) a MET Lab job: the same list of samples, its own templates
 function kindPicker(){
-  const k = ["batch", "job"].includes(lsGet("regKind")) ? lsGet("regKind") : "single";
-  return `<div class="seg" role="radiogroup" aria-label="Samples"><label><input type="radio" name="rKind" value="single" ${k === "single" ? "checked" : ""}><span>Single sample</span></label><label><input type="radio" name="rKind" value="batch" ${k === "batch" ? "checked" : ""}><span>Batch</span></label><label><input type="radio" name="rKind" value="job" ${k === "job" ? "checked" : ""}><span>Shift job</span></label></div>`;
+  const k = ["batch", "job", "met"].includes(lsGet("regKind")) ? lsGet("regKind") : "single";
+  return `<div class="seg" role="radiogroup" aria-label="Samples"><label><input type="radio" name="rKind" value="single" ${k === "single" ? "checked" : ""}><span>Single sample</span></label><label><input type="radio" name="rKind" value="batch" ${k === "batch" ? "checked" : ""}><span>Batch</span></label><label><input type="radio" name="rKind" value="job" ${k === "job" ? "checked" : ""}><span>Shift job</span></label><label><input type="radio" name="rKind" value="met" ${k === "met" ? "checked" : ""}><span>MET Lab job</span></label></div>`;
 }
 function batchBlock(){
   return `<div class="full batch-box" id="rBatch" hidden>
@@ -341,18 +342,18 @@ function setRowCount(n){
 }
 function submitLabel(){
   const b = $("#rSubmit"), f = $("#regForm"); if (!b || !f) return;
-  const walk = f.dataset.mode === "register", lab = !!$("#rRecvNow")?.checked, n = formKind() === "batch" ? bRows.length : formKind() === "job" ? (job?.rows || []).filter(r => r.on).length : 1;
+  const walk = f.dataset.mode === "register", lab = !!$("#rRecvNow")?.checked, n = formKind() === "batch" ? bRows.length : isJobKind(formKind()) ? (job?.rows || []).filter(r => r.on).length : 1;
   b.textContent = lab ? (n > 1 ? `Register ${n} samples and issue IDs` : "Register and issue ID") : walk ? (n > 1 ? `Register ${n} samples` : "Register and get sample ID") : (n > 1 ? `Submit ${n} samples` : "Submit and get sample ID");
 }
 function showKind(v){
-  const batch = formKind() === "batch", isJob = formKind() === "job";
+  const batch = formKind() === "batch", isJob = isJobKind(formKind());
   $("#rBatch", v).hidden = !batch;
   v.querySelectorAll("[data-single]").forEach(x => { x.hidden = batch || isJob; });
   // v24d: a shift job lists its samples (each with its own type and analysis) instead of one sample type and analysis
   const j = $("#rJob", v); if (j) j.hidden = !isJob;
   v.querySelectorAll(".sub-step.s1:not(.job-step)").forEach(x => { x.hidden = isJob; });
   const d = $("#rDetails", v); if (d) d.hidden = isJob;
-  if (isJob){ const pu = $("#rPurpose", v); if (pu && !pu.value){ pu.value = "plant"; pu.dispatchEvent(new Event("change")); } }
+  if (isJob && job){ jobGroup(v); jobDefaults(v); }   // the kind's templates; the template's purpose and section (process control from PLT; a MET Lab job from MET)
   if (batch && !$("#rRows .r-code", v)) renderRows();
   submitLabel();
 }
@@ -403,8 +404,15 @@ async function watchBatchRef(text, seq){
   put(first.docs); $("#lookupInput").value = T;
   try { history.replaceState(null, "", "#" + T.replace(/[^A-Za-z0-9._~-]/g, "")); } catch {}
   renderTrack();
-  unsubCurrent = q.onSnapshot(snap => { if (seq !== openSeq || current?.batch !== T) return; put(snap.docs); if (tab === "track" && !typingIn("#view-track")) renderTrack(); }, () => {});
+  unsubCurrent = q.onSnapshot(snap => { if (seq !== openSeq || current?.batch !== T) return; put(snap.docs); batchSoon(); }, () => {});
   return true;
+}
+/* v24d (20 Oct): a job of 80 samples changes 80 records at a time (receipt, results, release): the batch page is drawn at once for the first
+   change, then at most every 200 ms while they keep coming, and once more after the last. */
+function batchSoon(){
+  clearTimeout(batchSoon.t);
+  const wait = Math.max(0, (batchSoon.at || 0) + 200 - Date.now());
+  batchSoon.t = setTimeout(() => { batchSoon.at = Date.now(); if (tab === "track" && current?.batch && !typingIn("#view-track")) renderTrack(); }, wait);
 }
 let batchRecvBusy = false;
 function renderBatchView(v){

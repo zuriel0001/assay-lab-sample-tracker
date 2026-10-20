@@ -204,7 +204,7 @@ function batchCode(ref, no, at, certs){
   const h = seed => { let x = seed; for (const ch of body){ x ^= ch.codePointAt(0); x = Math.imul(x, 0x01000193) >>> 0; } return x.toString(16).padStart(8, "0"); };
   return (h(0x811c9dc5) + h(0x2f6b1a3d)).toUpperCase().match(/.{4}/g).join("-");
 }
-async function releaseGroup(ref, wit, quiet){
+async function releaseGroup(ref, wit, quiet, step){
   const none = { n: 0, no: "", why: "" }, say = why => { if (!quiet) toast(why); return { ...none, why }; };
   if (!canRelease()) return say(relNow() ? "Only lab staff release results." : "Only a lab supervisor can release results.");
   let docs;
@@ -220,12 +220,12 @@ async function releaseGroup(ref, wit, quiet){
   const certs = ready.map(s => [s.id, { ...makeCert(s, at, ""), no, bref: ref, bv: v, bn: ready.length }]), code = batchCode(ref, no, at, certs);
   certs.forEach(([, c]) => { c.code = code; });
   const byId = new Map(ready.map(s => [s.id, s])), cert = new Map(certs);
-  const n = await pool(ready.map(s => s.id), 4, id => sampleWrite(id, s => {
+  const n = await pool(ready.map(s => s.id), 8, id => sampleWrite(id, s => {
     const s0 = byId.get(id);
     if (!grouped(s) || (s.results?.v || 0) !== (s0.results?.v || 0) || s.stageKey !== s0.stageKey) return null;   // changed meanwhile: not released with the others
     const w = walkToRelease(s, from, wit); if (w.t > at) return null;
     return releaseUpdate({ ...s, history: w.history }, at, `Released with batch ${ref}`, twoPerson(s) ? wit : "", "", "", cert.get(id));
-  }));
+  }), step);
   for (const b of new Set(ready.flatMap(s => Object.values(labsOf(s)).map(l => l.b)))) await closeBatchIfDone(b);
   if (n && n < ready.length && !quiet) toast(`${n} of ${ready.length} released on ${no}; the others changed meanwhile. Open them to check.`);
   return { n, no, why: n ? "" : "the samples changed meanwhile" };
