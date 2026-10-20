@@ -466,7 +466,13 @@ page = SHELL_HEAD.replace('<meta charset="utf-8">', f'<meta charset="utf-8"><!--
 #     and the shim, so a change to either counts.
 shim = open(os.path.join(HERE, "app", "azure-shim.js"), encoding="utf-8").read()
 build_id = hashlib.sha256((page + shim).encode()).hexdigest()[:12]
-page = page.replace('<meta charset="utf-8">', f'<meta charset="utf-8"><meta name="build" content="{build_id}">', 1)
+# 20 Oct: and when it was built, so a page reloads only for a newer version (a stale copy of version.json at the CDN never makes a
+# page reload itself over and over). The time stays the same while the build does.
+import time
+try: _old = json.load(open(os.path.join(HERE, "app", "version.json"), encoding="utf-8"))
+except Exception: _old = {}
+built_at = _old.get("at") if _old.get("build") == build_id and _old.get("at") else int(time.time() * 1000)
+page = page.replace('<meta charset="utf-8">', f'<meta charset="utf-8"><meta name="build" content="{build_id}" data-at="{built_at}">', 1)
 open(out, "w", encoding="utf-8").write(page)
-open(os.path.join(HERE, "app", "version.json"), "w", encoding="utf-8").write(json.dumps({"build": build_id}) + "\n")
+open(os.path.join(HERE, "app", "version.json"), "w", encoding="utf-8").write(json.dumps({"build": build_id, "at": built_at}) + "\n")
 print(f"{out}: {len(page)} bytes from {os.path.basename(SRC)} ({src_hash}), build {build_id}")

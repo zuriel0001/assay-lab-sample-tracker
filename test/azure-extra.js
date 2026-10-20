@@ -231,7 +231,11 @@ const log = t => console.log("• " + t);
   const build = await T.$eval('meta[name="build"]', m => m.content).catch(() => "");
   const served = await T.evaluate(() => fetch("version.json", { cache: "no-store" }).then(r => r.json()).then(j => j.build).catch(() => ""));
   check(/^[a-f0-9]{12}$/.test(build) && served === build && !(await T.evaluate(() => window.__checkBuild())) && !(await T.$("#newVersion")), "the page carries its build id, version.json matches it, and nothing is offered");
-  await T.route(/version\.json/, r => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ build: "0123456789ab" }) }));
+  // 20 Oct: an older version.json (a stale copy at the CDN, or one without a time) is never taken for a new version
+  await T.route(/version\.json/, r => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ build: "fedcba987654", at: 1 }) }));
+  check(!(await T.evaluate(() => window.__checkBuild())) && !(await T.$("#newVersion")), "an older version.json than the page (a stale copy) offers nothing");
+  await T.unroute(/version\.json/);
+  await T.route(/version\.json/, r => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ build: "0123456789ab", at: Date.now() + 60000 }) }));
   await open(T, svy); await T.fill("#mvNote", "Half-written note");
   await T.evaluate(() => { window.__stillHere = 1; });
   check(await T.evaluate(() => window.__checkBuild()) === "0123456789ab" && /new version of the tracker/.test(await T.textContent("#newVersion").catch(() => "")) && !!(await T.$("#newVersionGo")), "a newer version shows a bar with Reload now");

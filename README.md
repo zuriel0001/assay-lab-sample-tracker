@@ -213,7 +213,7 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 | `api-tests.js` | 264 / 264 (v24d: a batch certificate keeps its batch where results are hidden; on a two-person custody sample only the witness asked confirms storage or a disposal, from their own account; v24c: a disposal in the ledger names a witness who is not the recorder, except an old one brought forward by the upgrade of old records; ledger sign-offs only by a supervisor or the lab manager, in their own name, only added to, never deleted, read by staff only; v26: results files up to 5 MB, a section account opening its own section's file; release at once by the technician, evaluations by a Metallurgy viewer and nothing else, amendments still by a second person, sign-off still enforced when chosen) |
 | `store-tests.js` | 56 / 56 (28 in memory, 28 on the local Cosmos DB imitation) |
 | `auth-tests.js` | 51 / 51 |
-| `azure-extra.js` | 73 / 73 (including a page left open reloading itself onto a new version, a backup restored into a second copy of the site, a visitor's batch page updating live, and a sample on a route no longer in use moving on) |
+| `azure-extra.js` | 74 / 74 (a stale copy of version.json older than the page never makes it reload itself; including a page left open reloading itself onto a new version, a backup restored into a second copy of the site, a visitor's batch page updating live, and a sample on a route no longer in use moving on) |
 | Prototype `run.js` | 107 / 107 |
 | Prototype `results-tests.js` | 92 / 93 |
 | Prototype `v12-tests.js` | 68 / 71 |

@@ -282,6 +282,7 @@ window.__restore = async (backup, progress) => {
    something typed is not yet saved, a dialog is open or a change is on its way to the server. Until then a bar offers to reload now.
    Reloading keeps the address, so an open sample opens again. */
 const BUILD = document.querySelector('meta[name="build"]')?.content || "";
+const BUILT = +(document.querySelector('meta[name="build"]')?.dataset.at || 0);   // when this version was built: only a newer one counts
 let newBuild = "", lastUse = Date.now();
 ["keydown", "pointerdown", "input"].forEach(t => document.addEventListener(t, () => { lastUse = Date.now(); }, true));
 const shown = el => el.isConnected && el.getClientRects().length > 0;
@@ -317,8 +318,9 @@ async function checkBuild(){
   if (!BUILD || newBuild) return newBuild;
   try {
     const r = await fetch("version.json", { cache: "no-store", credentials: "same-origin" });
-    const v = r.ok ? (await r.json()).build : "";
-    if (v && v !== BUILD){ newBuild = v; if (document.hidden) reloadIfSafe(); if (newBuild) newVersionBar(); }
+    const j = r.ok ? await r.json() : {}, v = j.build || "";
+    // an older copy (a CDN still serving the last one) is not a new version
+    if (v && v !== BUILD && (+j.at || 0) > BUILT){ newBuild = v; if (document.hidden) reloadIfSafe(); if (newBuild) newVersionBar(); }
   } catch {}
   return newBuild;
 }
