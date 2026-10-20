@@ -330,7 +330,7 @@ function certBatchHtml(ref, mem){
   </div>`;
 }
 /* v24d: one column names the sample (ID, site sample code, description or point), so a section of several results fits the page. */
-const certWho = s => { const d = s.source || ptOf(s); return `<div class="mono">${esc(s.id)}</div><div class="mono cw-code">${esc(tagText(s)) || "—"}</div>${d ? `<div class="cw-desc">${esc(d)}</div>` : ""}`; };
+const certWho = s => { const d = s.source || ptOf(s); return `<div class="mono">${esc(s.id)}</div>${ownCode(s) ? `<div class="mono cw-code">${esc(ownCode(s))}</div>` : tagText(s) ? "" : `<div class="mono cw-code">—</div>`}${d ? `<div class="cw-desc">${esc(d)}</div>` : ""}`; };
 function certTable(title, list, ans, dsc, pts){
   const sv = a => (a.t === "text" ? "cell-text" : "mono");
   return `${title ? `<h4 class="cert-sec">${esc(title)}</h4>` : ""}<div class="tbl-wrap"><table class="cert-res${ans.length > 6 ? " dense" : ""}"><thead><tr><th>Sample</th>${ans.map(a => `<th>${esc(anShort(a))}${a.u ? ` (${esc(a.u)})` : ""}</th>`).join("")}</tr></thead><tbody>

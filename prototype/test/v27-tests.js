@@ -27,7 +27,7 @@ async function submit(P){
   await P.fill("#rSubmitter", "Shift metallurgist"); await P.click("#rSubmit");
   await P.waitForSelector("#rResult code", { timeout: 30000 });
   const res = await P.$$eval("#rResult code", els => els.map(e => e.textContent.split(" · ")));
-  return { ids: res.map(x => x[0]), tags: res.map(x => x[1]), ref: doc(res[0][0]).batchId };
+  return { ids: res.map(x => x[0]), tags: res.map(x => x[1] || x[0]), ref: doc(res[0][0]).batchId };
 }
 async function receive(P, j){
   await open(P, j.ref); await P.waitForSelector("#bvRecv", { timeout: 8000 }).catch(() => {});
@@ -169,7 +169,7 @@ async function release(P, j, name, lines){
   const solids = await sec("^Solids: AuFx"), carbon = await sec("^Carbon: Au loading");
   check(solids.join("|") === "Sample|AuFx (g/t)|Screen analysis, % retained" && carbon.join("|") === "Sample|Au loading (g/t)", "each section: the Sample column, then only the results some sample has (no empty % solids): " + solids.join(", "));
   const who = await text(Tc, "#certBox td.cell-who");
-  check(new RegExp(`${mill.ids[0]}\\s*MLDSRECA20261020\\s*Day shift 07:00 CCD #1 overflow sample`).test(who), "the Sample column holds the ID, the site sample code and the description");
+  check(mill.ids[0] === "MLDSRECA20261020" && /^MLDSRECA20261020\s*Day shift 07:00 CCD #1 overflow sample$/.test(who), "the Sample column holds the ID (the code from the file, once) and the description: " + who);
   await Tc.click("#certClose");
 
   console.log("\nConsole errors:", JSON.stringify(errors));

@@ -2507,6 +2507,12 @@ function idFromText(raw){
 }
 function splitTags(t){ return String(t || "").split(/[,;\n]+/).map(x => x.trim()).filter(Boolean); }
 const normTag = t => String(t || "").trim().toUpperCase().replace(/\s+/g, " ");
+/* v24d (20 Oct): a sample's ID as its document key. A job's samples take the code from the plant's file as their ID (MLNSCOF 20261018,
+   MLNSCBLD20261018#32, MLABPF+42520260930); the four characters a key can't hold (/ \ ? #) are written as ~ and their code. A site ID
+   (PLT-20261019-0001) is its own key, and so is a key already written this way. */
+const skey = id => String(id || "").replace(/[\/\\?#]/g, c => "~" + c.charCodeAt(0).toString(16) + "~");
+/* The site sample code where it is not the ID itself (v24d: a job's sample has its code as its ID). */
+const ownCode = s => { const t = tagText(s); return t && t !== s.id ? t : ""; };
 /* A tag as a document id: letters, digits, - and _ stay; every other character is written as ~ and its code, so different tags never collide. */
 const tagKey = t => [...normTag(t)].map(c => /[A-Z0-9_-]/.test(c) ? c : "~" + c.codePointAt(0).toString(16) + "~").join("").slice(0, 190) || "~";
 /* Tags for a batch: one starting tag counts up, keeping its zero padding (T-10421, T-10422, …). */
@@ -2843,13 +2849,14 @@ async function findByTag(text){
   const T = normTag(text), hits = new Set();
   if (!db || !T) return [];
   try { const s = await db.doc("tagidx/" + tagKey(T)).get(); if (s.exists && s.data()?.sid) hits.add(s.data().sid); } catch {}
-  try { (await db.collection("samples").where("tags", "array-contains", T).limit(25).get()).docs.forEach(d => hits.add(d.id)); } catch {}
-  try { (await db.collection("samples").where("siteRefU", "==", T).limit(25).get()).docs.forEach(d => hits.add(d.id)); } catch {}
+  try { (await db.collection("samples").where("tags", "array-contains", T).limit(25).get()).docs.forEach(d => { const x = d.data(); if (x?.id) hits.add(x.id); }); } catch {}
+  try { (await db.collection("samples").where("siteRefU", "==", T).limit(25).get()).docs.forEach(d => { const x = d.data(); if (x?.id) hits.add(x.id); }); } catch {}
   return [...hits].sort();
 }
 async function openSample(raw){
   closeCert();
-  const text = String(raw || "").trim(); if (!text) return;
+  let text = String(raw || "").trim(); if (!text) return;
+  const hp = text.indexOf("#"); if (/^https?:\/\//i.test(text) && hp >= 0){ try { text = decodeURIComponent(text.slice(hp + 1)).trim(); } catch { text = text.slice(hp + 1).trim(); } if (!text) return; }
   const id = idFromText(text), seq = ++openSeq;
   if (unsubCurrent){ unsubCurrent(); unsubCurrent = null; }
   if (id) return watchSample(id, text);
@@ -2857,6 +2864,9 @@ async function openSample(raw){
   current = { id: text, body: null, loading: true, search: true };
   setTab("track");
   if (/^B-/i.test(text) && await watchBatchRef(text, seq)) return;
+  if (seq !== openSeq) return;
+  // v24d (20 Oct): a job's sample has the plant's code as its ID (MLNSCOF 20261018, or MLDSCBRG20261018-2 for a second analysis)
+  if (db){ try { const d = await db.doc("samples/" + skey(normTag(text))).get(); if (seq !== openSeq) return; if (d.exists && d.data()?.id) return watchSample(d.data().id, ""); } catch {} }
   if (seq !== openSeq) return;
   const hits = await findByTag(text);
   if (seq !== openSeq) return;
@@ -2867,12 +2877,12 @@ async function openSample(raw){
 function watchSample(id, text){
   const seq = openSeq;
   $("#lookupInput").value = id;
-  try { history.replaceState(null, "", "#" + id.replace(/[^A-Za-z0-9._~-]/g, "")); } catch {}
+  try { history.replaceState(null, "", "#" + encodeURIComponent(id)); } catch {}
   current = { id, body: samples.get(id) || null, missing: false, loading: !samples.has(id) };
   setTab("track");
   if (!db) return;
   let ref;
-  try { ref = db.doc("samples/" + id); } catch { current = { id, body: null, missing: true }; renderTrack(); return; }
+  try { ref = db.doc("samples/" + skey(id)); } catch { current = { id, body: null, missing: true }; renderTrack(); return; }
   let first = true;
   unsubCurrent = ref.onSnapshot(async snap => {
     if (!current || current.id !== id || seq !== openSeq) return;
@@ -3417,7 +3427,7 @@ async function act(fn, opts = {}){
   if (!db || !current?.body || moving || !canEdit()) return false;
   const seen = current.body;
   moving = true; setMoveBusy(true);
-  const docRef = db.doc("samples/" + seen.id);
+  const docRef = db.doc("samples/" + skey(seen.id));
   try {
     const s = await leased(docRef); if (!s) return false;
     if (!opts.anyStage && s.stageKey !== seen.stageKey){ toast(`${s.id} was just moved to ${stage(s, s.stageKey)?.name || s.stageKey} by ${lastTech(s)}. Check it and try again.`); return false; }
@@ -3700,7 +3710,7 @@ async function flushLedger(sid){
   try {
     for (let attempt = 0; attempt < 3; attempt++){
       try {
-        const ref = db.doc("samples/" + sid), snap = await ref.get();
+        const ref = db.doc("samples/" + skey(sid)), snap = await ref.get();
         const pend = (snap.exists && snap.data().ledgerPending) || [];
         if (!pend.length) return;
         await writeMoves(pend);
@@ -3819,7 +3829,7 @@ function renderBoard(){
           ${curIdx(s) < targetIdx(s) ? Object.values(labsOf(s)).map(l => `<div class="cmeta">Batch <span class="mono">${esc(l.b)}</span>${l.q && l.q !== "pending" ? ` · <b style="color:var(--${{ ok: "ok", bad: "bad" }[qcCls(l.q)] || "warn"})">${esc(qcLabel(l.q))}</b>` : ""}</div>`).join("") : ""}
           ${alerts.includes(s) ? `<div class="cmeta"><b style="color:var(--bad)">Result past a limit</b></div>` : ""}
           ${awaiting(s) && s.handedTo ? `<div class="cmeta">Handed to ${esc(s.handedTo)}</div>` : ""}
-          <div class="cmeta">${esc(s.type)}${tagText(s) ? ` · <span class="mono">${esc(tagText(s))}</span>` : ""}${s.priority === "Urgent" ? ` · <span class="urg">Urgent</span>` : ""}${s.flag && awaiting(s) ? ` · <b style="color:var(--warn)">Flagged</b>` : ""}</div>
+          <div class="cmeta">${esc(s.type)}${ownCode(s) ? ` · <span class="mono">${esc(ownCode(s))}</span>` : ""}${s.priority === "Urgent" ? ` · <span class="urg">Urgent</span>` : ""}${s.flag && awaiting(s) ? ` · <b style="color:var(--warn)">Flagged</b>` : ""}</div>
           ${hazTags(s).length || twoPerson(s) ? `<div class="cmeta">${hazPills(s)}${twoPerson(s) ? `<span class="haz two" title="Two-person custody">2P</span>` : ""}</div>` : ""}
           ${od.length ? `<div class="cmeta"><b style="color:var(--bad)">${esc(od.map(m => m.item).join(", "))} past retention</b></div>` : x.key === "report" && stt.late ? `<div class="cmeta"><b style="color:var(--warn)">Not yet put in storage</b></div>` : ""}
           ${tm.left && !od.length && x.key !== "report" ? `<div class="cmeta left">${esc(tm.left)}</div>` : ""}</button>`; }).join("")}</div>
@@ -4002,11 +4012,13 @@ function renderSampleForm(mode){
 async function tagOwner(t, test){
   const ids = new Set();
   try { const s = await db.doc("tagidx/" + tagKey(t)).get(); if (s.exists && s.data()?.sid) ids.add(s.data().sid); } catch {}
-  try { (await db.collection("samples").where("tags", "array-contains", normTag(t)).limit(10).get()).docs.forEach(d => ids.add(d.id)); } catch {}
-  for (const id of ids){ const d = samples.get(id) || (await db.doc("samples/" + id).get()).data(); if (d && d.open !== false && !stage(d, d.stageKey)?.final && (!test || !d.test || d.test === test)) return id; }
+  try { (await db.collection("samples").where("tags", "array-contains", normTag(t)).limit(10).get()).docs.forEach(d => { const x = d.data(); if (x?.id) ids.add(x.id); }); } catch {}
+  for (const id of ids){ const d = samples.get(id) || (await db.doc("samples/" + skey(id)).get()).data(); if (d && d.open !== false && !stage(d, d.stageKey)?.final && (!test || !d.test || d.test === test)) return id; }
   return "";
 }
 /* Each ID is claimed on its own document under a short lease, so two people submitting at once never wait on each other or get the same number. */
+/* v24d (20 Oct): whether any sample is in the batch with this reference (a job's batch has a site number of its own: B-MET-20261020-0001). */
+const batchHolds = async ref => { try { return (await db.collection("samples").where("batchId", "==", ref).limit(1).get()).docs.length > 0; } catch { return false; } };
 async function claimIds(code, stamp, n, makeBody, progress, from = 1){
   const hint = db.doc(`meta/counter-${code}-${stamp}`);
   let next = from;
@@ -4016,11 +4028,12 @@ async function claimIds(code, stamp, n, makeBody, progress, from = 1){
     while (k < n){
       const i = k++;
       for (let tries = 0; tries < 400 && !ids[i]; tries++){
-        const num = next++, id = `${code}-${stamp}-${String(num).padStart(4, "0")}`, ref = db.doc("samples/" + id);
+        const num = next++, id = `${code}-${stamp}-${String(num).padStart(4, "0")}`, ref = db.doc("samples/" + skey(id));
         const lease = await ref.acquire({ holder: tabId, ttlMs: 4000 });
         if (!lease.acquired) continue;
         const snap = await ref.get();
         if (snap.exists && snap.data()?.id) continue;
+        if (await batchHolds("B-" + id)) continue;   // v24d (20 Oct): a job's batch holds this number
         await ref.set(makeBody(id, i));
         ref.acquire({ holder: tabId, ttlMs: 1000 }).catch(() => {});   // let the claim lapse quickly so the lab can receive it at once
         ids[i] = id; progress?.(++done);
@@ -5464,7 +5477,7 @@ async function batchTrends(b, qc, p){
 }
 /* Writes one sample under its lease from anywhere (batch actions). fn(s) returns the update, { upd, moves }, or null to skip. */
 async function sampleWrite(id, fn, after){
-  const ref = db.doc("samples/" + id);
+  const ref = db.doc("samples/" + skey(id));
   try {
     const s = await leased(ref, true); if (!s) return false;
     const res = withRelease(s, fn(s)); if (!res) return false;
@@ -5636,7 +5649,7 @@ async function doBatchDecide(kind){
       await setSamplesQc(fresh, "accepted", qn, qn);
       toast(kind === "override" ? "Exception recorded. Samples can be released; the reason is on each certificate's batch record." : "Warnings accepted. Samples can be released.");
     } else if (kind === "reopen"){
-      const rel = (await Promise.all(fresh.sids.map(sid => db.doc("samples/" + sid).get().then(x => x.data())))).filter(s => s && inBatch(s, fresh.id) && released(s));
+      const rel = (await Promise.all(fresh.sids.map(sid => db.doc("samples/" + skey(sid)).get().then(x => x.data())))).filter(s => s && inBatch(s, fresh.id) && released(s));
       if (rel.length){ toast(`${rel[0].id} was already released from this batch. Correct a released result with an amended certificate; re-run the batch for the others.`); return; }
       await ref.update({ qc: null, status: "results", log: batchLog(fresh, `Results opened again for correction: ${why}`) });
       await setSamplesQc(fresh, "pending", `Lab batch ${b.id} results opened again for correction: ${why}`);
@@ -5703,7 +5716,7 @@ async function repairBatches(){
 async function closeBatchIfDone(id){
   try {
     const ref = db.doc("batches/" + id), b = (await ref.get()).data(); if (!b || !b.open) return;
-    const docs = await Promise.all(b.sids.map(sid => db.doc("samples/" + sid).get().then(x => x.data())));
+    const docs = await Promise.all(b.sids.map(sid => db.doc("samples/" + skey(sid)).get().then(x => x.data())));
     if (docs.every(s => !s || !inBatch(s, id) || released(s) || stage(s, s.stageKey)?.final)) await ref.update({ open: false, status: "done", log: batchLog(b, "All results released; batch closed") });
   } catch {}
 }
@@ -5928,20 +5941,20 @@ function derive(s, upd){
 }
 async function writeStock(ref, s){
   const st = stockOf(s);
-  if (st) await db.doc("stock/" + s.id).set(st);
+  if (st) await db.doc("stock/" + skey(s.id)).set(st);
   await ref.update({ sx: null });
 }
 /* Finishes a stock record left unwritten (a new registration, or a device that lost its connection mid-save). */
 async function syncStock(id){
   try {
-    const ref = db.doc("samples/" + id), s = await leased(ref, true);
+    const ref = db.doc("samples/" + skey(id)), s = await leased(ref, true);
     if (s && s.sx) await writeStock(ref, s);
     ref.acquire({ holder: tabId, ttlMs: 1000 }).catch(() => {});
   } catch {}
 }
 async function fixStock(){
   const snap = await db.collection("samples").where("sx", "==", 1).limit(100).get();
-  for (const d of snap.docs) await syncStock(d.id);
+  for (const d of snap.docs){ const x = d.data(); if (x?.id) await syncStock(x.id); }
 }
 
 /* Stored samples with material due by the end of today, for the board's retention count. */
@@ -6311,8 +6324,8 @@ function qrSvg(text){
 }
 
 /* ---------- bag labels ---------- */
-const trackUrl = id => SHARE_URL + "#" + id;
-const labelOf = s => ({ id: s.id, tag: (s.tags || []).join(", "), type: s.type || "", sec: s.section || "", at: s.createdAt || s.recvAt || 0,
+const trackUrl = id => SHARE_URL + "#" + encodeURIComponent(id);   // v24d: a code ID keeps its spaces, + and #
+const labelOf = s => ({ id: s.id, tag: ownCode(s), type: s.type || "", sec: s.section || "", at: s.createdAt || s.recvAt || 0,
   haz: hazTags(s).map(h => h.tag), two: twoPerson(s), urgent: s.priority === "Urgent" });
 function labelHtml(x){
   return `<div class="bag-label">
@@ -7376,7 +7389,7 @@ function qaDoc(id){
   const c = qaDocs.get(id);
   if (db && !c?.busy && (!c || Date.now() - c.t > 15000)){
     qaDocs.set(id, { d: c?.d || null, t: c?.t || 0, busy: true });
-    db.doc("samples/" + id).get().then(snap => {
+    db.doc("samples/" + skey(id)).get().then(snap => {
       const d = snap.exists && snap.data()?.id ? snap.data() : null, was = JSON.stringify(c?.d || null);
       qaDocs.set(id, { d, t: Date.now() });
       if (JSON.stringify(d) !== was) qaSoon();
@@ -7425,7 +7438,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && qaState &&
 /* ---------- issuing blind IDs ---------- */
 async function qaLoad(id){
   if (samples.has(id)) return samples.get(id);
-  try { const d = await db.doc("samples/" + id).get(); return d.exists && d.data()?.id ? d.data() : null; } catch { return null; }
+  try { const d = await db.doc("samples/" + skey(id)).get(); return d.exists && d.data()?.id ? d.data() : null; } catch { return null; }
 }
 function qaWhyNot(o, id){
   if (!o) return "not found";
@@ -7744,7 +7757,7 @@ async function watchBatchRef(text, seq){
   if (seq !== openSeq || !first.docs.length) return false;
   const put = docs => { current = { id: T, batch: T, docs: docs.map(d => d.data()).filter(x => x && x.id).sort((a, b) => (a.batchIndex || 0) - (b.batchIndex || 0) || (a.id < b.id ? -1 : 1)) }; };
   put(first.docs); $("#lookupInput").value = T;
-  try { history.replaceState(null, "", "#" + T.replace(/[^A-Za-z0-9._~-]/g, "")); } catch {}
+  try { history.replaceState(null, "", "#" + encodeURIComponent(T)); } catch {}
   renderTrack();
   unsubCurrent = q.onSnapshot(snap => { if (seq !== openSeq || current?.batch !== T) return; put(snap.docs); batchSoon(); }, () => {});
   return true;
@@ -7767,8 +7780,9 @@ function renderBatchView(v){
   const done = docs.filter(s => curIdx(s) >= targetIdx(s)).length, etas = docs.filter(s => curIdx(s) < targetIdx(s) && !status(s).closed).map(s => projection(s).eta).filter(Boolean);
   const eta = etas.length ? Math.max(...etas) : 0, srcCol = docs.some(s => s.source), mixed = new Set(docs.map(s => s.test)).size > 1 || new Set(docs.map(s => s.typeKey)).size > 1, ptCol = docs.some(ptOf);
   noteRecentBatch(c.batch, docs); pageTitle(c.batch);
+  const codeCol = docs.some(ownCode);   // a job's samples have their codes as IDs: no second column of the same codes
   const row = s => { const st = status(s), last = (s.certs || []).at(-1);
-    return `<tr><td class="mono muted">${esc(s.batchIndex || "")}</td><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button></td><td class="mono">${esc(tagText(s)) || "—"}</td>${srcCol ? `<td>${esc(s.source || "")}</td>` : ""}${ptCol || mixed ? `<td>${esc(ptOf(s) || s.type || "")}${mixed ? `<div class="small muted">${esc(s.testName || "")}</div>` : ""}</td>` : ""}
+    return `<tr><td class="mono muted">${esc(s.batchIndex || "")}</td><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button></td>${codeCol ? `<td class="mono">${esc(ownCode(s)) || "—"}</td>` : ""}${srcCol ? `<td>${esc(s.source || "")}</td>` : ""}${ptCol || mixed ? `<td>${esc(ptOf(s) || s.type || "")}${mixed ? `<div class="small muted">${esc(s.testName || "")}</div>` : ""}</td>` : ""}
       <td><span class="pill ${st.cls}">${esc(st.label)}</span></td><td class="small">${last ? `Released ${esc(fmtDate(last.at))}` : ""}</td></tr>`; };
   const keepAt = $("#bvAt", v)?.value, keepWit = $("#bvWit", v)?.value, keepOk = $("#bvOk", v)?.checked;
   keepUi(v, ctx, () => {
@@ -7791,7 +7805,7 @@ function renderBatchView(v){
     </div>` : ""}
     ${bwPanel(c)}
     ${plantViews(docs)}
-    <div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>#</th><th>Sample ID</th><th>Site sample code</th>${srcCol ? "<th>Source</th>" : ""}${ptCol || mixed ? "<th>Sample</th>" : ""}<th>Status</th><th></th></tr></thead><tbody>${docs.map(row).join("")}</tbody></table></div></div>
+    <div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>#</th><th>Sample ID</th>${codeCol ? "<th>Site sample code</th>" : ""}${srcCol ? "<th>Source</th>" : ""}${ptCol || mixed ? "<th>Sample</th>" : ""}<th>Status</th><th></th></tr></thead><tbody>${docs.map(row).join("")}</tbody></table></div></div>
   </div>`;
   if (keepWit && $("#bvWit", v)) $("#bvWit", v).value = keepWit;
   fillNames(v);
@@ -8090,7 +8104,7 @@ async function doEvaluate(){
   const msg = v === "redo" ? "Re-assay requested; the lab sees it on the board" : "Evaluation recorded";
   if (canEdit()){ await act(s => ({ upd: mk(s), msg }), { anyStage: true, clear: ["evNote"] }); return; }
   // Evaluators outside the lab: no lease; the server takes only an added evaluation, and a record changed meanwhile is read again once.
-  const ref = db.doc("samples/" + s0.id);
+  const ref = db.doc("samples/" + skey(s0.id));
   for (let i = 0; i < 2; i++){
     try { const s = (await ref.get()).data(); if (!s) return; const upd = mk(s); upd.updatedAt = Date.now(); await ref.update(upd); clearForm(["evNote"]); toast(msg); return; }
     catch (e){ if (i) writeFailed(e); else await sleep(400); }
@@ -8963,7 +8977,7 @@ function certBatchHtml(ref, mem){
   </div>`;
 }
 /* v24d: one column names the sample (ID, site sample code, description or point), so a section of several results fits the page. */
-const certWho = s => { const d = s.source || ptOf(s); return `<div class="mono">${esc(s.id)}</div><div class="mono cw-code">${esc(tagText(s)) || "—"}</div>${d ? `<div class="cw-desc">${esc(d)}</div>` : ""}`; };
+const certWho = s => { const d = s.source || ptOf(s); return `<div class="mono">${esc(s.id)}</div>${ownCode(s) ? `<div class="mono cw-code">${esc(ownCode(s))}</div>` : tagText(s) ? "" : `<div class="mono cw-code">—</div>`}${d ? `<div class="cw-desc">${esc(d)}</div>` : ""}`; };
 function certTable(title, list, ans, dsc, pts){
   const sv = a => (a.t === "text" ? "cell-text" : "mono");
   return `${title ? `<h4 class="cert-sec">${esc(title)}</h4>` : ""}<div class="tbl-wrap"><table class="cert-res${ans.length > 6 ? " dense" : ""}"><thead><tr><th>Sample</th>${ans.map(a => `<th>${esc(anShort(a))}${a.u ? ` (${esc(a.u)})` : ""}</th>`).join("")}</tr></thead><tbody>
@@ -9126,7 +9140,7 @@ const JOB_TPL = [
     R("elution", "Lean eluate", "elu_sol", "MLSPLNBF{D}", "Lean eluate solution before strip"),
     R("elution", "Treated water", "elu_sol", "MLSPTRTD{D}", "Mill special treated water")
   ] },
-  { key: "cact", name: "Carbon activity", group: "Plant", pur: "plant", sec: "PLT", shift: true, n: [["n1", "Elution no."]], rows: () => [
+  { key: "cact", name: "Carbon activity", group: "Plant", also: ["MET Lab"], pur: "plant", sec: "PLT", shift: true, n: [["n1", "Elution no."]], rows: () => [
     R("carbon", "Regenerated carbon", "c_act", "ML{S}CBRG{D}", "Mill {sn} regen carbon from the elution circuit"),
     R("carbon", "Eluted carbon", "c_act", "MLSCBST{D}{#1}", "Mill special stripped carbon for the elution circuit{#1}"),
     R("carbon", "Loaded carbon (to elution)", "c_act", "MLSCBLD{D-1}{#1}", "Mill special loaded carbon for the elution circuit{#1}"),   // sampled the day before its strip (the lab's report)
@@ -9224,7 +9238,7 @@ function bindJob(v){
   tp.value = job.tpl; $("#jShift", v).value = job.shift; $("#jDate", v).value = job.date;
   jobRows(); renderJob(); if (isJobKind(formKind())){ jobGroup(v); jobDefaults(v); }
   const again = () => { jobRows(job.rows); renderJob(); };
-  tp.onchange = () => { job.tpl = tp.value; lsSet("jobTpl_" + jobTpl(tp.value).group, tp.value); job.n = {}; job.c = {}; jobRows(); renderJob(); jobDefaults(v); };
+  tp.onchange = () => { job.tpl = tp.value; lsSet("jobTpl_" + jobKindGroup(), tp.value); job.n = {}; job.c = {}; jobRows(); renderJob(); jobDefaults(v); };
   $("#jShift", v).onchange = e => { job.shift = e.target.value; again(); };
   $("#jDate", v).onchange = e => { job.date = e.target.value; again(); };
   $("#jNums", v).addEventListener("input", e => {
@@ -9245,10 +9259,13 @@ function bindJob(v){
     renderJob(); $(`#jRows .j-code[data-j="${job.rows.length - 1}"]`)?.focus();
   };
 }
-/* Shift job lists the plant's templates, MET Lab job the MET Lab's (20 Oct: "MET Lab … should be independent"); each kind remembers its last. */
+/* Shift job lists the plant's templates, MET Lab job the MET Lab's (20 Oct: "MET Lab … should be independent", and "Met Jobs should also
+   have 'carbon activity'"); each kind remembers its last. */
+const jobKindGroup = () => formKind() === "met" ? "MET Lab" : "Plant";
+const inGroup = (x, g) => x.group === g || (x.also || []).includes(g);
 function jobGroup(v){
-  const g = formKind() === "met" ? "MET Lab" : "Plant", tp = $("#jTpl", v || document); if (!tp || !job) return;
-  const list = JOB_TPL.filter(x => x.group === g);
+  const g = jobKindGroup(), tp = $("#jTpl", v || document); if (!tp || !job) return;
+  const list = JOB_TPL.filter(x => inGroup(x, g));
   if (tp.dataset.g !== g){ tp.dataset.g = g; tp.innerHTML = list.map(x => `<option value="${x.key}">${esc(x.name)}</option>`).join(""); }
   if (!list.some(x => x.key === job.tpl)){ const last = lsGet("jobTpl_" + g); job.tpl = list.some(x => x.key === last) ? last : list[0].key; job.n = {}; job.c = {}; jobRows(); }
   tp.value = job.tpl; renderJob();
@@ -9256,7 +9273,7 @@ function jobGroup(v){
 }
 /* The template's purpose and section (a MET Lab job from MET), filled in until the submitter picks their own. */
 function jobDefaults(v){
-  const T = jobTpl(job.tpl), pu = $("#rPurpose", v || document), sc = $("#rSection", v || document); if (!pu || !sc) return;
+  const T0 = jobTpl(job.tpl), T = jobKindGroup() === "MET Lab" ? { ...T0, sec: "MET" } : T0, pu = $("#rPurpose", v || document), sc = $("#rSection", v || document); if (!pu || !sc) return;
   if (!pu.value || pu.value === job.pu0){ if ([...pu.options].some(o => o.value === T.pur)){ pu.value = T.pur; job.pu0 = T.pur; } }
   if (!sc.value || sc.value === job.sc0){ if ([...sc.options].some(o => o.value === T.sec)){ sc.value = T.sec; sc.dataset.auto = "1"; job.sc0 = T.sec; } }
 }
@@ -9271,6 +9288,9 @@ async function registerJob(){
   if (n > 100) return fail("Up to 100 samples in one job.");
   const blank = rows.findIndex(r => !r.code.trim()); if (blank >= 0) return fail("Every ticked sample needs its code.", `#jRows .j-code[data-j="${job.rows.indexOf(rows[blank])}"]`);
   const tags = rows.map(r => normTag(r.code)); if (new Set(tags.map(normKey)).size !== n) return fail("The same code appears twice in this job.", "#jRows .j-code.dup");
+  // v24d (20 Oct): the code is the sample's ID: up to 60 characters, and never ~ (kept for writing the characters a key can't hold)
+  const badC = rows.findIndex(r => /[~\u0000-\u001f]/.test(r.code) || normTag(r.code).length > 60);
+  if (badC >= 0) return fail(`${rows[badC].code.slice(0, 40)}: a code is the sample's ID, up to 60 characters and without ~.`, `#jRows .j-code[data-j="${job.rows.indexOf(rows[badC])}"]`);
   const noTest = rows.find(r => !r.test); if (noTest) return fail(`Choose the analysis for ${noTest.code}.`);
   const code = val("#rSection"), puK = val("#rPurpose") || "plant", submitter = val("#rSubmitter");
   if (!submitter) return fail("Type the name of the person submitting.", "#rSubmitter");
@@ -9322,22 +9342,51 @@ async function registerJob(){
       if (lab){ body.inMid = `${id}~in`; body.ledgerPending = [inMove(body, recvAt, recv, "Registered at the lab", w)]; body.lp = true; }
       return body;
     };
-    const stamp = dayStamp(lab ? recvAt : now);
-    const [first] = await claimIds(code, stamp, 1, id => make(id, 0, n > 1 ? "B-" + id : ""));
-    const ref = n > 1 ? "B-" + first : "";
+    /* v24d (20 Oct): each sample's ID is its code from the plant's file (what the bag and the lab's report say). A code that is already a
+       sample's ID (the same carbon sent for another analysis, or a sample sent again) takes -2, -3 …; the batch has a site number. */
+    const claimCode = async (i, batchOf) => {
+      for (let k = 1; k <= 30; k++){
+        const id = k === 1 ? tags[i] : `${tags[i]}-${k}`, ref = db.doc("samples/" + skey(id));
+        const lease = await ref.acquire({ holder: tabId, ttlMs: 4000 }); if (!lease.acquired) continue;
+        const snap = await ref.get(); if (snap.exists && snap.data()?.id) continue;
+        await ref.set(make(id, i, batchOf(id))); return id;
+      }
+      throw { code: "busy" };
+    };
+    /* 20 Oct: the job's batch has a site number like any batch (B-MET-20261020-0001, "to ensure uniformity"): the section's next one,
+       held while its first sample is written (no sample takes a number a batch holds). */
+    let ref = "", held = null;
+    if (n > 1){
+      const stamp = dayStamp(lab ? recvAt : now), hint = db.doc(`meta/counter-${code}-${stamp}`);
+      let next = 1; try { const h = await hint.get(); next = ((h.exists && +h.data().last) || 0) + 1; } catch {}
+      for (let tries = 0; tries < 400 && !ref; tries++){
+        const num = next++, bid = `${code}-${stamp}-${String(num).padStart(4, "0")}`, sref = db.doc("samples/" + skey(bid));
+        const lease = await sref.acquire({ holder: tabId, ttlMs: 5000 }); if (!lease.acquired) continue;   // 5 s: the most a walk-in's page may hold
+        const snap = await sref.get(); if (snap.exists && snap.data()?.id) continue;
+        if (await batchHolds("B-" + bid)) continue;
+        ref = "B-" + bid; held = { sref, hint, num, stamp };
+      }
+      if (!ref) throw { code: "busy" };
+    }
+    const first = await claimCode(0, () => ref);
+    if (held){ held.sref.acquire({ holder: tabId, ttlMs: 1000 }).catch(() => {});
+      held.hint.get().then(h => { if (!(h.exists && +h.data().last >= held.num)) return held.hint.set({ last: held.num, day: held.stamp, section: code }); }).catch(() => {}); }
     msg.textContent = n > 1 ? `Saved 1 of ${n}…` : "";
-    const ids = n > 1 ? [first, ...await claimIds(code, stamp, n - 1, (id, i) => make(id, i + 1, ref), d => msg.textContent = `Saved ${d + 1} of ${n}…`, +first.split("-").pop() + 1)] : [first];
+    const ids = [first, ...new Array(n - 1)];
+    let saved = 1;
+    await pool(Array.from({ length: n - 1 }, (_, i) => i + 1), 6, async i => { ids[i] = await claimCode(i, () => ref); msg.textContent = `Saved ${++saved} of ${n}…`; return true; });
     ids.forEach((id, i) => db.doc("tagidx/" + tagKey(tags[i])).set({ sid: id, tag: tags[i], at: now }).catch(() => {}));
     const fr = rows.find(r => r.ph && r.code.trim()); if (fr) lsSet("jobFresh", fr.code.trim().slice(0, 40));
     if (lab) ids.forEach(id => { flushLedger(id); syncStock(id); });
     msg.textContent = "";
-    $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? "Sample" : `${n} samples`} ${walk ? "registered" : "submitted"}: ${esc(batchName)}.</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>: processed as one, with one receipt, one workflow and one certificate when the lab's report is attached.` : ""} Write the IDs on the bags, or print the labels:
-      <div class="label-strip" style="margin-top:8px">${ids.map((id, i) => `<code>${esc(id)} · ${esc(tags[i])}</code>`).join("")}</div>
+    const own = ids.every((id, i) => id === tags[i]);
+    $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? "Sample" : `${n} samples`} ${walk ? "registered" : "submitted"}: ${esc(batchName)}.</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>: processed as one, with one receipt, one workflow and one certificate when the lab's report is attached.` : ""} ${own ? "The codes on the bags are the sample IDs; print labels if you want them:" : "Each sample's ID is its code; a code already used for another analysis has -2 after it. Print the labels:"}
+      <div class="label-strip" style="margin-top:8px">${ids.map((id, i) => `<code>${esc(id)}${id !== tags[i] ? ` · ${esc(tags[i])}` : ""}</code>`).join("")}</div>
       <div class="row" style="margin-top:10px"><button type="button" class="btn primary" id="rLabels">Print ${n === 1 ? "label" : n + " labels"}</button><button type="button" class="btn" id="rCopy">Copy IDs</button>${ref ? `<button type="button" class="btn" data-open="${esc(ref)}">Open the batch</button><button type="button" class="btn" data-link="${esc(ref)}">Copy batch link</button>` : `<button type="button" class="btn" data-open="${esc(ids[0])}">Track ${esc(ids[0])}</button>`}<button type="button" class="btn ghost" id="rAgain">${walk ? "Register more" : "Submit another"}</button></div></div>`;
     noteIssued(ids, ref, { ...base, type: batchName }, tags.map(t => [t]));
     const labels = ids.map((id, i) => labelOf({ ...base, id, type: per[i].t?.name || per[i].r.t, tags: [tags[i]] }));
     $("#rLabels").onclick = () => showLabels(labels);
-    $("#rCopy").onclick = () => navigator.clipboard.writeText(ids.map((id, i) => `${id}\t${tags[i]}`).join("\n")).then(() => toast("IDs copied"), () => toast("Copy blocked here. Select the IDs and copy them."));
+    $("#rCopy").onclick = () => navigator.clipboard.writeText(ids.map((id, i) => id === tags[i] ? id : `${id}\t${tags[i]}`).join("\n")).then(() => toast("IDs copied"), () => toast("Copy blocked here. Select the IDs and copy them."));
     $("#rAgain").onclick = () => { $(walk ? "#view-register" : "#view-submit").innerHTML = ""; renderSampleForm(mode); };
     btn.disabled = true;
   } catch (e) {
@@ -9731,7 +9780,7 @@ async function migrate(){
     if (!(+s.v >= 11)) Object.assign(upd, upgrade11({ ...s, ...upd }));
     if (!(+s.v >= 12)) Object.assign(upd, upgrade12({ ...s, ...upd }));
     Object.assign(upd, upgrade13({ ...s, ...upd }));
-    const sref = db.doc("samples/" + s.id);
+    const sref = db.doc("samples/" + skey(s.id));
     try { await sref.update(upd); if (upd.sx) await writeStock(sref, { ...s, ...upd }); } catch {}
     (upd.tags || []).forEach(t => { if (upd.open !== false) db.doc("tagidx/" + tagKey(t)).set({ sid: s.id, tag: t, at: Date.now() }).catch(() => {}); });
   };
@@ -9751,7 +9800,7 @@ async function maintenance(){
   try { await migrate(); } catch {}
   try { await repairBatches(); } catch {}
   try { await fixStock(); } catch {}
-  try { (await db.collection("samples").where("lp", "==", true).get()).docs.forEach(d => flushLedger(d.id)); } catch {}
+  try { (await db.collection("samples").where("lp", "==", true).get()).docs.forEach(d => { const x = d.data(); if (x?.id) flushLedger(x.id); }); } catch {}
 }
 
 /* ---------- boot ---------- */
@@ -9774,7 +9823,7 @@ function watchReleasedToday(){
   if (relSub) relSub();
   relDayWatched = dayKey(Date.now());
   relSub = db.collection("samples").where("relDay", "==", relDayWatched).onSnapshot(snap => {
-    releasedToday.clear(); snap.docs.forEach(d => releasedToday.set(d.id, d.data()));
+    releasedToday.clear(); snap.docs.forEach(d => { const x = d.data(); if (x?.id) releasedToday.set(x.id, x); });
     if (tab === "board") renderBoard();
   }, () => {});
 }
@@ -9821,7 +9870,7 @@ setTab(tab);
     rerenderSoon();
   }, () => {});
   db.collection("samples").where("lab", "==", true).onSnapshot(snap => {
-    samples.clear(); snap.docs.forEach(d => { const x = d.data(); if (x && x.id) samples.set(d.id, x); });
+    samples.clear(); snap.docs.forEach(d => { const x = d.data(); if (x && x.id) samples.set(x.id, x); });
     setSync(snap.metadata.hasPendingWrites ? "saving" : snap.metadata.fromCache ? "stale" : "live");
     rerenderSoon();
   }, () => { setSync("off"); toast("Lost connection to the register. Reload the page."); });

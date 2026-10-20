@@ -143,11 +143,13 @@ const ids = async page => {
   await page.waitForSelector("#rResult code", { timeout: 15000 });
   const out = await page.$$eval("#rResult code", els => els.map(e => e.textContent.split(" · ")[0]));
   // Straight into the store (as a test fixture, the way a page signed out could not): every open page gets the change.
-  if (lastBatch && out.length > 1){ lastBatch = false; for (const id of out){ const p = "samples/" + id; if (store[p]){ store[p] = { ...store[p], solo: true }; await broadcast(p, store[p]); } } await page.waitForTimeout(200); }
+  if (lastBatch && out.length > 1){ lastBatch = false; for (const id of out){ const p = "samples/" + skey(id); if (store[p]){ store[p] = { ...store[p], solo: true }; await broadcast(p, store[p]); } } await page.waitForTimeout(200); }
   return out;
 };
 const open = async (page, id) => { await page.fill("#lookupInput", id); await page.press("#lookupInput", "Enter"); await page.waitForSelector(".sid", { timeout: 8000 }); await page.waitForTimeout(250); };
-const doc = id => store["samples/" + id];
+// v24d (20 Oct): a job's sample has its code as its ID; the key writes / \ ? # as ~ and their code (the page's skey)
+const skey = id => String(id || "").replace(/[\/\\?#]/g, c => "~" + c.charCodeAt(0).toString(16) + "~");
+const doc = id => store["samples/" + skey(id)];
 const ledger = () => Object.entries(store).filter(([k]) => k.startsWith("ledger/")).flatMap(([, d]) => Object.values(d.m || {}));
 const toastText = page => page.$eval("#toast", t => t.hidden ? "" : t.textContent);
 const localStr = ms => new Date(ms).toISOString().slice(0, 16);   // datetime-local value in site time (UTC)
@@ -175,7 +177,7 @@ async function createBatch(page, prof, sids){
   const before = new Set(Object.keys(store).filter(k => k.startsWith("batches/")));
   await page.click("#nbCreate");
   const key = await waitFor(() => Object.keys(store).find(k => k.startsWith("batches/") && !before.has(k) && store[k].status === "prep"));
-  if (!key) throw new Error("batch not created: " + await toastText(page) + " " + JSON.stringify(sids.map(id => [id, store["samples/" + id]?.stageKey, store["samples/" + id]?.lab, store["samples/" + id]?.qcg])) + " list=" + JSON.stringify(await page.$$eval("#nbList input[type=checkbox]", els => els.map(e => e.value))));
+  if (!key) throw new Error("batch not created: " + await toastText(page) + " " + JSON.stringify(sids.map(id => [id, store["samples/" + skey(id)]?.stageKey, store["samples/" + id]?.lab, store["samples/" + id]?.qcg])) + " list=" + JSON.stringify(await page.$$eval("#nbList input[type=checkbox]", els => els.map(e => e.value))));
   await page.waitForSelector("#bSave", { state: "attached", timeout: 5000 });
   await page.waitForTimeout(150); await openTyping(page);
   return key.slice(8);
@@ -205,7 +207,7 @@ async function fillBatch(page, id, valueOf = () => "1.00", over = {}){
 async function saveBatch(page, id){
   await openTyping(page); await page.click("#bSave");
   const inB = s => s && (Object.values(s.labs || {}).find(l => l && l.b === id) || (!s.labs && s.labBatch === id ? { q: s.labQc } : null));
-  await waitFor(() => batchDoc(id)?.qc && (batchDoc(id).sids || []).every(sid => { const l = inB(store["samples/" + sid]); return !l || l.q !== "pending"; }));
+  await waitFor(() => batchDoc(id)?.qc && (batchDoc(id).sids || []).every(sid => { const l = inB(store["samples/" + skey(sid)]); return !l || l.q !== "pending"; }));
   await page.waitForTimeout(400);
   return batchDoc(id).qc;
 }

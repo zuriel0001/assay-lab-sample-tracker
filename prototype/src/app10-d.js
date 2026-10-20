@@ -103,7 +103,7 @@ function renderBoard(){
           ${curIdx(s) < targetIdx(s) ? Object.values(labsOf(s)).map(l => `<div class="cmeta">Batch <span class="mono">${esc(l.b)}</span>${l.q && l.q !== "pending" ? ` · <b style="color:var(--${{ ok: "ok", bad: "bad" }[qcCls(l.q)] || "warn"})">${esc(qcLabel(l.q))}</b>` : ""}</div>`).join("") : ""}
           ${alerts.includes(s) ? `<div class="cmeta"><b style="color:var(--bad)">Result past a limit</b></div>` : ""}
           ${awaiting(s) && s.handedTo ? `<div class="cmeta">Handed to ${esc(s.handedTo)}</div>` : ""}
-          <div class="cmeta">${esc(s.type)}${tagText(s) ? ` · <span class="mono">${esc(tagText(s))}</span>` : ""}${s.priority === "Urgent" ? ` · <span class="urg">Urgent</span>` : ""}${s.flag && awaiting(s) ? ` · <b style="color:var(--warn)">Flagged</b>` : ""}</div>
+          <div class="cmeta">${esc(s.type)}${ownCode(s) ? ` · <span class="mono">${esc(ownCode(s))}</span>` : ""}${s.priority === "Urgent" ? ` · <span class="urg">Urgent</span>` : ""}${s.flag && awaiting(s) ? ` · <b style="color:var(--warn)">Flagged</b>` : ""}</div>
           ${hazTags(s).length || twoPerson(s) ? `<div class="cmeta">${hazPills(s)}${twoPerson(s) ? `<span class="haz two" title="Two-person custody">2P</span>` : ""}</div>` : ""}
           ${od.length ? `<div class="cmeta"><b style="color:var(--bad)">${esc(od.map(m => m.item).join(", "))} past retention</b></div>` : x.key === "report" && stt.late ? `<div class="cmeta"><b style="color:var(--warn)">Not yet put in storage</b></div>` : ""}
           ${tm.left && !od.length && x.key !== "report" ? `<div class="cmeta left">${esc(tm.left)}</div>` : ""}</button>`; }).join("")}</div>
@@ -286,11 +286,13 @@ function renderSampleForm(mode){
 async function tagOwner(t, test){
   const ids = new Set();
   try { const s = await db.doc("tagidx/" + tagKey(t)).get(); if (s.exists && s.data()?.sid) ids.add(s.data().sid); } catch {}
-  try { (await db.collection("samples").where("tags", "array-contains", normTag(t)).limit(10).get()).docs.forEach(d => ids.add(d.id)); } catch {}
-  for (const id of ids){ const d = samples.get(id) || (await db.doc("samples/" + id).get()).data(); if (d && d.open !== false && !stage(d, d.stageKey)?.final && (!test || !d.test || d.test === test)) return id; }
+  try { (await db.collection("samples").where("tags", "array-contains", normTag(t)).limit(10).get()).docs.forEach(d => { const x = d.data(); if (x?.id) ids.add(x.id); }); } catch {}
+  for (const id of ids){ const d = samples.get(id) || (await db.doc("samples/" + skey(id)).get()).data(); if (d && d.open !== false && !stage(d, d.stageKey)?.final && (!test || !d.test || d.test === test)) return id; }
   return "";
 }
 /* Each ID is claimed on its own document under a short lease, so two people submitting at once never wait on each other or get the same number. */
+/* v24d (20 Oct): whether any sample is in the batch with this reference (a job's batch has a site number of its own: B-MET-20261020-0001). */
+const batchHolds = async ref => { try { return (await db.collection("samples").where("batchId", "==", ref).limit(1).get()).docs.length > 0; } catch { return false; } };
 async function claimIds(code, stamp, n, makeBody, progress, from = 1){
   const hint = db.doc(`meta/counter-${code}-${stamp}`);
   let next = from;
@@ -300,11 +302,12 @@ async function claimIds(code, stamp, n, makeBody, progress, from = 1){
     while (k < n){
       const i = k++;
       for (let tries = 0; tries < 400 && !ids[i]; tries++){
-        const num = next++, id = `${code}-${stamp}-${String(num).padStart(4, "0")}`, ref = db.doc("samples/" + id);
+        const num = next++, id = `${code}-${stamp}-${String(num).padStart(4, "0")}`, ref = db.doc("samples/" + skey(id));
         const lease = await ref.acquire({ holder: tabId, ttlMs: 4000 });
         if (!lease.acquired) continue;
         const snap = await ref.get();
         if (snap.exists && snap.data()?.id) continue;
+        if (await batchHolds("B-" + id)) continue;   // v24d (20 Oct): a job's batch holds this number
         await ref.set(makeBody(id, i));
         ref.acquire({ holder: tabId, ttlMs: 1000 }).catch(() => {});   // let the claim lapse quickly so the lab can receive it at once
         ids[i] = id; progress?.(++done);

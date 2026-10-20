@@ -28,7 +28,7 @@ async function submit(P){
   await P.fill("#rSubmitter", "MET technician"); await P.click("#rSubmit");
   await P.waitForSelector("#rResult code", { timeout: 30000 });
   const res = await P.$$eval("#rResult code", els => els.map(e => e.textContent.split(" · ")));
-  return { ids: res.map(x => x[0]), tags: res.map(x => x[1]), ref: doc(res[0][0]).batchId };
+  return { ids: res.map(x => x[0]), tags: res.map(x => x[1] || x[0]), ref: doc(res[0][0]).batchId };
 }
 async function receive(P, j){
   await open(P, j.ref); await P.waitForSelector("#bvRecv", { timeout: 8000 }).catch(() => {});
@@ -55,7 +55,7 @@ const by = (j, c) => doc(j.ids[j.tags.indexOf(c)]);
   await Tc.check('input[name="rKind"][value="job"]'); await Tc.waitForTimeout(200);
   check((await opts(Tc, "#jTpl")).join(",") === "mill,elution,cact" && /Shift samples/.test(await text(Tc, "#rJob .sub-t")) && await Tc.inputValue("#rPurpose") === "plant" && await Tc.inputValue("#rSection") === "PLT", "Shift job: the plant's templates, process control from PLT");
   await Tc.check('input[name="rKind"][value="met"]'); await Tc.waitForTimeout(200);
-  check((await opts(Tc, "#jTpl")).join(",") === "tank,brt,preg,qaqc" && /MET Lab samples/.test(await text(Tc, "#rJob .sub-t")) && await Tc.inputValue("#rSection") === "MET", "MET Lab job: Tank profile, Bottle roll, Preg-robbing test, QA/QC set, from MET");
+  check((await opts(Tc, "#jTpl")).join(",") === "cact,tank,brt,preg,qaqc" && /MET Lab samples/.test(await text(Tc, "#rJob .sub-t")) && await Tc.inputValue("#rSection") === "MET", "MET Lab job: Carbon activity, Tank profile, Bottle roll, Preg-robbing test, QA/QC set, from MET");
   const pur = {};
   for (const t of ["tank", "brt", "preg", "qaqc"]){ await Tc.selectOption("#jTpl", t); await Tc.waitForTimeout(120); pur[t] = await Tc.inputValue("#rPurpose") + "/" + await Tc.inputValue("#rSection"); }
   check(pur.tank === "plant/MET" && pur.brt === "met_br/MET" && pur.preg === "met_pri/MET" && pur.qaqc === "qc/MET", "each template's purpose: " + JSON.stringify(pur));
@@ -67,6 +67,19 @@ const by = (j, c) => doc(j.ids[j.tags.indexOf(c)]);
   let cs = await codes(Tc);
   check(cs.length === 39 && cs.includes("MLNSCL1120261022") && await Tc.isChecked(`[data-jon="${cs.indexOf("MLNSCL1120261022")}"]`) && /^38 of 39/.test(await text(Tc, "#jInfo")), "39 listed, carbon from tank 11 ticked with the rest");
   const mill = await submit(Tc);
+  log("A job's samples have their codes as IDs; the job's batch a site number (20 Oct)");
+  check(mill.ids.every((id, i) => id === mill.tags[i]) && mill.ids.includes("MLNSCOF 20261022") && mill.ids.includes("MLNSCBST20261022#50") && !!doc("MLNSCBST20261022#50") && /^B-PLT-\d{8}-\d{4}$/.test(mill.ref) && !doc(mill.ref.slice(2)),
+    "each sample's ID is its code (MLNSCOF 20261022, MLNSCBST20261022#50); the batch is " + mill.ref + ", a number no sample has");
+  check(/The codes on the bags are the sample IDs/.test(await text(Tc, "#rResult")) && !/ · /.test(await text(Tc, "#rResult .label-strip")), "the submission says the codes are the IDs, each once");
+  await Tc.fill("#lookupInput", "mlnscbst20261022#50"); await Tc.click("#lookupForm button[type=submit]"); await Tc.waitForTimeout(600);
+  check(await text(Tc, "#view-track .sid") === "MLNSCBST20261022#50", "typed (any case) into the search box, a code with # opens its sample");
+  await Tc.goto(Tc.url().split("#")[0] + "#" + encodeURIComponent("MLNSCOF 20261022")); await Tc.waitForTimeout(800);
+  check(await text(Tc, "#view-track .sid") === "MLNSCOF 20261022" && decodeURIComponent(new URL(Tc.url()).hash.slice(1)) === "MLNSCOF 20261022", "a tracking link carries the code with its space, and opens it");
+  await open(Tc, mill.ref); await Tc.waitForTimeout(300);
+  check(!(await Tc.$$eval("#view-track table.cardy thead th", ts => ts.map(t => t.textContent))).includes("Site sample code"), "the batch page lists each ID once (no second column of the same codes)");
+  await Tc.click("#bvLabels"); await Tc.waitForSelector("#labelBox .bag-label");
+  const lab = await Tc.$eval("#labelBox .bag-label", l => l.textContent.replace(/\s+/g, " "));
+  check(/MLNSRECA20261022/.test(lab) && !/Code/.test(lab), "a label prints the code once, as the ID"); await Tc.click("#labelClose").catch(() => Tc.keyboard.press("Escape"));
   check(by(mill, "MLNSCL1120261022").details["CIL tank"] === "11" && by(mill, "MLNSCL0320261022").details["CIL tank"] === "3", "each tank's carbon knows its tank");
   await receive(Tc, mill);
   const load = [1300, 1100, 760, 500, 390, 270, 150, 88, 68, 53, 40];
@@ -167,6 +180,25 @@ const by = (j, c) => doc(j.ids[j.tags.indexOf(c)]);
   check(qc.ids.every(id => (doc(id).certs || []).length) && by(qc, "MLABPPS0220261022").results.rows.Au?.raw === "0.95" && by(qc, "MLABCB0120261022").results.rows.Au_c?.raw === "50.80" && by(qc, "MLABSL0120261022").results.rows.Au_s?.f === "ldl",
     "all 7 released on one certificate, each value as the lab reports it (below detection kept as such)");
   check(!(await Tc.$("#vzBrt")) && !(await Tc.$("#vzPreg")) && !(await Tc.$("#vzTank")), "nothing worked out: MET judges its standards");
+
+  log("One code, two analyses: the second sample's ID takes -2");
+  await jobForm(Tc, "met", "cact", "2026-10-22", "N"); await Tc.fill("#jN_n1", "50"); await Tc.waitForTimeout(100);
+  check(await Tc.inputValue("#rSection") === "MET", "Carbon activity from MET under MET Lab job");
+  await Tc.uncheck('[data-jon="0"]'); await Tc.uncheck('[data-jon="2"]'); await Tc.fill('#jRows .j-code[data-j="1"]', "MLNSCBST20261022#50"); await Tc.fill('#jRows .j-code[data-j="3"]', "ACME VIRGIN");
+  const ca = await submit(Tc);
+  check(ca.ids[0] === "MLNSCBST20261022#50-2" && doc("MLNSCBST20261022#50-2").tags[0] === "MLNSCBST20261022#50" && doc("MLNSCBST20261022#50").test === "c_load" && doc("MLNSCBST20261022#50-2").test === "c_act" && /^B-MET-\d{8}-\d{4}$/.test(ca.ref),
+    "the stripped carbon already on the mill shift (loading) is sent for its activity: " + ca.ids.join(", ") + " in " + ca.ref);
+  check(/ · MLNSCBST20261022#50/.test(await text(Tc, "#rResult .label-strip")), "the submission shows that one's code beside its ID");
+
+  log("A walk-in MET Lab job (signed out)");
+  const Pub = await newUser(browser, { uid: "u_pub", name: "MET runner", canEdit: false, names }); await Pub.waitForTimeout(600);
+  await H.tab(Pub, "register"); await Pub.check('input[name="rKind"][value="met"]'); await Pub.waitForTimeout(200);
+  await Pub.selectOption("#jTpl", "preg"); await Pub.fill("#jDate", "2026-10-23"); await Pub.dispatchEvent("#jDate", "change"); await Pub.fill("#jC_n", "2"); await Pub.waitForTimeout(200);
+  await Pub.fill("#rSubmitter", "MET runner"); await Pub.fill("#rHandTo", "Lab Technician A"); await Pub.fill("#rHandBadge", "B-101");
+  await Pub.click("#rSubmit"); await Pub.waitForSelector("#rResult code", { timeout: 30000 }).catch(() => {});
+  const pub = await Pub.$$eval("#rResult code", els => els.map(e => e.textContent));
+  check(pub.join(",") === "MLABPREG0120261023,MLABPREG0220261023,MLABPREG0320261023,MLABPREG0420261023" && /^B-MET-\d{8}-\d{4}$/.test(doc("MLABPREG0120261023")?.batchId || "") && doc("MLABPREG0420261023")?.createdBy === "public",
+    "registered at the lab without signing in: 4 samples with their codes as IDs, in " + (doc("MLABPREG0120261023")?.batchId || "no batch") + (pub.length ? "" : " (" + await H.toastText(Pub) + ")"));
 
   log("Phone");
   await Tc.setViewportSize({ width: 390, height: 844 }); await H.tab(Tc, "submit"); await Tc.check('input[name="rKind"][value="met"]'); await Tc.waitForTimeout(300);

@@ -40,6 +40,18 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   check(!(await one(null, { op: "set", path: "ledger/2026-10-14_EXP", data: { m: {} } })).ok, "public can't write the ledger");
   check(!(await one(null, { op: "delete", path: "samples/" + id })).ok, "public can't delete");
 
+  // v24d (20 Oct): a job's samples have their codes as IDs (the key writes / \ ? # as ~ and their code); the job's batch a site number.
+  const jb = `B-MET-${day}-0009`, jsub = (code, extra = {}) => sub(code, { section: "MET", job: "preg", tags: [code], batchId: jb, batchSize: 2, ...extra });
+  check((await one(null, { op: "set", path: "samples/MLABPREG0120261013", data: jsub("MLABPREG0120261013") })).ok, "public may submit a job's sample with its code as its ID, in a batch holding a site number");
+  check((await one(null, { op: "set", path: "samples/MLNSCBLD20261018~23~32", data: jsub("MLNSCBLD20261018#32", { job: "mill" }) })).ok === false, "a second job's sample can't join a batch another job's form started");
+  check((await one(null, { op: "set", path: "samples/MLABPREG0220261013", data: jsub("MLABPREG0220261013") })).ok, "the rest of the job join its batch");
+  check((await one(null, { op: "set", path: "samples/MLNSCBLD20261018~23~32", data: jsub("MLNSCBLD20261018#32", { job: "mill", batchId: `B-PLT-${day}-0009`, section: "PLT" }) })).ok, "a code with # is kept as the ID; its key writes # as ~23~");
+  check(!(await one(null, { op: "set", path: "samples/MLNSCBLD20261018#32", data: jsub("MLNSCBLD20261018#32", { job: "mill" }) })).ok, "a key with # in it is refused");
+  check(!(await one(null, { op: "set", path: "samples/MLABOTHER20261013", data: jsub("MLABOTHER20261013", { tags: ["MLABPREG0320261013"] }) })).ok, "a code ID must be the sample's own code");
+  check((await one(null, { op: "set", path: "samples/MLABPREG0120261013-2", data: jsub("MLABPREG0120261013-2", { tags: ["MLABPREG0120261013"] }) })).ok, "or its code with -2 when the code is already a sample's ID");
+  check(!(await one(null, { op: "set", path: "samples/MLABPREG0520261013", data: sub("MLABPREG0520261013", { tags: ["MLABPREG0520261013"] }) })).ok, "only a job's sample has a code as its ID");
+  check(!(await one(null, { op: "set", path: "samples/MLABPREG0620261013", data: jsub("MLABPREG0620261013", { batchId: "B-" + id }) })).ok, "a job's sample can't join another submission's batch");
+
   // Reads.
   await mem.update("samples/" + id, { results: { rows: { Au: { v: 1.2 } } }, certs: [{ no: id + "-R1", v: 1, at: now, code: "ABC", rows: { Au: { v: 1.2 } } }], amend: { x: 1 } });
   const pub = (await one(null, { op: "get", path: "samples/" + id })).data;

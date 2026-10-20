@@ -711,7 +711,7 @@ async function batchTrends(b, qc, p){
 }
 /* Writes one sample under its lease from anywhere (batch actions). fn(s) returns the update, { upd, moves }, or null to skip. */
 async function sampleWrite(id, fn, after){
-  const ref = db.doc("samples/" + id);
+  const ref = db.doc("samples/" + skey(id));
   try {
     const s = await leased(ref, true); if (!s) return false;
     const res = withRelease(s, fn(s)); if (!res) return false;
@@ -883,7 +883,7 @@ async function doBatchDecide(kind){
       await setSamplesQc(fresh, "accepted", qn, qn);
       toast(kind === "override" ? "Exception recorded. Samples can be released; the reason is on each certificate's batch record." : "Warnings accepted. Samples can be released.");
     } else if (kind === "reopen"){
-      const rel = (await Promise.all(fresh.sids.map(sid => db.doc("samples/" + sid).get().then(x => x.data())))).filter(s => s && inBatch(s, fresh.id) && released(s));
+      const rel = (await Promise.all(fresh.sids.map(sid => db.doc("samples/" + skey(sid)).get().then(x => x.data())))).filter(s => s && inBatch(s, fresh.id) && released(s));
       if (rel.length){ toast(`${rel[0].id} was already released from this batch. Correct a released result with an amended certificate; re-run the batch for the others.`); return; }
       await ref.update({ qc: null, status: "results", log: batchLog(fresh, `Results opened again for correction: ${why}`) });
       await setSamplesQc(fresh, "pending", `Lab batch ${b.id} results opened again for correction: ${why}`);
@@ -950,7 +950,7 @@ async function repairBatches(){
 async function closeBatchIfDone(id){
   try {
     const ref = db.doc("batches/" + id), b = (await ref.get()).data(); if (!b || !b.open) return;
-    const docs = await Promise.all(b.sids.map(sid => db.doc("samples/" + sid).get().then(x => x.data())));
+    const docs = await Promise.all(b.sids.map(sid => db.doc("samples/" + skey(sid)).get().then(x => x.data())));
     if (docs.every(s => !s || !inBatch(s, id) || released(s) || stage(s, s.stageKey)?.final)) await ref.update({ open: false, status: "done", log: batchLog(b, "All results released; batch closed") });
   } catch {}
 }

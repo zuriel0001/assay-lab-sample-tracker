@@ -10,20 +10,20 @@ function derive(s, upd){
 }
 async function writeStock(ref, s){
   const st = stockOf(s);
-  if (st) await db.doc("stock/" + s.id).set(st);
+  if (st) await db.doc("stock/" + skey(s.id)).set(st);
   await ref.update({ sx: null });
 }
 /* Finishes a stock record left unwritten (a new registration, or a device that lost its connection mid-save). */
 async function syncStock(id){
   try {
-    const ref = db.doc("samples/" + id), s = await leased(ref, true);
+    const ref = db.doc("samples/" + skey(id)), s = await leased(ref, true);
     if (s && s.sx) await writeStock(ref, s);
     ref.acquire({ holder: tabId, ttlMs: 1000 }).catch(() => {});
   } catch {}
 }
 async function fixStock(){
   const snap = await db.collection("samples").where("sx", "==", 1).limit(100).get();
-  for (const d of snap.docs) await syncStock(d.id);
+  for (const d of snap.docs){ const x = d.data(); if (x?.id) await syncStock(x.id); }
 }
 
 /* Stored samples with material due by the end of today, for the board's retention count. */

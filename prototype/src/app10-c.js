@@ -526,7 +526,7 @@ async function act(fn, opts = {}){
   if (!db || !current?.body || moving || !canEdit()) return false;
   const seen = current.body;
   moving = true; setMoveBusy(true);
-  const docRef = db.doc("samples/" + seen.id);
+  const docRef = db.doc("samples/" + skey(seen.id));
   try {
     const s = await leased(docRef); if (!s) return false;
     if (!opts.anyStage && s.stageKey !== seen.stageKey){ toast(`${s.id} was just moved to ${stage(s, s.stageKey)?.name || s.stageKey} by ${lastTech(s)}. Check it and try again.`); return false; }
@@ -809,7 +809,7 @@ async function flushLedger(sid){
   try {
     for (let attempt = 0; attempt < 3; attempt++){
       try {
-        const ref = db.doc("samples/" + sid), snap = await ref.get();
+        const ref = db.doc("samples/" + skey(sid)), snap = await ref.get();
         const pend = (snap.exists && snap.data().ledgerPending) || [];
         if (!pend.length) return;
         await writeMoves(pend);

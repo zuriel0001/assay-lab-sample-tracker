@@ -34,7 +34,7 @@ function qaDoc(id){
   const c = qaDocs.get(id);
   if (db && !c?.busy && (!c || Date.now() - c.t > 15000)){
     qaDocs.set(id, { d: c?.d || null, t: c?.t || 0, busy: true });
-    db.doc("samples/" + id).get().then(snap => {
+    db.doc("samples/" + skey(id)).get().then(snap => {
       const d = snap.exists && snap.data()?.id ? snap.data() : null, was = JSON.stringify(c?.d || null);
       qaDocs.set(id, { d, t: Date.now() });
       if (JSON.stringify(d) !== was) qaSoon();
@@ -83,7 +83,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && qaState &&
 /* ---------- issuing blind IDs ---------- */
 async function qaLoad(id){
   if (samples.has(id)) return samples.get(id);
-  try { const d = await db.doc("samples/" + id).get(); return d.exists && d.data()?.id ? d.data() : null; } catch { return null; }
+  try { const d = await db.doc("samples/" + skey(id)).get(); return d.exists && d.data()?.id ? d.data() : null; } catch { return null; }
 }
 function qaWhyNot(o, id){
   if (!o) return "not found";
@@ -402,7 +402,7 @@ async function watchBatchRef(text, seq){
   if (seq !== openSeq || !first.docs.length) return false;
   const put = docs => { current = { id: T, batch: T, docs: docs.map(d => d.data()).filter(x => x && x.id).sort((a, b) => (a.batchIndex || 0) - (b.batchIndex || 0) || (a.id < b.id ? -1 : 1)) }; };
   put(first.docs); $("#lookupInput").value = T;
-  try { history.replaceState(null, "", "#" + T.replace(/[^A-Za-z0-9._~-]/g, "")); } catch {}
+  try { history.replaceState(null, "", "#" + encodeURIComponent(T)); } catch {}
   renderTrack();
   unsubCurrent = q.onSnapshot(snap => { if (seq !== openSeq || current?.batch !== T) return; put(snap.docs); batchSoon(); }, () => {});
   return true;
@@ -425,8 +425,9 @@ function renderBatchView(v){
   const done = docs.filter(s => curIdx(s) >= targetIdx(s)).length, etas = docs.filter(s => curIdx(s) < targetIdx(s) && !status(s).closed).map(s => projection(s).eta).filter(Boolean);
   const eta = etas.length ? Math.max(...etas) : 0, srcCol = docs.some(s => s.source), mixed = new Set(docs.map(s => s.test)).size > 1 || new Set(docs.map(s => s.typeKey)).size > 1, ptCol = docs.some(ptOf);
   noteRecentBatch(c.batch, docs); pageTitle(c.batch);
+  const codeCol = docs.some(ownCode);   // a job's samples have their codes as IDs: no second column of the same codes
   const row = s => { const st = status(s), last = (s.certs || []).at(-1);
-    return `<tr><td class="mono muted">${esc(s.batchIndex || "")}</td><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button></td><td class="mono">${esc(tagText(s)) || "—"}</td>${srcCol ? `<td>${esc(s.source || "")}</td>` : ""}${ptCol || mixed ? `<td>${esc(ptOf(s) || s.type || "")}${mixed ? `<div class="small muted">${esc(s.testName || "")}</div>` : ""}</td>` : ""}
+    return `<tr><td class="mono muted">${esc(s.batchIndex || "")}</td><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button></td>${codeCol ? `<td class="mono">${esc(ownCode(s)) || "—"}</td>` : ""}${srcCol ? `<td>${esc(s.source || "")}</td>` : ""}${ptCol || mixed ? `<td>${esc(ptOf(s) || s.type || "")}${mixed ? `<div class="small muted">${esc(s.testName || "")}</div>` : ""}</td>` : ""}
       <td><span class="pill ${st.cls}">${esc(st.label)}</span></td><td class="small">${last ? `Released ${esc(fmtDate(last.at))}` : ""}</td></tr>`; };
   const keepAt = $("#bvAt", v)?.value, keepWit = $("#bvWit", v)?.value, keepOk = $("#bvOk", v)?.checked;
   keepUi(v, ctx, () => {
@@ -449,7 +450,7 @@ function renderBatchView(v){
     </div>` : ""}
     ${bwPanel(c)}
     ${plantViews(docs)}
-    <div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>#</th><th>Sample ID</th><th>Site sample code</th>${srcCol ? "<th>Source</th>" : ""}${ptCol || mixed ? "<th>Sample</th>" : ""}<th>Status</th><th></th></tr></thead><tbody>${docs.map(row).join("")}</tbody></table></div></div>
+    <div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>#</th><th>Sample ID</th>${codeCol ? "<th>Site sample code</th>" : ""}${srcCol ? "<th>Source</th>" : ""}${ptCol || mixed ? "<th>Sample</th>" : ""}<th>Status</th><th></th></tr></thead><tbody>${docs.map(row).join("")}</tbody></table></div></div>
   </div>`;
   if (keepWit && $("#bvWit", v)) $("#bvWit", v).value = keepWit;
   fillNames(v);

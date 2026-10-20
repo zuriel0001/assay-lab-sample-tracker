@@ -250,8 +250,8 @@ function qrSvg(text){
 }
 
 /* ---------- bag labels ---------- */
-const trackUrl = id => SHARE_URL + "#" + id;
-const labelOf = s => ({ id: s.id, tag: (s.tags || []).join(", "), type: s.type || "", sec: s.section || "", at: s.createdAt || s.recvAt || 0,
+const trackUrl = id => SHARE_URL + "#" + encodeURIComponent(id);   // v24d: a code ID keeps its spaces, + and #
+const labelOf = s => ({ id: s.id, tag: ownCode(s), type: s.type || "", sec: s.section || "", at: s.createdAt || s.recvAt || 0,
   haz: hazTags(s).map(h => h.tag), two: twoPerson(s), urgent: s.priority === "Urgent" });
 function labelHtml(x){
   return `<div class="bag-label">

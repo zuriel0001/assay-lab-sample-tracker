@@ -62,7 +62,7 @@ const live = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => v
   await Tc.fill(`#jRows .j-code[data-j="1"]`, "MLNSRECB20261018");
   await Tc.click("#rSubmit"); await Tc.waitForSelector("#rResult code", { timeout: 30000 });
   const res = await Tc.$$eval("#rResult code", els => els.map(e => e.textContent.split(" · ")));
-  const ids = res.map(x => x[0]), tags = res.map(x => x[1]), ref = doc(ids[0]).batchId;
+  const ids = res.map(x => x[0]), tags = res.map(x => x[1] || x[0]), ref = doc(ids[0]).batchId;
   const by = c => doc(ids[tags.indexOf(c)]);
   check(ids.length === 37 && ids.every(id => doc(id).batchId === ref && doc(id).batchSize === 37 && doc(id).route === "JOB" && doc(id).job === "mill") && /Mill shift, night shift/.test(doc(ids[0]).batchName),
     "one job of 37 samples on the shift job route: " + doc(ids[0]).batchName);

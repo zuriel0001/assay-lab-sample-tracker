@@ -274,6 +274,12 @@ function idFromText(raw){
 }
 function splitTags(t){ return String(t || "").split(/[,;\n]+/).map(x => x.trim()).filter(Boolean); }
 const normTag = t => String(t || "").trim().toUpperCase().replace(/\s+/g, " ");
+/* v24d (20 Oct): a sample's ID as its document key. A job's samples take the code from the plant's file as their ID (MLNSCOF 20261018,
+   MLNSCBLD20261018#32, MLABPF+42520260930); the four characters a key can't hold (/ \ ? #) are written as ~ and their code. A site ID
+   (PLT-20261019-0001) is its own key, and so is a key already written this way. */
+const skey = id => String(id || "").replace(/[\/\\?#]/g, c => "~" + c.charCodeAt(0).toString(16) + "~");
+/* The site sample code where it is not the ID itself (v24d: a job's sample has its code as its ID). */
+const ownCode = s => { const t = tagText(s); return t && t !== s.id ? t : ""; };
 /* A tag as a document id: letters, digits, - and _ stay; every other character is written as ~ and its code, so different tags never collide. */
 const tagKey = t => [...normTag(t)].map(c => /[A-Z0-9_-]/.test(c) ? c : "~" + c.codePointAt(0).toString(16) + "~").join("").slice(0, 190) || "~";
 /* Tags for a batch: one starting tag counts up, keeping its zero padding (T-10421, T-10422, …). */

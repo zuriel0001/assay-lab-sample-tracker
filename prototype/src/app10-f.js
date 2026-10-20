@@ -70,7 +70,7 @@ async function migrate(){
     if (!(+s.v >= 11)) Object.assign(upd, upgrade11({ ...s, ...upd }));
     if (!(+s.v >= 12)) Object.assign(upd, upgrade12({ ...s, ...upd }));
     Object.assign(upd, upgrade13({ ...s, ...upd }));
-    const sref = db.doc("samples/" + s.id);
+    const sref = db.doc("samples/" + skey(s.id));
     try { await sref.update(upd); if (upd.sx) await writeStock(sref, { ...s, ...upd }); } catch {}
     (upd.tags || []).forEach(t => { if (upd.open !== false) db.doc("tagidx/" + tagKey(t)).set({ sid: s.id, tag: t, at: Date.now() }).catch(() => {}); });
   };
@@ -90,7 +90,7 @@ async function maintenance(){
   try { await migrate(); } catch {}
   try { await repairBatches(); } catch {}
   try { await fixStock(); } catch {}
-  try { (await db.collection("samples").where("lp", "==", true).get()).docs.forEach(d => flushLedger(d.id)); } catch {}
+  try { (await db.collection("samples").where("lp", "==", true).get()).docs.forEach(d => { const x = d.data(); if (x?.id) flushLedger(x.id); }); } catch {}
 }
 
 /* ---------- boot ---------- */
@@ -113,7 +113,7 @@ function watchReleasedToday(){
   if (relSub) relSub();
   relDayWatched = dayKey(Date.now());
   relSub = db.collection("samples").where("relDay", "==", relDayWatched).onSnapshot(snap => {
-    releasedToday.clear(); snap.docs.forEach(d => releasedToday.set(d.id, d.data()));
+    releasedToday.clear(); snap.docs.forEach(d => { const x = d.data(); if (x?.id) releasedToday.set(x.id, x); });
     if (tab === "board") renderBoard();
   }, () => {});
 }
@@ -160,7 +160,7 @@ setTab(tab);
     rerenderSoon();
   }, () => {});
   db.collection("samples").where("lab", "==", true).onSnapshot(snap => {
-    samples.clear(); snap.docs.forEach(d => { const x = d.data(); if (x && x.id) samples.set(d.id, x); });
+    samples.clear(); snap.docs.forEach(d => { const x = d.data(); if (x && x.id) samples.set(x.id, x); });
     setSync(snap.metadata.hasPendingWrites ? "saving" : snap.metadata.fromCache ? "stale" : "live");
     rerenderSoon();
   }, () => { setSync("off"); toast("Lost connection to the register. Reload the page."); });

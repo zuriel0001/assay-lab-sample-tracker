@@ -102,13 +102,14 @@ async function findByTag(text){
   const T = normTag(text), hits = new Set();
   if (!db || !T) return [];
   try { const s = await db.doc("tagidx/" + tagKey(T)).get(); if (s.exists && s.data()?.sid) hits.add(s.data().sid); } catch {}
-  try { (await db.collection("samples").where("tags", "array-contains", T).limit(25).get()).docs.forEach(d => hits.add(d.id)); } catch {}
-  try { (await db.collection("samples").where("siteRefU", "==", T).limit(25).get()).docs.forEach(d => hits.add(d.id)); } catch {}
+  try { (await db.collection("samples").where("tags", "array-contains", T).limit(25).get()).docs.forEach(d => { const x = d.data(); if (x?.id) hits.add(x.id); }); } catch {}
+  try { (await db.collection("samples").where("siteRefU", "==", T).limit(25).get()).docs.forEach(d => { const x = d.data(); if (x?.id) hits.add(x.id); }); } catch {}
   return [...hits].sort();
 }
 async function openSample(raw){
   closeCert();
-  const text = String(raw || "").trim(); if (!text) return;
+  let text = String(raw || "").trim(); if (!text) return;
+  const hp = text.indexOf("#"); if (/^https?:\/\//i.test(text) && hp >= 0){ try { text = decodeURIComponent(text.slice(hp + 1)).trim(); } catch { text = text.slice(hp + 1).trim(); } if (!text) return; }
   const id = idFromText(text), seq = ++openSeq;
   if (unsubCurrent){ unsubCurrent(); unsubCurrent = null; }
   if (id) return watchSample(id, text);
@@ -116,6 +117,9 @@ async function openSample(raw){
   current = { id: text, body: null, loading: true, search: true };
   setTab("track");
   if (/^B-/i.test(text) && await watchBatchRef(text, seq)) return;
+  if (seq !== openSeq) return;
+  // v24d (20 Oct): a job's sample has the plant's code as its ID (MLNSCOF 20261018, or MLDSCBRG20261018-2 for a second analysis)
+  if (db){ try { const d = await db.doc("samples/" + skey(normTag(text))).get(); if (seq !== openSeq) return; if (d.exists && d.data()?.id) return watchSample(d.data().id, ""); } catch {} }
   if (seq !== openSeq) return;
   const hits = await findByTag(text);
   if (seq !== openSeq) return;
@@ -126,12 +130,12 @@ async function openSample(raw){
 function watchSample(id, text){
   const seq = openSeq;
   $("#lookupInput").value = id;
-  try { history.replaceState(null, "", "#" + id.replace(/[^A-Za-z0-9._~-]/g, "")); } catch {}
+  try { history.replaceState(null, "", "#" + encodeURIComponent(id)); } catch {}
   current = { id, body: samples.get(id) || null, missing: false, loading: !samples.has(id) };
   setTab("track");
   if (!db) return;
   let ref;
-  try { ref = db.doc("samples/" + id); } catch { current = { id, body: null, missing: true }; renderTrack(); return; }
+  try { ref = db.doc("samples/" + skey(id)); } catch { current = { id, body: null, missing: true }; renderTrack(); return; }
   let first = true;
   unsubCurrent = ref.onSnapshot(async snap => {
     if (!current || current.id !== id || seq !== openSeq) return;

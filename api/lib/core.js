@@ -202,13 +202,21 @@ function signoffRule(a, id, cur, next){
    read it; the blind sample is written as a QA/QC submission with nothing on it that points back. A supervisor issues the link
    once in their own name; after that, comparisons are only added to it. */
 const SAMPLE_ID = /^[A-Z0-9]{1,8}-\d{8}-\d{4}$/, BLIND_NOTE = "Submitted for a QA/QC check";
+/* v24d (20 Oct): a job's samples (Shift job, MET Lab job) take the code from the plant's file as their ID (MLNSCOF 20261018,
+   MLNSCBLD20261018#32), with -2, -3 … when that code is already a sample's ID. The page writes such an ID's key with the four characters a
+   key can't hold (/ \ ? #) as ~ and their code (skey); a site ID is its own key. */
+const JOB_ID = /^[A-Z0-9][^~\u0000-\u001f\u007f a-z]?(?:[^~\u0000-\u001f\u007fa-z]{0,58}[^~\u0000-\u001f\u007f a-z])?$/;
+const skey = id => String(id || "").replace(/[\/\\?#]/g, c => "~" + c.charCodeAt(0).toString(16) + "~");
+const anyId = id => typeof id === "string" && (SAMPLE_ID.test(id) || JOB_ID.test(id));
+const jobIdOk = d => typeof d.job === "string" && /^[a-z]{2,12}$/.test(d.job) && JOB_ID.test(d.id) && Array.isArray(d.tags) && d.tags.length === 1 &&
+  typeof d.tags[0] === "string" && (d.id === d.tags[0] || new RegExp("^" + d.tags[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "-\\d{1,2}$").test(d.id));
 const qaqc = v => typeof v === "string" && v.replace(/[^A-Za-z]/g, "").toUpperCase() === "QAQC";
 /* A new sample presented the way a blind QA/QC sample is (submitted by "QA/QC", or with its note). */
 const looksBlind = d => !!d && (qaqc(d.submitter) || qaqc(d.createdByName) ||
   (Array.isArray(d.history) && d.history.some(e => e && (qaqc(e.name) || (typeof e.note === "string" && e.note.trim().toLowerCase() === BLIND_NOTE.toLowerCase())))));
 function blindProblem(a, id, d){
   if (!SAMPLE_ID.test(id) || d.id !== id || Object.keys(d).some(k => !["id", "of", "set", "at", "by", "tech", "test", "note", "mats", "cmps"].includes(k)) ||
-      typeof d.of !== "string" || !SAMPLE_ID.test(d.of) || d.of === id || !Number.isFinite(d.at) || !short(d.set, 60) || !short(d.test, 60) || !short(d.note, 200) ||
+      typeof d.of !== "string" || !anyId(d.of) || d.of === id || !Number.isFinite(d.at) || !short(d.set, 60) || !short(d.test, 60) || !short(d.note, 200) ||
       !Array.isArray(d.mats) || d.mats.length > 50 || !d.mats.every(m => m && typeof m === "object" && !Array.isArray(m) && Object.keys(m).every(k => k === "item" || k === "loc") && short(m.item, 200) && short(m.loc, 200)))
     return "Not a valid blind QA/QC check.";
   if (!Array.isArray(d.cmps) || d.cmps.length) return "A blind QA/QC check starts with no comparison.";
@@ -217,7 +225,7 @@ function blindProblem(a, id, d){
 /* Beyond the form's shape (checkSubmission): a batch carries B- and its first ID on every sample, a short name, and each
    sample's own source location; and only a supervisor or the lab manager sends a sample presented as a blind QA/QC sample. */
 function submissionExtras(d){
-  if (d.batchId != null && !(typeof d.batchId === "string" && /^B-[A-Z0-9]{1,8}-\d{8}-\d{4}$/.test(d.batchId))) return "batch";
+  if (d.batchId != null && !(typeof d.batchId === "string" && /^B-[A-Z0-9]{1,8}-\d{8}-\d{4}$/.test(d.batchId))) return "batch";   // a job's batch too has a site number
   if (!short(d.batchName, 80) || !short(d.source, 1000)) return "batch";
   return looksBlind(d) ? "qaqc" : "";
 }
@@ -336,14 +344,15 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
   function checkSubmission(id, d){
     const now = Date.now();
     if (!d || typeof d !== "object") return "empty";
-    if (d.id !== id || !/^[A-Z0-9]{1,8}-\d{8}-\d{4}$/.test(id)) return "id";
+    const job = typeof d.id === "string" && !SAMPLE_ID.test(d.id) && jobIdOk(d);   // v24d: a job's sample, its code as its ID
+    if (typeof d.id !== "string" || skey(d.id) !== id || !(SAMPLE_ID.test(d.id) || job)) return "id";
     if (d.createdBy !== "public" || d.stageKey !== "submitted" || d.open !== true || d.onHand || d.lab !== true || d.sx != null) return "state";
     if (d.recvAt || d.receivedAt || d.recv || d.inMid) return "received";
     for (const k of ["results", "certs", "labs", "lbs", "labBatch", "materials", "ledgerPending", "amend", "acks", "relAt", "closedAt"]) if (d[k] != null && !(Array.isArray(d[k]) && !d[k].length)) return k;
     if (!Array.isArray(d.history) || d.history.length !== 1 || d.history[0].by !== "public") return "history";
     if (!(Math.abs((+d.createdAt || 0) - now) < 15 * 60000)) return "time";
-    const ds = id.split("-")[1], day = Date.UTC(+ds.slice(0, 4), +ds.slice(4, 6) - 1, +ds.slice(6, 8)) + 12 * 3600000;
-    if (!(Math.abs(day - now) < 36 * 3600000)) return "date";   // the ID carries today's date (in the site's time zone)
+    if (!job){ const ds = id.split("-")[1], day = Date.UTC(+ds.slice(0, 4), +ds.slice(4, 6) - 1, +ds.slice(6, 8)) + 12 * 3600000;
+      if (!(Math.abs(day - now) < 36 * 3600000)) return "date"; }   // a site ID carries today's date (in the site's time zone)
     if (JSON.stringify(d).length > 20000) return "size";
     return "";
   }
@@ -472,7 +481,7 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
       if (t === "set"){
         const why = blindProblem(a, pp.id, op.data);
         if (why) throw fail("bad_request", why);
-        const o = await store.get("samples/" + op.data.of);
+        const o = await store.get("samples/" + skey(op.data.of));
         if (!o || !(o.certs || []).length) throw fail("bad_request", "A blind QA/QC check is made of a sample with released results.");
         if (!(await store.get("samples/" + pp.id))) throw fail("bad_request", "Issue the blind sample before its link.");
         await store.set(op.path, op.data, { check: (cur, next) => cur ? blindRule(a, cur, next) : "" });
@@ -516,9 +525,13 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
       if (why === "qaqc") throw fail("permission_denied", "“QA/QC” is kept for the lab's blind checks. Type the submitter's name.");
       if (why) throw fail("permission_denied", "Not a valid new submission (" + why + ").");
       const b = op.data.batchId;
-      if (b && b !== "B-" + pp.id){   // the rest of a batch join its first sample, sent moments before from the same form
-        const f = await store.get("samples/" + b.slice(2));
-        if (!f || f.batchId !== b || f.createdBy !== "public" || f.section !== op.data.section || !(Date.now() - (+f.createdAt || 0) < 15 * 60000))
+      if (b && b !== "B-" + op.data.id){   // the rest of a batch join its first sample, sent moments before from the same form
+        const f = await store.get("samples/" + skey(b.slice(2)));
+        if (!f && op.data.job){   // v24d (20 Oct): a job's batch holds a site number no sample has; its samples (codes as IDs) are all from this form
+          const mates = await store.query("samples", [["batchId", "==", b]], { limit: 100 });
+          if (mates.some(({ data: m }) => m.createdBy !== "public" || m.section !== op.data.section || m.job !== op.data.job || !(Date.now() - (+m.createdAt || 0) < 15 * 60000)))
+            throw fail("permission_denied", "Not a valid new submission (batch).");
+        } else if (!f || f.batchId !== b || f.createdBy !== "public" || f.section !== op.data.section || !(Date.now() - (+f.createdAt || 0) < 15 * 60000))
           throw fail("permission_denied", "Not a valid new submission (batch).");
       }
       await store.set(op.path, op.data, { create: true });
@@ -533,7 +546,7 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
       return { ok: true };
     }
     if (pp.coll === "tagidx"){
-      const d = op.data, s = d && typeof d.sid === "string" && parsePath("samples/" + d.sid) ? await store.get("samples/" + d.sid) : null;
+      const d = op.data, s = d && typeof d.sid === "string" && parsePath("samples/" + skey(d.sid)) ? await store.get("samples/" + skey(d.sid)) : null;
       if (!s || s.createdBy !== "public" || !(Date.now() - (+s.createdAt || 0) < 15 * 60000) || !(s.tags || []).includes(d.tag) || Object.keys(d).some(k => !["sid", "tag", "at"].includes(k))) throw fail("permission_denied");
       await store.set(op.path, d);
       return { ok: true };

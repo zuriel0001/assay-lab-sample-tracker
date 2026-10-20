@@ -62,7 +62,7 @@ const JOB_TPL = [
     R("elution", "Lean eluate", "elu_sol", "MLSPLNBF{D}", "Lean eluate solution before strip"),
     R("elution", "Treated water", "elu_sol", "MLSPTRTD{D}", "Mill special treated water")
   ] },
-  { key: "cact", name: "Carbon activity", group: "Plant", pur: "plant", sec: "PLT", shift: true, n: [["n1", "Elution no."]], rows: () => [
+  { key: "cact", name: "Carbon activity", group: "Plant", also: ["MET Lab"], pur: "plant", sec: "PLT", shift: true, n: [["n1", "Elution no."]], rows: () => [
     R("carbon", "Regenerated carbon", "c_act", "ML{S}CBRG{D}", "Mill {sn} regen carbon from the elution circuit"),
     R("carbon", "Eluted carbon", "c_act", "MLSCBST{D}{#1}", "Mill special stripped carbon for the elution circuit{#1}"),
     R("carbon", "Loaded carbon (to elution)", "c_act", "MLSCBLD{D-1}{#1}", "Mill special loaded carbon for the elution circuit{#1}"),   // sampled the day before its strip (the lab's report)
@@ -160,7 +160,7 @@ function bindJob(v){
   tp.value = job.tpl; $("#jShift", v).value = job.shift; $("#jDate", v).value = job.date;
   jobRows(); renderJob(); if (isJobKind(formKind())){ jobGroup(v); jobDefaults(v); }
   const again = () => { jobRows(job.rows); renderJob(); };
-  tp.onchange = () => { job.tpl = tp.value; lsSet("jobTpl_" + jobTpl(tp.value).group, tp.value); job.n = {}; job.c = {}; jobRows(); renderJob(); jobDefaults(v); };
+  tp.onchange = () => { job.tpl = tp.value; lsSet("jobTpl_" + jobKindGroup(), tp.value); job.n = {}; job.c = {}; jobRows(); renderJob(); jobDefaults(v); };
   $("#jShift", v).onchange = e => { job.shift = e.target.value; again(); };
   $("#jDate", v).onchange = e => { job.date = e.target.value; again(); };
   $("#jNums", v).addEventListener("input", e => {
@@ -181,10 +181,13 @@ function bindJob(v){
     renderJob(); $(`#jRows .j-code[data-j="${job.rows.length - 1}"]`)?.focus();
   };
 }
-/* Shift job lists the plant's templates, MET Lab job the MET Lab's (20 Oct: "MET Lab … should be independent"); each kind remembers its last. */
+/* Shift job lists the plant's templates, MET Lab job the MET Lab's (20 Oct: "MET Lab … should be independent", and "Met Jobs should also
+   have 'carbon activity'"); each kind remembers its last. */
+const jobKindGroup = () => formKind() === "met" ? "MET Lab" : "Plant";
+const inGroup = (x, g) => x.group === g || (x.also || []).includes(g);
 function jobGroup(v){
-  const g = formKind() === "met" ? "MET Lab" : "Plant", tp = $("#jTpl", v || document); if (!tp || !job) return;
-  const list = JOB_TPL.filter(x => x.group === g);
+  const g = jobKindGroup(), tp = $("#jTpl", v || document); if (!tp || !job) return;
+  const list = JOB_TPL.filter(x => inGroup(x, g));
   if (tp.dataset.g !== g){ tp.dataset.g = g; tp.innerHTML = list.map(x => `<option value="${x.key}">${esc(x.name)}</option>`).join(""); }
   if (!list.some(x => x.key === job.tpl)){ const last = lsGet("jobTpl_" + g); job.tpl = list.some(x => x.key === last) ? last : list[0].key; job.n = {}; job.c = {}; jobRows(); }
   tp.value = job.tpl; renderJob();
@@ -192,7 +195,7 @@ function jobGroup(v){
 }
 /* The template's purpose and section (a MET Lab job from MET), filled in until the submitter picks their own. */
 function jobDefaults(v){
-  const T = jobTpl(job.tpl), pu = $("#rPurpose", v || document), sc = $("#rSection", v || document); if (!pu || !sc) return;
+  const T0 = jobTpl(job.tpl), T = jobKindGroup() === "MET Lab" ? { ...T0, sec: "MET" } : T0, pu = $("#rPurpose", v || document), sc = $("#rSection", v || document); if (!pu || !sc) return;
   if (!pu.value || pu.value === job.pu0){ if ([...pu.options].some(o => o.value === T.pur)){ pu.value = T.pur; job.pu0 = T.pur; } }
   if (!sc.value || sc.value === job.sc0){ if ([...sc.options].some(o => o.value === T.sec)){ sc.value = T.sec; sc.dataset.auto = "1"; job.sc0 = T.sec; } }
 }
@@ -207,6 +210,9 @@ async function registerJob(){
   if (n > 100) return fail("Up to 100 samples in one job.");
   const blank = rows.findIndex(r => !r.code.trim()); if (blank >= 0) return fail("Every ticked sample needs its code.", `#jRows .j-code[data-j="${job.rows.indexOf(rows[blank])}"]`);
   const tags = rows.map(r => normTag(r.code)); if (new Set(tags.map(normKey)).size !== n) return fail("The same code appears twice in this job.", "#jRows .j-code.dup");
+  // v24d (20 Oct): the code is the sample's ID: up to 60 characters, and never ~ (kept for writing the characters a key can't hold)
+  const badC = rows.findIndex(r => /[~\u0000-\u001f]/.test(r.code) || normTag(r.code).length > 60);
+  if (badC >= 0) return fail(`${rows[badC].code.slice(0, 40)}: a code is the sample's ID, up to 60 characters and without ~.`, `#jRows .j-code[data-j="${job.rows.indexOf(rows[badC])}"]`);
   const noTest = rows.find(r => !r.test); if (noTest) return fail(`Choose the analysis for ${noTest.code}.`);
   const code = val("#rSection"), puK = val("#rPurpose") || "plant", submitter = val("#rSubmitter");
   if (!submitter) return fail("Type the name of the person submitting.", "#rSubmitter");
@@ -258,22 +264,51 @@ async function registerJob(){
       if (lab){ body.inMid = `${id}~in`; body.ledgerPending = [inMove(body, recvAt, recv, "Registered at the lab", w)]; body.lp = true; }
       return body;
     };
-    const stamp = dayStamp(lab ? recvAt : now);
-    const [first] = await claimIds(code, stamp, 1, id => make(id, 0, n > 1 ? "B-" + id : ""));
-    const ref = n > 1 ? "B-" + first : "";
+    /* v24d (20 Oct): each sample's ID is its code from the plant's file (what the bag and the lab's report say). A code that is already a
+       sample's ID (the same carbon sent for another analysis, or a sample sent again) takes -2, -3 …; the batch has a site number. */
+    const claimCode = async (i, batchOf) => {
+      for (let k = 1; k <= 30; k++){
+        const id = k === 1 ? tags[i] : `${tags[i]}-${k}`, ref = db.doc("samples/" + skey(id));
+        const lease = await ref.acquire({ holder: tabId, ttlMs: 4000 }); if (!lease.acquired) continue;
+        const snap = await ref.get(); if (snap.exists && snap.data()?.id) continue;
+        await ref.set(make(id, i, batchOf(id))); return id;
+      }
+      throw { code: "busy" };
+    };
+    /* 20 Oct: the job's batch has a site number like any batch (B-MET-20261020-0001, "to ensure uniformity"): the section's next one,
+       held while its first sample is written (no sample takes a number a batch holds). */
+    let ref = "", held = null;
+    if (n > 1){
+      const stamp = dayStamp(lab ? recvAt : now), hint = db.doc(`meta/counter-${code}-${stamp}`);
+      let next = 1; try { const h = await hint.get(); next = ((h.exists && +h.data().last) || 0) + 1; } catch {}
+      for (let tries = 0; tries < 400 && !ref; tries++){
+        const num = next++, bid = `${code}-${stamp}-${String(num).padStart(4, "0")}`, sref = db.doc("samples/" + skey(bid));
+        const lease = await sref.acquire({ holder: tabId, ttlMs: 5000 }); if (!lease.acquired) continue;   // 5 s: the most a walk-in's page may hold
+        const snap = await sref.get(); if (snap.exists && snap.data()?.id) continue;
+        if (await batchHolds("B-" + bid)) continue;
+        ref = "B-" + bid; held = { sref, hint, num, stamp };
+      }
+      if (!ref) throw { code: "busy" };
+    }
+    const first = await claimCode(0, () => ref);
+    if (held){ held.sref.acquire({ holder: tabId, ttlMs: 1000 }).catch(() => {});
+      held.hint.get().then(h => { if (!(h.exists && +h.data().last >= held.num)) return held.hint.set({ last: held.num, day: held.stamp, section: code }); }).catch(() => {}); }
     msg.textContent = n > 1 ? `Saved 1 of ${n}…` : "";
-    const ids = n > 1 ? [first, ...await claimIds(code, stamp, n - 1, (id, i) => make(id, i + 1, ref), d => msg.textContent = `Saved ${d + 1} of ${n}…`, +first.split("-").pop() + 1)] : [first];
+    const ids = [first, ...new Array(n - 1)];
+    let saved = 1;
+    await pool(Array.from({ length: n - 1 }, (_, i) => i + 1), 6, async i => { ids[i] = await claimCode(i, () => ref); msg.textContent = `Saved ${++saved} of ${n}…`; return true; });
     ids.forEach((id, i) => db.doc("tagidx/" + tagKey(tags[i])).set({ sid: id, tag: tags[i], at: now }).catch(() => {}));
     const fr = rows.find(r => r.ph && r.code.trim()); if (fr) lsSet("jobFresh", fr.code.trim().slice(0, 40));
     if (lab) ids.forEach(id => { flushLedger(id); syncStock(id); });
     msg.textContent = "";
-    $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? "Sample" : `${n} samples`} ${walk ? "registered" : "submitted"}: ${esc(batchName)}.</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>: processed as one, with one receipt, one workflow and one certificate when the lab's report is attached.` : ""} Write the IDs on the bags, or print the labels:
-      <div class="label-strip" style="margin-top:8px">${ids.map((id, i) => `<code>${esc(id)} · ${esc(tags[i])}</code>`).join("")}</div>
+    const own = ids.every((id, i) => id === tags[i]);
+    $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? "Sample" : `${n} samples`} ${walk ? "registered" : "submitted"}: ${esc(batchName)}.</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>: processed as one, with one receipt, one workflow and one certificate when the lab's report is attached.` : ""} ${own ? "The codes on the bags are the sample IDs; print labels if you want them:" : "Each sample's ID is its code; a code already used for another analysis has -2 after it. Print the labels:"}
+      <div class="label-strip" style="margin-top:8px">${ids.map((id, i) => `<code>${esc(id)}${id !== tags[i] ? ` · ${esc(tags[i])}` : ""}</code>`).join("")}</div>
       <div class="row" style="margin-top:10px"><button type="button" class="btn primary" id="rLabels">Print ${n === 1 ? "label" : n + " labels"}</button><button type="button" class="btn" id="rCopy">Copy IDs</button>${ref ? `<button type="button" class="btn" data-open="${esc(ref)}">Open the batch</button><button type="button" class="btn" data-link="${esc(ref)}">Copy batch link</button>` : `<button type="button" class="btn" data-open="${esc(ids[0])}">Track ${esc(ids[0])}</button>`}<button type="button" class="btn ghost" id="rAgain">${walk ? "Register more" : "Submit another"}</button></div></div>`;
     noteIssued(ids, ref, { ...base, type: batchName }, tags.map(t => [t]));
     const labels = ids.map((id, i) => labelOf({ ...base, id, type: per[i].t?.name || per[i].r.t, tags: [tags[i]] }));
     $("#rLabels").onclick = () => showLabels(labels);
-    $("#rCopy").onclick = () => navigator.clipboard.writeText(ids.map((id, i) => `${id}\t${tags[i]}`).join("\n")).then(() => toast("IDs copied"), () => toast("Copy blocked here. Select the IDs and copy them."));
+    $("#rCopy").onclick = () => navigator.clipboard.writeText(ids.map((id, i) => id === tags[i] ? id : `${id}\t${tags[i]}`).join("\n")).then(() => toast("IDs copied"), () => toast("Copy blocked here. Select the IDs and copy them."));
     $("#rAgain").onclick = () => { $(walk ? "#view-register" : "#view-submit").innerHTML = ""; renderSampleForm(mode); };
     btn.disabled = true;
   } catch (e) {

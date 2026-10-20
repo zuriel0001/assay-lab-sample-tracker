@@ -56,7 +56,7 @@ async function doEvaluate(){
   const msg = v === "redo" ? "Re-assay requested; the lab sees it on the board" : "Evaluation recorded";
   if (canEdit()){ await act(s => ({ upd: mk(s), msg }), { anyStage: true, clear: ["evNote"] }); return; }
   // Evaluators outside the lab: no lease; the server takes only an added evaluation, and a record changed meanwhile is read again once.
-  const ref = db.doc("samples/" + s0.id);
+  const ref = db.doc("samples/" + skey(s0.id));
   for (let i = 0; i < 2; i++){
     try { const s = (await ref.get()).data(); if (!s) return; const upd = mk(s); upd.updatedAt = Date.now(); await ref.update(upd); clearForm(["evNote"]); toast(msg); return; }
     catch (e){ if (i) writeFailed(e); else await sleep(400); }
