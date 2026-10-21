@@ -77,7 +77,7 @@ function sugFind(q){
     hits.sort((a, b) => a[0] - b[0] || (b[1].stageAt || 0) - (a[1].stageAt || 0));
     for (const [, s] of hits){
       let st = {}; try { st = status(s); } catch {}
-      add(s.id, `<span class="sug-id mono">${sugHl(s.id, Q)}</span>${st.label ? `<span class="pill ${esc(st.cls || "")}">${esc(st.label)}</span>` : ""}<span class="sug-m small muted">${sugHl([s.type, tagText(s), s.submitter].filter(Boolean).join(" · "), Q)}</span>`);
+      add(s.id, `<span class="sug-id mono">${sugHl(s.id, Q)}</span>${st.label ? `<span class="pill ${esc(st.cls || "")}">${esc(st.label)}</span>` : ""}<span class="sug-m small muted">${sugHl([s.type, ownCode(s), s.submitter].filter(Boolean).join(" · "), Q)}</span>`);
     }
   }
   recentList().filter(x => (x.id + " " + (x.c || "")).toUpperCase().includes(Q)).forEach(x => add(x.id, recRow(x)));

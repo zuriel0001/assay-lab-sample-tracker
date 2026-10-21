@@ -289,3 +289,45 @@ ol.rail li.done.stop .dot{background:var(--bad);border-color:var(--bad)}
   #regForm .seg[aria-label="Samples"]{display:grid;grid-template-columns:1fr 1fr;width:100%;border-radius:18px}
   #regForm .seg[aria-label="Samples"] span{justify-content:center;min-height:40px;padding:0 10px;white-space:nowrap;width:100%}
 }
+/* v24d (20 Oct, full check): alignment pass */
+/* Header: the signed-in name and role are shown whole on a computer screen */
+@media (min-width:761px){header.top .who{max-width:min(460px,38vw)}}
+/* On a phone the theme switch sits at the end of the status line and the name shares a line with Sign out */
+@media (max-width:760px){
+  .top-meta #themeBtn{order:1;margin-left:auto}
+  .top-meta .who,.top-meta #signBtn{order:2}
+  .top-meta:has(#signBtn[hidden]) #themeBtn{order:3}
+}
+/* Board: six lanes sit three by two (no lane alone on a second row); an ID on a card stays whole on one line, sized to its lane */
+@media (min-width:700px){.lanes{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.lane{container-type:inline-size}
+.chip .cid .cref{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%}
+@supports (font-size:1cqi){.chip .cid{font-size:min(17px,calc((100cqi - 34px) / 11.6))}body.wall .chip .cid{font-size:min(18px,calc((100cqi - 34px) / 11.6))}}
+/* A sample's or batch's ID as the page title: whole on one line on a phone, wrapped only when a code is longer than the screen */
+.sid{min-width:0;max-width:100%;overflow-wrap:anywhere}
+@media (max-width:560px){.sid{font-size:clamp(19px,6.2vw,28px);letter-spacing:.01em}}
+/* Submit › job: a placeholder reads as a hint, not as a code */
+.jrows .j-code::placeholder{text-transform:none;font-family:var(--f-body);letter-spacing:0}
+/* On a phone each sample of a job is a small card: tick, name, then its code, description and analysis one under the other */
+@media (max-width:620px){
+  .job-step .tbl-wrap{overflow:visible}
+  .jrows,.jrows tbody{display:block;width:100%}
+  .jrows thead tr{display:flex;align-items:center;gap:4px}
+  .jrows thead th{border:0;padding:4px 6px}
+  .jrows thead th:nth-child(n+3){display:none}
+  .jrows tbody tr{display:grid;grid-template-columns:36px minmax(0,1fr);column-gap:6px;row-gap:6px;padding:10px 0;border-top:1px solid var(--line)}
+  .jrows tbody td{display:block;padding:0;border:0;width:auto}
+  .jrows tbody td:first-child{grid-row:1/span 5;width:36px;padding-top:2px}
+  .jrows tbody td:nth-child(n+2){grid-column:2}
+  .jrows tbody td:empty{display:none}
+  .jrows .j-code,.jrows .j-desc,.jrows .j-test{min-width:0}
+  .jrows .j-mass{max-width:9em}
+}
+/* Settings: a number or dash in a row of inputs sits level with them */
+#view-stages .tbl-wrap td{vertical-align:middle}
+/* Board tiles fill whole rows (one row of up to 8 on a wide screen, else two even rows); lanes keep their own height */
+@media (min-width:761px){.stats.tiles.fit{grid-template-columns:repeat(var(--n2),minmax(0,1fr))}}
+@media (min-width:1100px){.stats.tiles.fit{grid-template-columns:repeat(var(--n1),minmax(0,1fr))}}
+body.wall .stats.tiles.fit{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.lanes{align-items:start}
+.job-step .tbl-wrap{margin-top:10px}

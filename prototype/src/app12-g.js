@@ -516,7 +516,7 @@ function certHtml(s, c){
       ${fact("Sample ID", `<b class="mono">${esc(s.id)}</b>`)}${fact("Site sample code", esc(tagText(s)) || "—")}${fact("Sample type", esc(s.type))}
       ${fact("Submitted by", `${esc(s.submitter)}${s.subBadge ? ` (badge ${esc(s.subBadge)})` : ""}${s.section ? ` · ${esc(s.section)} ${esc(sectionName(s.section))}` : ""}`)}
       ${fact("Collected", fmtFull(s.collectedAt))}${fact("Received", `${fmtFull(s.recvAt || s.receivedAt)}${rv.mass ? ` · ${esc(rv.mass)} ${esc(rv.unit || "kg")}` : ""}`)}
-      ${fact("Test", esc(c.testName || ""))}${fact("Method", `${c.route ? `<span class="mono">${esc(c.route)}</span> ` : ""}${esc(c.routeName || "")}`)}
+      ${fact("Test", esc(c.testName || ""))}${fact("Method", `${c.route ? `<span class="mono">${esc(c.route)}</span> ` : ""}${esc(routeLabel(s, c.routeName || ""))}`)}
       ${c.batch ? fact(c.batch.includes(",") ? "Lab batches" : "Lab batch", `<span class="mono">${esc(c.batch)}</span> · ${esc(qcLabel(c.qc) || "")}`) : ""}
     </table>
     ${c.file ? `<div class="cert-file">Results file: <b>${esc(c.file.name)}</b>${c.att ? (c.an.length ? ". Results not shown below are in this file." : ". The results are in this file.") : ""}</div>` : ""}
@@ -1158,8 +1158,8 @@ function renderResultsTab(){
   v.innerHTML = `<div class="stack"><div class="panel stack" style="gap:8px"><h2>Results for ${esc(session.sec)} · ${esc(sectionName(session.sec))}</h2>
       <p class="small muted" style="margin:0">Certificates of analysis for samples your section submitted, newest first. ${fresh ? `<b>${fresh} new since you last marked them as seen.</b>` : "Nothing new since you last looked."} In the production system this notice also goes to the section by email.</p>
       ${fresh ? `<div class="row"><button type="button" class="btn" id="secSeen">Mark all as seen</button></div>` : ""}</div>
-    ${list.length ? `<div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>Sample</th><th>Type</th><th>Site code</th><th>Test</th><th>Certificate</th><th>Released</th></tr></thead><tbody>
-      ${list.map(s => { const c = s.certs.at(-1); return `<tr><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>${c.at > seen ? ` <span class="pill gold">New</span>` : ""}</td><td>${esc(s.type || "")}</td><td>${esc(tagText(s))}</td><td>${esc(c.testName || "")}</td><td class="mono">${esc(c.no)}${c.amends ? ` <span class="pill warn">Amended</span>` : ""}</td><td style="white-space:nowrap">${fmt(c.at)}</td></tr>`; }).join("")}</tbody></table></div></div>`
+    ${list.length ? `<div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>Sample</th><th>Type</th>${list.some(ownCode) ? "<th>Site code</th>" : ""}<th>Test</th><th>Certificate</th><th>Released</th></tr></thead><tbody>
+      ${list.map(s => { const c = s.certs.at(-1); return `<tr><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>${c.at > seen ? ` <span class="pill gold">New</span>` : ""}</td><td>${esc(s.type || "")}</td>${list.some(ownCode) ? `<td class="mono">${esc(ownCode(s)) || "—"}</td>` : ""}<td>${esc(c.testName || "")}</td><td class="mono">${esc(c.no)}${c.amends ? ` <span class="pill warn">Amended</span>` : ""}</td><td style="white-space:nowrap">${fmt(c.at)}</td></tr>`; }).join("")}</tbody></table></div></div>`
       : `<div class="panel empty"><strong>No released results yet</strong>Certificates for ${esc(session.sec)} samples appear here as soon as the lab releases them.</div>`}</div>`;
   $("#secSeen", v)?.addEventListener("click", () => { lsSet(seenKey(), String(Date.now())); resultsBadge(); renderResultsTab(); });
 }

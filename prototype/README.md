@@ -383,6 +383,29 @@ template; and "give the batch … the old style of code, eg MET-2026... to ensur
 Tests: `v28-tests.js` **46 PASS** (codes as IDs with # and spaces, the batch's site number, -2 for a second analysis, search, links, labels,
 a walk-in MET Lab job); `v26-tests.js` and `v27-tests.js` read the IDs as the codes; the lab's files were read locally again.
 
+**20–21 October (Zuriel): "run a full check on the site, fix all that need fixing, align things very well, test and push".** Every tab
+and the main flows were walked through on the Azure build (local server, made-up data) as a visitor, a technician, a supervisor, the lab
+manager, a section account and a Metallurgy viewer, on a computer, a phone and in dark mode (109 pages), each checked for text cut off,
+sideways scroll, anything past the screen's edge and console errors; then fixed:
+- **Header**: the signed-in name and role are shown whole on a computer (cut off at 240 px before); on a phone the theme switch sits at
+  the end of the status line and the name shares a line with *Sign out* (one row less).
+- **Board**: the six lanes sit three by two (before: five, and *Results released* alone on a second row), each as tall as its cards; the
+  tiles fill whole rows (one row of up to eight, else two even rows); a card's ID stays whole on one line, sized to its lane
+  (B-PLT-20261020-0001 broke after the date).
+- **IDs as page titles** stay on one line on a phone (a batch number broke after the date; a code ID ran off the screen).
+- **Submit › Shift job / MET Lab job on a phone**: each sample is a small card (tick and name, then code, description and analysis one under
+  the other) instead of a table running off the screen; the fresh carbon's hint reads *The supplier's code*, no longer in capitals.
+- **After Submit** the notice with the IDs is brought into view and focused (it appeared below a long form).
+- **A MET Lab job** says *MET Lab job (one report)* on its workflow, record and certificate (it said *Plant shift job*).
+- **A code is not shown twice where it is the ID**: Results tab, Storage, the ledger's *Site code* (—), a section's results (the column is
+  left out when no sample has a code of its own), the results-file picker and search suggestions. The ledger's month reads *October 2026*
+  and its table fits a computer screen.
+- **Settings**: a number or a dash in a row of inputs sits level with them.
+Tests: `v27-tests.js` expects the new hint; `run.js` dates its old disposed record before 19 October (two days back it fell, from 21
+October, on the day the server began asking a witness for every new disposal). Every suite passes on the prototype (run.js 107, results-tests
+93, v12 71, v13 26, v14 27, v15 46, v16 42, v17 25, v20 71, v21 61, v22 29, v23 53, v24 89, v25 116, v26 31, v27 32, v28 46, review 41 + 5,
+hours 7, work hours 14), no console errors.
+
 **20 October, 19:41–20:18 (Zuriel): "there are 11 CIL tanks … 11 tanks should be used in developing the site and codes … There are also
 samples from 'MET Lab' to the assay Lab"**, with the MET Lab's tank profile, bottle roll, preg-robbing and QA/QC reports and an activity
 sheet; then "MET Lab group under Submit should be independent". (`app28-t.js`, `app29-u.js`)

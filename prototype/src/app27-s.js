@@ -105,7 +105,7 @@ function bwPanel(c){
     st.ahead?.length ? `Already further on, waiting for the batch: ${idLinks(st.ahead)}` : "",
     solo.length ? `Taken out of the batch, processed on their own: ${idLinks(solo)}` : "",
     out.length ? `Left the workflow (rejected, stopped or closed): ${idLinks(out)}` : ""].filter(Boolean);
-  const head = n => `<h3>Workflow for the batch${st.lead?.routeName ? `: ${esc(st.lead.routeName)}` : ""} <span class="pill">${nS(n)} together</span></h3>`;
+  const head = n => `<h3>Workflow for the batch${st.lead?.routeName ? `: ${esc(routeLabel(st.lead))}` : ""} <span class="pill">${nS(n)} together</span></h3>`;
   if (!st.lead){
     if (st.mem.length){ const lead = st.mem[0];
       return `<div class="panel stack" id="bwBox">${head(st.mem.length)}${bwRail({ plan: planOf(lead), bi: 0, ti: targetIdx(lead), lead, at: st.mem, cur: 0 }, ref)}
@@ -316,7 +316,7 @@ function certBatchHtml(ref, mem){
       ${fact("Batch", `<b class="mono">${esc(ref)}</b>${s0.batchName ? ` · ${esc(s0.batchName)}` : ""}`)}${fact("Samples", `${mem.length}${s0.batchSize > mem.length ? ` of the ${esc(s0.batchSize)} submitted` : ""}`)}${fact("Sample type", esc(types.join(", ")))}
       ${fact("Submitted by", `${esc(s0.submitter)}${s0.section ? ` · ${esc(s0.section)} ${esc(sectionName(s0.section))}` : ""}`)}
       ${recv.length ? fact("Received", esc(fmtFull(Math.min(...recv))) + (Math.max(...recv) - Math.min(...recv) > 60000 ? ` to ${esc(fmtFull(Math.max(...recv)))}` : "")) : ""}
-      ${uniq(([, x]) => x.testName).length > 1 ? fact("Analyses", `${uniq(([, x]) => x.testName).length}, as listed for each sample`) : fact("Test", esc(c.testName || ""))}${fact("Method", `${c.route ? `<span class="mono">${esc(c.route)}</span> ` : ""}${esc(c.routeName || "")}`)}
+      ${uniq(([, x]) => x.testName).length > 1 ? fact("Analyses", `${uniq(([, x]) => x.testName).length}, as listed for each sample`) : fact("Test", esc(c.testName || ""))}${fact("Method", `${c.route ? `<span class="mono">${esc(c.route)}</span> ` : ""}${esc(routeLabel(s0, c.routeName || ""))}`)}
       ${labs ? fact(labs.includes(",") ? "Lab batches" : "Lab batch", `<span class="mono">${esc(labs)}</span>`) : ""}
     </table>
     ${c.file ? `<div class="cert-file">Results file: <b>${esc(c.file.name)}</b>${c.att ? (ans.length ? ". Results not shown below are in this file." : ". The results are in this file.") : ""}</div>` : ""}
@@ -391,7 +391,7 @@ function batchChip(x, lane){
   const names = [...new Set(docs.map(d => waitingRes(d) ? "Waiting for results" : awaiting(d) ? "Awaiting receipt" : stage(d, d.stageKey)?.name || ""))];
   const q = docs.map(wqOf).find(Boolean), left = tms.find(t => t.left)?.left || "";
   return `<button class="chip bchip ${cls}${late ? " late" : ""}${urgent ? " urgent" : ""}" data-open="${esc(x.ref)}" title="Batch ${esc(x.ref)}: ${docs.length} of ${esc(s.batchSize)} samples here">
-    <div class="ctop"><span class="cid">${esc(x.ref)}${s.route ? ` <span class="rc">${esc(s.route)}</span>` : ""}</span></div>
+    <div class="ctop"><span class="cid"><span class="cref">${esc(x.ref)}</span>${s.route ? ` <span class="rc">${esc(s.route)}</span>` : ""}</span></div>
     <div class="cmeta"><span class="bn">${docs.length === s.batchSize ? `Batch of ${nS(docs.length)}` : `${docs.length} of ${esc(s.batchSize)} samples`}</span></div>
     <div class="cmeta"><b style="color:var(--ink)">${esc(names.slice(0, 2).join(", "))}${names.length > 2 ? "…" : ""}</b>${docs.some(d => d.reassays) ? ` · <b style="color:var(--warn)">re-assay</b>` : ""}</div>
     ${q ? `<div class="cmeta"><b style="color:var(--info)">Waiting for ${esc(q.wit)} to confirm</b></div>` : ""}

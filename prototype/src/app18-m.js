@@ -397,7 +397,7 @@ function uploadTargetsHtml(u, tg){
   const list = [...samples.values()].filter(canTakeFile).filter(s => !q || [s.id, tagText(s)].some(x => String(x).toUpperCase().replace(/\s+/g, "").includes(q))).sort((a, b) => a.id < b.id ? 1 : -1).slice(0, 150);
   return `${unread}<div class="up-sec"><h4>Which samples are these results for?</h4>
     <input class="inp" id="upQ" placeholder="Search ID or site code" value="${esc(u.q)}" style="margin-bottom:6px">
-    <div class="up-pick">${list.length ? list.map(s => `<label><input type="checkbox" data-uppick="${esc(s.id)}" ${u.pick.has(s.id) ? "checked" : ""}> <span class="mono">${esc(s.id)}</span> <span class="small muted">${esc(tagText(s))} · ${esc(s.type || "")} · ${esc(stage(s, s.stageKey)?.name || "")}</span></label>`).join("") : `<div class="small muted">No samples in the lab are waiting for results.</div>`}</div></div>`;
+    <div class="up-pick">${list.length ? list.map(s => `<label><input type="checkbox" data-uppick="${esc(s.id)}" ${u.pick.has(s.id) ? "checked" : ""}> <span class="mono">${esc(s.id)}</span> <span class="small muted">${esc([ownCode(s), s.type || "", stage(s, s.stageKey)?.name || ""].filter(Boolean).join(" · "))}</span></label>`).join("") : `<div class="small muted">No samples in the lab are waiting for results.</div>`}</div></div>`;
 }
 function bindUploadTargets(box){
   box.querySelectorAll("[data-uppick]").forEach(c => c.onchange = () => { const u = upState; if (!u) return; c.checked ? u.pick.add(c.dataset.uppick) : u.pick.delete(c.dataset.uppick); renderUpload(); });

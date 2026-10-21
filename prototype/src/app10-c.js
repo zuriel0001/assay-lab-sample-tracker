@@ -193,7 +193,7 @@ function buildTrack(v, s){
       ["Receipt checks", rv.warn && rv.warn.length ? `<span style="color:var(--warn)">${rv.warn.map(esc).join("; ")}</span>` : `Seal ${rv.seal === "none" ? "not used" : "intact"}, condition ${esc(lcFirst(rv.cond || "good"))}`]] : []),
     ["Assay purpose", esc(s.purpose)],
     ["Test requested", esc(s.testName || testOf(s.test)?.name || "") || "—"],
-    ["Workflow route", s.route ? `<span class="code">${esc(s.route)}</span> ${esc(s.routeName || r?.name || "")} <button class="btn ghost small" data-route="${esc(s.route)}">See route</button>` : "Standard workflow (registered before routes were added)"],
+    ["Workflow route", s.route ? `<span class="code">${esc(s.route)}</span> ${esc(routeLabel(s, s.routeName || r?.name || ""))} <button class="btn ghost small" data-route="${esc(s.route)}">See route</button>` : "Standard workflow (registered before routes were added)"],
     ["Add-on analyses", (s.analyses || []).map(esc).join(", ") || "—"],
     ["Hazards", hazTags(s).length ? hazTags(s).map(h => esc(h.l)).join(", ") : "None declared"],
     ...(twoPerson(s) ? [["Custody", "Two-person custody: every step needs a witness"]] : []),
@@ -244,7 +244,7 @@ function buildTrack(v, s){
     ${s.flag && awaiting(s) ? `<div class="notice warn"><b>Flagged at receipt:</b> ${esc(s.flag)}</div>` : ""}
     ${(s.ledgerPending || []).length ? `<div class="notice warn">A ledger entry for this sample is still being saved. It is retried automatically.</div>` : ""}
     <div class="grid2">
-      <div class="panel stack"><h3>Workflow${s.routeName ? `: ${esc(s.routeName)}` : ""}${grouped(s) ? ` <span class="pill">with batch ${esc(s.batchId)}</span>` : ""}</h3><ol class="rail">${rail}</ol>
+      <div class="panel stack"><h3>Workflow${s.routeName ? `: ${esc(routeLabel(s))}` : ""}${grouped(s) ? ` <span class="pill">with batch ${esc(s.batchId)}</span>` : ""}</h3><ol class="rail">${rail}</ol>
         ${qcBlock}
         <div class="actions" id="actBox">${actions}</div></div>
       <div class="stack">

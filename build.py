@@ -338,7 +338,7 @@ put(''' Write ${n === 1 ? "this ID" : "these IDs"} on the sample bag${n === 1 ? 
 put('''after the lab receives ${n === 1 ? "it" : "them"} (an estimate).</div>''', '''after receipt.</div>''')
 
 # In / out ledger, Workflow routes
-put('''in ${esc(f.month)}. Times are ${esc(TZ() || "this device's")} time.</p>''', '''in ${esc(f.month)}.</p>''')   # v24c: what the ledger is for now sits in its heading
+put('''in ${esc(monthText(f.month))}. Times are ${esc(TZ() || "this device's")} time.</p>''', '''in ${esc(monthText(f.month))}.</p>''')   # v24c: what the ledger is for now sits in its heading
 drop('''<p class="small muted" style="margin:0">Each sample follows the route for its sample type and the test requested. The route is picked automatically at submission and the lab technician confirms or changes it at receipt; only routes that perform the requested test can be chosen. Every route starts with <b>Submitted</b> and <b>Received &amp; logged</b>, and ends with <b>Results released</b> and retention in storage. Each retained material is then returned, sent out or disposed on its own date. Expected finish times add up the hours below and are estimates: queues can add to them.${isAdmin() ? " Admins edit routes on the Settings tab." : ""}</p>''')
 
 # Settings

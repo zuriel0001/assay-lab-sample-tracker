@@ -206,7 +206,7 @@ admin is added to the account list on their first visit to Settings; upgrades an
 member signs in; permission errors from the server are shown as such; the header says *Test system*; the prototype's
 explanatory paragraphs are taken out (labels, warnings, status lines and each route's own description stay).
 
-### Test results (2026-10-20, v26 with the MET Lab jobs, 11 CIL tanks and codes as IDs)
+### Test results (2026-10-21, v26 with the MET Lab jobs, 11 CIL tanks, codes as IDs and the full-site alignment pass)
 
 | Suite | Result |
 |---|---|
@@ -228,7 +228,7 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 | Prototype `v17-tests.js` | 25 / 25 (one entry tab: Register signed out, Submit signed in with Received now for lab staff; handed to and badge number) |
 | Prototype `v18-tests.js` | 71 / 71 (results from the lab's own CSV and Excel reports, kept files, drafts, No QC in this run, batch steps, re-assay from Storage and the Ledger, the shorter form, site sample code and badge). Needs the lab's two real reports, which are not in GitHub; without them it is skipped. |
 | Prototype `v20-tests.js` | 71 / 71 (blind QA/QC re-assay: picks, blind IDs, what technicians see, comparisons on both records; a batch or a single sample on Submit and Register; the batch page and receiving a batch; the custody log scrolling) |
-| Prototype `v21-tests.js` | 60 / 60 (lab batches optional, header search suggestions, recently opened, same details again, phone tables as cards, batch progress, wording) |
+| Prototype `v21-tests.js` | 61 / 61 (lab batches optional, header search suggestions, recently opened, same details again, phone tables as cards, batch progress, wording) |
 | Prototype `v22-tests.js` | 29 / 29 (no QA/QC review step unless Settings use it: release from the last analysis step, Ready for release on the board, picked results not missing, sampling-point limits) |
 | Prototype `v28-tests.js` | 46 / 46 on the prototype and on this build (a job's samples with their codes as IDs, the job's batch a site number, a walk-in MET Lab job through the server's rules; Submit › MET Lab job of its own: tank profile with its charts and efficiencies, bottle roll with recovery by size and, with the masses typed on the form or the batch page, the calculated head, tails and overall recovery, preg-robbing index per sample against its control, QA/QC set reported as is; carbon from all 11 CIL tanks drawn tank by tank; phone) |
 | Prototype `v27-tests.js` | 32 / 32 on the prototype and on this build (the day shift's Mill shift with its regenerated carbon, one code for two analyses, carbon activity worked out and compared with fresh carbon from the report and from the activity sheet, the strip profile of an elution run with its figures, crosshair, table and certificate, batch certificates with one Sample column) |
@@ -237,7 +237,7 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 | Prototype `v24-tests.js` | 89 / 89 on the prototype and on this build (release at once, any results file accepted (a PDF, a file naming no samples), departments and evaluation, Results tab, re-assay requests, Belt cut sample, testwork as purpose, the new Submit form, Batches, Storage, Ledger, concise Routes, 16 px text, sign-off still selectable; v24c: sample types in Ore, Processing, Gold room, Environment and QC with no testwork or duplicate types, AuFx-named fire assay, an analysis list of exactly the sample type's own analyses, Environment from any site, every board tile with a number opening its list, What it is for and Section limited to what fits the sample type, 18 px text, Received now unticked so submissions wait under Awaiting receipt) |
 | Prototype `v23-tests.js` | 53 / 53 (the routes the lab runs: AuFx/AuSx, cyanide, carbon loading, elution, ore fire assay; routes not in use hidden but kept; sampling point lists; example plant limits; the shorter Submit form) |
 
-For v26 with the MET Lab jobs and 11 CIL tanks every prototype suite was run on the prototype page and passes (run.js 107, results-tests 93, v12 71, v13 26, v14 27, v15 46, v16 42, v17 25, v20 71, v21 61, v22 29, v23 53, v24 89, v25 116, v26 31, v27 32, v28 46, review 41 + 5, hours 7, work hours 14), and every suite above was run on this build with the results in the table.
+After the full-site check of 20–21 October (every tab and the main flows as a visitor, technician, supervisor, lab manager, section account and Metallurgy viewer, on a computer, a phone and in dark mode, on this build with the real API core and made-up data: nothing cut off, no sideways scroll, no console errors), every prototype suite was run on the prototype page and passes (run.js 107, results-tests 93, v12 71, v13 26, v14 27, v15 46, v16 42, v17 25, v20 71, v21 61, v22 29, v23 53, v24 89, v25 116, v26 31, v27 32, v28 46, review 41 + 5, hours 7, work hours 14), and every suite above was run on this build with the results in the table.
 
 No console errors in any suite. The 4 prototype checks that don't pass all expect a page **nobody is signed in to** to
 upgrade older records (3) or finish a lab batch a crashed device left half-made (1). On Azure the public can't
@@ -250,7 +250,8 @@ has (receipt, steps, batches, results, release, amendments, re-assays, storage, 
 
 Found and fixed while testing: the public form couldn't release its short claim on a new ID (staff waited up to
 4 s to receive a just-submitted sample); lists didn't refresh when a page's sign-in changed; a guest page could
-briefly try to show withheld results when an admin opened results to everyone.
+briefly try to show withheld results when an admin opened results to everyone; `run.js`'s old disposed record, dated two days
+back, fell from 21 October on the day the server began asking a witness for every new disposal, and is now dated before it.
 
 ### Running the checks
 

@@ -66,7 +66,7 @@ const JOB_TPL = [
     R("carbon", "Regenerated carbon", "c_act", "ML{S}CBRG{D}", "Mill {sn} regen carbon from the elution circuit"),
     R("carbon", "Eluted carbon", "c_act", "MLSCBST{D}{#1}", "Mill special stripped carbon for the elution circuit{#1}"),
     R("carbon", "Loaded carbon (to elution)", "c_act", "MLSCBLD{D-1}{#1}", "Mill special loaded carbon for the elution circuit{#1}"),   // sampled the day before its strip (the lab's report)
-    { ...R("carbon", "Fresh carbon", "c_act", "", "Virgin carbon"), ph: "Type its code, e.g. the supplier's name" }
+    { ...R("carbon", "Fresh carbon", "c_act", "", "Virgin carbon"), ph: "The supplier's code" }
   ] },
   /* v24d (20 Oct): the MET Lab's routine jobs, from its reports. Codes: MLSP (mill special) for the tank profile, MLAB for the MET Lab's own. */
   { key: "tank", name: "Tank profile", group: "MET Lab", pur: "plant", sec: "MET", shift: false, n: [], rows: () => [
@@ -134,7 +134,7 @@ function renderJob(){
   body.innerHTML = job.rows.map((r, i) => `<tr class="${r.on ? "" : "off"}"><td><input type="checkbox" data-jon="${i}" ${r.on ? "checked" : ""} aria-label="Include ${esc(r.code)}"></td>
     <td><span class="small muted">${esc(typeOf(r.t)?.name || r.t)}</span><div><b>${esc(r.pt)}</b></div></td>
     <td><input class="inp j-code" data-j="${i}" value="${esc(r.code)}" aria-label="Code, row ${i + 1}" placeholder="${esc(r.ph || "")}" autocomplete="off" spellcheck="false"></td>
-    <td><input class="inp j-desc" data-j="${i}" value="${esc(r.desc)}" aria-label="Description, row ${i + 1}" autocomplete="off"></td>
+    <td><input class="inp j-desc" data-j="${i}" value="${esc(r.desc)}" aria-label="Description, row ${i + 1}" placeholder="Description" autocomplete="off"></td>
     <td><select class="inp j-test" data-j="${i}" aria-label="Analysis, row ${i + 1}">${jobTestOpts(r.t, r.test)}</select></td>${T.mass ? `<td>${r.det?.frac ? `<input class="inp j-mass" data-j="${i}" inputmode="decimal" value="${esc(r.mass || "")}" aria-label="Mass in grams, ${esc(r.code)}" placeholder="g">` : ""}</td>` : ""}</tr>`).join("");
   jobHints();
 }
@@ -185,6 +185,9 @@ function bindJob(v){
    have 'carbon activity'"); each kind remembers its last. */
 const jobKindGroup = () => formKind() === "met" ? "MET Lab" : "Plant";
 const inGroup = (x, g) => x.group === g || (x.also || []).includes(g);
+/* A MET Lab job runs on the job route too; its workflow and certificate say so (a carbon activity sent by MET counts as MET's). */
+function isMetJob(s){ const T = s && s.job ? JOB_TPL.find(x => x.key === s.job) : null; return !!T && (T.group === "MET Lab" || (s.section === "MET" && inGroup(T, "MET Lab"))); }
+function routeLabel(s, name){ const n = name ?? s?.routeName ?? ""; return s && s.route === "JOB" && isMetJob(s) ? "MET Lab job (one report)" : n; }
 function jobGroup(v){
   const g = jobKindGroup(), tp = $("#jTpl", v || document); if (!tp || !job) return;
   const list = JOB_TPL.filter(x => inGroup(x, g));
@@ -305,6 +308,7 @@ async function registerJob(){
     $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? "Sample" : `${n} samples`} ${walk ? "registered" : "submitted"}: ${esc(batchName)}.</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>: processed as one, with one receipt, one workflow and one certificate when the lab's report is attached.` : ""} ${own ? "The codes on the bags are the sample IDs; print labels if you want them:" : "Each sample's ID is its code; a code already used for another analysis has -2 after it. Print the labels:"}
       <div class="label-strip" style="margin-top:8px">${ids.map((id, i) => `<code>${esc(id)}${id !== tags[i] ? ` · ${esc(tags[i])}` : ""}</code>`).join("")}</div>
       <div class="row" style="margin-top:10px"><button type="button" class="btn primary" id="rLabels">Print ${n === 1 ? "label" : n + " labels"}</button><button type="button" class="btn" id="rCopy">Copy IDs</button>${ref ? `<button type="button" class="btn" data-open="${esc(ref)}">Open the batch</button><button type="button" class="btn" data-link="${esc(ref)}">Copy batch link</button>` : `<button type="button" class="btn" data-open="${esc(ids[0])}">Track ${esc(ids[0])}</button>`}<button type="button" class="btn ghost" id="rAgain">${walk ? "Register more" : "Submit another"}</button></div></div>`;
+    showResult();
     noteIssued(ids, ref, { ...base, type: batchName }, tags.map(t => [t]));
     const labels = ids.map((id, i) => labelOf({ ...base, id, type: per[i].t?.name || per[i].r.t, tags: [tags[i]] }));
     $("#rLabels").onclick = () => showLabels(labels);

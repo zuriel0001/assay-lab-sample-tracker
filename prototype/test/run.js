@@ -16,8 +16,10 @@ const moves = id => ledger().filter(m => m.sid === id);
   store["samples/EXP-20261001-0001"] = { id: "EXP-20261001-0001", type: "Diamond drill core", purpose: "Exploration", submitter: "Old", section: "EXP", createdAt: now0 - 30 * DAY, stageKey: "storage", stageAt: now0 - 9 * DAY, location: "Shelf A1",
     retention: [{ item: "Pulp", days: 365, then: "Returned to geology" }, { item: "Coarse reject", days: 5, then: "Disposed" }],
     history: [{ key: "received", at: now0 - 29 * DAY, tech: "Old tech" }, { key: "released", at: now0 - 10 * DAY, tech: "Old manager" }, { key: "storage", at: now0 - 9 * DAY, tech: "Old tech", ref: "Shelf A1" }] };
-  store["samples/EXP-20261001-0002"] = { id: "EXP-20261001-0002", type: "RC chips", purpose: "Exploration", submitter: "Old", section: "EXP", createdAt: now0 - 30 * DAY, stageKey: "disposed", stageAt: now0 - 2 * DAY,
-    history: [{ key: "received", at: now0 - 29 * DAY, tech: "Old tech" }, { key: "received", at: now0 - 28 * DAY, tech: "Old tech", note: "correction" }, { key: "released", at: now0 - 20 * DAY }, { key: "storage", at: now0 - 19 * DAY }, { key: "disposed", at: now0 - 2 * DAY, tech: "Old tech" }] };
+  const old0 = Math.min(now0, Date.UTC(2026, 9, 20, 12));
+  // dated before 19 Oct 2026, when the server began asking a witness for every new disposal: this one is history brought forward by the upgrade
+  store["samples/EXP-20261001-0002"] = { id: "EXP-20261001-0002", type: "RC chips", purpose: "Exploration", submitter: "Old", section: "EXP", createdAt: old0 - 30 * DAY, stageKey: "disposed", stageAt: old0 - 2 * DAY,
+    history: [{ key: "received", at: old0 - 29 * DAY, tech: "Old tech" }, { key: "received", at: old0 - 28 * DAY, tech: "Old tech", note: "correction" }, { key: "released", at: old0 - 20 * DAY }, { key: "storage", at: old0 - 19 * DAY }, { key: "disposed", at: old0 - 2 * DAY, tech: "Old tech" }] };
   const browser = await launch();
   require("./harness").useOldRoutes();   // v23: this suite is written around the routes in use before version 23
   const P = await newUser(browser, { uid: "u_z", name: "Zuriel", canEdit: true, names });

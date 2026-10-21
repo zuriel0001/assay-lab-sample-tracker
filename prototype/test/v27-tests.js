@@ -68,7 +68,7 @@ async function release(P, j, name, lines){
   log("One code, two analyses: the regenerated carbon for its activity as well");
   await jobForm(Tc, "cact", "D", "2026-10-20"); await Tc.fill("#jN_n1", "40"); await Tc.waitForTimeout(100);
   cs = await codes(Tc);
-  check(cs[0] === "MLDSCBRG20261020" && cs[1] === "MLSCBST20261020#40" && cs[2] === "MLSCBLD20261019#40" && cs[3] === "" && await Tc.getAttribute(`#jRows .j-code[data-j="3"]`, "placeholder") === "Type its code, e.g. the supplier's name" && await Tc.inputValue(`#jRows .j-desc[data-j="3"]`) === "Virgin carbon",
+  check(cs[0] === "MLDSCBRG20261020" && cs[1] === "MLSCBST20261020#40" && cs[2] === "MLSCBLD20261019#40" && cs[3] === "" && await Tc.getAttribute(`#jRows .j-code[data-j="3"]`, "placeholder") === "The supplier's code" && await Tc.inputValue(`#jRows .j-desc[data-j="3"]`) === "Virgin carbon",
     "the loaded carbon takes the day before (sampled before its strip); the virgin carbon's code is typed, the hint its box's placeholder, its description just Virgin carbon");
   await Tc.fill(`#jRows .j-code[data-j="3"]`, "ACME VIRGIN");
   const ca = await submit(Tc);

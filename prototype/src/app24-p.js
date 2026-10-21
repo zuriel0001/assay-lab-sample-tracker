@@ -126,7 +126,7 @@ function renderStaffResults(v){
     ${turnaroundPanel(list)}
     ${list.length ? `<div class="panel"><div class="tbl-wrap"><table class="cardy restbl"><thead><tr><th>Sample</th><th>Type · for</th><th>Results</th><th>Released</th>${ev ? "<th>Flags</th><th>Evaluation</th>" : ""}</tr></thead><tbody>
       ${list.slice(0, 300).map(s => { const c = lastCert(s), fl = ev ? evalFlags(s) : [], e = lastEval(s);
-        return `<tr${ev && !evaluated(s) && fl.length ? ' class="due"' : ""}><td data-l="Sample"><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>${tagText(s) ? `<div class="small muted mono">${esc(tagText(s))}</div>` : ""}</td>
+        return `<tr${ev && !evaluated(s) && fl.length ? ' class="due"' : ""}><td data-l="Sample"><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>${ownCode(s) ? `<div class="small muted mono">${esc(ownCode(s))}</div>` : ""}</td>
           <td data-l="Type · for">${esc(s.type || "")}<div class="small muted">${esc(s.purpose || "")}</div></td>
           <td data-l="Results" class="mono small">${esc(certSummary(c, s))}${c.amends ? ` <span class="pill warn">Amended</span>` : ""}</td>
           <td data-l="Released" style="white-space:nowrap">${fmt(c.at)}</td>
