@@ -2,7 +2,7 @@
 
 > **In the GitHub repository** this folder is `prototype/`. Left out: the old version folders (`v9/`, `v10/` and so on; git history keeps versions from now on), and `test/v18-tests.js` and `test/shot18.js`, which read the lab's two real reports and quote their sample codes and values. Those two run only in the project folder, with the private reports present.
 
-This folder holds the **v31** source of the prototype (published to the artifact on 2026-10-21; the Azure site is built from it)
+This folder holds the **v32** source of the prototype (published to the artifact on 2026-10-21; the Azure site is built from it)
 (https://claude.ai/artifact/5JgoyE2wokT67u8TCtYDop). The build thread owns all edits; reviewers should read and run, not change these
 files. Earlier versions are in git history.
 
@@ -10,10 +10,10 @@ files. Earlier versions are in git history.
 |---|---|
 | `assay-lab-sample-tracker.html` | The whole page (HTML, CSS, JS in one file), exactly as published (called `met-lab-sample-tracker.html` before the rename). Uses the Artifact runtime `window.claude` db, user and downloads capabilities. |
 | `routes-data.js` | Tests, sample types, the 50 workflow routes (13 in use since v23; `RETIRED_ROUTES` lists the others), `RESULTS` (what each test reports, including picked and calculated results), `QC_PROFILES` (lab batch rules), `ROUTE_QC` and `ROUTE_GROUPS` (the batches each route's samples join, one per analytical method), `qcRuleText` / `routeQcText` (write each route's QA/QC text from the same numbers the batches enforce). |
-| `src/` | The page is built from these: `app10-a.js` … `app10-f.js`, `app12-g.js` (results, limits, four eyes, amendments, certificates, lab batches, section results), `app13-h.js` (stock records, Storage tab, the selected batch's samples), `app14-i.js` (lab working hours, Settings tabs, QR codes and bag labels), `app15-j.js` (navigation, theme, logo, wall screen, time left), `app16-k.js` (reference material change history and renames, board lanes that scroll), `app18-l.js` (reads a results file in the page: old Excel .xls, .xlsx, CSV and text; SHA-256; base64), `app18-m.js` (recognises a lab report, matches it to samples, batches and QC, the preview, saving and the kept file), `app19-n.js` (blind QA/QC re-assay, a batch or a single sample on the form, the batch page and its receipt, the custody scroll), `app20-o.js` (search suggestions, recently opened, the same details again, tables as cards on a phone, the tab title), `app24-p.js` (departments, evaluation of released results, re-assay requests, the Results tab for staff, the title leading home), `app25-q.js` (scan a bag label, receive several at once, the disposal witness, the monthly ledger sign-off and its summary, turnaround), `app26-r.js` … `app28-t.js` (two-person custody, a batch processed as one, shift jobs), `app29-u.js` (the strip profile and carbon activity charts and tables), `app31-v.js` (v31: first code + date, ID groups, more analyses, typed values), `css10.css`, `css11.css`, `css12.css`, `css14.css`, `css15.css` (design refresh; its icon block is written by `tools/icons.py`), `css16.css`, `css18.css`, `css19.css`, `css20.css`, `css24.css` (a size larger, colour, the v24 pieces), `css31.css` (v31), `base.html` (markup, base CSS and the start of the script). `cd src && python3 build24.py` writes the page into `src/`; copy it up a folder. |
+| `src/` | The page is built from these: `app10-a.js` … `app10-f.js`, `app12-g.js` (results, limits, four eyes, amendments, certificates, lab batches, section results), `app13-h.js` (stock records, Storage tab, the selected batch's samples), `app14-i.js` (lab working hours, Settings tabs, QR codes and bag labels), `app15-j.js` (navigation, theme, logo, wall screen, time left), `app16-k.js` (reference material change history and renames, board lanes that scroll), `app18-l.js` (reads a results file in the page: old Excel .xls, .xlsx, CSV and text; SHA-256; base64), `app18-m.js` (recognises a lab report, matches it to samples, batches and QC, the preview, saving and the kept file), `app19-n.js` (blind QA/QC re-assay, a batch or a single sample on the form, the batch page and its receipt, the custody scroll), `app20-o.js` (search suggestions, recently opened, the same details again, tables as cards on a phone, the tab title), `app24-p.js` (departments, evaluation of released results, re-assay requests, the Results tab for staff, the title leading home), `app25-q.js` (scan a bag label, receive several at once, the disposal witness, the monthly ledger sign-off and its summary, turnaround), `app26-r.js` … `app28-t.js` (two-person custody, a batch processed as one, shift jobs), `app29-u.js` (the strip profile and carbon activity charts and tables), `app31-v.js` (v31: first code + date, ID groups, more analyses, typed values; v32: the ID groups section), `css10.css`, `css11.css`, `css12.css`, `css14.css`, `css15.css` (design refresh; its icon block is written by `tools/icons.py`), `css16.css`, `css18.css`, `css19.css`, `css20.css`, `css24.css` (a size larger, colour, the v24 pieces), `css31.css` (v31, v32), `base.html` (markup, base CSS and the start of the script). `cd src && python3 build24.py` writes the page into `src/`; copy it up a folder. |
 | `tools/icons.py` | Prints the icon definitions at the top of `css15.css` (24 px stroke icons drawn as CSS masks). |
 | `test/harness.js` | Shared mock of the db capability: several browser pages on one store, with `where` filters (including `array-contains`), `orderBy`, `limit`, recursive `update` merge, update-requires-existence, leases, frozen snapshots and deletes. Batch helpers (`createBatch`, `fillBatch` for one or many results per position, `saveBatch`). |
-| `test/v31-tests.js` | New: v31. A first code and the date make a batch's or a job's codes with the count continued; a whole code typed gives its date to the date box; ID groups on Batch (one series per group, Number of samples adds them up, ✕ takes a row from its group) and on jobs (QA/QC's PPS, CB and SL are three groups; a fourth added; remembered by the template); codes already used offer the next free numbers; several analyses on a sample (ticks and typed, their steps, results by hand and by file, certificate); Other (type it) on route OTHER and its receipt; Other… in the details lists; Shift end and MET Lab job sections; Other testwork; a Shift end row with a typed point, the date completing its code, and other analyses. Last run: **58 PASS**. |
+| `test/v31-tests.js` | New: v31. A first code and the date make a batch's or a job's codes with the count continued; a whole code typed gives its date to the date box; ID groups on Batch (one series per group, Number of samples adds them up, ✕ takes a row from its group) and on jobs (QA/QC's PPS, CB and SL are three groups; a fourth added; remembered by the template); codes already used offer the next free numbers; several analyses on a sample (ticks and typed, their steps, results by hand and by file, certificate); Other (type it) on route OTHER and its receipt; Other… in the details lists; Shift end and MET Lab job sections; Other testwork; a Shift end row with a typed point, the date completing its code, and other analyses. v32: the ID groups strip first, each group boxed, bottle roll groups replacing the template's codes, folded group rows. Last run: **64 PASS**. |
 | `test/v28-tests.js` | New: Submit › MET Lab job (its own choice) and its templates: tank profile (charts, leach and adsorption efficiency), bottle roll (recovery by size, masses on the form and the batch page, calculated head, tails and overall recovery, certificate from the grades), preg-robbing (pairs, spike, index), QA/QC set (counts, reported as is); carbon from all 11 CIL tanks drawn tank by tank; codes as IDs (#, spaces, -2 for a second analysis), the job batch's site number, search, links, labels, a walk-in MET Lab job; phone. Last run: **46 PASS**, no console errors. |
 | `test/v27-tests.js` | New: the day shift's Mill shift (regenerated carbon, CIL tank 11, ticks kept across a change of shift), one code for two analyses, carbon activity worked out on each record and compared with fresh carbon (from the lab's report and from its activity sheet with masses), the strip profile of an elution run (figures, crosshair, arrow keys, table, silver, certificate, phone), and batch certificates with one Sample column. Last run: **32 PASS**, no console errors. |
 | `test/v26-tests.js` | New: shift jobs. The Mill shift, Elution run and Carbon activity templates and their codes (shift, date, elution numbers), unticking and typing over a row, one job received as one, a made-up report releasing every sample on one certificate laid out by analysis, materials by item, a sampling point filling in its analysis, CIL / CIP shown as CIL. Last run: **31 PASS**, no console errors. |
@@ -66,6 +66,62 @@ NODE_PATH=$(npm root -g):/path/to/jsqr/node_modules timeout 400 node v14-tests.j
 The tests write screenshots next to themselves. The Chromium path is in `harness.js`. Run the suites one
 at a time: scenario R in `review-tests-v11.js` times ID claims, and the batch tests wait on several writes per
 step, so they can miss their time budgets when several browsers share the CPU.
+
+## What v32 changes: ID groups first, bottle roll groups, a walk-through of the whole site (2026-10-21)
+
+Zuriel, 2026-10-21 16:01Z: "the 'ID groups' tab should come before the list of groups and give it some unit fill for it to be easily
+seen. WITHIN the BRT selection, if you choose 2 or more ID groups, the the default ID is still showing, fix it. give the ID formation
+section some light colors and borders, let it be visible and look sectioned. test the site, identify flaws and fix them. improve the site
+efficiency." Then: "the site shouldnt look bulky".
+
+- **ID groups first, on a light filled strip** (`idgBlock` in `app31-v.js`, `css31.css`): *ID groups* (and a batch's *Date on the codes*)
+  sit on a tinted strip at the top of the section; each group is its own small box (thin border, tight padding) with its name and the codes
+  it makes (first … last) on one line, then first code, samples, type, analysis and More. On a computer the field labels show on the first
+  box only. The section is shorter than v31's: QA/QC set 530 → 321 px on a computer, 1,101 → 735 px on a phone; a batch with three groups
+  426 → 337 px. Phone forms use more of the width (padding of the nested boxes trimmed: 249 → 278 px of field width at 390 px).
+- **Bottle roll and the other templates of fixed rows** (BRT, Mill shift, Elution run, Tank profile, Preg-robbing, Carbon activity): the
+  list starts at *None: template codes* (the template's own rows, as before). Choosing 1 or more groups replaces the template's rows with
+  the groups' rows, so the default codes no longer show beside them, and the template's own number boxes that only fed those rows are
+  hidden; back to *None* brings them back. QA/QC set and Other testwork, which are built from groups, start at their groups as in v31.
+- **A group's rows fold** under one line in the samples table (tick for the whole group, its name, how many ticked, first … last code);
+  a tap opens it. A group of three rows or fewer, or one with a code missing or twice, or with codes already used, shows its rows. A QA/QC
+  set is three lines instead of 86 rows.
+- **Walk-through.** Every tab and flow was run as walk-in, technician, supervisor, admin, viewer and a section account, on a computer and
+  at 390 px, with the test harness and a register of 776 samples. Found and fixed:
+  - *Getting samples in*: a MET Lab job kept the purpose and section the single-sample form had filled in by itself (now the
+    template's own, `jobDefaults`; a purpose or section chosen by hand stays); Enter in the ID groups, a job's rows or the batch box sent the form (it now moves
+    to the next box); changing a batch group's number of samples moved typed codes and sources onto other samples (rows are added or taken
+    at the end of that group); the batch and job date could be empty (required when codes take it); changing a job's date left rows whose
+    code took the old date; *Next free numbers* was lost on the next keystroke; a typed analysis entered twice in different case counted
+    twice; *Other…* showed on Yes/No lists and twice on lists that already end in Other; *Other point…* reset the row's analysis; *Other…*
+    with nothing typed was stored as empty; a job with nothing ticked, no date or no purpose gave unclear messages (now one line saying
+    what is missing, with the box focused); a job's groups add up to at most 100 samples; a batch's codes are checked six at a time
+    (a batch of 100 took 23 s on a slow line).
+  - *Lab work*: a signed-out lookup, or a section account outside the evaluating department, could read result values in the custody
+    lines (results, amendments, evaluations); now shown only to those who may see results (the server still sends them, see below);
+    re-assay from storage was offered with no suitable material left (a fire assay from the filtrate); now it needs pulp or another solid
+    for a solids step and a solution for a solution step, and a re-assay request says when nothing suitable is kept; under release at
+    once, limits held an amendment's approval with no box to record them; an amendment asked for a picked sampling point a release does not; a value a results file could not read was dropped without a word for a sample not yet at
+    analysis; a sample on two rows of a file was not mentioned (now said, first row used); the toast after a file did not say how many
+    samples it released; a cooler sample received at once on Submit or a job was not asked its temperature; the certificate table ran off a
+    phone screen (it scrolls inside the sheet); an empty logo box had no background.
+  - *Speed*: the board redraw with 776 samples 600–740 → 73–88 ms (one date formatter per time zone instead of one per call, and the two
+    tiles kept off the board worked out only when opened); sign-in to the board 2,243 → 580 ms; a tick in *Receive several* 335–627 →
+    4–43 ms (it updates the count and the button, not the whole board).
+- **Seen and left as they are** (for Zuriel or the lab to decide, or bigger than a polish): switching a job's template or kind discards
+  what was typed on it; the BRT filtrate codes (MLABBSL…) can equal the QA/QC filtrate codes (MLABSL…) only if typed so; Fresh carbon on
+  Carbon activity starts with an empty row; a re-assay (R2) can be issued by one technician on their own; results saved before the
+  preparation steps are ticked mark those steps done; *Received today* leaves out samples already stored; the Results tab lists the latest
+  400; no disposal straight from the Storage tab (it is on the sample's page); search suggestions come from the board's samples; two
+  evaluators saving at once: the server refuses the second (history is append-only) and the page reads the sample again; disposing of
+  material before its keep-until date asks nothing more than the witness (a second press was tried and dropped: one more click, and the
+  witness already confirms it); a limit set for one sampling point still applies to a sample with no point given (as since v22).
+- **Server change needed (Azure, `api/lib/core.js`)**: `redactSample` hides results and certificates from those who may not see results
+  but not the history lines that carry values or `evals`. It should drop `note` from history entries with `res` or `ev` and delete `evals`,
+  so the values never leave the server. The page already hides them.
+- Tests: `v31-tests.js` (64): the QA/QC label is in the group's head line, the strip comes first with a fill and each group has a border;
+  the bottle roll with 2 groups shows only the groups' codes and *None* brings back the 17 template codes; the Mill shift starts with no
+  group; a QA/QC set's rows are folded. `v31-tests.js` and `v28-tests.js` open the folded groups before reading codes.
 
 ## What v31 changes: first code + date, ID groups, more analyses, fewer strict lists (2026-10-21)
 

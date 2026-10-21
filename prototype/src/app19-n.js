@@ -331,7 +331,9 @@ function rowHints(){
     el.placeholder = !c[i].length && tags[i]?.length ? tags[i].join(", ") : i === 0 ? "e.g. MILL-A-001" : "";
     el.classList.toggle("dup", dup.has(i));
   });
-  const info = $("#rRowInfo");
+  const info = $("#rRowInfo"), keep = $("#rFree") && (rowHints.took || []).every(([i, t]) => (tags[i] || []).includes(t));   // v32: Next free numbers stays while its codes do
+  if (keep) return submitLabel();
+  rowHints.took = null;
   if (info){ const filled = tags.filter(t => t.length).length; info.textContent = dup.size ? "Same code twice" : `${bRows.length} samples${filled ? ` · ${filled} with a code` : ""}`; info.classList.toggle("bad-t", dup.size > 0); }
   document.querySelectorAll("#rRows .r-code.taken").forEach(el => el.classList.remove("taken"));
   submitLabel();

@@ -174,7 +174,7 @@ function buildTrack(v, s){
   const hist = (s.history || []).slice().reverse().map(h => `<li>
       <div>${h.redo ? `<span class="pill warn">Re-assay</span> ` : h.reroute ? `<span class="pill info">${h.testTo ? "Test changed" : "Route changed"}</span> ` : h.corr ? `<span class="pill warn">Correction</span> ` : h.skipped ? `<span class="pill warn">Skipped steps</span> ` : ""}<b>${esc(stageName(s, h))}</b>${h.ref ? ` · <span>${esc(h.ref)}</span>` : ""}${h.loc ? ` · <span>${esc(h.loc)}</span>` : ""}</div>
       <time>${fmt(h.at)} · by ${h.tech ? esc(h.tech) : h.name ? `${esc(h.name)} (submitter)` : who(h.by)}${h.wit ? `, witnessed by ${esc(h.wit)}` : ""}</time>
-      ${h.note ? `<div>${esc(h.note)}</div>` : ""}${h.hand || h.badge ? `<div>Handed to <b>${esc(h.hand || "—")}</b>${h.badge ? `, badge <span class="mono">${esc(h.badge)}</span>` : ""}</div>` : ""}</li>`).join("");
+      ${h.note && !((h.res || h.ev) && !canSeeResults(s)) ? `<div>${esc(h.note)}</div>` : ""}${h.hand || h.badge ? `<div>Handed to <b>${esc(h.hand || "—")}</b>${h.badge ? `, badge <span class="mono">${esc(h.badge)}</span>` : ""}</div>` : ""}</li>`).join("");
 
   const det = s.details ? Object.entries(s.details).map(([k, val]) => `${esc(k)}: <b>${esc(val)}</b>`).join(" · ") : "";
   const rv = s.recv || null;
@@ -338,7 +338,15 @@ function receiptTimeError(s, at){
   return "";
 }
 /* A sample can go back for re-assay once it has been assayed: in analysis or QA/QC, once released, and from storage while material is kept. */
-const redoOk = s => { if (!s || awaiting(s) || s.open === false || stage(s, s.stageKey)?.final) return false; const ri = redoIdx(s), ci = curIdx(s), ti = targetIdx(s); return ri >= 0 && ci > ri && (ci <= ti || keptMaterials(s).length > 0); };
+const redoOk = s => { if (!s || awaiting(s) || s.open === false || stage(s, s.stageKey)?.final) return false; const ri = redoIdx(s), ci = curIdx(s), ti = targetIdx(s); return ri >= 0 && ci > ri && (ci <= ti || redoMats(s).length > 0); };
+/* v32: what a re-assay from storage can be made from: a solids step (fire assay, digest) needs pulp or another solid kept, a solution step a
+   solution; a step of neither kind takes any material kept. */
+function redoMats(s){
+  const st = planOf(s)[redoIdx(s)] || {}, kept = keptMaterials(s), nm = `${st.key || ""} ${st.name || ""}`;
+  const need = /\bfuse\b|\bdigest\b|fire assay|fusion|aufx|loading/i.test(nm) ? /pulp|reject|solid|residue|head|fraction|sieved|remainder|product|core|carbon/i
+    : /\bausx\b|\bsoln\b|\bcn\b|\bfree\b|solution|cyanide/i.test(nm) ? /filtrate|solution|slurry|remainder|water|liquor/i : null;
+  return need ? kept.filter(m => need.test(m.item)) : kept;
+}
 function redoBox(s){
   const p = planOf(s), ri = redoIdx(s), r = routeByCode(s.route);
   const reasons = [...new Set([...(s.rq ? ["Requested on evaluation"] : []), ...(s.triggers || r?.triggers || []), "CRM outside limits", "Blank above limit", "Duplicate or replicate out of tolerance", "Client query on the result", "Other (see note)"])];

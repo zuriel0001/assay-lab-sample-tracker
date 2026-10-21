@@ -12,7 +12,9 @@ const check = (cond, msg) => { console.log(cond ? "  PASS" : "  FAIL", msg); if 
 const text = async (page, sel) => ((await page.textContent(sel).catch(() => "")) || "").replace(/\s+/g, " ").trim();
 const opts = (P, sel) => P.$$eval(`${sel} option`, os => os.map(o => o.value).filter(Boolean));
 const rowPh = P => P.$$eval("#rRows .r-code", es => es.map(e => e.value || e.placeholder));
-const codes = P => P.$$eval("#jRows .j-code", es => es.map(e => e.value));
+// v32: an ID group's rows fold under one line; open them all before reading the codes
+const openGroups = async P => { for (let k = 0; k < 12; k++){ const b = await P.$('#jRows .j-gt[aria-expanded="false"]'); if (!b) break; await b.click(); } };
+const codes = async P => { await openGroups(P); return P.$$eval("#jRows .j-code", es => es.map(e => e.value)); };
 const samplesOf = () => Object.entries(store).filter(([k, v]) => k.startsWith("samples/") && v && v.id).map(([, v]) => v);
 const withTag = t => samplesOf().filter(s => (s.tags || []).includes(t));
 
@@ -172,8 +174,10 @@ async function toLast(page, id){
 
   log("QA/QC set: three ID groups by default, each its own first code and number");
   await jobForm(Tc, "met", "qaqc", "2026-10-22");
+  check(await Tc.$$eval("#jRows tr.j-gh", r => r.length) === 3 && await Tc.$$eval("#jRows .j-code", r => r.length) === 0, "each group's rows folded under one line");
   check(await Tc.$$eval("#jIdg .idg-row", r => r.length) === 3 && await Tc.inputValue("#jGn") === "3" && (await codes(Tc)).length === 86, "PPS, CB, SL: 45 + 26 + 15");
-  check(await Tc.inputValue('#jIdg .g-first[data-g="0"]') === "MLABPPS01" && await Tc.inputValue('#jIdg .g-first[data-g="1"]') === "MLABCB01" && /Process plant \(PPS\): first code/.test(await text(Tc, '#jIdg .idg-row[data-g="0"]')), "each group's first code, under its name");
+  check(await Tc.inputValue('#jIdg .g-first[data-g="0"]') === "MLABPPS01" && await Tc.inputValue('#jIdg .g-first[data-g="1"]') === "MLABCB01" && /Process plant \(PPS\)/.test(await text(Tc, '#jIdg .idg-row[data-g="0"] .g-hd')) && /First code/.test(await text(Tc, '#jIdg .idg-row[data-g="0"]')), "each group's first code, under its name");
+  check(await Tc.$eval("#jIdg", b => { const h = b.querySelector(".idg-head"), r = b.querySelector(".idg-row"); return !!h && !!r && h.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING && getComputedStyle(h).backgroundColor !== "rgba(0, 0, 0, 0)" && getComputedStyle(r).borderTopStyle === "solid"; }), "v32: ID groups comes first, on a filled strip; each group in its own box");
   await Tc.fill('#jIdg .g-n[data-g="0"]', "2"); await Tc.fill('#jIdg .g-n[data-g="1"]', "1"); await Tc.fill('#jIdg .g-n[data-g="2"]', "1"); await Tc.waitForTimeout(150);
   await Tc.selectOption("#jGn", "4"); await Tc.waitForTimeout(150);
   await Tc.fill('#jIdg .g-first[data-g="3"]', "MLABSTD1"); await Tc.fill('#jIdg .g-n[data-g="3"]', "2"); await Tc.selectOption('#jIdg .g-test[data-g="3"]', "aufx"); await Tc.waitForTimeout(150);
@@ -211,9 +215,20 @@ async function toLast(page, id){
   check(l1.route === "MET-JOB" && l1.test === "x" && JSON.stringify(l1.xan) === '["Cu","Ag"]' && l1.testName === "Cu + Ag" && l1.details?.Testwork === "Leach kinetics" && /^Leach kinetics, /.test(l1.batchName || "") && l1.job === "custom",
     "on the MET Lab's route, for Cu and Ag, under its own name: " + JSON.stringify({ r: l1.route, t: l1.testName, b: l1.batchName }));
 
-  log("Shift end: ID groups folded away, a row's code completed with the date, a row with other analyses");
+  log("v32: a template of fixed rows (bottle roll): ID groups replace its own codes");
+  await jobForm(Tc, "met", "brt", "2026-10-22");
+  const brt0 = await codes(Tc);
+  check(await Tc.inputValue("#jGn") === "0" && /None: template codes/.test(await text(Tc, '#jGn option[value="0"]')) && !(await Tc.$("#jIdg .idg-row")) && brt0.length === 17 && brt0[0] === "MLABPF+42520261022", "no groups: the bottle roll's own 17 codes, nothing else in the way");
+  await Tc.selectOption("#jGn", "2"); await Tc.waitForTimeout(150);
+  check((await codes(Tc)).length === 0 && await Tc.$$eval("#jIdg .idg-row", r => r.length) === 2 && !(await Tc.isVisible("#jN_n1")), "two groups: the template's codes go (and its filtrate number), no default code left");
+  await Tc.fill('#jIdg .g-first[data-g="0"]', "MLABBRT01"); await Tc.fill('#jIdg .g-n[data-g="0"]', "3"); await Tc.fill('#jIdg .g-first[data-g="1"]', "MLABBSL01"); await Tc.waitForTimeout(150);
+  check((await codes(Tc)).join() === "MLABBRT0120261022,MLABBRT0220261022,MLABBRT0320261022,MLABBSL0120261022", "the rows are the groups' codes only: " + (await codes(Tc)).join());
+  await Tc.selectOption("#jGn", "0"); await Tc.waitForTimeout(150);
+  check((await codes(Tc)).length === 17 && await Tc.isVisible("#jN_n1"), "None brings the template's codes back");
+
+  log("Shift end: no ID groups by default, a row's code completed with the date, a row with other analyses");
   await jobForm(Tc, "job", "mill", "2026-10-24", "N");
-  check(!(await Tc.$eval("#jIdg .idg-wrap", d => d.open)) && /ID groups/.test(await text(Tc, "#jIdg .idg-wrap summary")), "the mill shift's ID groups are folded under ID groups");
+  check(await Tc.inputValue("#jGn") === "0" && !(await Tc.$("#jIdg .idg-row")) && (await codes(Tc)).length > 30, "the mill shift: its own codes, ID groups None");
   await Tc.selectOption("#jAdd", "plant_feed|"); await Tc.waitForTimeout(150);
   const last = (await codes(Tc)).length - 1;
   check(await Tc.isVisible(`#jRows .j-pt[data-j="${last}"]`), "Other point… adds a row whose point is typed");

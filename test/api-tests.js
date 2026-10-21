@@ -77,6 +77,22 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   check(!(await one("t1@site.com", { op: "set", path: "settings/stages", data: { users } })).ok, "a non-admin can't save settings");
   check((await one("boss@site.com", { op: "set", path: "settings/stages", data: { schema: 12, users, resultsPublic: false, relMode: "signoff" } })).ok, "the bootstrap admin saves settings");   // v24: the checks below are of the sign-off release
   await new Promise(r => setTimeout(r, 3100));   // settings cache
+  // v32 (21 Oct): nothing that carries a result's value leaves the server for readers who may not see results: the notes of history lines
+  // about results, evaluations and re-assays, the evaluations, the last re-assay's reason and the lab batch QC notes.
+  const red32 = `PLT-${day}-0032`;
+  await mem.set("samples/" + red32, { ...sub(red32, { createdBy: "t1", stageKey: "released" }), results: { rows: { Au: { v: 14.2 } } }, lastRedo: "Au 14.2 over range",
+    evals: [{ at: now, by: "m", tech: "Met", dept: "Metallurgy", v: "query", note: "Au 14.2 looks high" }], rq: true, labQcNote: "CRM 0.512 low", labs: { fa: { b: "FA-1", q: "fail", n: "CRM 0.512 low" } },
+    history: [{ key: "submitted", at: now, by: "public", name: "J", note: "Handed in at the gate" }, { key: "fa", at: now, by: "t1", tech: "Tech One", res: true, note: "Results entered: Au 14.2 g/t" },
+      { key: "fa", at: now, by: "t1", tech: "Tech One", redo: true, note: "Re-assay: Au 14.2 g/t is over the 10 g/t range" }, { key: "rel", at: now, by: "m", tech: "Met", ev: true, note: "Query: Au 14.2 looks high" }] });
+  const seenBy = async who => (await one(who, { op: "get", path: "samples/" + red32 })).data;
+  for (const [who, label] of [[null, "signed out"], ["exp@site.com", "another section's account"]]){
+    const r = await seenBy(who), h = r && r.history || [];
+    check(r && h.length === 4 && h[0].note === "Handed in at the gate" && h.slice(1).every(x => x.note === undefined && x.by && x.at) && !r.evals && !r.lastRedo && !r.labQcNote &&
+      r.labs.fa.b === "FA-1" && r.labs.fa.q === "fail" && r.labs.fa.n === undefined && r.rq === true && !JSON.stringify(r).includes("14.2") && !JSON.stringify(r).includes("0.512"),
+      `${label}: no result value in history notes, evaluations, re-assay reason or QC notes; the lines themselves stay (v32)`);
+  }
+  const full = await seenBy("t1@site.com");
+  check(full.history[1].note === "Results entered: Au 14.2 g/t" && full.evals.length === 1 && full.lastRedo && full.labs.fa.n, "lab staff still get all of it");
   const t1 = await core.account(P("t1@site.com"));
   check(t1.role === "tech" && t1.u === "t1" && t1.name === "Tech One", "accounts are matched by Microsoft email, case-insensitively");
   check((await core.account(P("t1"))).role === null, "on Azure, a username is not a sign-in (dev only)");

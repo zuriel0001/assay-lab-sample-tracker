@@ -173,10 +173,10 @@ function rowValues(rep, cells, defs, r = 1, clash){
 /* ---------- the plan: which lab batches and sample records the file fills, and what it can't ---------- */
 const readyForResults = s => { const ph = stage(s, s.stageKey)?.phase; return curIdx(s) < targetIdx(s) && (ph === "test" || ph === "qc"); };
 function planUpload(rep, scope){
-  const P = { batches: [], fresh: [], samples: [], notFound: [], notReady: [], awaiting: [], done: [], already: [], unknownCrm: [], bad: [], clash: [], unread: [], viaBatch: [], n: 0 };
+  const P = { batches: [], fresh: [], samples: [], notFound: [], notReady: [], awaiting: [], done: [], already: [], unknownCrm: [], bad: [], clash: [], unread: [], viaBatch: [], twice: [], n: 0 };
   const bySid = new Map(), extra = new Map(), blanks = [], crmRows = [];
   for (const r of rep.rows){
-    if (r.kind === "s"){ if (!bySid.has(r.sid)) bySid.set(r.sid, r); else (extra.get(r.sid) || extra.set(r.sid, []).get(r.sid)).push(r); }
+    if (r.kind === "s"){ if (!bySid.has(r.sid)) bySid.set(r.sid, r); else { (extra.get(r.sid) || extra.set(r.sid, []).get(r.sid)).push(r); if (!P.twice.includes(r.sid)) P.twice.push(r.sid); } }
     else if (r.kind === "d") (extra.get(r.sid) || extra.set(r.sid, []).get(r.sid)).push(r);
     else if (r.kind === "bl") blanks.push(r);
     else if (r.kind === "crm") crmRows.push(r);
@@ -252,7 +252,7 @@ function planUpload(rep, scope){
       const bk = batchKeys(s), others = anOf(s).filter(a => !bk.has(a.k) && !viaB.has(a.k) && !a.calc && a.t !== "pick");
       const got = rowValues(rep, row.cells, others, 1, P.clash);
       if (Object.keys(got).length){
-        if (!ready) needs = true;
+        if (!ready){ needs = true; for (const [k, v] of Object.entries(got)){ const r = parseRes(v.raw, others.find(x => x.k === k)); if (!(r && !r.bad && !r.amb)) P.bad.push(`${sid}: ${v.col.name} “${v.raw}”`); } }
         else {
           const rows = {}, bad = [], have = rowsOf(s); let same = 0;
           for (const [k, v] of Object.entries(got)){
@@ -381,6 +381,7 @@ function renderUpload(){
     if (P.done.length) check.push(li("warn", `Results already released: ${ids(P.done)}`));
     if (P.already.length) check.push(li("warn", `Batch results already saved: ${ids(P.already, 4)}`));
     if (P.bad.length) check.push(li("bad", `Not a result: ${esc(P.bad.slice(0, 4).join("; "))}${P.bad.length > 4 ? ` +${P.bad.length - 4} more` : ""}`));
+    if (P.twice.length) check.push(li("warn", `On two rows: ${ids(P.twice)} · first row used`));
     if (P.clash.length) check.push(li("bad", `Two columns for one result: ${esc(P.clash.slice(0, 3).join("; "))}`));
     if (P.notFound.length) unused.push(li("", `Not in the lab (no sample with this ID, site sample code or site reference): ${ids(P.notFound)}`));
     if (P.unread.length) unused.push(li("", `Columns not read: ${esc(P.unread.slice(0, 10).join(", "))}${P.unread.length > 10 ? "…" : ""}${isAdmin() ? ` <button type="button" class="btn ghost small" id="upCols">Settings › Results files</button>` : ""}`));
@@ -559,6 +560,7 @@ async function saveUpload(){
     if (P.samples.length){
       msg("Saving sample results…");
       const al = sid => { const a = u.useAlias && u.alias?.bySid.get(sid); return a ? ` (the file names it ${a.file}, its code dated ${date8Text(date8Of(a.file))})` : ""; };
+      const relS = [];   // v32: release on save may release them; the toast says so
       const n = await pool(P.samples, 8, x => sampleWrite(x.sid, s => {
         if (!readyForResults(s)) return null;
         const bk = batchKeys(s), defs = anOf(s), rows = { ...rowsOf(s) };
@@ -567,8 +569,8 @@ async function saveUpload(){
         return { results: { v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: patch(s.results?.rows, all), batch: s.results?.batch || "", inst, file: fileTag(f) }, fids: [...new Set([...(s.fids || []), f.id])],
           resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null,
           history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, note: `Results from file ${f.name}${al(x.sid)}: ${resSummary(defs, all)}` }] };
-      }), (d, t) => msg(`Saving sample results… ${d} of ${t}`));
-      done.push(`results on ${n} sample record${n === 1 ? "" : "s"}`);
+      }, upd => { if (upd.relAt) relS.push(x.sid); }), (d, t) => msg(`Saving sample results… ${d} of ${t}`));
+      done.push(`results on ${n} sample record${n === 1 ? "" : "s"}${relS.length ? `, ${relS.length} released` : ""}`);
     }
     if (loose && targets.length){
       // Every sample the file is for and not released yet: the file is its results, and it is released (withRelease).

@@ -166,9 +166,17 @@ function recvManyPanel(cur){
 }
 function bindRecvMany(v){
   const box = $("#bdPick", v); if (!box || !$("#rmBox", box)) return;
-  box.querySelectorAll("[data-rm]").forEach(c => c.onchange = () => { c.checked ? rmSel.add(c.dataset.rm) : rmSel.delete(c.dataset.rm); renderBoard(); });
-  box.querySelectorAll("[data-rmb]").forEach(c => c.onchange = () => { rmList.filter(s => grouped(s) && s.batchId === c.dataset.rmb).forEach(s => c.checked ? rmSel.add(s.id) : rmSel.delete(s.id)); renderBoard(); });
-  $("#rmAll", box).onchange = e => { rmUnits(rmList).filter(u => !rmCool(u)).flatMap(u => u.ms).forEach(s => e.target.checked ? rmSel.add(s.id) : rmSel.delete(s.id)); renderBoard(); };
+  /* v32: a tick updates the count, the button and Tick all in place; the board is drawn again only when a witness is now needed or no longer */
+  const sync = () => {
+    const us = rmUnits(rmList).filter(u => !rmCool(u)), on = us.filter(u => u.ms.every(s => rmSel.has(s.id))), two = on.some(u => u.ms.some(twoPerson));
+    if (two !== !!$("#rmWit", box)) return renderBoard();
+    const b = $("#rmBtn", box); b.disabled = !on.length || rmBusy; b.textContent = rmBusy ? "Receiving…" : `Receive ${on.length} ticked`;
+    $("#rmAll", box).checked = us.length > 0 && on.length === us.length;
+  };
+  box.querySelectorAll("[data-rm]").forEach(c => c.onchange = () => { c.checked ? rmSel.add(c.dataset.rm) : rmSel.delete(c.dataset.rm); sync(); });
+  box.querySelectorAll("[data-rmb]").forEach(c => c.onchange = () => { rmList.filter(s => grouped(s) && s.batchId === c.dataset.rmb).forEach(s => c.checked ? rmSel.add(s.id) : rmSel.delete(s.id)); sync(); });
+  $("#rmAll", box).onchange = e => { rmUnits(rmList).filter(u => !rmCool(u)).flatMap(u => u.ms).forEach(s => e.target.checked ? rmSel.add(s.id) : rmSel.delete(s.id));
+    box.querySelectorAll("[data-rm],[data-rmb]").forEach(c => { c.checked = e.target.checked; }); sync(); };
   $("#rmAt", box).onchange = e => { rmAt = e.target.value; };
   $("#rmOk", box).onchange = e => { rmOk = e.target.checked; };
   const w = $("#rmWit", box); if (w){ if (rmWit) w.value = rmWit; w.onchange = () => { rmWit = w.value; }; }

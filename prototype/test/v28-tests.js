@@ -22,7 +22,9 @@ async function jobForm(P, kind, tpl, date, shift){
   if (shift && await P.isVisible("#jShift")) await P.selectOption("#jShift", shift);
   await P.fill("#jDate", date); await P.dispatchEvent("#jDate", "change"); await P.waitForTimeout(150);
 }
-const codes = P => P.$$eval("#jRows .j-code", es => es.map(e => e.value));
+// v32: an ID group's rows fold under one line; open them all before reading the codes
+const openGroups = async P => { for (let k = 0; k < 12; k++){ const b = await P.$('#jRows .j-gt[aria-expanded="false"]'); if (!b) break; await b.click(); } };
+const codes = async P => { await openGroups(P); return P.$$eval("#jRows .j-code", es => es.map(e => e.value)); };
 const opts = (P, sel) => P.$$eval(sel + " option", os => os.map(o => o.value));
 async function submit(P){
   await P.fill("#rSubmitter", "MET technician"); await P.click("#rSubmit");

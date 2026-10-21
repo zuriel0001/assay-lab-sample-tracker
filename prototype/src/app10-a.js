@@ -225,12 +225,13 @@ function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = fals
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /* ---------- site time ---------- */
-function tzOk(z){ try { new Intl.DateTimeFormat("en", { timeZone: z }); return true; } catch { return false; } }
+function tzOk(z){ const c = tzOk.c || (tzOk.c = new Map()); if (!c.has(z)){ let ok = true; try { new Intl.DateTimeFormat("en", { timeZone: z }); } catch { ok = false; } c.set(z, ok); } return c.get(z); }
 const TZ = () => cfg.tz && tzOk(cfg.tz) ? cfg.tz : undefined;
+/* v32: one formatter for the site's time zone, made again only when the zone changes (building one per call made the board slow). */
 function siteParts(ms){
-  const p = {};
-  new Intl.DateTimeFormat("en-CA", { timeZone: TZ(), year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
-    .formatToParts(new Date(ms)).forEach(x => p[x.type] = x.value);
+  const p = {}, z = TZ() || "";
+  if (siteParts.z !== z || !siteParts.f){ siteParts.z = z; siteParts.f = new Intl.DateTimeFormat("en-CA", { timeZone: z || undefined, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }); }
+  siteParts.f.formatToParts(new Date(ms)).forEach(x => p[x.type] = x.value);
   p.hour = String(+p.hour % 24).padStart(2, "0");
   return p;
 }

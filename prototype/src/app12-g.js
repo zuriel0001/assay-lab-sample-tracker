@@ -388,7 +388,7 @@ function amendPending(s, last){
   const a = s.amend, defs = anOf(s), keys = [...new Set([...Object.keys(last?.rows || {}), ...Object.keys(a.rows)])];
   const changed = keys.filter(k => (last?.rows[k]?.raw || "") !== (a.rows[k]?.raw || "")).map(k => { const d = defs.find(x => x.k === k) || (last?.an || []).find(x => x.k === k) || { k, n: k, u: "" };
     return `${esc(d.n)}: ${esc(last?.rows[k] ? resText(last.rows[k], d) : "—")} → <b>${esc(a.rows[k] ? resText(a.rows[k], d) : "—")}</b>${d.u ? " " + esc(d.u) : ""}`; });
-  const mine = a.by === session?.u, hold = openAlerts(s, a.rows);
+  const mine = a.by === session?.u, hold = relNow() ? [] : openAlerts(s, a.rows);
   return `<div class="notice warn stack" id="amPend" style="gap:6px"><div><b>Amendment proposed</b> by ${esc(a.tech)}, ${fmt(a.at)}: ${esc(a.why)}</div>
     <div class="small">${changed.join("<br>") || "No change"}</div>
     ${hold.length ? `<div class="small"><b>Approval waits:</b> ${esc(hold.map(h => alertLine(s, h)).join("; "))}. Record what was done below first.</div>` : ""}
@@ -465,7 +465,7 @@ async function doOverRange(){
 /* The checks an amendment must pass, as for a first release. Returns { rows } or { err }. */
 function amendRows(s, typed, prev){
   const rows = withCalc(s, typed), defs = anOf(s);
-  const miss = defs.filter(a => !a.opt && !a.calc && !rows[a.k]);
+  const miss = defs.filter(a => !a.opt && !a.calc && a.t !== "pick" && !rows[a.k]);
   if (miss.length) return { err: `${miss.map(a => a.n).join(", ")} can't be left empty: ${miss.length > 1 ? "they are" : "it is"} reported on every certificate.` };
   const over = overRes(s, rows);
   if (over.length) return { err: `${over.map(a => `${a.n} ${resText(rows[a.k], a)} ${a.u}`).join(", ")} is over the method's range (${over.map(a => fmtNum(a.ul)).join(", ")}). Send the sample for re-assay instead of amending.` };
@@ -499,7 +499,7 @@ async function doApproveAmend(){
     const a = s.amend, prev = (s.certs || []).at(-1);
     if (!a || !prev || prev.v !== a.of){ toast("The certificate changed since the amendment was proposed. Propose it again."); return null; }
     const c = amendRows(s, a.rows, prev); if (c.err){ toast(c.err); return null; }
-    const hold = openAlerts(s, c.rows); if (hold.length){ toast(`${hold.map(h => alertLine(s, h)).join("; ")}. Record what was done and who was told first.`); return null; }
+    const hold = relNow() ? [] : openAlerts(s, c.rows); if (hold.length){ toast(`${hold.map(h => alertLine(s, h)).join("; ")}. Record what was done and who was told first.`); return null; }
     const at = nowAfter(s), results = { v: (s.results?.v || 0) + 1, at, by: a.by, tech: a.tech, rows: patch(s.results?.rows, c.rows), batch: s.results?.batch || prev.batch || "", inst: s.results?.inst || prev.inst || "" };
     const cert = makeCert({ ...s, results: { ...results, rows: c.rows }, resAcc: s.resAcc || prev.acc }, at, a.why, { amendBy: { by: a.by, tech: a.tech, at: a.at }, ...(mine ? { self: selfWhy } : {}) });
     return { upd: { results, resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), certs: [...(s.certs || []), cert], amend: null,
@@ -535,8 +535,8 @@ function certHtml(s, c){
       ${c.batch ? fact(c.batch.includes(",") ? "Lab batches" : "Lab batch", `<span class="mono">${esc(c.batch)}</span> · ${esc(qcLabel(c.qc) || "")}`) : ""}
     </table>
     ${c.file ? `<div class="cert-file">Results file: <b>${esc(c.file.name)}</b>${c.att ? (c.an.length ? ". Results not shown below are in this file." : ". The results are in this file.") : ""}</div>` : ""}
-    ${c.an.length ? `<table class="cert-res"><thead><tr><th>Analyte</th><th>Result</th><th>Unit</th><th>Detection limit</th>${c.cov ? "<th>Quality control</th>" : ""}</tr></thead><tbody>
-      ${c.an.map(a => `<tr><td>${esc(a.n)}</td><td class="mono"><b>${esc(resText(c.rows[a.k], a))}</b></td><td>${esc(a.u || "")}</td><td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>${c.cov ? `<td>${covText(c.cov[a.k])}</td>` : ""}</tr>`).join("")}</tbody></table>` : ""}
+    ${c.an.length ? `<div class="tbl-wrap"><table class="cert-res"><thead><tr><th>Analyte</th><th>Result</th><th>Unit</th><th>Detection limit</th>${c.cov ? "<th>Quality control</th>" : ""}</tr></thead><tbody>
+      ${c.an.map(a => `<tr><td>${esc(a.n)}</td><td class="mono"><b>${esc(resText(c.rows[a.k], a))}</b></td><td>${esc(a.u || "")}</td><td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>${c.cov ? `<td>${covText(c.cov[a.k])}</td>` : ""}</tr>`).join("")}</tbody></table></div>` : ""}
     ${exc.length ? `<div class="cert-note">${exc.join("<br>")}</div>` : ""}
     <div class="cert-sign"><div>Released by <b>${esc(c.tech)}</b>, ${esc(ROLE_SIGN[c.role] || "lab supervisor (QA/QC)")}</div><div>${esc(fmtFull(c.at))}${TZ() ? ` (${esc(TZ())})` : ""}</div></div>
     <div class="cert-foot">Results relate only to the sample as received. Values below the detection limit are shown as &lt;DL${calc ? "; calculated results and balance checks count them as 0" : ""}. A result marked "Not in a lab batch" is a field, physical or worksheet measurement that is not run with reference materials. ${c.code ? `Check this copy by looking up the sample ID in the Assay Lab tracker: the certificate number and check code must match. ` : ""}Design prototype: not an official laboratory certificate.</div>

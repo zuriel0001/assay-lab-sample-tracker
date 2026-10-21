@@ -22,25 +22,30 @@ const splitDated = f => { const m = String(f || "").trim().match(DATED); return 
 const groupCode = (g, j, date) => normTag(seriesCode(g.f, j, +g.n || 1) + dayCode(date));
 const hasFirst = g => !!String(g?.f || "").trim();
 const IDG_MAX = 10;
-/* One line per ID group: its first code, how many samples (a batch of one group counts its rows instead), anything else the form asks
-   (a job: type and analysis), and the codes it makes. The number of groups and the date sit under the groups. */
+/* v32 (21 Oct): "the 'ID groups' tab should come before the list of groups ... give the ID formation section some light colors and borders,
+   let it be visible and look sectioned ... the site shouldn't look bulky". The number of groups (and a batch's date) on a filled strip
+   first, then one small box per group: its name and the codes it makes on one line, then its first code, how many samples (a batch of one
+   group counts its rows instead) and anything else the form asks (a job: type, analysis, More). o.zero: a template of fixed rows, where
+   no group means the template's own codes. */
 function idgBlock(p, gs, o = {}){
-  const many = gs.length > 1;
-  return `<div class="idg" id="${p}Idg">${gs.map((g, i) => `<div class="idg-row" data-g="${i}">
-      <label class="f g-ff"><span>${many ? `${g.l ? esc(g.l) : `Group ${i + 1}`}: first code` : "First code"}</span><input class="inp g-first" data-g="${i}" value="${esc(g.f || "")}" placeholder="e.g. MLABPPS01" maxlength="50" autocomplete="off" spellcheck="false" aria-label="First code${many ? `, group ${i + 1}` : ""}"></label>
+  const many = gs.length > 1, ns = [...(o.zero ? [0] : []), ...Array.from({ length: IDG_MAX }, (_, k) => k + 1)];
+  return `<div class="idg${gs.length ? "" : " none"}" id="${p}Idg"><div class="idg-head">
+      <label class="g-cf"><span>ID groups</span><select class="inp" id="${p}Gn" aria-label="Number of ID groups">${ns.map(k => `<option value="${k}" ${k === gs.length ? "selected" : ""}>${k || "None: template codes"}</option>`).join("")}</select></label>
+      ${o.date != null ? `<label class="g-df"><span>Date on the codes</span><input class="inp" id="${p}GDate" type="date" value="${esc(o.date)}"></label>` : ""}</div>
+    ${gs.map((g, i) => `<div class="idg-row" data-g="${i}">
+      <div class="g-hd">${many || g.l ? `<b>${g.l ? esc(g.l) : `Group ${i + 1}`}</b>` : ""}<span class="g-ex mono" data-g="${i}"></span></div>
+      <label class="f g-ff"><span>First code</span><input class="inp g-first" data-g="${i}" value="${esc(g.f || "")}" placeholder="e.g. MLABPPS01" maxlength="50" autocomplete="off" spellcheck="false" aria-label="First code${many ? `, group ${i + 1}` : ""}"></label>
       ${o.count || many ? `<label class="f g-nf"><span>Samples</span><input class="inp g-n" data-g="${i}" type="number" min="1" max="99" step="1" inputmode="numeric" value="${esc(g.n)}" aria-label="Samples${many ? `, group ${i + 1}` : ""}"></label>` : ""}
-      ${o.extra ? o.extra(g, i) : ""}
-      <div class="g-ex small mono" data-g="${i}"></div></div>`).join("")}
-    <div class="idg-opts">${o.date != null ? `<label class="f g-df"><span>Date on the codes</span><input class="inp" id="${p}GDate" type="date" value="${esc(o.date)}"></label>` : ""}<label class="f g-cf"><span>ID groups</span><select class="inp" id="${p}Gn" aria-label="Number of ID groups">${Array.from({ length: IDG_MAX }, (_, k) => `<option ${k + 1 === gs.length ? "selected" : ""}>${k + 1}</option>`).join("")}</select></label></div></div>`;
+      ${o.extra ? o.extra(g, i) : ""}</div>`).join("")}</div>`;
 }
 /* The codes a group makes, first … last, under its first code. */
 function idgPreview(root, gs, date){
   root?.querySelectorAll(".g-ex").forEach(el => { const g = gs[+el.dataset.g]; if (!g) return; const n = Math.max(0, +g.n || 0);
     el.textContent = hasFirst(g) && n ? `${groupCode(g, 0, date)}${n > 1 ? ` … ${groupCode(g, n - 1, date)}` : ""}` : ""; });
 }
-/* More or fewer groups: a new group starts empty with one sample (a job: the last group's type and analysis). */
-function resizeGroups(gs, n, blank){
-  n = Math.max(1, Math.min(IDG_MAX, n | 0));
+/* More or fewer groups: a new group starts empty with one sample (a job: the last group's type and analysis). min 0: a template of fixed rows. */
+function resizeGroups(gs, n, blank, min = 1){
+  n = Math.max(min, Math.min(IDG_MAX, n | 0));
   while (gs.length < n) gs.push(blank(gs[gs.length - 1]));
   gs.length = n;
   return gs;
@@ -100,7 +105,9 @@ function bindBGroups(v){
   box.addEventListener("input", e => {
     const el = e.target, g = bGroups[+el.dataset.g];
     if (el.classList.contains("g-first") && g){ g.f = el.value; rowHints(); bPreview(); }
-    else if (el.classList.contains("g-n") && g){ const n = Math.floor(+el.value); if (!(n >= 1 && n <= 99)) return; g.n = n; if (bTotal() > 100) return toast("Up to 100 samples in one batch."); setRowCount(bTotal()); $("#rCount").value = bRows.length; bPreview(); }
+    else if (el.classList.contains("g-n") && g){ const n = Math.floor(+el.value); if (!(n >= 1 && n <= 99)) return;
+      if (bTotal() - (+g.n || 1) + n > 100){ el.value = g.n; return toast("Up to 100 samples in one batch."); }
+      bGroupResize(+el.dataset.g, n); }
     else if (el.id === "rBGDate"){ bDate = el.value; rowHints(); bPreview(); }
   });
   box.addEventListener("change", e => {
@@ -118,11 +125,20 @@ function bindBGroups(v){
   });
 }
 
+/* v32: one group of a batch grows or shrinks at its own end (the rows of the groups after it keep what was typed on them). */
+function bGroupResize(gi, n){
+  const g = bGroups[gi]; if (!g) return;
+  if (bGroups.length === 1){ g.n = n; return setRowCount(n); }
+  const start = bGroups.slice(0, gi).reduce((a, x) => a + Math.max(1, +x.n || 1), 0), k = Math.max(1, +g.n || 1);
+  if (n > k) bRows.splice(start + k, 0, ...Array.from({ length: n - k }, () => ({ code: "", src: "" }))); else bRows.splice(start + n, k - n);
+  g.n = n; $("#rCount").value = bRows.length; renderRows(); bPreview();
+}
 /* A batch whose codes from a first code are on open samples already: those rows are marked, and the groups can start after the last of them. */
 function offerFree(took){
   document.querySelectorAll("#rRows .r-code").forEach(el => el.classList.toggle("taken", took.some(([i]) => i === +el.dataset.i)));
   toast(`${took[0][1]}${took.length > 1 ? ` and ${took.length - 1} more` : ""}: already on open samples for this analysis.`);
   const info = $("#rRowInfo"); if (!info) return;
+  rowHints.took = took.map(([i, t]) => [i, t]);   // v32: the offer stays while those codes do
   info.classList.remove("bad-t");
   info.innerHTML = `<span class="bad-t">${took.length} taken</span> <button type="button" class="btn small" id="rFree">Next free numbers</button>`;
   $("#rFree").onclick = async e => { e.target.disabled = true; e.target.textContent = "Checking…"; const te = $("#rTest")?.value || "";
@@ -131,7 +147,7 @@ function offerFree(took){
 
 /* ---------- several analyses on one sample ---------- */
 /* Typed analyses: up to 8 names, each up to 40 characters. */
-const splitAn = t => [...new Set(String(t || "").split(/[,;\n]+/).map(x => x.trim().replace(/\s+/g, " ").slice(0, 40)).filter(Boolean))].slice(0, 8);
+const splitAn = t => { const seen = new Set(); return String(t || "").split(/[,;\n]+/).map(x => x.trim().replace(/\s+/g, " ").slice(0, 40)).filter(x => x && !seen.has(x.toLowerCase()) && seen.add(x.toLowerCase())).slice(0, 8); };
 /* A typed analysis is a result read as written (a number with its unit, or words), required before release. Its code comes from its
    name, so the same analysis on two samples shares a column on the certificate. */
 const xKey = (n, taken) => { let k = "x_" + (n.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 24) || "an"), b = k, i = 2; while (taken.has(k)) k = `${b}_${i++}`; taken.add(k); return k; };
@@ -186,9 +202,19 @@ const anFields = (main, t2, xa) => { t2 = (t2 || []).filter(k => k && k !== main
 /* ---------- a select of a fixed list takes a typed value too ---------- */
 /* The details on a sample's form (sampling point, shift…): "Other…" at the end of a list opens a box to type it. */
 const OTHER_V = "__other";
-const detailVal = k => { const el = $("#rD_" + k); if (!el) return ""; return (el.value === OTHER_V ? $("#rD_" + k + "_x")?.value || "" : el.value || "").trim().slice(0, 80); };
+const detailVal = k => { const el = $("#rD_" + k); if (!el) return ""; return (el.value === OTHER_V ? $("#rD_" + k + "_x")?.value.trim() || "Other" : el.value || "").trim().slice(0, 80); };
 document.addEventListener("change", e => {
   const el = e.target; if (!el.matches || !el.matches('#rDetails select[id^="rD_"]')) return;
   const x = $("#" + el.id + "_x"); if (!x) return;
   x.hidden = el.value !== OTHER_V; if (!x.hidden) x.focus();
+});
+
+/* v32: Enter in an ID group, a job's rows or numbers, or the batch box goes to the next box; it never sends the form (one Enter after
+   editing a code sent a whole shift). The batch rows move down a row themselves. */
+document.addEventListener("keydown", e => {
+  const el = e.target; if (e.key !== "Enter" || e.isComposing || !el.matches || !el.matches("input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button])")) return;
+  if (!el.closest("#rIdgBox,#jIdg,#jRows,#jNums,#rBatch,#rJob") || el.closest("#rRows")) return;
+  e.preventDefault();
+  const all = [...(el.form || document).querySelectorAll("input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled])")].filter(x => x.offsetParent), i = all.indexOf(el);
+  (all[i + 1] || el).focus();
 });

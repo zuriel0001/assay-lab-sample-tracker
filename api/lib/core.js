@@ -43,11 +43,17 @@ function requestProblem(headers){
    page makes it. Anything else (another type, a link, a large file) is refused. */
 const LOGO_MAX = 90000;
 const validLogo = v => v === "" || (typeof v === "string" && v.length <= LOGO_MAX && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(v));
-/* Results and certificate contents are hidden from people who may not see them; the certificate number and check code stay visible. */
+/* Results and certificate contents are hidden from people who may not see them; the certificate number and check code stay visible.
+   21 Oct (v32): so is everything else that can carry a result's value: the notes of history lines about results (res),
+   evaluations (ev) and re-assays (redo: "AuFx … 14.2 g/t is over the 10 g/t range"), the evaluations themselves, the last
+   re-assay's reason and the lab batch QC notes. The lines, their steps, times and names stay. */
+const noNote = h => h && typeof h === "object" && "note" in h ? (({ note, ...r }) => r)(h) : h;
 function redactSample(d){
   if (!d) return d;
   const o = { ...d };
-  for (const k of ["results", "resHist", "resAcc", "amend", "acks", "dil"]) delete o[k];
+  for (const k of ["results", "resHist", "resAcc", "amend", "acks", "dil", "evals", "labQcNote", "lastRedo"]) delete o[k];
+  if (Array.isArray(o.history)) o.history = o.history.map(h => h && (h.res || h.ev || h.redo) ? noNote(h) : h);
+  if (o.labs && typeof o.labs === "object" && !Array.isArray(o.labs)) o.labs = Object.fromEntries(Object.entries(o.labs).map(([p, l]) => [p, l && typeof l === "object" ? (({ n, ...r }) => r)(l) : l]));
   if (Array.isArray(o.certs)) o.certs = o.certs.map(c => ({ no: c.no, v: c.v, at: c.at, code: c.code, ...(c.amends ? { amends: c.amends } : {}), ...(c.bref ? { bref: c.bref, bv: c.bv } : {}) }));   // v24d: a batch certificate keeps its batch
   return o;
 }

@@ -203,6 +203,7 @@ details.facts-more dl{margin-top:8px}
 /* Settings: company logo */
 .logo-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
 .logo-prev{display:grid;place-items:center;min-width:120px;height:56px;padding:6px 10px;border:1px dashed var(--line);border-radius:var(--r);background:#fff}
+.logo-prev:not(:has(img)){background:var(--soft)}   /* v32: "No logo" readable in dark mode */
 .logo-prev img{max-height:44px;max-width:200px;display:block}
 @media print{header.top,#tabs{display:none!important}}
 .eta .cd+.val{font-family:var(--f-body);font-size:15px;font-weight:600}

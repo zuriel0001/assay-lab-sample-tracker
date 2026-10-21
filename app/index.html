@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="74913529f30c" data-at="1792590690397"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 6ac76d0f8771) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="d308867b62ad" data-at="1792604381364"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 49087f2e6389) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -510,6 +510,7 @@ details.facts-more dl{margin-top:8px}
 /* Settings: company logo */
 .logo-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
 .logo-prev{display:grid;place-items:center;min-width:120px;height:56px;padding:6px 10px;border:1px dashed var(--line);border-radius:var(--r);background:#fff}
+.logo-prev:not(:has(img)){background:var(--soft)}   /* v32: "No logo" readable in dark mode */
 .logo-prev img{max-height:44px;max-width:200px;display:block}
 @media print{header.top,#tabs{display:none!important}}
 .eta .cd+.val{font-family:var(--f-body);font-size:15px;font-weight:600}
@@ -984,24 +985,30 @@ body.wall .stats.tiles.fit{grid-template-columns:repeat(auto-fill,minmax(170px,1
 .vz-own{display:inline-block;margin-top:4px;padding:2px 8px;border-radius:999px;background:var(--c-violet-soft);color:var(--c-violet);font-size:13px}
 
 /* v31: ID groups (first code + date, the count continued), more analyses on a sample, a typed value in a fixed list */
-.idg{display:grid;gap:10px;margin:2px 0 10px}
-.idg-row{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(5.5em,.45fr) minmax(0,1fr) minmax(0,1.2fr);gap:6px 12px;align-items:end;padding-bottom:8px;border-bottom:1px dashed var(--line)}
-.idg-row:has(> :nth-child(3):last-child){grid-template-columns:minmax(0,1.5fr) minmax(5.5em,.45fr)}
-.idg-row:has(> :nth-child(2):last-child){grid-template-columns:minmax(0,1fr)}
-.idg-row .g-ex{grid-column:1/-1;color:var(--muted);font-size:12.5px;overflow-wrap:anywhere}
-.idg-row .g-ex:empty{display:none}
+/* v32: the ID groups section: one light box, the number of groups on a filled strip first, a small box per group (compact, both themes) */
+.idg{display:grid;gap:6px;margin:4px 0 12px;padding:6px;border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--accent-soft) 38%,var(--panel))}
+.idg.none{padding:0;border:0;background:none}
+.idg-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;padding:5px 10px;border-radius:7px;background:var(--accent-soft)}
+.idg-head label{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--ink);margin:0}
+.idg .idg-head .inp:not([type=checkbox]){width:auto;min-height:36px;padding:5px 9px;font-size:15px}
+.idg-head .g-cf .inp{min-width:4.5em}
+.idg-row{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(5em,.45fr) minmax(0,1fr) minmax(0,1.2fr) auto;gap:3px 10px;align-items:end;padding:5px 10px 7px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.idg-row:not(:has(.g-tf)){grid-template-columns:minmax(0,18em) minmax(5em,7em)}
+.idg-row:not(:has(.g-nf)){grid-template-columns:minmax(0,20em)}
+.idg-row .g-hd{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:0 12px;font-size:13.5px;line-height:1.35;min-width:0}
+.idg-row .g-hd b{color:var(--ink)}
+.idg-row .g-hd:not(:has(b)):has(.g-ex:empty){display:none}
+.idg-row .g-ex{color:var(--muted);font-size:12.5px;overflow-wrap:anywhere}
+.idg-row > label.f{gap:2px;font-size:13px}
+.idg .idg-row .inp:not([type=checkbox]){min-height:38px;padding:6px 9px;font-size:15px}
 .idg .g-first{font-family:var(--f-mono);text-transform:uppercase}
 .idg .g-first::placeholder{text-transform:none;font-family:var(--f-body)}
-.idg-opts{display:flex;gap:10px 14px;flex-wrap:wrap;align-items:end}
-.idg-opts .g-df{min-width:11em}
-.idg-opts .g-cf{width:7.5em}
-.idg-wrap{margin:2px 0 6px}
-.idg-wrap > summary{cursor:pointer;font-weight:600;padding:6px 0;color:var(--accent)}
-.idg-wrap[open] > summary{margin-bottom:6px}
-.g-more{grid-column:1/-1}
+@media (min-width:721px){ .idg-row ~ .idg-row > label.f > span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap} }
+.g-more{align-self:end;padding-bottom:9px}
+.g-more[open]{grid-column:1/-1;padding-bottom:2px}
 .g-more > summary,.an-more > summary{cursor:pointer;color:var(--accent);font-size:14px;font-weight:600;padding:2px 0;overflow-wrap:anywhere}
-.g-more[open] > summary,.an-more[open] > summary{margin-bottom:8px}
-.g-more > label.f{margin-bottom:8px;max-width:22em}
+.g-more[open] > summary,.an-more[open] > summary{margin-bottom:6px}
+.g-more > label.f{margin-bottom:8px;max-width:22em;font-size:13px}
 .an-more .checks{margin-bottom:8px}
 .an-more .an-xf{max-width:28em}
 .an-more.mini{margin-top:4px;min-width:12em}
@@ -1012,9 +1019,26 @@ body.wall .stats.tiles.fit{grid-template-columns:repeat(auto-fill,minmax(170px,1
 .brows .inp.taken,.jrows .j-code.taken{border-color:var(--bad);background:var(--bad-soft)}
 .d-other{margin-top:6px}
 .jrows .j-pt{margin-top:2px;min-width:10em}
+/* v32: an ID group's rows folded under one line in a job's table */
+.jrows tr.j-gh td{background:color-mix(in srgb,var(--accent-soft) 45%,var(--panel));border-top:1px solid var(--line)}
+.jrows .j-gt{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px;width:100%;min-height:36px;padding:4px 2px;border:0;background:none;color:var(--ink);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.jrows .j-gt .j-gc{color:var(--accent);width:1em}
+.toast{pointer-events:none}   /* v32: a toast never takes the tap meant for the button under it */
 @media (max-width:720px){
-  .idg-row,.idg-row:has(> :nth-child(3):last-child){grid-template-columns:minmax(0,1fr) 5.5em}
-  .idg-row .g-tf,.idg-row .g-af{grid-column:1/-1}
+  .jrows tbody tr{padding-right:6px}
+  .jrows tbody tr.j-gh{display:grid;padding:6px 6px 6px 0}
+  .idg-row{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .idg-row .g-ff{grid-column:span 4} .idg-row .g-nf{grid-column:span 2} .idg-row .g-tf,.idg-row .g-af{grid-column:span 3} .idg-row .g-more{grid-column:1/-1;padding-bottom:0}
+  .idg-row:not(:has(.g-tf)){grid-template-columns:minmax(0,1fr) 5.5em} .idg-row:not(:has(.g-tf)) > label.f{grid-column:auto}
+  .idg-row:not(:has(.g-nf)){grid-template-columns:minmax(0,1fr)}
+  .idg-head label{font-size:13.5px}
+  .idg-head .g-df{flex:1 1 100%} .idg .idg-head .g-df .inp:not([type=checkbox]){flex:1;min-width:0;font-size:14px;padding:5px 6px}
+  /* v32: boxes inside boxes ate a third of a phone's width: the Submit form's own padding is trimmed */
+  form.sub-form.panel{padding:12px 10px}
+  .sub-form .sub-step{padding:10px 10px 12px}
+  .sub-form .batch-box{padding:8px 8px 10px;border-left-width:3px}
+  .idg{padding:5px}
+  .idg-row{padding:5px 8px 7px}
 }
 </style>
 
@@ -2549,12 +2573,13 @@ function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = fals
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /* ---------- site time ---------- */
-function tzOk(z){ try { new Intl.DateTimeFormat("en", { timeZone: z }); return true; } catch { return false; } }
+function tzOk(z){ const c = tzOk.c || (tzOk.c = new Map()); if (!c.has(z)){ let ok = true; try { new Intl.DateTimeFormat("en", { timeZone: z }); } catch { ok = false; } c.set(z, ok); } return c.get(z); }
 const TZ = () => cfg.tz && tzOk(cfg.tz) ? cfg.tz : undefined;
+/* v32: one formatter for the site's time zone, made again only when the zone changes (building one per call made the board slow). */
 function siteParts(ms){
-  const p = {};
-  new Intl.DateTimeFormat("en-CA", { timeZone: TZ(), year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
-    .formatToParts(new Date(ms)).forEach(x => p[x.type] = x.value);
+  const p = {}, z = TZ() || "";
+  if (siteParts.z !== z || !siteParts.f){ siteParts.z = z; siteParts.f = new Intl.DateTimeFormat("en-CA", { timeZone: z || undefined, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }); }
+  siteParts.f.formatToParts(new Date(ms)).forEach(x => p[x.type] = x.value);
   p.hour = String(+p.hour % 24).padStart(2, "0");
   return p;
 }
@@ -3314,7 +3339,7 @@ function buildTrack(v, s){
   const hist = (s.history || []).slice().reverse().map(h => `<li>
       <div>${h.redo ? `<span class="pill warn">Re-assay</span> ` : h.reroute ? `<span class="pill info">${h.testTo ? "Test changed" : "Route changed"}</span> ` : h.corr ? `<span class="pill warn">Correction</span> ` : h.skipped ? `<span class="pill warn">Skipped steps</span> ` : ""}<b>${esc(stageName(s, h))}</b>${h.ref ? ` · <span>${esc(h.ref)}</span>` : ""}${h.loc ? ` · <span>${esc(h.loc)}</span>` : ""}</div>
       <time>${fmt(h.at)} · by ${h.tech ? esc(h.tech) : h.name ? `${esc(h.name)} (submitter)` : who(h.by)}${h.wit ? `, witnessed by ${esc(h.wit)}` : ""}</time>
-      ${h.note ? `<div>${esc(h.note)}</div>` : ""}${h.hand || h.badge ? `<div>Handed to <b>${esc(h.hand || "—")}</b>${h.badge ? `, badge <span class="mono">${esc(h.badge)}</span>` : ""}</div>` : ""}</li>`).join("");
+      ${h.note && !((h.res || h.ev) && !canSeeResults(s)) ? `<div>${esc(h.note)}</div>` : ""}${h.hand || h.badge ? `<div>Handed to <b>${esc(h.hand || "—")}</b>${h.badge ? `, badge <span class="mono">${esc(h.badge)}</span>` : ""}</div>` : ""}</li>`).join("");
 
   const det = s.details ? Object.entries(s.details).map(([k, val]) => `${esc(k)}: <b>${esc(val)}</b>`).join(" · ") : "";
   const rv = s.recv || null;
@@ -3477,7 +3502,15 @@ function receiptTimeError(s, at){
   return "";
 }
 /* A sample can go back for re-assay once it has been assayed: in analysis or QA/QC, once released, and from storage while material is kept. */
-const redoOk = s => { if (!s || awaiting(s) || s.open === false || stage(s, s.stageKey)?.final) return false; const ri = redoIdx(s), ci = curIdx(s), ti = targetIdx(s); return ri >= 0 && ci > ri && (ci <= ti || keptMaterials(s).length > 0); };
+const redoOk = s => { if (!s || awaiting(s) || s.open === false || stage(s, s.stageKey)?.final) return false; const ri = redoIdx(s), ci = curIdx(s), ti = targetIdx(s); return ri >= 0 && ci > ri && (ci <= ti || redoMats(s).length > 0); };
+/* v32: what a re-assay from storage can be made from: a solids step (fire assay, digest) needs pulp or another solid kept, a solution step a
+   solution; a step of neither kind takes any material kept. */
+function redoMats(s){
+  const st = planOf(s)[redoIdx(s)] || {}, kept = keptMaterials(s), nm = `${st.key || ""} ${st.name || ""}`;
+  const need = /\bfuse\b|\bdigest\b|fire assay|fusion|aufx|loading/i.test(nm) ? /pulp|reject|solid|residue|head|fraction|sieved|remainder|product|core|carbon/i
+    : /\bausx\b|\bsoln\b|\bcn\b|\bfree\b|solution|cyanide/i.test(nm) ? /filtrate|solution|slurry|remainder|water|liquor/i : null;
+  return need ? kept.filter(m => need.test(m.item)) : kept;
+}
 function redoBox(s){
   const p = planOf(s), ri = redoIdx(s), r = routeByCode(s.route);
   const reasons = [...new Set([...(s.rq ? ["Requested on evaluation"] : []), ...(s.triggers || r?.triggers || []), "CRM outside limits", "Blank above limit", "Duplicate or replicate out of tolerance", "Client query on the result", "Other (see note)"])];
@@ -4009,8 +4042,8 @@ function renderBoard(){
     { k: "unstored", n: notStored, l: `Released, not yet put in storage${unstoredLate ? `, ${unstoredLate} over a day` : ""}`, tone: unstoredLate ? "warn" : "info", pick: unstored },
     { k: "retention", n: dueM, l: `Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}`, tone: "warn", link: ["storage", "Open Storage"],
       rows: dueS.map(x => x.s ? sRow(x.s, x.items.join(", ") + " past retention") : { id: x.id, type: x.type || "", what: x.route || "", where: x.items.join(", ") + " past retention" }) },
-    { k: "recvToday", n: list.filter(s => isToday(recvOf(s))).length, l: "Received today", tone: "", pick: list.filter(s => isToday(recvOf(s))), hide: true },
-    { k: "dueToday", n: list.filter(dueToday).length, l: "Results due today", tone: "", pick: list.filter(dueToday), hide: true }
+    ...(boardPick === "recvToday" ? [{ k: "recvToday", l: "Received today", tone: "", pick: list.filter(s => isToday(recvOf(s))), hide: true }] : []),
+    ...(boardPick === "dueToday" ? [{ k: "dueToday", l: "Results due today", tone: "", pick: list.filter(dueToday), hide: true }] : [])
   ];
   // v24d: a batch processed as one counts once and is one row (its samples stay separate records)
   sums.forEach(x => { if (x.pick){ x.n = unitCount(x.pick); if (!x.rows) x.rows = unitRows(x.pick, s => sRow(s)); } if (!x.rows) x.rows = []; if (x.link && !allowedTabs().includes(x.link[0])) delete x.link; });
@@ -4122,12 +4155,20 @@ function renderDetails(typeKey){
   const was = {}; box.querySelectorAll("[id^='rD_']").forEach(el => { if (el.value) was[el.id] = el.value; });
   const t = typeOf(typeKey), fs = t?.fields || [];
   box.innerHTML = fs.length ? `<fieldset><div class="legend">${esc(t.name)}: details</div><div class="form">${fs.map(f => `<label class="f">${esc(f.l)}${f.o
-    ? `<select id="rD_${f.k}"><option value="">—</option>${f.o.map(o => `<option>${esc(o)}</option>`).join("")}<option value="${OTHER_V}">Other…</option></select><input id="rD_${f.k}_x" class="d-other" maxlength="80" placeholder="Type it" hidden aria-label="${esc(f.l)}, other">`
+    ? f.o.length < 3 ? `<select id="rD_${f.k}"><option value="">—</option>${f.o.map(o => `<option>${esc(o)}</option>`).join("")}</select>`
+    : `<select id="rD_${f.k}"><option value="">—</option>${f.o.filter(o => !/^other$/i.test(o)).map(o => `<option>${esc(o)}</option>`).join("")}<option value="${OTHER_V}">Other…</option></select><input id="rD_${f.k}_x" class="d-other" maxlength="80" placeholder="Type it" hidden aria-label="${esc(f.l)}, other">`
     : `<input id="rD_${f.k}" ${f.t === "number" ? `type="number" step="any"` : ""} placeholder="${esc(f.ph || "")}">`}</label>`).join("")}</div></fieldset>` : "";
   Object.entries(was).forEach(([id, val]) => { const el = document.getElementById(id); if (el && (el.tagName !== "SELECT" || [...el.options].some(o => o.value === val))) el.value = val; if (el && val === OTHER_V){ const x = document.getElementById(id + "_x"); if (x) x.hidden = false; } });
 }
 function autoRoute(){ const ty = $("#rType")?.value, te = $("#rTest")?.value; return ty && te ? (te === "x" ? OTHER_ROUTE : routeFor(ty, te, $("#rPurpose")?.value)) : null; }
 function formRoute(){ const pick = routeByCode($("#rRouteSel")?.value), te = $("#rTest")?.value; return pick && (pick.tests || []).includes(te) ? pick : autoRoute(); }
+/* v32: the coldest limit among the sample types on the form that travel in a cooler (null: none does), the temperature typed, and its box. */
+function coolT(){
+  const ts = isJobKind(formKind()) ? (job?.rows || []).filter(r => r.on).map(r => r.t) : [$("#rType")?.value];
+  const c = ts.map(k => typeOf(k)?.cool).filter(x => x != null); return c.length ? Math.min(...c) : null;
+}
+const coolTemp = () => { const v = String($("#rTemp")?.value || "").trim().replace(",", "."); return v !== "" && isFinite(+v) && +v > -30 && +v < 60 ? +v : null; };
+function coolBox(){ const b = $("#rTempBox"); if (b) b.hidden = coolT() == null; }
 function refreshFormRoute(){
   const box = $("#rRoute"); if (!box) return;
   const auto = autoRoute(), sel = $("#rRouteSel"), te = $("#rTest")?.value;
@@ -4142,6 +4183,7 @@ function refreshFormRoute(){
     : te && $("#rType")?.value ? `<div class="route-box"><div class="small" style="color:var(--bad)">No workflow route performs this test yet. Ask the lab manager to add one in Settings.</div></div>` : "";
   const w = $("#rWitBox");
   if (w){ const two = (r && r.two) || ["bullion", "conc"].includes($("#rType")?.value) || $("#rSection")?.value === "GR"; w.hidden = !two; }
+  coolBox();
 }
 function renderSampleForm(mode){
   const v = $(mode === "submit" ? "#view-submit" : "#view-register");
@@ -4175,7 +4217,8 @@ function renderSampleForm(mode){
       <label class="f" data-hand><span>Technician's badge no.${walk ? req : ""}</span><input id="rHandBadge" maxlength="20" autocomplete="off"></label>
       <datalist id="rTechList">${techs.map(n => `<option value="${esc(n)}">`).join("")}</datalist>
       ${staff ? `<details class="f recv-at" id="rRecvAtBox" data-lab><summary>Received <b id="rRecvAtTxt">now</b> · change</summary><input id="rRecvAt" type="datetime-local" required value="${localInput(now)}" aria-label="Date and time received"></details>
-      <div id="rWitBox" data-lab hidden>${witnessField("rWit")}</div>` : ""}
+      <div id="rWitBox" data-lab hidden>${witnessField("rWit")}</div>
+      <label class="f" id="rTempBox" data-lab hidden><span>Cooler temperature (°C) <span class="req">*</span></span><input id="rTemp" inputmode="decimal" maxlength="6" autocomplete="off"></label>` : ""}
       ${batchBlock()}
     </div></div>
       <details class="form-more" id="rMore"><summary>More details <span class="muted small">site reference, collection time, priority, hazards, notes</span></summary><div class="form">
@@ -4322,14 +4365,18 @@ async function register(){
     if (recvAt > now + 5 * 60000) return fail("The time received can't be in the future.", "#rRecvAt");
     if (collected && recvAt < collected) return fail("The time received can't be before the collection time.", "#rRecvAt");
     if (!$("#rWitBox").hidden && !(wit = val("#rWit"))) return fail("Two-person custody: choose the witness.", "#rWit");
+    if (coolT() != null && coolTemp() == null) return fail("Type the cooler temperature (°C).", "#rTemp");
   }
+  if (batch && bGroups.some(hasFirst) && !bDate) return fail("Choose the date on the codes.", "#rBGDate");   // v32: codes without their date
   const tagSets = batch ? rowTags() : [splitTags($("#rTag").value).map(normTag)], allTags = tagSets.flat(), srcs = batch ? bRows.map(r => r.src.trim().slice(0, 120)) : [];
   if (new Set(allTags).size !== allTags.length) return fail("The same site sample code appears twice in this batch.", batch ? "#rRows .r-code.dup" : "#rTag");
   const batchName = batch ? val("#rBatchName").slice(0, 80) : "";
   btn.disabled = true; msg.textContent = allTags.length ? "Checking site sample codes…" : "Issuing IDs…";
   try {
     const gen = batch ? bGroupTags(n) : null, took = [];
-    for (const [i, ts] of tagSets.entries()) for (const t of ts){ const used = await tagOwner(t, teK); if (!used) continue; if (gen && !splitTags(bRows[i]?.code).length) took.push([i, t, used]); else throw { code: "tagused", tag: t, id: used }; }
+    const pairs = tagSets.flatMap((ts, i) => ts.map(t => [i, t])), owners = []; let at = 0;
+    await Promise.all(Array.from({ length: Math.min(6, pairs.length) }, async () => { while (at < pairs.length){ const k = at++; owners[k] = await tagOwner(pairs[k][1], teK); } }));
+    for (const [k, [i, t]] of pairs.entries()){ const used = owners[k]; if (!used) continue; if (gen && !splitTags(bRows[i]?.code).length) took.push([i, t, used]); else throw { code: "tagused", tag: t, id: used }; }
     if (took.length) throw { code: "taken", took };
     msg.textContent = "Issuing IDs…";
     const details = {};
@@ -4337,7 +4384,7 @@ async function register(){
     const rf = routeFields(r, teK, more), start = lab ? "received" : "submitted", startName = rf.plan.find(x => x.key === start).name;
     const containers = +$("#rContainers").value || null, massKg = +$("#rMass").value || null, seal = val("#rSeal"), siteRef = val("#rSiteRef");
     const t = typeOf(tyK), holdH = t?.hold && collected && lab ? Math.max(0, (recvAt - collected) / HOUR) : null;
-    const recv = lab ? { bags: containers, mass: massKg, unit: "kg", seal: seal ? "ok" : "none", cond: "Good", temp: "", holdH, warn: holdH != null && holdH > t.hold ? [`holding time for ${t.holdWhat} exceeded: received ${hoursLabel(holdH)} after collection, limit ${hoursLabel(t.hold)}`] : [], ...(wit ? { wit } : {}) } : null;
+    const recv = lab ? { bags: containers, mass: massKg, unit: "kg", seal: seal ? "ok" : "none", cond: "Good", temp: t?.cool != null ? String(coolTemp()) : "", holdH, warn: [...(holdH != null && holdH > t.hold ? [`holding time for ${t.holdWhat} exceeded: received ${hoursLabel(holdH)} after collection, limit ${hoursLabel(t.hold)}`] : []), ...(t?.cool != null && coolTemp() > t.cool ? [`cooler at ${coolTemp()} °C, above the ${t.cool} °C limit`] : [])], ...(wit ? { wit } : {}) } : null;
     const base = {
       v: 13, type: t?.name || tyK, typeKey: tyK, purpose: why ? `Other: ${why}` : purposeOf(puK)?.name || puK, purposeKey: puK, ...(why ? { purposeWhy: why } : {}), ...(handTo ? { handedTo: handTo } : {}), ...(handBadge ? { handedBadge: handBadge } : {}), ...rf, details, reassays: 0,
       submitter, ...(subBadge ? { subBadge } : {}), section: code, receivedBy: lab ? session.name : "", receivedAt: recvAt, recvAt, recv,
@@ -5477,7 +5524,7 @@ function amendPending(s, last){
   const a = s.amend, defs = anOf(s), keys = [...new Set([...Object.keys(last?.rows || {}), ...Object.keys(a.rows)])];
   const changed = keys.filter(k => (last?.rows[k]?.raw || "") !== (a.rows[k]?.raw || "")).map(k => { const d = defs.find(x => x.k === k) || (last?.an || []).find(x => x.k === k) || { k, n: k, u: "" };
     return `${esc(d.n)}: ${esc(last?.rows[k] ? resText(last.rows[k], d) : "—")} → <b>${esc(a.rows[k] ? resText(a.rows[k], d) : "—")}</b>${d.u ? " " + esc(d.u) : ""}`; });
-  const mine = a.by === session?.u, hold = openAlerts(s, a.rows);
+  const mine = a.by === session?.u, hold = relNow() ? [] : openAlerts(s, a.rows);
   return `<div class="notice warn stack" id="amPend" style="gap:6px"><div><b>Amendment proposed</b> by ${esc(a.tech)}, ${fmt(a.at)}: ${esc(a.why)}</div>
     <div class="small">${changed.join("<br>") || "No change"}</div>
     ${hold.length ? `<div class="small"><b>Approval waits:</b> ${esc(hold.map(h => alertLine(s, h)).join("; "))}. Record what was done below first.</div>` : ""}
@@ -5554,7 +5601,7 @@ async function doOverRange(){
 /* The checks an amendment must pass, as for a first release. Returns { rows } or { err }. */
 function amendRows(s, typed, prev){
   const rows = withCalc(s, typed), defs = anOf(s);
-  const miss = defs.filter(a => !a.opt && !a.calc && !rows[a.k]);
+  const miss = defs.filter(a => !a.opt && !a.calc && a.t !== "pick" && !rows[a.k]);
   if (miss.length) return { err: `${miss.map(a => a.n).join(", ")} can't be left empty: ${miss.length > 1 ? "they are" : "it is"} reported on every certificate.` };
   const over = overRes(s, rows);
   if (over.length) return { err: `${over.map(a => `${a.n} ${resText(rows[a.k], a)} ${a.u}`).join(", ")} is over the method's range (${over.map(a => fmtNum(a.ul)).join(", ")}). Send the sample for re-assay instead of amending.` };
@@ -5588,7 +5635,7 @@ async function doApproveAmend(){
     const a = s.amend, prev = (s.certs || []).at(-1);
     if (!a || !prev || prev.v !== a.of){ toast("The certificate changed since the amendment was proposed. Propose it again."); return null; }
     const c = amendRows(s, a.rows, prev); if (c.err){ toast(c.err); return null; }
-    const hold = openAlerts(s, c.rows); if (hold.length){ toast(`${hold.map(h => alertLine(s, h)).join("; ")}. Record what was done and who was told first.`); return null; }
+    const hold = relNow() ? [] : openAlerts(s, c.rows); if (hold.length){ toast(`${hold.map(h => alertLine(s, h)).join("; ")}. Record what was done and who was told first.`); return null; }
     const at = nowAfter(s), results = { v: (s.results?.v || 0) + 1, at, by: a.by, tech: a.tech, rows: patch(s.results?.rows, c.rows), batch: s.results?.batch || prev.batch || "", inst: s.results?.inst || prev.inst || "" };
     const cert = makeCert({ ...s, results: { ...results, rows: c.rows }, resAcc: s.resAcc || prev.acc }, at, a.why, { amendBy: { by: a.by, tech: a.tech, at: a.at }, ...(mine ? { self: selfWhy } : {}) });
     return { upd: { results, resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), certs: [...(s.certs || []), cert], amend: null,
@@ -5624,8 +5671,8 @@ function certHtml(s, c){
       ${c.batch ? fact(c.batch.includes(",") ? "Lab batches" : "Lab batch", `<span class="mono">${esc(c.batch)}</span> · ${esc(qcLabel(c.qc) || "")}`) : ""}
     </table>
     ${c.file ? `<div class="cert-file">Results file: <b>${esc(c.file.name)}</b>${c.att ? (c.an.length ? ". Results not shown below are in this file." : ". The results are in this file.") : ""}</div>` : ""}
-    ${c.an.length ? `<table class="cert-res"><thead><tr><th>Analyte</th><th>Result</th><th>Unit</th><th>Detection limit</th>${c.cov ? "<th>Quality control</th>" : ""}</tr></thead><tbody>
-      ${c.an.map(a => `<tr><td>${esc(a.n)}</td><td class="mono"><b>${esc(resText(c.rows[a.k], a))}</b></td><td>${esc(a.u || "")}</td><td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>${c.cov ? `<td>${covText(c.cov[a.k])}</td>` : ""}</tr>`).join("")}</tbody></table>` : ""}
+    ${c.an.length ? `<div class="tbl-wrap"><table class="cert-res"><thead><tr><th>Analyte</th><th>Result</th><th>Unit</th><th>Detection limit</th>${c.cov ? "<th>Quality control</th>" : ""}</tr></thead><tbody>
+      ${c.an.map(a => `<tr><td>${esc(a.n)}</td><td class="mono"><b>${esc(resText(c.rows[a.k], a))}</b></td><td>${esc(a.u || "")}</td><td class="mono">${a.dl != null ? esc(fmtNum(a.dl)) : "—"}</td>${c.cov ? `<td>${covText(c.cov[a.k])}</td>` : ""}</tr>`).join("")}</tbody></table></div>` : ""}
     ${exc.length ? `<div class="cert-note">${exc.join("<br>")}</div>` : ""}
     <div class="cert-sign"><div>Released by <b>${esc(c.tech)}</b>, ${esc(ROLE_SIGN[c.role] || "lab supervisor (QA/QC)")}</div><div>${esc(fmtFull(c.at))}${TZ() ? ` (${esc(TZ())})` : ""}</div></div>
     <div class="cert-foot">Results relate only to the sample as received. Values below the detection limit are shown as &lt;DL${calc ? "; calculated results and balance checks count them as 0" : ""}. A result marked "Not in a lab batch" is a field, physical or worksheet measurement that is not run with reference materials. ${c.code ? `Check this copy by looking up the sample ID in the Assay Lab tracker: the certificate number and check code must match. ` : ""}Design prototype: not an official laboratory certificate.</div>
@@ -7321,10 +7368,10 @@ function rowValues(rep, cells, defs, r = 1, clash){
 /* ---------- the plan: which lab batches and sample records the file fills, and what it can't ---------- */
 const readyForResults = s => { const ph = stage(s, s.stageKey)?.phase; return curIdx(s) < targetIdx(s) && (ph === "test" || ph === "qc"); };
 function planUpload(rep, scope){
-  const P = { batches: [], fresh: [], samples: [], notFound: [], notReady: [], awaiting: [], done: [], already: [], unknownCrm: [], bad: [], clash: [], unread: [], viaBatch: [], n: 0 };
+  const P = { batches: [], fresh: [], samples: [], notFound: [], notReady: [], awaiting: [], done: [], already: [], unknownCrm: [], bad: [], clash: [], unread: [], viaBatch: [], twice: [], n: 0 };
   const bySid = new Map(), extra = new Map(), blanks = [], crmRows = [];
   for (const r of rep.rows){
-    if (r.kind === "s"){ if (!bySid.has(r.sid)) bySid.set(r.sid, r); else (extra.get(r.sid) || extra.set(r.sid, []).get(r.sid)).push(r); }
+    if (r.kind === "s"){ if (!bySid.has(r.sid)) bySid.set(r.sid, r); else { (extra.get(r.sid) || extra.set(r.sid, []).get(r.sid)).push(r); if (!P.twice.includes(r.sid)) P.twice.push(r.sid); } }
     else if (r.kind === "d") (extra.get(r.sid) || extra.set(r.sid, []).get(r.sid)).push(r);
     else if (r.kind === "bl") blanks.push(r);
     else if (r.kind === "crm") crmRows.push(r);
@@ -7400,7 +7447,7 @@ function planUpload(rep, scope){
       const bk = batchKeys(s), others = anOf(s).filter(a => !bk.has(a.k) && !viaB.has(a.k) && !a.calc && a.t !== "pick");
       const got = rowValues(rep, row.cells, others, 1, P.clash);
       if (Object.keys(got).length){
-        if (!ready) needs = true;
+        if (!ready){ needs = true; for (const [k, v] of Object.entries(got)){ const r = parseRes(v.raw, others.find(x => x.k === k)); if (!(r && !r.bad && !r.amb)) P.bad.push(`${sid}: ${v.col.name} “${v.raw}”`); } }
         else {
           const rows = {}, bad = [], have = rowsOf(s); let same = 0;
           for (const [k, v] of Object.entries(got)){
@@ -7529,6 +7576,7 @@ function renderUpload(){
     if (P.done.length) check.push(li("warn", `Results already released: ${ids(P.done)}`));
     if (P.already.length) check.push(li("warn", `Batch results already saved: ${ids(P.already, 4)}`));
     if (P.bad.length) check.push(li("bad", `Not a result: ${esc(P.bad.slice(0, 4).join("; "))}${P.bad.length > 4 ? ` +${P.bad.length - 4} more` : ""}`));
+    if (P.twice.length) check.push(li("warn", `On two rows: ${ids(P.twice)} · first row used`));
     if (P.clash.length) check.push(li("bad", `Two columns for one result: ${esc(P.clash.slice(0, 3).join("; "))}`));
     if (P.notFound.length) unused.push(li("", `Not in the lab (no sample with this ID, site sample code or site reference): ${ids(P.notFound)}`));
     if (P.unread.length) unused.push(li("", `Columns not read: ${esc(P.unread.slice(0, 10).join(", "))}${P.unread.length > 10 ? "…" : ""}${isAdmin() ? ` <button type="button" class="btn ghost small" id="upCols">Settings › Results files</button>` : ""}`));
@@ -7707,6 +7755,7 @@ async function saveUpload(){
     if (P.samples.length){
       msg("Saving sample results…");
       const al = sid => { const a = u.useAlias && u.alias?.bySid.get(sid); return a ? ` (the file names it ${a.file}, its code dated ${date8Text(date8Of(a.file))})` : ""; };
+      const relS = [];   // v32: release on save may release them; the toast says so
       const n = await pool(P.samples, 8, x => sampleWrite(x.sid, s => {
         if (!readyForResults(s)) return null;
         const bk = batchKeys(s), defs = anOf(s), rows = { ...rowsOf(s) };
@@ -7715,8 +7764,8 @@ async function saveUpload(){
         return { results: { v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: patch(s.results?.rows, all), batch: s.results?.batch || "", inst, file: fileTag(f) }, fids: [...new Set([...(s.fids || []), f.id])],
           resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null,
           history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, note: `Results from file ${f.name}${al(x.sid)}: ${resSummary(defs, all)}` }] };
-      }), (d, t) => msg(`Saving sample results… ${d} of ${t}`));
-      done.push(`results on ${n} sample record${n === 1 ? "" : "s"}`);
+      }, upd => { if (upd.relAt) relS.push(x.sid); }), (d, t) => msg(`Saving sample results… ${d} of ${t}`));
+      done.push(`results on ${n} sample record${n === 1 ? "" : "s"}${relS.length ? `, ${relS.length} released` : ""}`);
     }
     if (loose && targets.length){
       // Every sample the file is for and not released yet: the file is its results, and it is released (withRelease).
@@ -8109,7 +8158,9 @@ function rowHints(){
     el.placeholder = !c[i].length && tags[i]?.length ? tags[i].join(", ") : i === 0 ? "e.g. MILL-A-001" : "";
     el.classList.toggle("dup", dup.has(i));
   });
-  const info = $("#rRowInfo");
+  const info = $("#rRowInfo"), keep = $("#rFree") && (rowHints.took || []).every(([i, t]) => (tags[i] || []).includes(t));   // v32: Next free numbers stays while its codes do
+  if (keep) return submitLabel();
+  rowHints.took = null;
   if (info){ const filled = tags.filter(t => t.length).length; info.textContent = dup.size ? "Same code twice" : `${bRows.length} samples${filled ? ` · ${filled} with a code` : ""}`; info.classList.toggle("bad-t", dup.size > 0); }
   document.querySelectorAll("#rRows .r-code.taken").forEach(el => el.classList.remove("taken"));
   submitLabel();
@@ -8527,7 +8578,7 @@ function evalBox(s){
 function reqNote(s){
   if (!s.rq || !isStaff()) return "";
   const e = (s.evals || []).filter(x => x.v === "redo").at(-1);
-  return `<div class="notice bad" id="reqNote"><b>Re-assay requested</b>${e ? ` by ${esc(e.tech)}${e.dept ? ` (${esc(e.dept)})` : ""}, ${fmt(e.at)}${e.note ? `: ${esc(e.note)}` : ""}` : ""}.${canEdit() && redoOk(s) ? ` Use <b>Send back for re-assay</b> below.` : ""}</div>`;
+  return `<div class="notice bad" id="reqNote"><b>Re-assay requested</b>${e ? ` by ${esc(e.tech)}${e.dept ? ` (${esc(e.dept)})` : ""}, ${fmt(e.at)}${e.note ? `: ${esc(e.note)}` : ""}` : ""}.${canEdit() && redoOk(s) ? ` Use <b>Send back for re-assay</b> below.` : canEdit() && redoIdx(s) >= 0 && curIdx(s) > targetIdx(s) && !redoMats(s).length ? " No suitable material kept to re-assay." : ""}</div>`;
 }
 async function doEvaluate(){
   const s0 = current?.body; if (!s0 || !canEval() || !db) return;
@@ -8804,9 +8855,17 @@ function recvManyPanel(cur){
 }
 function bindRecvMany(v){
   const box = $("#bdPick", v); if (!box || !$("#rmBox", box)) return;
-  box.querySelectorAll("[data-rm]").forEach(c => c.onchange = () => { c.checked ? rmSel.add(c.dataset.rm) : rmSel.delete(c.dataset.rm); renderBoard(); });
-  box.querySelectorAll("[data-rmb]").forEach(c => c.onchange = () => { rmList.filter(s => grouped(s) && s.batchId === c.dataset.rmb).forEach(s => c.checked ? rmSel.add(s.id) : rmSel.delete(s.id)); renderBoard(); });
-  $("#rmAll", box).onchange = e => { rmUnits(rmList).filter(u => !rmCool(u)).flatMap(u => u.ms).forEach(s => e.target.checked ? rmSel.add(s.id) : rmSel.delete(s.id)); renderBoard(); };
+  /* v32: a tick updates the count, the button and Tick all in place; the board is drawn again only when a witness is now needed or no longer */
+  const sync = () => {
+    const us = rmUnits(rmList).filter(u => !rmCool(u)), on = us.filter(u => u.ms.every(s => rmSel.has(s.id))), two = on.some(u => u.ms.some(twoPerson));
+    if (two !== !!$("#rmWit", box)) return renderBoard();
+    const b = $("#rmBtn", box); b.disabled = !on.length || rmBusy; b.textContent = rmBusy ? "Receiving…" : `Receive ${on.length} ticked`;
+    $("#rmAll", box).checked = us.length > 0 && on.length === us.length;
+  };
+  box.querySelectorAll("[data-rm]").forEach(c => c.onchange = () => { c.checked ? rmSel.add(c.dataset.rm) : rmSel.delete(c.dataset.rm); sync(); });
+  box.querySelectorAll("[data-rmb]").forEach(c => c.onchange = () => { rmList.filter(s => grouped(s) && s.batchId === c.dataset.rmb).forEach(s => c.checked ? rmSel.add(s.id) : rmSel.delete(s.id)); sync(); });
+  $("#rmAll", box).onchange = e => { rmUnits(rmList).filter(u => !rmCool(u)).flatMap(u => u.ms).forEach(s => e.target.checked ? rmSel.add(s.id) : rmSel.delete(s.id));
+    box.querySelectorAll("[data-rm],[data-rmb]").forEach(c => { c.checked = e.target.checked; }); sync(); };
   $("#rmAt", box).onchange = e => { rmAt = e.target.value; };
   $("#rmOk", box).onchange = e => { rmOk = e.target.checked; };
   const w = $("#rmWit", box); if (w){ if (rmWit) w.value = rmWit; w.onchange = () => { rmWit = w.value; }; }
@@ -9613,16 +9672,17 @@ const JOB_TPL = [
   { key: "custom", name: "Other testwork", names: { Plant: "Other samples" }, group: "Plant", also: ["MET Lab"], pur: "plant", purG: { "MET Lab": "met" }, sec: "PLT", shift: false, tw: true, n: [], rows: () => [],
     grp: [{ f: "", n: 1, t: "plant_feed", test: "aufx_ausx" }] }
 ];
-/* v31: a template's ID groups: what it was last submitted with on this device, else its own (one empty group for a template of fixed rows). */
+/* v31: a template's ID groups: what it was last submitted with on this device, else its own. v32: a template of fixed rows has none (its own
+   codes) until groups are chosen, and then they replace its rows ("if you choose 2 or more ID groups, the default ID is still showing"). */
 const tplName = (T, g = jobKindGroup()) => (T.names || {})[g] || T.name;
 const tplPur = T => (T.purG || {})[jobKindGroup()] || T.pur;
 const grpKey = () => "jobGrp_" + job.tpl + (jobTpl(job.tpl).tw ? "_" + jobKindGroup() : "");
 const blankGrp = last => ({ f: "", n: 1, t: last?.t || "plant_feed", test: last?.test || pointTest(last?.t || "plant_feed", ""), t2: [], xa: [] });
 function jobGroupsFor(T){
   const ok = g => g && typeof g === "object" && typeof g.f === "string" && g.f.length <= 50 && Number.isInteger(g.n) && g.n >= 0 && g.n <= 99 && typeOf(g.t) && typeof g.test === "string";
-  try { const s = JSON.parse(lsGet(grpKey()) || "null"); if (Array.isArray(s) && s.length && s.length <= IDG_MAX && s.every(ok))
+  try { const s = JSON.parse(lsGet(grpKey()) || "null"); if (Array.isArray(s) && s.length >= (T.grp ? 1 : 0) && s.length <= IDG_MAX && s.every(ok))
     return s.map(g => ({ f: g.f, n: g.n, t: g.t, test: g.test, t2: Array.isArray(g.t2) ? g.t2.filter(k => typeof k === "string").slice(0, 12) : [], xa: Array.isArray(g.xa) ? splitAn(g.xa.join(",")) : [], l: String(g.l || "").slice(0, 60), pt: typeof g.pt === "string" ? g.pt.slice(0, 60) : undefined, d: typeof g.d === "string" ? g.d.slice(0, 80) : undefined })); } catch {}
-  return clone(T.grp || [blankGrp()]).map(g => ({ t2: [], xa: [], ...g }));
+  return clone(T.grp || []).map(g => ({ t2: [], xa: [], ...g }));
 }
 /* The rows an ID group makes: its first code counted on (and the date), its label numbered; what was typed over on a row stays. */
 function groupRows(keep){
@@ -9652,7 +9712,7 @@ function jobFill(x, ctx){
 }
 /* The rows for the template, shift, date and numbers: generated codes and descriptions follow them, what was typed over stays. */
 function jobRows(keep){
-  const T = jobTpl(job.tpl), S = JOB_SHIFT[job.shift] || JOB_SHIFT.N, base = T.rows(S, jobCounts(T));
+  const T = jobTpl(job.tpl), S = JOB_SHIFT[job.shift] || JOB_SHIFT.N, base = job.g.length && !T.grp ? [] : T.rows(S, jobCounts(T));
   const own = (keep || []).filter(r => !r.extra && r.grp == null), old = keep && own.length === base.length ? own : null;
   job.rows = [...base.map((r, i) => {
     const o = old && old[i];
@@ -9670,7 +9730,7 @@ function jobBlock(){
     </div>
     <div id="jIdg"></div>
     <div class="tbl-wrap"><table class="jrows"><thead><tr><th><input type="checkbox" id="jAll" aria-label="Tick all" checked></th><th>Sample</th><th>Code</th><th>Description</th><th>Analysis</th><th id="jMassH" hidden>Mass (g)</th></tr></thead><tbody id="jRows"></tbody></table></div>
-    <div class="row" style="gap:8px"><select class="inp" id="jAdd" style="width:auto;max-width:100%" aria-label="Add a sample"><option value="">+ Add a sample…</option>${JOB_TYPES.map(t => `<optgroup label="${esc(typeOf(t)?.name || t)}">${(ptField(t).o || []).map(p => `<option value="${esc(t + "|" + p)}">${esc(p)}</option>`).join("")}<option value="${esc(t)}|">Other point…</option></optgroup>`).join("")}<optgroup label="Other sample types">${TYPES.filter(t => !JOB_TYPES.includes(t.key)).map(t => `<option value="${esc(t.key)}|">${esc(t.name)}</option>`).join("")}</optgroup></select>
+    <div class="row" style="gap:8px"><select class="inp" id="jAdd" style="width:auto;max-width:100%" aria-label="Add a sample"><option value="">+ Add a sample…</option>${JOB_TYPES.map(t => `<optgroup label="${esc(typeOf(t)?.name || t)}">${(ptField(t).o || []).filter(p => !/^other$/i.test(p)).map(p => `<option value="${esc(t + "|" + p)}">${esc(p)}</option>`).join("")}<option value="${esc(t)}|">Other point…</option></optgroup>`).join("")}<optgroup label="Other sample types">${TYPES.filter(t => !JOB_TYPES.includes(t.key)).map(t => `<option value="${esc(t.key)}|">${esc(t.name)}</option>`).join("")}</optgroup></select>
       <span class="small" id="jInfo"></span></div>
   </div>`;
 }
@@ -9682,8 +9742,7 @@ const jobGrpExtra = (g, i) => `<label class="f g-tf"><span>Sample type</span><se
   <details class="g-more"${(g.t2 || []).length || (g.xa || []).length || g.test === "x" ? " open" : ""}><summary>More</summary><label class="f"><span>Label</span><input class="inp g-l" data-g="${i}" value="${esc(g.l || "")}" maxlength="60" placeholder="e.g. Standards" autocomplete="off"></label>${anMore("jGA" + i, g.t, g.test, g.t2 || [], g.xa || [])}</details>`;
 function renderJobGroups(){
   const box = $("#jIdg"); if (!box || !job) return;
-  const T = jobTpl(job.tpl), inner = idgBlock("j", job.g, { count: true, extra: jobGrpExtra });
-  box.innerHTML = T.grp ? inner : `<details class="idg-wrap"${job.gOpen || job.g.some(hasFirst) ? " open" : ""}><summary>ID groups <span class="muted small">first code + date</span></summary>${inner}</details>`;
+  box.innerHTML = idgBlock("j", job.g, { count: true, extra: jobGrpExtra, zero: !jobTpl(job.tpl).grp });
   idgPreview(box, job.g, job.date);
 }
 /* A row's other analyses fold under its analysis, filled in when opened. */
@@ -9695,12 +9754,31 @@ function renderJob(){
   $("#jShiftBox").hidden = !T.shift;
   const nb = $("#jNums"); if (nb && nb.dataset.tpl !== T.key + jobKindGroup()){ nb.dataset.tpl = T.key + jobKindGroup(); renderJobGroups(); nb.innerHTML = `<div class="form">${T.tw ? `<label class="f"><span>Testwork</span><input id="jTw" maxlength="60" placeholder="e.g. Leach kinetics" value="${esc(job.tw || "")}" autocomplete="off"></label>` : ""}${(T.cnt || []).map(([k, l, d]) => `<label class="f"><span>${esc(l)}</span><input id="jC_${k}" type="number" min="0" max="99" step="1" inputmode="numeric" value="${esc(job.c?.[k] ?? d)}"></label>`).join("")}${T.n.map(([k, l, d, dl]) => `<label class="f"><span>${esc(l)}</span><input id="jN_${k}" ${dl ? 'inputmode="decimal"' : 'inputmode="numeric"'} maxlength="8" placeholder="${esc(d || (dl ? "e.g. 2.5" : "e.g. 31"))}" value="${esc(job.n[k] || "")}"></label>`).join("")}</div>`; }
   $("#jMassH").hidden = !T.mass;
-  body.innerHTML = job.rows.map((r, i) => `<tr class="${r.on ? "" : "off"}"><td><input type="checkbox" data-jon="${i}" ${r.on ? "checked" : ""} aria-label="Include ${esc(r.code)}"></td>
+  const rowHtml = (r, i) => `<tr class="${r.on ? "" : "off"}"><td><input type="checkbox" data-jon="${i}" ${r.on ? "checked" : ""} aria-label="Include ${esc(r.code)}"></td>
     <td><span class="small muted">${esc(typeOf(r.t)?.name || r.t)}</span><div>${r.ptx ? `<input class="inp j-pt" data-j="${i}" value="${esc(r.pt)}" maxlength="60" placeholder="Point or what it is" aria-label="Sampling point, row ${i + 1}" autocomplete="off">` : `<b>${esc(r.pt)}</b>`}</div></td>
     <td><input class="inp j-code" data-j="${i}" value="${esc(r.code)}" aria-label="Code, row ${i + 1}" placeholder="${esc(r.ph || "")}" autocomplete="off" spellcheck="false"></td>
     <td><input class="inp j-desc" data-j="${i}" value="${esc(r.desc)}" aria-label="Description, row ${i + 1}" placeholder="Description" autocomplete="off"></td>
-    <td><select class="inp j-test" data-j="${i}" aria-label="Analysis, row ${i + 1}">${jobTestOpts(r.t, r.test)}</select>${rowAn(r, i)}</td>${T.mass ? `<td>${r.det?.frac ? `<input class="inp j-mass" data-j="${i}" inputmode="decimal" value="${esc(r.mass || "")}" aria-label="Mass in grams, ${esc(r.code)}" placeholder="g">` : ""}</td>` : ""}</tr>`).join("");
-  jobHints(); idgPreview($("#jIdg"), job.g, job.date);
+    <td><select class="inp j-test" data-j="${i}" aria-label="Analysis, row ${i + 1}">${jobTestOpts(r.t, r.test)}</select>${rowAn(r, i)}</td>${T.mass ? `<td>${r.det?.frac ? `<input class="inp j-mass" data-j="${i}" inputmode="decimal" value="${esc(r.mass || "")}" aria-label="Mass in grams, ${esc(r.code)}" placeholder="g">` : ""}</td>` : ""}</tr>`;
+  /* v32: an ID group's rows fold under one line (its codes first … last, how many ticked), opened with a tap; a small group, or one with a
+     code missing or twice, shows its rows. */
+  const bad = jobBad(), byG = new Map(), done = new Set(), cols = T.mass ? 5 : 4;
+  job.rows.forEach((r, i) => { if (r.grp != null) (byG.get(r.grp) || byG.set(r.grp, []).get(r.grp)).push(i); });
+  body.innerHTML = job.rows.map((r, i) => {
+    if (r.grp == null) return rowHtml(r, i);
+    if (done.has(r.grp)) return "";
+    done.add(r.grp);
+    const ix = byG.get(r.grp), rs = ix.map(j => job.rows[j]), g = job.g[r.grp] || {}, on = rs.filter(x => x.on).length;
+    const open = job.open?.has(r.grp) ? job.open.get(r.grp) : ix.length <= 3 || ix.some(j => bad.has(j));
+    return `<tr class="j-gh${on ? "" : " off"}"><td><input type="checkbox" data-jgon="${r.grp}" ${on === rs.length ? "checked" : ""} aria-label="Tick ${esc(g.l || `group ${r.grp + 1}`)}"></td><td colspan="${cols}"><button type="button" class="j-gt" data-gt="${r.grp}" aria-expanded="${open}"><span class="j-gc" aria-hidden="true">${open ? "▾" : "▸"}</span><b>${esc(g.l || (job.g.length > 1 ? `Group ${r.grp + 1}` : "ID group"))}</b><span>${on === rs.length ? nS(rs.length) : `${on} of ${nS(rs.length)}`}</span><span class="mono small muted">${esc(rs[0].code)}${rs.length > 1 ? ` … ${esc(rs.at(-1).code)}` : ""}</span></button></td></tr>`
+      + (open ? ix.map(j => rowHtml(job.rows[j], j)).join("") : "");
+  }).join("");
+  jobHints(); idgPreview($("#jIdg"), job.g, job.date); coolBox();
+}
+/* The rows with a problem: ticked without a code, or a code twice. */
+function jobBad(){
+  const out = new Set(), seen = new Map();
+  (job?.rows || []).forEach((r, i) => { if (!r.on) return; const k = normKey(r.code); if (!k){ out.add(i); return; } if (seen.has(k)){ out.add(i); out.add(seen.get(k)); } else seen.set(k, i); });
+  return out;
 }
 function jobHints(){
   if (!job) return;
@@ -9712,7 +9790,9 @@ function jobHints(){
   const all = $("#jAll"); if (all) all.checked = on.length === job.rows.length;
   // a number that goes into codes (elution no. after #) is asked for while a ticked sample's code carries it; one that does not (strip no.) always
   const inCode = (r, k) => String(r.gen?.[0] || "").includes(`{#${k.slice(1)}}`) || String(r.gen?.[0] || "").includes(`{${k}}`);
-  jobTpl(job.tpl).n.forEach(([k]) => { const el = $("#jN_" + k)?.closest("label"); if (el) el.hidden = job.rows.some(r => inCode(r, k)) && !on.some(r => inCode(r, k)); });
+  const T = jobTpl(job.tpl), swapped = !T.grp && job.g.length > 0;
+  T.n.forEach(([k, , , dl]) => { const el = $("#jN_" + k)?.closest("label"); if (el) el.hidden = swapped ? !dl : job.rows.some(r => inCode(r, k)) && !on.some(r => inCode(r, k)); });
+  (T.cnt || []).forEach(([k]) => { const el = $("#jC_" + k)?.closest("label"); if (el) el.hidden = swapped; });
   submitLabel();
 }
 function bindJob(v){
@@ -9726,19 +9806,22 @@ function bindJob(v){
   tp.value = job.tpl; $("#jShift", v).value = job.shift; $("#jDate", v).value = job.date;
   jobRows(); renderJob(); if (isJobKind(formKind())){ jobGroup(v); jobSections(v); jobPurposes(v); jobDefaults(v); }
   const again = () => { jobRows(job.rows); renderJob(); };
-  tp.onchange = () => { job.tpl = tp.value; lsSet("jobTpl_" + jobKindGroup(), tp.value); job.n = {}; job.c = {}; job.g = jobGroupsFor(jobTpl(job.tpl)); job.gOpen = false; jobRows(); renderJob(); jobDateFor(v); jobPurposes(v); jobDefaults(v); };
+  tp.onchange = () => { job.tpl = tp.value; lsSet("jobTpl_" + jobKindGroup(), tp.value); job.n = {}; job.c = {}; job.open = new Map(); job.g = jobGroupsFor(jobTpl(job.tpl)); jobRows(); renderJob(); jobDateFor(v); jobPurposes(v); jobDefaults(v); };
   $("#jShift", v).onchange = e => { job.shift = e.target.value; again(); };
-  $("#jDate", v).onchange = e => { job.date = e.target.value; job.dateSet = true; again(); idgPreview($("#jIdg", v), job.g, job.date); };
+  $("#jDate", v).onchange = e => { const was = dayCode(job.date); job.date = e.target.value; job.dateSet = true;
+    job.rows.forEach(r => { if (r.dc && was && r.code.endsWith(was)) r.code = r.code.slice(0, -8) + dayCode(job.date); });   // v32: a code the date completed follows it
+    again(); idgPreview($("#jIdg", v), job.g, job.date); };
   $("#jNums", v).addEventListener("input", e => { if (e.target.id === "jTw"){ job.tw = e.target.value.trim().slice(0, 60); return; }
     const c = e.target.id.match(/^jC_(\w+)$/); if (c){ job.c[c[1]] = e.target.value; jobRows(job.rows); renderJob(); return; }   // a count: the numbered rows follow
     const m = e.target.id.match(/^jN_(\w+)$/); if (!m) return; job.n[m[1]] = e.target.value.trim(); job.rows.forEach(r => { if (!r.extra){ if (!r.ec) r.code = jobFill(r.gen[0], job); if (!r.ed) r.desc = jobFill(r.gen[1], job); } });
     document.querySelectorAll("#jRows .j-code").forEach(el => { el.value = job.rows[+el.dataset.j].code; }); document.querySelectorAll("#jRows .j-desc").forEach(el => { el.value = job.rows[+el.dataset.j].desc; }); jobHints(); });
   /* v31: ID groups. The rows follow every change; a first code typed with its date gives the date to the date box. */
   const ig = $("#jIdg", v), regen = () => { jobRows(job.rows); renderJob(); idgPreview(ig, job.g, job.date); };
-  ig.addEventListener("toggle", e => { if (e.target.classList?.contains("idg-wrap")) job.gOpen = e.target.open; }, true);
   ig.addEventListener("input", e => { const el = e.target, g = job.g[+el.dataset.g];
     if (el.classList.contains("g-first") && g){ g.f = el.value; regen(); }
-    else if (el.classList.contains("g-n") && g){ const k = Math.floor(+el.value); if (k >= 0 && k <= 99 && el.value !== ""){ g.n = k; regen(); } }
+    else if (el.classList.contains("g-n") && g){ const k = Math.floor(+el.value); if (k >= 0 && k <= 99 && el.value !== ""){
+      if (hasFirst(g) && job.rows.filter(r => r.grp !== +el.dataset.g).length + k > 100) return toast("Up to 100 samples in one job.");   // v32: said as it is typed
+      g.n = k; regen(); } }
     else if (el.classList.contains("g-l") && g){ g.l = el.value.slice(0, 60); regen(); }
     else if (el.classList.contains("an-x")){ const d = el.closest(".an-more"), gr = job.g[+d.id.slice(3)]; if (gr){ gr.xa = anRead(d).xan; anSum(d); regen(); } } });
   ig.addEventListener("change", e => { const el = e.target, gi = +el.dataset.g, g = job.g[gi];
@@ -9746,21 +9829,24 @@ function bindJob(v){
     else if (el.classList.contains("g-n") && g) el.value = g.n;
     else if (el.classList.contains("g-t") && g){ g.t = el.value; g.test = pointTest(g.t, ""); g.t2 = []; renderJobGroups(); regen(); }
     else if (el.classList.contains("g-test") && g){ g.test = el.value; g.t2 = (g.t2 || []).filter(k => k !== g.test); renderJobGroups(); regen(); if (g.test === "x") ig.querySelector(`#jGA${gi} .an-x`)?.focus(); }
-    else if (el.id === "jGn"){ resizeGroups(job.g, +el.value, blankGrp); job.gOpen = true; renderJobGroups(); regen(); ig.querySelector(`.g-first[data-g="${job.g.length - 1}"]`)?.focus(); }
+    else if (el.id === "jGn"){ const was = job.g.length, T = jobTpl(job.tpl); resizeGroups(job.g, +el.value, blankGrp, T.grp ? 1 : 0); renderJobGroups();
+      jobRows(job.rows); renderJob(); if (job.g.length > was) ig.querySelector(`.g-first[data-g="${was}"]`)?.focus(); }   // a template of fixed rows: its own rows go, or come back, whole
     else if (el.type === "checkbox" && el.closest(".an-more")){ const d = el.closest(".an-more"), gr = job.g[+d.id.slice(3)]; if (gr){ gr.t2 = anRead(d).tests2; anSum(d); regen(); } } });
   const rows = $("#jRows", v);
   rows.addEventListener("input", e => { const el = e.target, r = job.rows[+el.closest("[data-j]")?.dataset.j]; if (!r) return;
     if (el.classList.contains("an-x")){ const d = el.closest(".an-more"); Object.assign(r, { xa: anRead(d).xan, tt: true }); anSum(d); return; }
     if (el.classList.contains("j-code")){ r.code = el.value; r.ec = true; } else if (el.classList.contains("j-desc")){ r.desc = el.value; r.ed = true; } else if (el.classList.contains("j-mass")){ r.mass = el.value.trim(); return; } else if (el.classList.contains("j-pt")){ r.pt = el.value.trim(); return; } jobHints(); });
   rows.addEventListener("change", e => { const el = e.target;
-    if (el.dataset.jon != null){ Object.assign(job.rows[+el.dataset.jon], { on: el.checked, ut: true }); el.closest("tr").classList.toggle("off", !el.checked); jobHints(); }
+    if (el.dataset.jgon != null){ const gi = +el.dataset.jgon; job.rows.forEach(r => { if (r.grp === gi) Object.assign(r, { on: el.checked, ut: true }); }); renderJob(); }
+    else if (el.dataset.jon != null){ Object.assign(job.rows[+el.dataset.jon], { on: el.checked, ut: true }); el.closest("tr").classList.toggle("off", !el.checked); jobHints(); }
     else if (el.classList.contains("j-test")){ const r = job.rows[+el.dataset.j]; Object.assign(r, { test: el.value, t2: (r.t2 || []).filter(k => k !== el.value), tt: true });
       const d = el.parentElement.querySelector(".an-more"); if (d){ d.outerHTML = rowAn(r, +el.dataset.j); } if (r.test === "x") el.parentElement.querySelector(".an-x")?.focus(); }
     else if (el.type === "checkbox" && el.closest(".an-more")){ const d = el.closest(".an-more"), r = job.rows[+d.dataset.j]; if (r){ Object.assign(r, { t2: anRead(d).tests2, tt: true }); anSum(d); } }
     else if (el.classList.contains("j-code")){   // v31: initials typed without a date take the job's date ("the date will complete the ID name")
       const r = job.rows[+el.dataset.j]; if (!r || r.ph || r.dc || !r.code.trim() || /\d{8}/.test(r.code) || !job.date) return;
       r.code = r.code.replace(/^\s+/, "") + dayCode(job.date); r.dc = true; el.value = r.code; jobHints(); } });
-  rows.addEventListener("click", e => { const s = e.target.closest(".an-more.mini > summary"); if (!s) return; const d = s.parentElement, r = job.rows[+d.dataset.j];
+  rows.addEventListener("click", e => { const gt = e.target.closest(".j-gt"); if (gt){ (job.open ||= new Map()).set(+gt.dataset.gt, gt.getAttribute("aria-expanded") !== "true"); renderJob(); return; }
+    const s = e.target.closest(".an-more.mini > summary"); if (!s) return; const d = s.parentElement, r = job.rows[+d.dataset.j];
     if (r && !d.dataset.f){ d.dataset.f = "1"; d.insertAdjacentHTML("beforeend", anMoreBody(r.t, r.test, r.t2 || [], r.xa || [])); } });
   $("#jAll", v).onchange = e => { job.rows.forEach(r => { r.on = e.target.checked; r.ut = true; }); renderJob(); };
   $("#jAdd", v).onchange = e => {
@@ -9821,8 +9907,8 @@ function jobGroup(v){
 /* The template's purpose and section (a MET Lab job from MET), filled in until the submitter picks their own. */
 function jobDefaults(v){
   const T0 = jobTpl(job.tpl), T = { ...T0, pur: tplPur(T0), sec: jobSecs(jobKindGroup()).length === 1 ? jobSecs(jobKindGroup())[0].code : jobSec0(jobKindGroup()) || (jobKindGroup() === "MET Lab" ? "MET" : T0.sec) }, pu = $("#rPurpose", v || document), sc = $("#rSection", v || document); if (!pu || !sc) return;
-  if (!pu.value || pu.value === job.pu0){ if ([...pu.options].some(o => o.value === T.pur)){ pu.value = T.pur; job.pu0 = T.pur; } }
-  if (!sc.value || sc.value === job.sc0){ if ([...sc.options].some(o => o.value === T.sec)){ sc.value = T.sec; sc.dataset.auto = "1"; job.sc0 = T.sec; } }
+  if (!pu.value || pu.value === job.pu0 || !pu.dataset.touched){ if ([...pu.options].some(o => o.value === T.pur)){ pu.value = T.pur; job.pu0 = T.pur; } }
+  if (!sc.value || sc.value === job.sc0 || (sc.dataset.auto && !sc.dataset.touched)){ if ([...sc.options].some(o => o.value === T.sec)){ sc.value = T.sec; sc.dataset.auto = "1"; job.sc0 = T.sec; } }
 }
 /* The submission: one batch of the ticked rows, each sample on the job route with its own analysis (its own route's retention and limits). */
 async function registerJob(){
@@ -9831,7 +9917,12 @@ async function registerJob(){
   const btn = $("#rSubmit"), msg = $("#rMsg");
   const fail = (m, focus) => { toast(m); const el = focus && $(focus); if (el){ const d = el.closest("details"); if (d) d.open = true; el.focus(); } };
   const rows = (job?.rows || []).filter(r => r.on), n = rows.length;
-  if (!n) return fail(job.g.some(hasFirst) || !jobTpl(job.tpl).grp && jobTpl(job.tpl).rows(JOB_SHIFT.N, jobCounts(jobTpl(job.tpl))).length ? "Tick at least one sample." : "Type the first code.", job.g.some(hasFirst) ? "#jAll" : "#jIdg .g-first");
+  if (jobBad().size) renderJob();   // v32: a folded group with a problem opens before the checks point at it
+  if (!job.date) return fail("Choose the date on the codes.", "#jDate");
+  if (!n){ const T = jobTpl(job.tpl), byG = job.g.length > 0 || !!T.grp, firstless = job.g.findIndex(g => !hasFirst(g));
+    if (job.rows.length) return fail("Tick at least one sample.", "#jAll");
+    if (byG && firstless >= 0) return fail("Type the first code.", `#jIdg .g-first[data-g="${firstless}"]`);
+    return fail("Set the number of samples.", byG ? "#jIdg .g-n" : (T.cnt || []).length ? `#jC_${T.cnt[0][0]}` : "#jAdd"); };
   if (n > 100) return fail("Up to 100 samples in one job.");
   const blank = rows.findIndex(r => !r.code.trim()); if (blank >= 0) return fail("Every ticked sample needs its code.", `#jRows .j-code[data-j="${job.rows.indexOf(rows[blank])}"]`);
   const tags = rows.map(r => normTag(r.code)); if (new Set(tags.map(normKey)).size !== n) return fail("The same code appears twice in this job.", "#jRows .j-code.dup");
@@ -9839,8 +9930,11 @@ async function registerJob(){
   const badC = rows.findIndex(r => /[~\u0000-\u001f]/.test(r.code) || normTag(r.code).length > 60);
   if (badC >= 0) return fail(`${rows[badC].code.slice(0, 40)}: a code is the sample's ID, up to 60 characters and without ~.`, `#jRows .j-code[data-j="${job.rows.indexOf(rows[badC])}"]`);
   const noTest = rows.find(r => !r.test); if (noTest) return fail(`Choose the analysis for ${noTest.code}.`);
-  const noX = rows.find(r => r.test === "x" && !(r.xa || []).length); if (noX) return fail(`Type the analysis for ${noX.code}.`, noX.grp != null ? `#jGA${noX.grp} .an-x` : `#jRows .an-more[data-j="${job.rows.indexOf(noX)}"] summary`);
-  const code = val("#rSection"), puK = val("#rPurpose") || "plant", submitter = val("#rSubmitter");
+  const noX = rows.find(r => r.test === "x" && !(r.xa || []).length);
+  if (noX){ const d = noX.grp == null && $(`#jRows .an-more[data-j="${job.rows.indexOf(noX)}"]`); if (d && !d.dataset.f){ d.dataset.f = "1"; d.insertAdjacentHTML("beforeend", anMoreBody(noX.t, noX.test, noX.t2 || [], noX.xa || [])); }
+    return fail(`Type the analysis for ${noX.code}.`, noX.grp != null ? `#jGA${noX.grp} .an-x` : `#jRows .an-more[data-j="${job.rows.indexOf(noX)}"] .an-x`); }
+  const code = val("#rSection"), puK = val("#rPurpose"), submitter = val("#rSubmitter");
+  if (!puK) return fail("Choose the purpose.", "#rPurpose");
   if (!submitter) return fail("Type the name of the person submitting.", "#rSubmitter");
   if (!code) return fail("Choose the submitting section.", "#rSection");
   const handTo = lab ? "" : val("#rHandTo").slice(0, 60), handBadge = lab ? "" : val("#rHandBadge").slice(0, 20), subBadge = val("#rSubBadge").slice(0, 20);
@@ -9852,6 +9946,7 @@ async function registerJob(){
     recvAt = fromInput($("#rRecvAt").value);
     if (!(recvAt > 0)) return fail("Enter the date and time received.", "#rRecvAt");
     if (recvAt > now + 5 * 60000) return fail("The time received can't be in the future.", "#rRecvAt");
+    if (coolT() != null && coolTemp() == null){ coolBox(); return fail("Type the cooler temperature (°C).", "#rTemp"); }
     if (rows.some(r => twoPerson({ typeKey: r.t, section: code }))){ $("#rWitBox").hidden = false; if (!(wit = val("#rWit"))) return fail("Two-person custody: choose the witness.", "#rWit"); }
   }
   // 21 Oct: a MET Lab job sends its final samples, analysed as they come; what is left goes back to the MET Lab (route MET-JOB)
@@ -9879,7 +9974,7 @@ async function registerJob(){
       return { r, t, rf };
     });
     const startName = per[0].rf.plan.find(x => x.key === start)?.name || "Submitted";
-    const recvOf = t => lab ? { bags: 1, mass: null, unit: "kg", seal: "none", cond: "Good", temp: "", holdH: null, warn: [], ...(wit && twoPerson({ typeKey: t, section: code }) ? { wit } : {}) } : null;
+    const ct = typ => typeOf(typ)?.cool, recvOf = t => lab ? { bags: 1, mass: null, unit: "kg", seal: "none", cond: "Good", temp: ct(t) != null ? String(coolTemp()) : "", holdH: null, warn: ct(t) != null && coolTemp() > ct(t) ? [`cooler at ${coolTemp()} °C, above the ${ct(t)} °C limit`] : [], ...(wit && twoPerson({ typeKey: t, section: code }) ? { wit } : {}) } : null;
     const base = { v: 13, purpose: purposeOf(puK)?.name || puK, purposeKey: puK, submitter, ...(subBadge ? { subBadge } : {}), ...(handTo ? { handedTo: handTo } : {}), ...(handBadge ? { handedBadge: handBadge } : {}),
       section: code, receivedBy: lab ? session.name : "", receivedAt: recvAt, recvAt, reassays: 0, collectedAt: null, containers: 1, massKg: null, seal: "", priority, analyses: [], notes,
       createdAt: now, createdBy: lab ? session.u : "public", createdByName: lab ? session.name : submitter, updatedAt: now, stageKey: start, stageAt: lab ? recvAt : now, location: "", flag: "",
@@ -9959,6 +10054,7 @@ async function registerJob(){
 /* v31: codes from a first code that are taken: marked, with the groups' next free numbers a tap away. */
 function offerJobFree(took){
   const on = new Set(took.map(([gi, j]) => gi + ":" + j));
+  took.forEach(([gi]) => (job.open ||= new Map()).set(gi, true)); renderJob();
   document.querySelectorAll("#jRows .j-code").forEach(el => { const r = job.rows[+el.dataset.j]; el.classList.toggle("taken", !!r && on.has(r.grp + ":" + r.gj)); });
   toast(`${took[0][2]}${took.length > 1 ? ` and ${took.length - 1} more` : ""}: already used.`);
   const info = $("#jInfo"); if (!info) return;
@@ -9971,7 +10067,7 @@ function offerJobFree(took){
 /* On a single sample's form: choosing the sampling point fills in the analysis it usually gets, until the analysis is chosen by hand. */
 document.addEventListener("change", e => {
   const el = e.target; if (!el.matches || !el.matches('#rDetails select[id^="rD_"]')) return;
-  const ty = $("#rType")?.value, te = $("#rTest"); if (!ty || !te || te.dataset.touched || ptField(ty).k !== el.id.slice(3)) return;
+  const ty = $("#rType")?.value, te = $("#rTest"); if (!ty || !te || te.dataset.touched || ptField(ty).k !== el.id.slice(3) || el.value === OTHER_V) return;
   const k = pointTest(ty, el.value); if (k && [...te.options].some(o => o.value === k)){ te.value = k; refreshFormRoute(); }
 });
 
@@ -10292,25 +10388,30 @@ const splitDated = f => { const m = String(f || "").trim().match(DATED); return 
 const groupCode = (g, j, date) => normTag(seriesCode(g.f, j, +g.n || 1) + dayCode(date));
 const hasFirst = g => !!String(g?.f || "").trim();
 const IDG_MAX = 10;
-/* One line per ID group: its first code, how many samples (a batch of one group counts its rows instead), anything else the form asks
-   (a job: type and analysis), and the codes it makes. The number of groups and the date sit under the groups. */
+/* v32 (21 Oct): "the 'ID groups' tab should come before the list of groups ... give the ID formation section some light colors and borders,
+   let it be visible and look sectioned ... the site shouldn't look bulky". The number of groups (and a batch's date) on a filled strip
+   first, then one small box per group: its name and the codes it makes on one line, then its first code, how many samples (a batch of one
+   group counts its rows instead) and anything else the form asks (a job: type, analysis, More). o.zero: a template of fixed rows, where
+   no group means the template's own codes. */
 function idgBlock(p, gs, o = {}){
-  const many = gs.length > 1;
-  return `<div class="idg" id="${p}Idg">${gs.map((g, i) => `<div class="idg-row" data-g="${i}">
-      <label class="f g-ff"><span>${many ? `${g.l ? esc(g.l) : `Group ${i + 1}`}: first code` : "First code"}</span><input class="inp g-first" data-g="${i}" value="${esc(g.f || "")}" placeholder="e.g. MLABPPS01" maxlength="50" autocomplete="off" spellcheck="false" aria-label="First code${many ? `, group ${i + 1}` : ""}"></label>
+  const many = gs.length > 1, ns = [...(o.zero ? [0] : []), ...Array.from({ length: IDG_MAX }, (_, k) => k + 1)];
+  return `<div class="idg${gs.length ? "" : " none"}" id="${p}Idg"><div class="idg-head">
+      <label class="g-cf"><span>ID groups</span><select class="inp" id="${p}Gn" aria-label="Number of ID groups">${ns.map(k => `<option value="${k}" ${k === gs.length ? "selected" : ""}>${k || "None: template codes"}</option>`).join("")}</select></label>
+      ${o.date != null ? `<label class="g-df"><span>Date on the codes</span><input class="inp" id="${p}GDate" type="date" value="${esc(o.date)}"></label>` : ""}</div>
+    ${gs.map((g, i) => `<div class="idg-row" data-g="${i}">
+      <div class="g-hd">${many || g.l ? `<b>${g.l ? esc(g.l) : `Group ${i + 1}`}</b>` : ""}<span class="g-ex mono" data-g="${i}"></span></div>
+      <label class="f g-ff"><span>First code</span><input class="inp g-first" data-g="${i}" value="${esc(g.f || "")}" placeholder="e.g. MLABPPS01" maxlength="50" autocomplete="off" spellcheck="false" aria-label="First code${many ? `, group ${i + 1}` : ""}"></label>
       ${o.count || many ? `<label class="f g-nf"><span>Samples</span><input class="inp g-n" data-g="${i}" type="number" min="1" max="99" step="1" inputmode="numeric" value="${esc(g.n)}" aria-label="Samples${many ? `, group ${i + 1}` : ""}"></label>` : ""}
-      ${o.extra ? o.extra(g, i) : ""}
-      <div class="g-ex small mono" data-g="${i}"></div></div>`).join("")}
-    <div class="idg-opts">${o.date != null ? `<label class="f g-df"><span>Date on the codes</span><input class="inp" id="${p}GDate" type="date" value="${esc(o.date)}"></label>` : ""}<label class="f g-cf"><span>ID groups</span><select class="inp" id="${p}Gn" aria-label="Number of ID groups">${Array.from({ length: IDG_MAX }, (_, k) => `<option ${k + 1 === gs.length ? "selected" : ""}>${k + 1}</option>`).join("")}</select></label></div></div>`;
+      ${o.extra ? o.extra(g, i) : ""}</div>`).join("")}</div>`;
 }
 /* The codes a group makes, first … last, under its first code. */
 function idgPreview(root, gs, date){
   root?.querySelectorAll(".g-ex").forEach(el => { const g = gs[+el.dataset.g]; if (!g) return; const n = Math.max(0, +g.n || 0);
     el.textContent = hasFirst(g) && n ? `${groupCode(g, 0, date)}${n > 1 ? ` … ${groupCode(g, n - 1, date)}` : ""}` : ""; });
 }
-/* More or fewer groups: a new group starts empty with one sample (a job: the last group's type and analysis). */
-function resizeGroups(gs, n, blank){
-  n = Math.max(1, Math.min(IDG_MAX, n | 0));
+/* More or fewer groups: a new group starts empty with one sample (a job: the last group's type and analysis). min 0: a template of fixed rows. */
+function resizeGroups(gs, n, blank, min = 1){
+  n = Math.max(min, Math.min(IDG_MAX, n | 0));
   while (gs.length < n) gs.push(blank(gs[gs.length - 1]));
   gs.length = n;
   return gs;
@@ -10370,7 +10471,9 @@ function bindBGroups(v){
   box.addEventListener("input", e => {
     const el = e.target, g = bGroups[+el.dataset.g];
     if (el.classList.contains("g-first") && g){ g.f = el.value; rowHints(); bPreview(); }
-    else if (el.classList.contains("g-n") && g){ const n = Math.floor(+el.value); if (!(n >= 1 && n <= 99)) return; g.n = n; if (bTotal() > 100) return toast("Up to 100 samples in one batch."); setRowCount(bTotal()); $("#rCount").value = bRows.length; bPreview(); }
+    else if (el.classList.contains("g-n") && g){ const n = Math.floor(+el.value); if (!(n >= 1 && n <= 99)) return;
+      if (bTotal() - (+g.n || 1) + n > 100){ el.value = g.n; return toast("Up to 100 samples in one batch."); }
+      bGroupResize(+el.dataset.g, n); }
     else if (el.id === "rBGDate"){ bDate = el.value; rowHints(); bPreview(); }
   });
   box.addEventListener("change", e => {
@@ -10388,11 +10491,20 @@ function bindBGroups(v){
   });
 }
 
+/* v32: one group of a batch grows or shrinks at its own end (the rows of the groups after it keep what was typed on them). */
+function bGroupResize(gi, n){
+  const g = bGroups[gi]; if (!g) return;
+  if (bGroups.length === 1){ g.n = n; return setRowCount(n); }
+  const start = bGroups.slice(0, gi).reduce((a, x) => a + Math.max(1, +x.n || 1), 0), k = Math.max(1, +g.n || 1);
+  if (n > k) bRows.splice(start + k, 0, ...Array.from({ length: n - k }, () => ({ code: "", src: "" }))); else bRows.splice(start + n, k - n);
+  g.n = n; $("#rCount").value = bRows.length; renderRows(); bPreview();
+}
 /* A batch whose codes from a first code are on open samples already: those rows are marked, and the groups can start after the last of them. */
 function offerFree(took){
   document.querySelectorAll("#rRows .r-code").forEach(el => el.classList.toggle("taken", took.some(([i]) => i === +el.dataset.i)));
   toast(`${took[0][1]}${took.length > 1 ? ` and ${took.length - 1} more` : ""}: already on open samples for this analysis.`);
   const info = $("#rRowInfo"); if (!info) return;
+  rowHints.took = took.map(([i, t]) => [i, t]);   // v32: the offer stays while those codes do
   info.classList.remove("bad-t");
   info.innerHTML = `<span class="bad-t">${took.length} taken</span> <button type="button" class="btn small" id="rFree">Next free numbers</button>`;
   $("#rFree").onclick = async e => { e.target.disabled = true; e.target.textContent = "Checking…"; const te = $("#rTest")?.value || "";
@@ -10401,7 +10513,7 @@ function offerFree(took){
 
 /* ---------- several analyses on one sample ---------- */
 /* Typed analyses: up to 8 names, each up to 40 characters. */
-const splitAn = t => [...new Set(String(t || "").split(/[,;\n]+/).map(x => x.trim().replace(/\s+/g, " ").slice(0, 40)).filter(Boolean))].slice(0, 8);
+const splitAn = t => { const seen = new Set(); return String(t || "").split(/[,;\n]+/).map(x => x.trim().replace(/\s+/g, " ").slice(0, 40)).filter(x => x && !seen.has(x.toLowerCase()) && seen.add(x.toLowerCase())).slice(0, 8); };
 /* A typed analysis is a result read as written (a number with its unit, or words), required before release. Its code comes from its
    name, so the same analysis on two samples shares a column on the certificate. */
 const xKey = (n, taken) => { let k = "x_" + (n.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 24) || "an"), b = k, i = 2; while (taken.has(k)) k = `${b}_${i++}`; taken.add(k); return k; };
@@ -10456,11 +10568,21 @@ const anFields = (main, t2, xa) => { t2 = (t2 || []).filter(k => k && k !== main
 /* ---------- a select of a fixed list takes a typed value too ---------- */
 /* The details on a sample's form (sampling point, shift…): "Other…" at the end of a list opens a box to type it. */
 const OTHER_V = "__other";
-const detailVal = k => { const el = $("#rD_" + k); if (!el) return ""; return (el.value === OTHER_V ? $("#rD_" + k + "_x")?.value || "" : el.value || "").trim().slice(0, 80); };
+const detailVal = k => { const el = $("#rD_" + k); if (!el) return ""; return (el.value === OTHER_V ? $("#rD_" + k + "_x")?.value.trim() || "Other" : el.value || "").trim().slice(0, 80); };
 document.addEventListener("change", e => {
   const el = e.target; if (!el.matches || !el.matches('#rDetails select[id^="rD_"]')) return;
   const x = $("#" + el.id + "_x"); if (!x) return;
   x.hidden = el.value !== OTHER_V; if (!x.hidden) x.focus();
+});
+
+/* v32: Enter in an ID group, a job's rows or numbers, or the batch box goes to the next box; it never sends the form (one Enter after
+   editing a code sent a whole shift). The batch rows move down a row themselves. */
+document.addEventListener("keydown", e => {
+  const el = e.target; if (e.key !== "Enter" || e.isComposing || !el.matches || !el.matches("input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button])")) return;
+  if (!el.closest("#rIdgBox,#jIdg,#jRows,#jNums,#rBatch,#rJob") || el.closest("#rRows")) return;
+  e.preventDefault();
+  const all = [...(el.form || document).querySelectorAll("input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled])")].filter(x => x.offsetParent), i = all.indexOf(el);
+  (all[i + 1] || el).focus();
 });
 
 /* ---------- upgrade of records written by earlier versions (runs once, under a lease) ---------- */

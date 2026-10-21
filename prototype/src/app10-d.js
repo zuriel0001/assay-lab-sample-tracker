@@ -47,8 +47,8 @@ function renderBoard(){
     { k: "unstored", n: notStored, l: `Released, not yet put in storage${unstoredLate ? `, ${unstoredLate} over a day` : ""}`, tone: unstoredLate ? "warn" : "info", pick: unstored },
     { k: "retention", n: dueM, l: `Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}`, tone: "warn", link: ["storage", "Open Storage"],
       rows: dueS.map(x => x.s ? sRow(x.s, x.items.join(", ") + " past retention") : { id: x.id, type: x.type || "", what: x.route || "", where: x.items.join(", ") + " past retention" }) },
-    { k: "recvToday", n: list.filter(s => isToday(recvOf(s))).length, l: "Received today", tone: "", pick: list.filter(s => isToday(recvOf(s))), hide: true },
-    { k: "dueToday", n: list.filter(dueToday).length, l: "Results due today", tone: "", pick: list.filter(dueToday), hide: true }
+    ...(boardPick === "recvToday" ? [{ k: "recvToday", l: "Received today", tone: "", pick: list.filter(s => isToday(recvOf(s))), hide: true }] : []),
+    ...(boardPick === "dueToday" ? [{ k: "dueToday", l: "Results due today", tone: "", pick: list.filter(dueToday), hide: true }] : [])
   ];
   // v24d: a batch processed as one counts once and is one row (its samples stay separate records)
   sums.forEach(x => { if (x.pick){ x.n = unitCount(x.pick); if (!x.rows) x.rows = unitRows(x.pick, s => sRow(s)); } if (!x.rows) x.rows = []; if (x.link && !allowedTabs().includes(x.link[0])) delete x.link; });
@@ -160,12 +160,20 @@ function renderDetails(typeKey){
   const was = {}; box.querySelectorAll("[id^='rD_']").forEach(el => { if (el.value) was[el.id] = el.value; });
   const t = typeOf(typeKey), fs = t?.fields || [];
   box.innerHTML = fs.length ? `<fieldset><div class="legend">${esc(t.name)}: details</div><div class="form">${fs.map(f => `<label class="f">${esc(f.l)}${f.o
-    ? `<select id="rD_${f.k}"><option value="">—</option>${f.o.map(o => `<option>${esc(o)}</option>`).join("")}<option value="${OTHER_V}">Other…</option></select><input id="rD_${f.k}_x" class="d-other" maxlength="80" placeholder="Type it" hidden aria-label="${esc(f.l)}, other">`
+    ? f.o.length < 3 ? `<select id="rD_${f.k}"><option value="">—</option>${f.o.map(o => `<option>${esc(o)}</option>`).join("")}</select>`
+    : `<select id="rD_${f.k}"><option value="">—</option>${f.o.filter(o => !/^other$/i.test(o)).map(o => `<option>${esc(o)}</option>`).join("")}<option value="${OTHER_V}">Other…</option></select><input id="rD_${f.k}_x" class="d-other" maxlength="80" placeholder="Type it" hidden aria-label="${esc(f.l)}, other">`
     : `<input id="rD_${f.k}" ${f.t === "number" ? `type="number" step="any"` : ""} placeholder="${esc(f.ph || "")}">`}</label>`).join("")}</div></fieldset>` : "";
   Object.entries(was).forEach(([id, val]) => { const el = document.getElementById(id); if (el && (el.tagName !== "SELECT" || [...el.options].some(o => o.value === val))) el.value = val; if (el && val === OTHER_V){ const x = document.getElementById(id + "_x"); if (x) x.hidden = false; } });
 }
 function autoRoute(){ const ty = $("#rType")?.value, te = $("#rTest")?.value; return ty && te ? (te === "x" ? OTHER_ROUTE : routeFor(ty, te, $("#rPurpose")?.value)) : null; }
 function formRoute(){ const pick = routeByCode($("#rRouteSel")?.value), te = $("#rTest")?.value; return pick && (pick.tests || []).includes(te) ? pick : autoRoute(); }
+/* v32: the coldest limit among the sample types on the form that travel in a cooler (null: none does), the temperature typed, and its box. */
+function coolT(){
+  const ts = isJobKind(formKind()) ? (job?.rows || []).filter(r => r.on).map(r => r.t) : [$("#rType")?.value];
+  const c = ts.map(k => typeOf(k)?.cool).filter(x => x != null); return c.length ? Math.min(...c) : null;
+}
+const coolTemp = () => { const v = String($("#rTemp")?.value || "").trim().replace(",", "."); return v !== "" && isFinite(+v) && +v > -30 && +v < 60 ? +v : null; };
+function coolBox(){ const b = $("#rTempBox"); if (b) b.hidden = coolT() == null; }
 function refreshFormRoute(){
   const box = $("#rRoute"); if (!box) return;
   const auto = autoRoute(), sel = $("#rRouteSel"), te = $("#rTest")?.value;
@@ -180,6 +188,7 @@ function refreshFormRoute(){
     : te && $("#rType")?.value ? `<div class="route-box"><div class="small" style="color:var(--bad)">No workflow route performs this test yet. Ask the lab manager to add one in Settings.</div></div>` : "";
   const w = $("#rWitBox");
   if (w){ const two = (r && r.two) || ["bullion", "conc"].includes($("#rType")?.value) || $("#rSection")?.value === "GR"; w.hidden = !two; }
+  coolBox();
 }
 function renderSampleForm(mode){
   const v = $(mode === "submit" ? "#view-submit" : "#view-register");
@@ -213,7 +222,8 @@ function renderSampleForm(mode){
       <label class="f" data-hand><span>Technician's badge no.${walk ? req : ""}</span><input id="rHandBadge" maxlength="20" autocomplete="off"></label>
       <datalist id="rTechList">${techs.map(n => `<option value="${esc(n)}">`).join("")}</datalist>
       ${staff ? `<details class="f recv-at" id="rRecvAtBox" data-lab><summary>Received <b id="rRecvAtTxt">now</b> · change</summary><input id="rRecvAt" type="datetime-local" required value="${localInput(now)}" aria-label="Date and time received"></details>
-      <div id="rWitBox" data-lab hidden>${witnessField("rWit")}</div>` : ""}
+      <div id="rWitBox" data-lab hidden>${witnessField("rWit")}</div>
+      <label class="f" id="rTempBox" data-lab hidden><span>Cooler temperature (°C) <span class="req">*</span></span><input id="rTemp" inputmode="decimal" maxlength="6" autocomplete="off"></label>` : ""}
       ${batchBlock()}
     </div></div>
       <details class="form-more" id="rMore"><summary>More details <span class="muted small">site reference, collection time, priority, hazards, notes</span></summary><div class="form">
@@ -360,14 +370,18 @@ async function register(){
     if (recvAt > now + 5 * 60000) return fail("The time received can't be in the future.", "#rRecvAt");
     if (collected && recvAt < collected) return fail("The time received can't be before the collection time.", "#rRecvAt");
     if (!$("#rWitBox").hidden && !(wit = val("#rWit"))) return fail("Two-person custody: choose the witness.", "#rWit");
+    if (coolT() != null && coolTemp() == null) return fail("Type the cooler temperature (°C).", "#rTemp");
   }
+  if (batch && bGroups.some(hasFirst) && !bDate) return fail("Choose the date on the codes.", "#rBGDate");   // v32: codes without their date
   const tagSets = batch ? rowTags() : [splitTags($("#rTag").value).map(normTag)], allTags = tagSets.flat(), srcs = batch ? bRows.map(r => r.src.trim().slice(0, 120)) : [];
   if (new Set(allTags).size !== allTags.length) return fail("The same site sample code appears twice in this batch.", batch ? "#rRows .r-code.dup" : "#rTag");
   const batchName = batch ? val("#rBatchName").slice(0, 80) : "";
   btn.disabled = true; msg.textContent = allTags.length ? "Checking site sample codes…" : "Issuing IDs…";
   try {
     const gen = batch ? bGroupTags(n) : null, took = [];
-    for (const [i, ts] of tagSets.entries()) for (const t of ts){ const used = await tagOwner(t, teK); if (!used) continue; if (gen && !splitTags(bRows[i]?.code).length) took.push([i, t, used]); else throw { code: "tagused", tag: t, id: used }; }
+    const pairs = tagSets.flatMap((ts, i) => ts.map(t => [i, t])), owners = []; let at = 0;
+    await Promise.all(Array.from({ length: Math.min(6, pairs.length) }, async () => { while (at < pairs.length){ const k = at++; owners[k] = await tagOwner(pairs[k][1], teK); } }));
+    for (const [k, [i, t]] of pairs.entries()){ const used = owners[k]; if (!used) continue; if (gen && !splitTags(bRows[i]?.code).length) took.push([i, t, used]); else throw { code: "tagused", tag: t, id: used }; }
     if (took.length) throw { code: "taken", took };
     msg.textContent = "Issuing IDs…";
     const details = {};
@@ -375,7 +389,7 @@ async function register(){
     const rf = routeFields(r, teK, more), start = lab ? "received" : "submitted", startName = rf.plan.find(x => x.key === start).name;
     const containers = +$("#rContainers").value || null, massKg = +$("#rMass").value || null, seal = val("#rSeal"), siteRef = val("#rSiteRef");
     const t = typeOf(tyK), holdH = t?.hold && collected && lab ? Math.max(0, (recvAt - collected) / HOUR) : null;
-    const recv = lab ? { bags: containers, mass: massKg, unit: "kg", seal: seal ? "ok" : "none", cond: "Good", temp: "", holdH, warn: holdH != null && holdH > t.hold ? [`holding time for ${t.holdWhat} exceeded: received ${hoursLabel(holdH)} after collection, limit ${hoursLabel(t.hold)}`] : [], ...(wit ? { wit } : {}) } : null;
+    const recv = lab ? { bags: containers, mass: massKg, unit: "kg", seal: seal ? "ok" : "none", cond: "Good", temp: t?.cool != null ? String(coolTemp()) : "", holdH, warn: [...(holdH != null && holdH > t.hold ? [`holding time for ${t.holdWhat} exceeded: received ${hoursLabel(holdH)} after collection, limit ${hoursLabel(t.hold)}`] : []), ...(t?.cool != null && coolTemp() > t.cool ? [`cooler at ${coolTemp()} °C, above the ${t.cool} °C limit`] : [])], ...(wit ? { wit } : {}) } : null;
     const base = {
       v: 13, type: t?.name || tyK, typeKey: tyK, purpose: why ? `Other: ${why}` : purposeOf(puK)?.name || puK, purposeKey: puK, ...(why ? { purposeWhy: why } : {}), ...(handTo ? { handedTo: handTo } : {}), ...(handBadge ? { handedBadge: handBadge } : {}), ...rf, details, reassays: 0,
       submitter, ...(subBadge ? { subBadge } : {}), section: code, receivedBy: lab ? session.name : "", receivedAt: recvAt, recvAt, recv,

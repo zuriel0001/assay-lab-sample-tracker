@@ -42,7 +42,7 @@ function evalBox(s){
 function reqNote(s){
   if (!s.rq || !isStaff()) return "";
   const e = (s.evals || []).filter(x => x.v === "redo").at(-1);
-  return `<div class="notice bad" id="reqNote"><b>Re-assay requested</b>${e ? ` by ${esc(e.tech)}${e.dept ? ` (${esc(e.dept)})` : ""}, ${fmt(e.at)}${e.note ? `: ${esc(e.note)}` : ""}` : ""}.${canEdit() && redoOk(s) ? ` Use <b>Send back for re-assay</b> below.` : ""}</div>`;
+  return `<div class="notice bad" id="reqNote"><b>Re-assay requested</b>${e ? ` by ${esc(e.tech)}${e.dept ? ` (${esc(e.dept)})` : ""}, ${fmt(e.at)}${e.note ? `: ${esc(e.note)}` : ""}` : ""}.${canEdit() && redoOk(s) ? ` Use <b>Send back for re-assay</b> below.` : canEdit() && redoIdx(s) >= 0 && curIdx(s) > targetIdx(s) && !redoMats(s).length ? " No suitable material kept to re-assay." : ""}</div>`;
 }
 async function doEvaluate(){
   const s0 = current?.body; if (!s0 || !canEval() || !db) return;
