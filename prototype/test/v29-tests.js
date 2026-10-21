@@ -90,7 +90,7 @@ const report = (rows, day) => Buffer.from([
   check(live(t1.results?.rows).Au === "0.40" && live(t1.results?.rows).Au_s === "0.800" && tk.ids.every(id => Object.keys(live(doc(id).results?.rows)).length), "every sample has its values: tank 1 AuFx 0.40, AuSx 0.800");
   check((t1.history || []).some(h => /the file names it MLSPTK0120261022, its code dated Oct 22, 2026/.test(h.note || "")), "the record says which code of the file was read as it");
   await open(Tc, tk.ref); await Tc.waitForTimeout(600);
-  check(/Leach efficiency/.test(await text(Tc, "#vzTank")) && /MET LAB JOB \(ONE REPORT\)|MET Lab job \(one report\)/i.test(await text(Tc, "#bwBox h3")), "the tank profile is drawn; the workflow says MET Lab job (one report)");
+  check(/Leach efficiency/.test(await text(Tc, "#vzTank")) && /MET Lab final samples \(one report\)/i.test(await text(Tc, "#bwBox h3")), "the tank profile is drawn; the workflow says MET Lab final samples (one report)");
   check(!/Plant shift job/.test(await text(Tc, "#view-track")), "nothing says Plant shift job");
 
   log("A file naming none of the batch's samples");

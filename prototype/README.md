@@ -406,6 +406,25 @@ October, on the day the server began asking a witness for every new disposal). E
 93, v12 71, v13 26, v14 27, v15 46, v16 42, v17 25, v20 71, v21 61, v22 29, v23 53, v24 89, v25 116, v26 31, v27 32, v28 46, review 41 + 5,
 hours 7, work hours 14), no console errors.
 
+**21 October, 05:03 (Zuriel): "MET Lab jobs are done in the MET Lab, only final samples are submitted to the assay lab for analysis … you
+can rework the workflow"**; then, asked: the assay lab receives, analyses and releases them (no preparation); what is left goes back to the
+MET Lab when the results are released; the MET Lab's own calculations on the batch page only; the assay lab still runs carbon activity.
+- **A route of their own, MET-JOB, *MET Lab final samples (one report)***: received together, *In analysis* (8 h, no drying or
+  pulverising here; carbon for an activity test is tested here), released together with the lab's report. A MET Lab job submitted from now
+  on takes it; jobs already submitted keep theirs.
+- **What is left goes back to the MET Lab with the results**: the route's remainder is marked to go back (`auto`), and the release records
+  it as returned in the same write, with its OUT movement in the ledger; with nothing kept the sample has left the lab (closed, off the
+  board and out of Storage). The workflow ends on *Returned to the MET Lab* ("What is left goes back with the results"); the batch page
+  says *Workflow complete: 12 samples released; sample remainder: returned to the MET Lab with the results*.
+- **The MET Lab's working on the batch page only**: the tank profile's efficiencies, the bottle roll's recovery and the preg-robbing index
+  are marked *The MET Lab's working, from the results: on this page only, not on the certificate*, and the certificate reports the assays.
+  The strip profile, carbon activity and carbon in the CIL tanks stay on their certificates.
+- Shift end is unchanged (route JOB, each material kept by its own rule).
+- A returned sample's step reads *Returned to the MET Lab* (not the general *Returned to site / submitter*), and the batch's progress counts
+  its released samples that have since left the lab.
+Tests: new `v30-tests.js` (**21 PASS**); `v28-tests.js` expects the certificates without the MET Lab's working, `v29-tests.js` the new
+route's name, `v23-tests.js` and `run.js` one route more (30 in use, 45 listed). Every prototype suite passes.
+
 **21 October, 04:43 (Zuriel): "why this … warning every time, though I attached a correct file. Also change the name Shift Job to Shift
 End, and when submitting samples under Shift end or MET job, the Section … should display only the applicable sections … MET jobs come from
 the Met department. Shift end comes from PP … read through the site and fix everything".**

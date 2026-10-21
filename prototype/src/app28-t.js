@@ -214,7 +214,7 @@ function jobDateFor(v){
 }
 const inGroup = (x, g) => x.group === g || (x.also || []).includes(g);
 /* A MET Lab job runs on the job route too; its workflow and certificate say so (a carbon activity sent by MET counts as MET's). */
-function isMetJob(s){ const T = s && s.job ? JOB_TPL.find(x => x.key === s.job) : null; return !!T && (T.group === "MET Lab" || (s.section === "MET" && inGroup(T, "MET Lab"))); }
+function isMetJob(s){ if (s && s.route === "MET-JOB") return true; const T = s && s.job ? JOB_TPL.find(x => x.key === s.job) : null; return !!T && (T.group === "MET Lab" || (s.section === "MET" && inGroup(T, "MET Lab"))); }
 function routeLabel(s, name){ const n = name ?? s?.routeName ?? ""; return s && s.route === "JOB" && s.job ? (isMetJob(s) ? "MET Lab job (one report)" : "Shift end (one report)") : n; }
 function jobGroup(v){
   const g = jobKindGroup(), tp = $("#jTpl", v || document); if (!tp || !job) return;
@@ -259,7 +259,8 @@ async function registerJob(){
     if (recvAt > now + 5 * 60000) return fail("The time received can't be in the future.", "#rRecvAt");
     if (rows.some(r => twoPerson({ typeKey: r.t, section: code }))){ $("#rWitBox").hidden = false; if (!(wit = val("#rWit"))) return fail("Two-person custody: choose the witness.", "#rWit"); }
   }
-  const JR = routeByCode("JOB"), T = jobTpl(job.tpl), S = JOB_SHIFT[job.shift] || JOB_SHIFT.N;
+  // 21 Oct: a MET Lab job sends its final samples, analysed as they come; what is left goes back to the MET Lab (route MET-JOB)
+  const MR = jobKindGroup() === "MET Lab" ? routeByCode("MET-JOB") : null, JR = MR || routeByCode("JOB"), T = jobTpl(job.tpl), S = JOB_SHIFT[job.shift] || JOB_SHIFT.N;
   const when = job.date ? fmtDate(fromInput(job.date + "T12:00")) : fmtDate(now);
   const batchName = `${T.name}${T.shift ? `, ${S.name.toLowerCase()}` : ""}, ${when}`;
   btn.disabled = true; msg.textContent = "Checking the codes…";
@@ -272,7 +273,7 @@ async function registerJob(){
       const t = typeOf(r.t), nat = routeFor(r.t, r.test, puK), route = JR || nat;
       if (!route) throw { code: "noroute", test: r.test };
       const rf = routeFields(route, r.test);
-      if (JR) Object.assign(rf, { retention: clone(nat?.retention || rf.retention), triggers: clone(nat?.triggers || []), qcg: [], qcp: "", qc: "", baseRoute: nat?.code || "" });
+      if (JR) Object.assign(rf, { retention: MR ? clone(rf.retention) : clone(nat?.retention || rf.retention), triggers: clone(nat?.triggers || []), qcg: [], qcp: "", qc: "", baseRoute: nat?.code || "" });
       return { r, t, rf };
     });
     const startName = per[0].rf.plan.find(x => x.key === start)?.name || "Submitted";

@@ -961,6 +961,14 @@ const DEFAULT_ROUTES = [
     desc: "The samples of one shift end (mill, CCD, TSF, carbon, elution) or one MET Lab job (tank profile, bottle roll, preg-robbing, QA/QC set, carbon activity), received together, analysed, and released together when the lab's report for the job is attached.",
     stages: [S("lab", "In analysis", 12, "test", "Preparation and analysis of every sample of the job; the report gives all the results.")],
     retention: [{ item: "Sample remainder", days: 30, then: "Disposed" }] },
+  /* 21 Oct (Zuriel): "MET Lab jobs are done in the MET Lab, only final samples are submitted to the assay lab for analysis": received,
+     analysed as the MET Lab prepared them (no preparation here; carbon for an activity test is still tested here), released together with
+     the lab's report; what is left goes back to the MET Lab with the results (auto: recorded as returned in the release). */
+  { code: "MET-JOB", job: true, met: true, transit: 1, name: "MET Lab final samples (one report)", tests: ["aufx_ausx", "aufx", "ausx", "aufx_ausx_cn", "ausx_cn", "cn_only", "c_load", "c_act", "elu_sol", "psd"],
+    types: ["plant_feed", "ccd", "tsf", "carbon", "elution"], purposes: ["plant", "recon", "met", "met_br", "met_pri", "met_cil", "qc"],
+    desc: "The MET Lab's final samples from its own testwork (tank profile, bottle roll, preg-robbing, QA/QC set) and its carbon for an activity test: received together, analysed as the MET Lab prepared them, with no preparation here, and released together when the lab's report is attached. What is left goes back to the MET Lab with the results.",
+    stages: [S("lab", "In analysis", 8, "test", "Analysis of the final samples as the MET Lab prepared them (no drying or pulverising here); carbon for an activity test is tested here. The report gives all the results.")],
+    retention: [{ item: "Sample remainder", days: 0, then: "Returned to the MET Lab with the results", auto: true }] },
   { code: "ELU-AUSX", transit: 2, name: "Elution solution: AuSx, AgSx & Cu", tests: ["elu_sol"], types: ["elution"], purposes: ["plant", "recon", "met"],
     desc: "Pregnant solution, electrowinning head and tails and eluate: AuSx, AgSx and copper, with NaOH, NaCN and pH.",
     stages: [

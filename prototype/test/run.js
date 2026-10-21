@@ -307,7 +307,7 @@ const moves = id => ledger().filter(m => m.sid === id);
   await open(P, w);
   await P.click("[data-route]"); await P.waitForTimeout(250);
   check(await P.$eval("#view-routes", e => !e.hidden) && await P.$eval("#route-PSD", d => d.open), "public 'See route' opens the routes tab at that route");
-  check((await P.$$("details.route")).length === 44, "44 routes listed (v24d: carbon activity and the shift job)");
+  check((await P.$$("details.route")).length === 45, "45 routes listed (v24d: carbon activity, the shift end and the MET Lab's final samples)");
   const chips = await P.$$eval(".tchip", bs => bs.map(b => b.textContent));
   check(chips.length === 42, "catalogue shows all 42 tests (v24d: carbon activity)");
   await P.selectOption("#rtType", "bullion"); await P.waitForTimeout(100);

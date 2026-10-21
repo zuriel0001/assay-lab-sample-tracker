@@ -369,11 +369,14 @@ function routeFor(typeKey, testKey, purposeKey){
 }
 const keepDays = r => Math.max(0, ...((r && r.retention) || []).map(x => +x.days || 0));
 const transitOf = r => r && r.transit != null && r.transit !== "" ? +r.transit : HEAD[0].hours;
+/* 21 Oct: a route whose material all goes back with the results (the MET Lab's) ends on that return, not on storage. */
+const allBack = x => { const ret = (x && x.retention) || []; return ret.length > 0 && ret.every(m => m && m.auto); };
+const backName = x => String(((x && x.retention) || [])[0]?.then || "Returned").replace(/\s+with the results$/i, "");
 function buildPlan(r){
   return [{ ...HEAD[0], hours: transitOf(r) }, { ...HEAD[1] },
     ...((r && r.stages) || []).map(x => ({ key: x.key, name: x.name, hours: +x.hours || 0, phase: x.phase || "test", ...(x.redo ? { redo: true } : {}), ...(x.clock ? { clock: true } : {}) })),
     { key: "released", name: "Results released", hours: 24, phase: "report", target: true },
-    { key: "storage", name: "Retained in storage", hours: Math.max(1, keepDays(r)) * 24, phase: "store", clock: true }];
+    { key: "storage", name: allBack(r) ? backName(r) : "Retained in storage", hours: Math.max(1, keepDays(r)) * 24, phase: "store", clock: true }];
 }
 /* Hours from receipt to results for a route (elapsed time when the lab works in shifts). */
 const routeTat = r => routeSpan(r);
@@ -407,7 +410,9 @@ const planOf = s => {
   if (s && typeof s === "object") planMemo.set(s, { on, p, k: s.stageKey, n: h.length, out });
   return out;
 };
-const allOf = s => [...planOf(s), ...FINALS];
+// 21 Oct: a sample whose material all goes back with the results ends "Returned to the MET Lab", not "Returned to site / submitter"
+const finalsOf = s => s && allBack(s) ? FINALS.map(x => x.key === "returned" ? { ...x, name: backName(s) } : x) : FINALS;
+const allOf = s => [...planOf(s), ...finalsOf(s)];
 const stage = (s, key) => allOf(s).find(x => x.key === key) || null;
 const stageIdx = (s, key) => allOf(s).findIndex(x => x.key === key);
 const curIdx = s => planOf(s).findIndex(x => x.key === s.stageKey);
@@ -456,7 +461,7 @@ function stockOf(s){
 function materialsAt(s, relAt){
   const ret = s.retention && s.retention.length ? s.retention : [{ item: "Sample remainder", days: 30, then: "Disposed" }];
   return ret.map((x, i) => ({ k: "m" + (i + 1), item: x.item, days: +x.days || 0, then: x.then || "Disposed", dispo: dispoOf(x.then), status: "kept",
-    dueAt: relAt + (+x.days || 0) * 86400e3, loc: "", outs: 0 }));
+    dueAt: relAt + (+x.days || 0) * 86400e3, loc: "", outs: 0, ...(x.auto ? { auto: true } : {}) }));
 }
 function status(s){
   const st = stage(s, s.stageKey), i = stageIdx(s, s.stageKey), t = targetIdx(s), now = Date.now();

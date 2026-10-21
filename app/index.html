@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="4df4dc0c237d" data-at="1792559455066"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 d8bcd2ff3e11) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="91d19ba84560" data-at="1792574594400"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 b49ce104006a) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -980,6 +980,8 @@ ol.rail li.done.stop .dot{background:var(--bad);border-color:var(--bad)}
 body.wall .stats.tiles.fit{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
 .lanes{align-items:start}
 .job-step .tbl-wrap{margin-top:10px}
+/* 21 Oct: the MET Lab's working on the batch page is marked as its own (not on the certificate) */
+.vz-own{display:inline-block;margin-top:4px;padding:2px 8px;border-radius:999px;background:var(--c-violet-soft);color:var(--c-violet);font-size:13px}
 </style>
 
 <div class="wrap">
@@ -2002,6 +2004,14 @@ const DEFAULT_ROUTES = [
     desc: "The samples of one shift end (mill, CCD, TSF, carbon, elution) or one MET Lab job (tank profile, bottle roll, preg-robbing, QA/QC set, carbon activity), received together, analysed, and released together when the lab's report for the job is attached.",
     stages: [S("lab", "In analysis", 12, "test", "Preparation and analysis of every sample of the job; the report gives all the results.")],
     retention: [{ item: "Sample remainder", days: 30, then: "Disposed" }] },
+  /* 21 Oct (Zuriel): "MET Lab jobs are done in the MET Lab, only final samples are submitted to the assay lab for analysis": received,
+     analysed as the MET Lab prepared them (no preparation here; carbon for an activity test is still tested here), released together with
+     the lab's report; what is left goes back to the MET Lab with the results (auto: recorded as returned in the release). */
+  { code: "MET-JOB", job: true, met: true, transit: 1, name: "MET Lab final samples (one report)", tests: ["aufx_ausx", "aufx", "ausx", "aufx_ausx_cn", "ausx_cn", "cn_only", "c_load", "c_act", "elu_sol", "psd"],
+    types: ["plant_feed", "ccd", "tsf", "carbon", "elution"], purposes: ["plant", "recon", "met", "met_br", "met_pri", "met_cil", "qc"],
+    desc: "The MET Lab's final samples from its own testwork (tank profile, bottle roll, preg-robbing, QA/QC set) and its carbon for an activity test: received together, analysed as the MET Lab prepared them, with no preparation here, and released together when the lab's report is attached. What is left goes back to the MET Lab with the results.",
+    stages: [S("lab", "In analysis", 8, "test", "Analysis of the final samples as the MET Lab prepared them (no drying or pulverising here); carbon for an activity test is tested here. The report gives all the results.")],
+    retention: [{ item: "Sample remainder", days: 0, then: "Returned to the MET Lab with the results", auto: true }] },
   { code: "ELU-AUSX", transit: 2, name: "Elution solution: AuSx, AgSx & Cu", tests: ["elu_sol"], types: ["elution"], purposes: ["plant", "recon", "met"],
     desc: "Pregnant solution, electrowinning head and tails and eluate: AuSx, AgSx and copper, with NaOH, NaCN and pH.",
     stages: [
@@ -2649,11 +2659,14 @@ function routeFor(typeKey, testKey, purposeKey){
 }
 const keepDays = r => Math.max(0, ...((r && r.retention) || []).map(x => +x.days || 0));
 const transitOf = r => r && r.transit != null && r.transit !== "" ? +r.transit : HEAD[0].hours;
+/* 21 Oct: a route whose material all goes back with the results (the MET Lab's) ends on that return, not on storage. */
+const allBack = x => { const ret = (x && x.retention) || []; return ret.length > 0 && ret.every(m => m && m.auto); };
+const backName = x => String(((x && x.retention) || [])[0]?.then || "Returned").replace(/\s+with the results$/i, "");
 function buildPlan(r){
   return [{ ...HEAD[0], hours: transitOf(r) }, { ...HEAD[1] },
     ...((r && r.stages) || []).map(x => ({ key: x.key, name: x.name, hours: +x.hours || 0, phase: x.phase || "test", ...(x.redo ? { redo: true } : {}), ...(x.clock ? { clock: true } : {}) })),
     { key: "released", name: "Results released", hours: 24, phase: "report", target: true },
-    { key: "storage", name: "Retained in storage", hours: Math.max(1, keepDays(r)) * 24, phase: "store", clock: true }];
+    { key: "storage", name: allBack(r) ? backName(r) : "Retained in storage", hours: Math.max(1, keepDays(r)) * 24, phase: "store", clock: true }];
 }
 /* Hours from receipt to results for a route (elapsed time when the lab works in shifts). */
 const routeTat = r => routeSpan(r);
@@ -2687,7 +2700,9 @@ const planOf = s => {
   if (s && typeof s === "object") planMemo.set(s, { on, p, k: s.stageKey, n: h.length, out });
   return out;
 };
-const allOf = s => [...planOf(s), ...FINALS];
+// 21 Oct: a sample whose material all goes back with the results ends "Returned to the MET Lab", not "Returned to site / submitter"
+const finalsOf = s => s && allBack(s) ? FINALS.map(x => x.key === "returned" ? { ...x, name: backName(s) } : x) : FINALS;
+const allOf = s => [...planOf(s), ...finalsOf(s)];
 const stage = (s, key) => allOf(s).find(x => x.key === key) || null;
 const stageIdx = (s, key) => allOf(s).findIndex(x => x.key === key);
 const curIdx = s => planOf(s).findIndex(x => x.key === s.stageKey);
@@ -2736,7 +2751,7 @@ function stockOf(s){
 function materialsAt(s, relAt){
   const ret = s.retention && s.retention.length ? s.retention : [{ item: "Sample remainder", days: 30, then: "Disposed" }];
   return ret.map((x, i) => ({ k: "m" + (i + 1), item: x.item, days: +x.days || 0, then: x.then || "Disposed", dispo: dispoOf(x.then), status: "kept",
-    dueAt: relAt + (+x.days || 0) * 86400e3, loc: "", outs: 0 }));
+    dueAt: relAt + (+x.days || 0) * 86400e3, loc: "", outs: 0, ...(x.auto ? { auto: true } : {}) }));
 }
 function status(s){
   const st = stage(s, s.stageKey), i = stageIdx(s, s.stageKey), t = targetIdx(s), now = Date.now();
@@ -3246,7 +3261,7 @@ function buildTrack(v, s){
       else if (e){ cls = "done"; mark = "✓"; meta = x.key === "received" && by ? `Received by <b>${esc(by)}</b>, ${fmt(s.receivedAt || e.at)}` : `${fmt(e.at)}${by ? ` · ${esc(by)}` : ""}`; }
       else { cls = "skipped"; mark = "–"; meta = "Not recorded"; }
     } else {
-      meta = proj.out[x.key] ? `Expected ${fmt(proj.out[x.key])}` : x.phase === "store" ? `Each material kept for its own period after results` : `${hoursLabel(x.hours)} allowed`;
+      meta = proj.out[x.key] ? `Expected ${fmt(proj.out[x.key])}` : x.phase === "store" ? (allBack(s) ? "What is left goes back with the results" : `Each material kept for its own period after results`) : `${hoursLabel(x.hours)} allowed`;
     }
     return `<li class="${cls}"><span class="dot">${mark}</span><div><div class="st-name">${esc(x.name)}${x.redo && s.reassays ? ` <span class="pill warn">re-assayed ×${s.reassays}</span>` : ""}</div><div class="st-meta">${meta}</div>${note ? `<div class="st-note">${esc(note)}</div>` : ""}</div></li>`;
   }).join("");
@@ -3605,7 +3620,7 @@ async function act(fn, opts = {}){
   try {
     const s = await leased(docRef); if (!s) return false;
     if (!opts.anyStage && s.stageKey !== seen.stageKey){ toast(`${s.id} was just moved to ${stage(s, s.stageKey)?.name || s.stageKey} by ${lastTech(s)}. Check it and try again.`); return false; }
-    const res = withRelease(s, fn(s)); if (!res) return false;
+    const res = releaseReturns(s, withRelease(s, fn(s))); if (!res) return false;
     const { upd, moves = [], msg } = res;
     upd.updatedAt = Date.now();
     if (moves.length){ upd.ledgerPending = [...(s.ledgerPending || []), ...moves]; upd.lp = true; }
@@ -5729,11 +5744,30 @@ async function batchTrends(b, qc, p){
   return out;
 }
 /* Writes one sample under its lease from anywhere (batch actions). fn(s) returns the update, { upd, moves }, or null to skip. */
+/* 21 Oct: what a route sends back with the results (the MET Lab's remainder: auto) is recorded as returned in the same write as the release,
+   with its ledger movement; with nothing else kept the sample has left the lab and its workflow is complete. */
+function releaseReturns(s, res){
+  if (!res) return res;
+  const upd = res.upd || res;
+  if (!upd || !upd.relAt || upd.relAt === s.relAt || !Array.isArray(upd.materials) || !upd.materials.some(m => m && m.status === "kept" && m.auto)) return res;
+  const mats = clone(upd.materials), moves = [...(res.moves || [])], m0 = { ...s, ...upd }, at = upd.relAt + 1000, back = [];
+  for (const m of mats){
+    if (!m || m.status !== "kept" || !m.auto) continue;
+    m.outs = (m.outs || 0) + 1;
+    Object.assign(m, { status: m.dispo || "returned", outAt: at, outBy: session.u, outTech: session.name, outRef: "", outMid: `${s.id}~out~${m.k}~${m.outs}` });
+    moves.push(outMove(m0, at, m.status, m.item, "", m.then || "", m.outMid, "")); back.push(m);
+  }
+  const out = { ...upd, materials: mats };
+  if (!mats.some(x => x.status === "kept")){ const ds = new Set(mats.map(x => x.status)); Object.assign(out, { stageKey: ds.size === 1 ? [...ds][0] : "closed", stageAt: at, open: false, onHand: false, closedAt: at, location: "" }); }
+  const key = out.stageKey;
+  out.history = [...(upd.history || s.history || []), { key, sn: stage(m0, key)?.name || key, at, by: session.u, tech: session.name, ref: "", note: `${back.map(m => `${m.item}: ${lcFirst(m.then || DISPO[m.status] || "returned")}`).join("; ")}` }];
+  return res.upd ? { ...res, upd: out, moves } : { upd: out, moves };
+}
 async function sampleWrite(id, fn, after){
   const ref = db.doc("samples/" + skey(id));
   try {
     const s = await leased(ref, true); if (!s) return false;
-    const res = withRelease(s, fn(s)); if (!res) return false;
+    const res = releaseReturns(s, withRelease(s, fn(s))); if (!res) return false;
     const upd = res.upd || res, moves = res.moves || [];
     if (after) after(upd);   // v24d: lets the caller see what was written (was it released?)
     upd.updatedAt = Date.now();
@@ -8101,7 +8135,8 @@ function renderBatchView(v){
   const cool0 = waiting.filter(s => typeOf(s.typeKey)?.cool != null), gcool = cool0.filter(grouped), cool = cool0.filter(s => !grouped(s));
   const quick = [...waiting.filter(s => typeOf(s.typeKey)?.cool == null), ...gcool], two = quick.some(twoPerson), lim = Math.min(...gcool.map(s => typeOf(s.typeKey).cool));
   const tally = {}; docs.forEach(s => { const st = status(s); tally[st.label] = (tally[st.label] || 0) + 1; });
-  const done = docs.filter(s => curIdx(s) >= targetIdx(s)).length, etas = docs.filter(s => curIdx(s) < targetIdx(s) && !status(s).closed).map(s => projection(s).eta).filter(Boolean);
+  // released, then gone (the MET Lab's remainder back with the results) counts as released
+  const done = docs.filter(s => curIdx(s) >= targetIdx(s) || !!s.relAt).length, etas = docs.filter(s => curIdx(s) < targetIdx(s) && !status(s).closed).map(s => projection(s).eta).filter(Boolean);
   const eta = etas.length ? Math.max(...etas) : 0, srcCol = docs.some(s => s.source), mixed = new Set(docs.map(s => s.test)).size > 1 || new Set(docs.map(s => s.typeKey)).size > 1, ptCol = docs.some(ptOf);
   noteRecentBatch(c.batch, docs); pageTitle(c.batch);
   const codeCol = docs.some(ownCode);   // a job's samples have their codes as IDs: no second column of the same codes
@@ -9013,7 +9048,7 @@ function bwRail(st, ref){
         const dues = at.map(stageDue).filter(Boolean), due = dues.length ? Math.min(...dues) : 0;
         meta = `${nS(at.length)} here · started ${fmt(Math.min(...at.map(s => +s.stageAt || now)))}${due ? (now > due ? ` · <b style="color:var(--bad)">over the time allowed</b>` : ` · due ${fmt(due)}`) : ""}`;
       }
-    } else meta = x.phase === "store" ? "Each material kept for its own period after results" : `${hoursLabel(x.hours)} allowed`;
+    } else meta = x.phase === "store" ? (allBack(lead) ? "What is left goes back with the results" : "Each material kept for its own period after results") : `${hoursLabel(x.hours)} allowed`;
     const late = i === cur && i < ti && at.some(s => status(s).late);
     return `<li class="${done ? "done" : i === cur ? "current" + (late ? " late" : "") : "upcoming"}"><span class="dot">${done ? "✓" : ""}</span><div><div class="st-name">${esc(x.name)}</div><div class="st-meta">${meta}</div></div></li>`;
   }).join("")}</ol>`;
@@ -9071,18 +9106,22 @@ function bwPanel(c){
   const ref = c.batch, st = batchState(c.docs), edit = canEdit();
   const anyCert = c.docs.map(s => certOfBatch(s, ref)).filter(Boolean).sort((a, b) => (b.bv || 0) - (a.bv || 0))[0];
   const certLine = anyCert ? `<div class="row" style="gap:8px"><span class="pill ok">Released</span><b>Batch certificate ${esc(anyCert.no)}</b><span class="small muted">${fmtFull(anyCert.at)} by ${esc(anyCert.tech)}${anyCert.code ? ` · check code <span class="mono nw">${esc(anyCert.code)}</span>` : ""}</span><button type="button" class="btn small" data-bcert="${esc(ref)}">View certificate</button></div>` : "";
-  const solo = c.docs.filter(s => s.solo), out = c.docs.filter(s => !s.solo && !grouped(s));
+  // 21 Oct: released and gone (the MET Lab's remainder back with the results, or every material returned or disposed): complete, not "left"
+  const gone = s => !s.solo && !grouped(s) && !!s.relAt && s.open === false && ["returned", "disposed", "closed", "external", "archived"].includes(s.stageKey);
+  const solo = c.docs.filter(s => s.solo), done = c.docs.filter(gone), out = c.docs.filter(s => !s.solo && !grouped(s) && !gone(s));
   const asides = [st.lead && st.unrecv.length ? `Not received yet: ${idLinks(st.unrecv)}. They join the batch at its step once received.` : "",
     st.ahead?.length ? `Already further on, waiting for the batch: ${idLinks(st.ahead)}` : "",
     solo.length ? `Taken out of the batch, processed on their own: ${idLinks(solo)}` : "",
     out.length ? `Left the workflow (rejected, stopped or closed): ${idLinks(out)}` : ""].filter(Boolean);
-  const L = st.lead || st.mem?.[0];   // before receipt the route is the first sample's
+  const L = st.lead || st.mem?.[0] || done[0];   // before receipt the route is the first sample's; once all are gone, a released one's
   const head = n => `<h3>Workflow for the batch${L?.routeName ? `: ${esc(routeLabel(L))}` : ""} <span class="pill">${nS(n)} together</span></h3>`;
   if (!st.lead){
     if (st.mem.length){ const lead = st.mem[0];
       return `<div class="panel stack" id="bwBox">${head(st.mem.length)}${bwRail({ plan: planOf(lead), bi: 0, ti: targetIdx(lead), lead, at: st.mem, cur: 0 }, ref)}
         <p class="small muted" style="margin:0">${canEdit() ? `Receive the batch above: one receipt for all ${nS(st.mem.length)}. ` : ""}Then they go through the workflow together: one card on the board, every step recorded here for all of them at once.</p></div>`; }
-    return `<div class="panel stack" id="bwBox"><h3>Workflow for the batch</h3>${certLine}<p class="small muted" style="margin:0">No sample of this batch is in the lab's workflow any more.</p>${asides.length ? `<div class="small muted">${asides.join("<br>")}</div>` : ""}</div>`;
+    const outs = [...new Set(done.flatMap(s => (s.materials || []).filter(m => m.status !== "kept").map(m => `${lcFirst(m.item)}: ${lcFirst(m.then || DISPO[m.status] || m.status)}`)))];
+    const doneLine = done.length ? `<div class="row" style="gap:8px"><span class="pill ok">Workflow complete</span><span class="small muted">${nS(done.length)} released${outs.length ? `; ${esc(outs.join("; "))}` : ""}</span></div>` : "";
+    return `<div class="panel stack" id="bwBox">${head(done.length || c.docs.length).replace(/ <span class="pill">.*?<\/span>/, "")}${certLine}${doneLine || `<p class="small muted" style="margin:0">No sample of this batch is in the lab's workflow any more.</p>`}${asides.length ? `<div class="small muted">${asides.join("<br>")}</div>` : ""}</div>`;
   }
   const { plan, bi, ti, at, waiting } = st, two = at.some(twoPerson), next = plan[bi + 1], n = at.length;
   let act = "";
@@ -9617,7 +9656,7 @@ function jobDateFor(v){
 }
 const inGroup = (x, g) => x.group === g || (x.also || []).includes(g);
 /* A MET Lab job runs on the job route too; its workflow and certificate say so (a carbon activity sent by MET counts as MET's). */
-function isMetJob(s){ const T = s && s.job ? JOB_TPL.find(x => x.key === s.job) : null; return !!T && (T.group === "MET Lab" || (s.section === "MET" && inGroup(T, "MET Lab"))); }
+function isMetJob(s){ if (s && s.route === "MET-JOB") return true; const T = s && s.job ? JOB_TPL.find(x => x.key === s.job) : null; return !!T && (T.group === "MET Lab" || (s.section === "MET" && inGroup(T, "MET Lab"))); }
 function routeLabel(s, name){ const n = name ?? s?.routeName ?? ""; return s && s.route === "JOB" && s.job ? (isMetJob(s) ? "MET Lab job (one report)" : "Shift end (one report)") : n; }
 function jobGroup(v){
   const g = jobKindGroup(), tp = $("#jTpl", v || document); if (!tp || !job) return;
@@ -9662,7 +9701,8 @@ async function registerJob(){
     if (recvAt > now + 5 * 60000) return fail("The time received can't be in the future.", "#rRecvAt");
     if (rows.some(r => twoPerson({ typeKey: r.t, section: code }))){ $("#rWitBox").hidden = false; if (!(wit = val("#rWit"))) return fail("Two-person custody: choose the witness.", "#rWit"); }
   }
-  const JR = routeByCode("JOB"), T = jobTpl(job.tpl), S = JOB_SHIFT[job.shift] || JOB_SHIFT.N;
+  // 21 Oct: a MET Lab job sends its final samples, analysed as they come; what is left goes back to the MET Lab (route MET-JOB)
+  const MR = jobKindGroup() === "MET Lab" ? routeByCode("MET-JOB") : null, JR = MR || routeByCode("JOB"), T = jobTpl(job.tpl), S = JOB_SHIFT[job.shift] || JOB_SHIFT.N;
   const when = job.date ? fmtDate(fromInput(job.date + "T12:00")) : fmtDate(now);
   const batchName = `${T.name}${T.shift ? `, ${S.name.toLowerCase()}` : ""}, ${when}`;
   btn.disabled = true; msg.textContent = "Checking the codes…";
@@ -9675,7 +9715,7 @@ async function registerJob(){
       const t = typeOf(r.t), nat = routeFor(r.t, r.test, puK), route = JR || nat;
       if (!route) throw { code: "noroute", test: r.test };
       const rf = routeFields(route, r.test);
-      if (JR) Object.assign(rf, { retention: clone(nat?.retention || rf.retention), triggers: clone(nat?.triggers || []), qcg: [], qcp: "", qc: "", baseRoute: nat?.code || "" });
+      if (JR) Object.assign(rf, { retention: MR ? clone(rf.retention) : clone(nat?.retention || rf.retention), triggers: clone(nat?.triggers || []), qcg: [], qcp: "", qc: "", baseRoute: nat?.code || "" });
       return { r, t, rf };
     });
     const startName = per[0].rf.plan.find(x => x.key === start)?.name || "Submitted";
@@ -9991,6 +10031,8 @@ const BRT_NOTE = "Recovery by size = (feed − tails) ÷ feed for each fraction.
 function vzBarSlot(id, rows, o){ vzStore.set(id, { bars: rows, ...o }); return `<div class="vz-chart vz-barbox" id="${id}" aria-label="${esc(o.title)}"></div>`; }
 
 /* ---- the panels ---- */
+/* 21 Oct: worked out here for the MET Lab from the reported values; the certificate reports the assays only. */
+const MET_OWN = `<div class="small vz-own">The MET Lab's working, from the results: on this page only, not on the certificate.</div>`;
 function plantViews(docs){
   const items = vzItems(docs); let out = "";
   if (eluShows(items)){
@@ -10007,7 +10049,7 @@ function plantViews(docs){
   }
   if (tankShows(items)){
     const p = tankProfile(items), cs = tankCharts(p);
-    out += `<div class="panel stack vz" id="vzTank"><div><h3 style="margin:0">Tank profile</h3><div class="small muted">Gold in the solids and in solution from the pre-leach feed down the CIL tanks</div></div>
+    out += `<div class="panel stack vz" id="vzTank"><div><h3 style="margin:0">Tank profile</h3><div class="small muted">Gold in the solids and in solution from the pre-leach feed down the CIL tanks</div>${MET_OWN}</div>
       ${vzTilesHtml(tankTiles(p))}<div class="vz-pair">${cs.map((o, i) => `<div><div class="vz-ct-t">${esc(o.title)}</div>${vzSlot("vzTankC" + i, o)}</div>`).join("")}</div>
       <details class="vz-more" id="vzTankTbl"><summary>Values</summary><div class="tbl-wrap">${tankTable(p)}</div></details></div>`;
   }
@@ -10019,13 +10061,13 @@ function plantViews(docs){
   }
   if (brtShows(items)){
     const b = brtCalc(items), edit = canEdit(), rows = b.fr.map(x => ({ label: x.l, v: x.rec }));
-    out += `<div class="panel stack vz" id="vzBrt"><div><h3 style="margin:0">Bottle roll</h3><div class="small muted">Recovery by size from the feed and tails fractions${b.needM ? ". Type the fraction masses for the calculated head, tails and overall recovery." : ""}</div></div>
+    out += `<div class="panel stack vz" id="vzBrt"><div><h3 style="margin:0">Bottle roll</h3><div class="small muted">Recovery by size from the feed and tails fractions${b.needM ? ". Type the fraction masses for the calculated head, tails and overall recovery." : ""}</div>${MET_OWN}</div>
       ${vzTilesHtml(brtTiles(b))}<div><div class="vz-ct-t">Recovery by size</div>${vzBarSlot("vzBrtC", rows, { key: "brt" + rows.map(r => r.v).join(","), title: "Recovery by size fraction", L: 136 })}</div>
       <div class="tbl-wrap">${brtTable(b, edit)}</div>${edit ? `<div class="row"><button type="button" class="btn" id="brtSave">Save masses</button></div>` : ""}<div class="small muted">${esc(BRT_NOTE)}</div></div>`;
   }
   if (pregShows(items)){
     const p = pregCalc(items), rows = p.rows.map(r => ({ label: `${r.k}`, v: r.pri }));
-    out += `<div class="panel stack vz" id="vzPreg"><div><h3 style="margin:0">Preg-robbing</h3><div class="small muted">Each test against its control</div></div>
+    out += `<div class="panel stack vz" id="vzPreg"><div><h3 style="margin:0">Preg-robbing</h3><div class="small muted">Each test against its control</div>${MET_OWN}</div>
       ${vzTilesHtml(pregTiles(p))}<div><div class="vz-ct-t">Preg-robbing index by sample</div>${vzBarSlot("vzPregC", rows, { key: "preg" + rows.map(r => r.v).join(","), title: "Preg-robbing index by sample", L: 44 })}</div>
       <details class="vz-more" id="vzPregTbl"><summary>Values</summary><div class="tbl-wrap">${pregTable(p)}</div></details><div class="small muted">${esc(PREG_NOTE)}</div></div>`;
   }
@@ -10043,26 +10085,13 @@ function plantCert(mem){
     const o = { title: "Carbon activity: gold left in solution with each carbon", yunit: "mg/L", xunit: "min", xticks: CA_T, series: caSeries(ca) };
     out += `<div class="cert-fig vz"><h4 class="cert-sec">Carbon activity: gold left in solution (mg/L)</h4>${vzLegend(o.series)}${vzSvg(o, 680, 220).html}<div class="cert-note">${esc(caNote(ca))}</div></div>`;
   }
-  if (tankShows(items)){
-    const p = tankProfile(items);
-    out += `<div class="cert-fig vz"><h4 class="cert-sec">Tank profile</h4>${vzTilesHtml(tankTiles(p))}<div class="vz-pair">${tankCharts(p).map(o => `<div><div class="vz-ct-t">${esc(o.title)}</div>${vzSvg(o, 330, 200).html}</div>`).join("")}</div></div>`;
-  }
   const cb = carbonByTank(items);
   if (cb.length >= 3){
     const o = { title: "Gold on carbon tank by tank (g/t)", yunit: "g/t", xunit: "", zero: true, xticks: cb.map(x => x.t), xfmt: t => "T" + t, series: [{ label: "Au loading", color: "var(--vz-1)", pts: cb }] };
     out += `<div class="cert-fig vz"><h4 class="cert-sec">Carbon in the CIL tanks: gold on carbon (g/t)</h4>${vzSvg(o, 680, 200).html}</div>`;
   }
-  if (brtShows(items)){
-    // the certificate keeps to the lab's results: recovery by size from each fraction's grades (the masses are MET's, on the batch page)
-    const b = brtCalc(items);
-    out += `<div class="cert-fig vz"><h4 class="cert-sec">Bottle roll: recovery by size</h4><div class="tbl-wrap"><table class="cert-res"><thead><tr><th>Fraction</th><th>Feed AuFx (g/t)</th><th>Tails AuFx (g/t)</th><th>Recovery</th></tr></thead><tbody>
-      ${b.fr.map(x => `<tr><td>${esc(x.l)}</td><td class="mono"><b>${vzG(x.F)}</b></td><td class="mono"><b>${vzG(x.T)}</b></td><td class="mono"><b>${vzPct(x.rec)}</b></td></tr>`).join("")}</tbody></table></div>
-      ${vzBars(b.fr.map(x => ({ label: x.l, v: x.rec })), 680, { title: "Recovery by size fraction", L: 136 })}<div class="cert-note">Recovery by size = (feed − tails) ÷ feed for each fraction. −53A from wet sizing, −53B from dry sizing.${b.fil != null ? ` Filtrate: ${vzNum(b.fil)} mg/L gold in solution.` : ""}</div></div>`;
-  }
-  if (pregShows(items)){
-    const p = pregCalc(items);
-    out += `<div class="cert-fig vz"><h4 class="cert-sec">Preg-robbing${p.spike ? ` (spike ${esc(p.spike)} mg/L)` : ""}</h4><div class="tbl-wrap">${pregTable(p, "cert-res")}</div><div class="cert-note">${esc(PREG_NOTE)}</div></div>`;
-  }
+  // 21 Oct: the MET Lab's own working (tank profile, bottle roll recovery, preg-robbing index) is on the batch page only; the certificate
+  // reports the assays (Zuriel: "MET Lab jobs are done in the MET Lab, only final samples are submitted to the assay lab")
   return out;
 }
 

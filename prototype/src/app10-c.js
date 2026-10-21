@@ -166,7 +166,7 @@ function buildTrack(v, s){
       else if (e){ cls = "done"; mark = "✓"; meta = x.key === "received" && by ? `Received by <b>${esc(by)}</b>, ${fmt(s.receivedAt || e.at)}` : `${fmt(e.at)}${by ? ` · ${esc(by)}` : ""}`; }
       else { cls = "skipped"; mark = "–"; meta = "Not recorded"; }
     } else {
-      meta = proj.out[x.key] ? `Expected ${fmt(proj.out[x.key])}` : x.phase === "store" ? `Each material kept for its own period after results` : `${hoursLabel(x.hours)} allowed`;
+      meta = proj.out[x.key] ? `Expected ${fmt(proj.out[x.key])}` : x.phase === "store" ? (allBack(s) ? "What is left goes back with the results" : `Each material kept for its own period after results`) : `${hoursLabel(x.hours)} allowed`;
     }
     return `<li class="${cls}"><span class="dot">${mark}</span><div><div class="st-name">${esc(x.name)}${x.redo && s.reassays ? ` <span class="pill warn">re-assayed ×${s.reassays}</span>` : ""}</div><div class="st-meta">${meta}</div>${note ? `<div class="st-note">${esc(note)}</div>` : ""}</div></li>`;
   }).join("");
@@ -530,7 +530,7 @@ async function act(fn, opts = {}){
   try {
     const s = await leased(docRef); if (!s) return false;
     if (!opts.anyStage && s.stageKey !== seen.stageKey){ toast(`${s.id} was just moved to ${stage(s, s.stageKey)?.name || s.stageKey} by ${lastTech(s)}. Check it and try again.`); return false; }
-    const res = withRelease(s, fn(s)); if (!res) return false;
+    const res = releaseReturns(s, withRelease(s, fn(s))); if (!res) return false;
     const { upd, moves = [], msg } = res;
     upd.updatedAt = Date.now();
     if (moves.length){ upd.ledgerPending = [...(s.ledgerPending || []), ...moves]; upd.lp = true; }

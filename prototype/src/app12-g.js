@@ -710,11 +710,30 @@ async function batchTrends(b, qc, p){
   return out;
 }
 /* Writes one sample under its lease from anywhere (batch actions). fn(s) returns the update, { upd, moves }, or null to skip. */
+/* 21 Oct: what a route sends back with the results (the MET Lab's remainder: auto) is recorded as returned in the same write as the release,
+   with its ledger movement; with nothing else kept the sample has left the lab and its workflow is complete. */
+function releaseReturns(s, res){
+  if (!res) return res;
+  const upd = res.upd || res;
+  if (!upd || !upd.relAt || upd.relAt === s.relAt || !Array.isArray(upd.materials) || !upd.materials.some(m => m && m.status === "kept" && m.auto)) return res;
+  const mats = clone(upd.materials), moves = [...(res.moves || [])], m0 = { ...s, ...upd }, at = upd.relAt + 1000, back = [];
+  for (const m of mats){
+    if (!m || m.status !== "kept" || !m.auto) continue;
+    m.outs = (m.outs || 0) + 1;
+    Object.assign(m, { status: m.dispo || "returned", outAt: at, outBy: session.u, outTech: session.name, outRef: "", outMid: `${s.id}~out~${m.k}~${m.outs}` });
+    moves.push(outMove(m0, at, m.status, m.item, "", m.then || "", m.outMid, "")); back.push(m);
+  }
+  const out = { ...upd, materials: mats };
+  if (!mats.some(x => x.status === "kept")){ const ds = new Set(mats.map(x => x.status)); Object.assign(out, { stageKey: ds.size === 1 ? [...ds][0] : "closed", stageAt: at, open: false, onHand: false, closedAt: at, location: "" }); }
+  const key = out.stageKey;
+  out.history = [...(upd.history || s.history || []), { key, sn: stage(m0, key)?.name || key, at, by: session.u, tech: session.name, ref: "", note: `${back.map(m => `${m.item}: ${lcFirst(m.then || DISPO[m.status] || "returned")}`).join("; ")}` }];
+  return res.upd ? { ...res, upd: out, moves } : { upd: out, moves };
+}
 async function sampleWrite(id, fn, after){
   const ref = db.doc("samples/" + skey(id));
   try {
     const s = await leased(ref, true); if (!s) return false;
-    const res = withRelease(s, fn(s)); if (!res) return false;
+    const res = releaseReturns(s, withRelease(s, fn(s))); if (!res) return false;
     const upd = res.upd || res, moves = res.moves || [];
     if (after) after(upd);   // v24d: lets the caller see what was written (was it released?)
     upd.updatedAt = Date.now();

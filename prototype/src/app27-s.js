@@ -42,7 +42,7 @@ function bwRail(st, ref){
         const dues = at.map(stageDue).filter(Boolean), due = dues.length ? Math.min(...dues) : 0;
         meta = `${nS(at.length)} here · started ${fmt(Math.min(...at.map(s => +s.stageAt || now)))}${due ? (now > due ? ` · <b style="color:var(--bad)">over the time allowed</b>` : ` · due ${fmt(due)}`) : ""}`;
       }
-    } else meta = x.phase === "store" ? "Each material kept for its own period after results" : `${hoursLabel(x.hours)} allowed`;
+    } else meta = x.phase === "store" ? (allBack(lead) ? "What is left goes back with the results" : "Each material kept for its own period after results") : `${hoursLabel(x.hours)} allowed`;
     const late = i === cur && i < ti && at.some(s => status(s).late);
     return `<li class="${done ? "done" : i === cur ? "current" + (late ? " late" : "") : "upcoming"}"><span class="dot">${done ? "✓" : ""}</span><div><div class="st-name">${esc(x.name)}</div><div class="st-meta">${meta}</div></div></li>`;
   }).join("")}</ol>`;
@@ -100,18 +100,22 @@ function bwPanel(c){
   const ref = c.batch, st = batchState(c.docs), edit = canEdit();
   const anyCert = c.docs.map(s => certOfBatch(s, ref)).filter(Boolean).sort((a, b) => (b.bv || 0) - (a.bv || 0))[0];
   const certLine = anyCert ? `<div class="row" style="gap:8px"><span class="pill ok">Released</span><b>Batch certificate ${esc(anyCert.no)}</b><span class="small muted">${fmtFull(anyCert.at)} by ${esc(anyCert.tech)}${anyCert.code ? ` · check code <span class="mono nw">${esc(anyCert.code)}</span>` : ""}</span><button type="button" class="btn small" data-bcert="${esc(ref)}">View certificate</button></div>` : "";
-  const solo = c.docs.filter(s => s.solo), out = c.docs.filter(s => !s.solo && !grouped(s));
+  // 21 Oct: released and gone (the MET Lab's remainder back with the results, or every material returned or disposed): complete, not "left"
+  const gone = s => !s.solo && !grouped(s) && !!s.relAt && s.open === false && ["returned", "disposed", "closed", "external", "archived"].includes(s.stageKey);
+  const solo = c.docs.filter(s => s.solo), done = c.docs.filter(gone), out = c.docs.filter(s => !s.solo && !grouped(s) && !gone(s));
   const asides = [st.lead && st.unrecv.length ? `Not received yet: ${idLinks(st.unrecv)}. They join the batch at its step once received.` : "",
     st.ahead?.length ? `Already further on, waiting for the batch: ${idLinks(st.ahead)}` : "",
     solo.length ? `Taken out of the batch, processed on their own: ${idLinks(solo)}` : "",
     out.length ? `Left the workflow (rejected, stopped or closed): ${idLinks(out)}` : ""].filter(Boolean);
-  const L = st.lead || st.mem?.[0];   // before receipt the route is the first sample's
+  const L = st.lead || st.mem?.[0] || done[0];   // before receipt the route is the first sample's; once all are gone, a released one's
   const head = n => `<h3>Workflow for the batch${L?.routeName ? `: ${esc(routeLabel(L))}` : ""} <span class="pill">${nS(n)} together</span></h3>`;
   if (!st.lead){
     if (st.mem.length){ const lead = st.mem[0];
       return `<div class="panel stack" id="bwBox">${head(st.mem.length)}${bwRail({ plan: planOf(lead), bi: 0, ti: targetIdx(lead), lead, at: st.mem, cur: 0 }, ref)}
         <p class="small muted" style="margin:0">${canEdit() ? `Receive the batch above: one receipt for all ${nS(st.mem.length)}. ` : ""}Then they go through the workflow together: one card on the board, every step recorded here for all of them at once.</p></div>`; }
-    return `<div class="panel stack" id="bwBox"><h3>Workflow for the batch</h3>${certLine}<p class="small muted" style="margin:0">No sample of this batch is in the lab's workflow any more.</p>${asides.length ? `<div class="small muted">${asides.join("<br>")}</div>` : ""}</div>`;
+    const outs = [...new Set(done.flatMap(s => (s.materials || []).filter(m => m.status !== "kept").map(m => `${lcFirst(m.item)}: ${lcFirst(m.then || DISPO[m.status] || m.status)}`)))];
+    const doneLine = done.length ? `<div class="row" style="gap:8px"><span class="pill ok">Workflow complete</span><span class="small muted">${nS(done.length)} released${outs.length ? `; ${esc(outs.join("; "))}` : ""}</span></div>` : "";
+    return `<div class="panel stack" id="bwBox">${head(done.length || c.docs.length).replace(/ <span class="pill">.*?<\/span>/, "")}${certLine}${doneLine || `<p class="small muted" style="margin:0">No sample of this batch is in the lab's workflow any more.</p>`}${asides.length ? `<div class="small muted">${asides.join("<br>")}</div>` : ""}</div>`;
   }
   const { plan, bi, ti, at, waiting } = st, two = at.some(twoPerson), next = plan[bi + 1], n = at.length;
   let act = "";

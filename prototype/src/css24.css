@@ -331,3 +331,5 @@ ol.rail li.done.stop .dot{background:var(--bad);border-color:var(--bad)}
 body.wall .stats.tiles.fit{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
 .lanes{align-items:start}
 .job-step .tbl-wrap{margin-top:10px}
+/* 21 Oct: the MET Lab's working on the batch page is marked as its own (not on the certificate) */
+.vz-own{display:inline-block;margin-top:4px;padding:2px 8px;border-radius:999px;background:var(--c-violet-soft);color:var(--c-violet);font-size:13px}

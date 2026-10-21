@@ -111,7 +111,7 @@ const by = (j, c) => doc(j.ids[j.tags.indexOf(c)]);
   const tp = await Tc.$$eval("#vzTank .vz-chart", cs => cs.map(c => c.querySelectorAll(".vz-ser circle").length + ":" + [...c.querySelectorAll(".vz-tick")].filter(t => /^(Feed|T\d+)$/.test(t.textContent)).length));
   check(tp.join(",") === "12:12,12:12", "two charts side by side, feed and T1 to T11: " + tp.join(","));
   await Tc.click("[data-bcert]"); await Tc.waitForSelector("#certBox .cert"); await Tc.waitForTimeout(200);
-  check((await Tc.$$("#certBox .cert-fig .vz-pair svg")).length === 2 && /Leach efficiency/.test(await text(Tc, "#certBox .cert-fig")), "the certificate carries the tank profile"); await Tc.click("#certClose");
+  check(!(await Tc.$$("#certBox .cert-fig .vz-pair svg")).length && !/Leach efficiency/.test(await text(Tc, "#certBox")) && /MLSPTK/.test(await text(Tc, "#certBox")), "the certificate reports the assays; the tank profile's working is the MET Lab's, on the batch page (21 Oct)"); await Tc.click("#certClose");
 
   log("Bottle roll: recovery by size, and with the masses the calculated head, tails and overall recovery");
   await jobForm(Tc, "met", "brt", "2026-10-22");
@@ -141,8 +141,8 @@ const by = (j, c) => doc(j.ids[j.tags.indexOf(c)]);
   check(new RegExp(`-53 µm, dry sizing.*${pct(20 * 6.24 / mF.reduce((a, m, i) => a + m * F[i], 0) * 100)}`.replace("-53", "−53")).test(bv), "and where the gold sits in the feed, fraction by fraction");
   check((await Tc.$$eval("#vzBrtC .vz-bar", b => b.length)) === 8, "recovery by size as bars");
   await Tc.click("[data-bcert]"); await Tc.waitForSelector("#certBox .cert"); await Tc.waitForTimeout(200);
-  const bc = await text(Tc, "#certBox .cert-fig");
-  check(/Bottle roll: recovery by size/.test(bc) && new RegExp(`\\+425 µm\\s*9\\.60\\s*1\\.36\\s*${pct((9.6 - 1.36) / 9.6 * 100)}`).test(bc) && !/Calculated head/.test(bc), "the certificate keeps to the lab's results: recovery by size from the grades (the masses are MET's)");
+  const bc = await text(Tc, "#certBox");
+  check(!/Bottle roll: recovery by size|Calculated head/.test(bc) && /MLABPF\+425/.test(bc), "the certificate reports the assays; the recovery is the MET Lab's working, on the batch page (21 Oct)");
   await Tc.click("#certClose");
 
   log("Preg-robbing test: each sample against its control");
@@ -163,7 +163,7 @@ const by = (j, c) => doc(j.ids[j.tags.indexOf(c)]);
   await Tc.click("#vzPregTbl summary");
   check(new RegExp(`01\\s*MLABPREG0120261022\\s*0\\.500\\s*MLABPREG0420261022\\s*2\\.40\\s*${pct(pri[0])}`).test(await text(Tc, "#vzPregTbl")), "sample 01: its test, its control, its index");
   await Tc.click("[data-bcert]"); await Tc.waitForSelector("#certBox .cert"); await Tc.waitForTimeout(200);
-  check(/Preg-robbing \(spike 2\.5 mg\/L\)/.test(await text(Tc, "#certBox")) && new RegExp(pct(pri[1])).test(await text(Tc, "#certBox .cert-fig")), "the certificate gives each index"); await Tc.click("#certClose");
+  check(!/Preg-robbing \(spike/.test(await text(Tc, "#certBox")) && /MLABPREG/.test(await text(Tc, "#certBox")), "the certificate reports the assays; the index is the MET Lab's working, on the batch page (21 Oct)"); await Tc.click("#certClose");
 
   log("QA/QC set: reported as it is");
   await jobForm(Tc, "met", "qaqc", "2026-10-22");

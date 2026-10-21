@@ -427,7 +427,8 @@ function renderBatchView(v){
   const cool0 = waiting.filter(s => typeOf(s.typeKey)?.cool != null), gcool = cool0.filter(grouped), cool = cool0.filter(s => !grouped(s));
   const quick = [...waiting.filter(s => typeOf(s.typeKey)?.cool == null), ...gcool], two = quick.some(twoPerson), lim = Math.min(...gcool.map(s => typeOf(s.typeKey).cool));
   const tally = {}; docs.forEach(s => { const st = status(s); tally[st.label] = (tally[st.label] || 0) + 1; });
-  const done = docs.filter(s => curIdx(s) >= targetIdx(s)).length, etas = docs.filter(s => curIdx(s) < targetIdx(s) && !status(s).closed).map(s => projection(s).eta).filter(Boolean);
+  // released, then gone (the MET Lab's remainder back with the results) counts as released
+  const done = docs.filter(s => curIdx(s) >= targetIdx(s) || !!s.relAt).length, etas = docs.filter(s => curIdx(s) < targetIdx(s) && !status(s).closed).map(s => projection(s).eta).filter(Boolean);
   const eta = etas.length ? Math.max(...etas) : 0, srcCol = docs.some(s => s.source), mixed = new Set(docs.map(s => s.test)).size > 1 || new Set(docs.map(s => s.typeKey)).size > 1, ptCol = docs.some(ptOf);
   noteRecentBatch(c.batch, docs); pageTitle(c.batch);
   const codeCol = docs.some(ownCode);   // a job's samples have their codes as IDs: no second column of the same codes

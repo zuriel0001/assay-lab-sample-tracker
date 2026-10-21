@@ -229,6 +229,8 @@ const BRT_NOTE = "Recovery by size = (feed − tails) ÷ feed for each fraction.
 function vzBarSlot(id, rows, o){ vzStore.set(id, { bars: rows, ...o }); return `<div class="vz-chart vz-barbox" id="${id}" aria-label="${esc(o.title)}"></div>`; }
 
 /* ---- the panels ---- */
+/* 21 Oct: worked out here for the MET Lab from the reported values; the certificate reports the assays only. */
+const MET_OWN = `<div class="small vz-own">The MET Lab's working, from the results: on this page only, not on the certificate.</div>`;
 function plantViews(docs){
   const items = vzItems(docs); let out = "";
   if (eluShows(items)){
@@ -245,7 +247,7 @@ function plantViews(docs){
   }
   if (tankShows(items)){
     const p = tankProfile(items), cs = tankCharts(p);
-    out += `<div class="panel stack vz" id="vzTank"><div><h3 style="margin:0">Tank profile</h3><div class="small muted">Gold in the solids and in solution from the pre-leach feed down the CIL tanks</div></div>
+    out += `<div class="panel stack vz" id="vzTank"><div><h3 style="margin:0">Tank profile</h3><div class="small muted">Gold in the solids and in solution from the pre-leach feed down the CIL tanks</div>${MET_OWN}</div>
       ${vzTilesHtml(tankTiles(p))}<div class="vz-pair">${cs.map((o, i) => `<div><div class="vz-ct-t">${esc(o.title)}</div>${vzSlot("vzTankC" + i, o)}</div>`).join("")}</div>
       <details class="vz-more" id="vzTankTbl"><summary>Values</summary><div class="tbl-wrap">${tankTable(p)}</div></details></div>`;
   }
@@ -257,13 +259,13 @@ function plantViews(docs){
   }
   if (brtShows(items)){
     const b = brtCalc(items), edit = canEdit(), rows = b.fr.map(x => ({ label: x.l, v: x.rec }));
-    out += `<div class="panel stack vz" id="vzBrt"><div><h3 style="margin:0">Bottle roll</h3><div class="small muted">Recovery by size from the feed and tails fractions${b.needM ? ". Type the fraction masses for the calculated head, tails and overall recovery." : ""}</div></div>
+    out += `<div class="panel stack vz" id="vzBrt"><div><h3 style="margin:0">Bottle roll</h3><div class="small muted">Recovery by size from the feed and tails fractions${b.needM ? ". Type the fraction masses for the calculated head, tails and overall recovery." : ""}</div>${MET_OWN}</div>
       ${vzTilesHtml(brtTiles(b))}<div><div class="vz-ct-t">Recovery by size</div>${vzBarSlot("vzBrtC", rows, { key: "brt" + rows.map(r => r.v).join(","), title: "Recovery by size fraction", L: 136 })}</div>
       <div class="tbl-wrap">${brtTable(b, edit)}</div>${edit ? `<div class="row"><button type="button" class="btn" id="brtSave">Save masses</button></div>` : ""}<div class="small muted">${esc(BRT_NOTE)}</div></div>`;
   }
   if (pregShows(items)){
     const p = pregCalc(items), rows = p.rows.map(r => ({ label: `${r.k}`, v: r.pri }));
-    out += `<div class="panel stack vz" id="vzPreg"><div><h3 style="margin:0">Preg-robbing</h3><div class="small muted">Each test against its control</div></div>
+    out += `<div class="panel stack vz" id="vzPreg"><div><h3 style="margin:0">Preg-robbing</h3><div class="small muted">Each test against its control</div>${MET_OWN}</div>
       ${vzTilesHtml(pregTiles(p))}<div><div class="vz-ct-t">Preg-robbing index by sample</div>${vzBarSlot("vzPregC", rows, { key: "preg" + rows.map(r => r.v).join(","), title: "Preg-robbing index by sample", L: 44 })}</div>
       <details class="vz-more" id="vzPregTbl"><summary>Values</summary><div class="tbl-wrap">${pregTable(p)}</div></details><div class="small muted">${esc(PREG_NOTE)}</div></div>`;
   }
@@ -281,25 +283,12 @@ function plantCert(mem){
     const o = { title: "Carbon activity: gold left in solution with each carbon", yunit: "mg/L", xunit: "min", xticks: CA_T, series: caSeries(ca) };
     out += `<div class="cert-fig vz"><h4 class="cert-sec">Carbon activity: gold left in solution (mg/L)</h4>${vzLegend(o.series)}${vzSvg(o, 680, 220).html}<div class="cert-note">${esc(caNote(ca))}</div></div>`;
   }
-  if (tankShows(items)){
-    const p = tankProfile(items);
-    out += `<div class="cert-fig vz"><h4 class="cert-sec">Tank profile</h4>${vzTilesHtml(tankTiles(p))}<div class="vz-pair">${tankCharts(p).map(o => `<div><div class="vz-ct-t">${esc(o.title)}</div>${vzSvg(o, 330, 200).html}</div>`).join("")}</div></div>`;
-  }
   const cb = carbonByTank(items);
   if (cb.length >= 3){
     const o = { title: "Gold on carbon tank by tank (g/t)", yunit: "g/t", xunit: "", zero: true, xticks: cb.map(x => x.t), xfmt: t => "T" + t, series: [{ label: "Au loading", color: "var(--vz-1)", pts: cb }] };
     out += `<div class="cert-fig vz"><h4 class="cert-sec">Carbon in the CIL tanks: gold on carbon (g/t)</h4>${vzSvg(o, 680, 200).html}</div>`;
   }
-  if (brtShows(items)){
-    // the certificate keeps to the lab's results: recovery by size from each fraction's grades (the masses are MET's, on the batch page)
-    const b = brtCalc(items);
-    out += `<div class="cert-fig vz"><h4 class="cert-sec">Bottle roll: recovery by size</h4><div class="tbl-wrap"><table class="cert-res"><thead><tr><th>Fraction</th><th>Feed AuFx (g/t)</th><th>Tails AuFx (g/t)</th><th>Recovery</th></tr></thead><tbody>
-      ${b.fr.map(x => `<tr><td>${esc(x.l)}</td><td class="mono"><b>${vzG(x.F)}</b></td><td class="mono"><b>${vzG(x.T)}</b></td><td class="mono"><b>${vzPct(x.rec)}</b></td></tr>`).join("")}</tbody></table></div>
-      ${vzBars(b.fr.map(x => ({ label: x.l, v: x.rec })), 680, { title: "Recovery by size fraction", L: 136 })}<div class="cert-note">Recovery by size = (feed − tails) ÷ feed for each fraction. −53A from wet sizing, −53B from dry sizing.${b.fil != null ? ` Filtrate: ${vzNum(b.fil)} mg/L gold in solution.` : ""}</div></div>`;
-  }
-  if (pregShows(items)){
-    const p = pregCalc(items);
-    out += `<div class="cert-fig vz"><h4 class="cert-sec">Preg-robbing${p.spike ? ` (spike ${esc(p.spike)} mg/L)` : ""}</h4><div class="tbl-wrap">${pregTable(p, "cert-res")}</div><div class="cert-note">${esc(PREG_NOTE)}</div></div>`;
-  }
+  // 21 Oct: the MET Lab's own working (tank profile, bottle roll recovery, preg-robbing index) is on the batch page only; the certificate
+  // reports the assays (Zuriel: "MET Lab jobs are done in the MET Lab, only final samples are submitted to the assay lab")
   return out;
 }
