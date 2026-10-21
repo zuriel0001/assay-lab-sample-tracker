@@ -406,6 +406,34 @@ October, on the day the server began asking a witness for every new disposal). E
 93, v12 71, v13 26, v14 27, v15 46, v16 42, v17 25, v20 71, v21 61, v22 29, v23 53, v24 89, v25 116, v26 31, v27 32, v28 46, review 41 + 5,
 hours 7, work hours 14), no console errors.
 
+**21 October, 04:43 (Zuriel): "why this … warning every time, though I attached a correct file. Also change the name Shift Job to Shift
+End, and when submitting samples under Shift end or MET job, the Section … should display only the applicable sections … MET jobs come from
+the Met department. Shift end comes from PP … read through the site and fix everything".**
+- **Why the warning**: the tank profile report's codes were dated 19 October, the batch's were made with 20 October (before 6 am the form's
+  date on the codes was the day before). No code matched, and the reader then took the report's letterhead row (the lab's name, phone and
+  dates) for its first reading and said the file did not name its samples.
+  - The reader skips a letterhead: a row counts as the first reading only when its cell looks like a sample code (# and + included).
+  - A file naming none of the batch's samples says so and lists what it names; Save waits until the technician ticks *Keep it as the
+    results anyway*.
+  - Codes that are the batch's with another date in them: the dialog says so (the date in the file and here) and reads them as the batch's
+    with one button, *Read the file's codes as this batch's*; each record notes the file's code. Offered too when only some differ (the
+    activity sheet's dated carbons beside the virgin carbon); Save waits for the choice.
+  - Checked locally with every report the lab sent (Mill shift day and night, elution run, tank profile, bottle roll, preg-robbing, QA/QC
+    set, activity sheet), each on codes of another date: all read.
+- **Shift job is now Shift end** (the choice, its samples' heading, the workflow *Shift end (one report)*); the route reads *Shift end or MET
+  Lab job (one report)*, a copy saved under the old name too.
+- **Section** under Shift end lists only the process plant (PLT, or a section coded PP or named Process plant), under MET Lab job only the
+  MET Lab, chosen for the submitter; back on a single sample or a batch the sample type's sections return. *What it is for* lists what the
+  job's samples can be sent for. A section account sees only the kinds its section sends.
+- **Date on the codes**: today for a template without a shift (elution run, the MET Lab's jobs), a shift's start for a shift's template;
+  kept once changed by hand.
+- Found while checking: an elution run's codes (MLSPE06020261023: letters and eleven digits) were rewritten as a site ID (MLSPE-06020261-0023)
+  when searched or clicked, and the page then went on looking for ever. A site ID is now read only with a real date (and all twelve digits
+  when typed without dashes), and a code found by search opens as it is. Scanning bags to receive several matches codes in any case, with or
+  without their space. A batch's workflow names its route before receipt too.
+Tests: new `v29-tests.js` (**29 PASS**); `v28-tests.js` expects Shift end; `v26-tests.js`'s activity report codes its loaded carbon the day
+before, as the template does (it had the day of the strip, which is now offered as another date).
+
 **20 October, 19:41–20:18 (Zuriel): "there are 11 CIL tanks … 11 tanks should be used in developing the site and codes … There are also
 samples from 'MET Lab' to the assay Lab"**, with the MET Lab's tank profile, bottle roll, preg-robbing and QA/QC reports and an activity
 sheet; then "MET Lab group under Submit should be independent". (`app28-t.js`, `app29-u.js`)

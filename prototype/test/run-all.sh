@@ -1,7 +1,7 @@
 #!/bin/sh
 # Runs every browser suite one at a time and prints one line per suite. Usage: sh run-all.sh [suite ...]
 cd "$(dirname "$0")"
-S=${*:-"v28-tests v27-tests v26-tests v25-tests v24-tests v23-tests v22-tests v21-tests v20-tests v18-tests v17-tests v16-tests v15-tests v14-tests hours-shortcut-tests run results-tests v12-tests v13-tests review-tests-v11 review-v11-scenarios"}
+S=${*:-"v29-tests v28-tests v27-tests v26-tests v25-tests v24-tests v23-tests v22-tests v21-tests v20-tests v18-tests v17-tests v16-tests v15-tests v14-tests hours-shortcut-tests run results-tests v12-tests v13-tests review-tests-v11 review-v11-scenarios"}
 for s in $S; do
   [ -f $s.js ] || continue
   NODE_PATH=$(npm root -g) timeout 590 node $s.js > out-$s.txt 2>&1; ec=$?

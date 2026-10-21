@@ -438,6 +438,7 @@ function renderStages(){
 
 function refreshRegisterOptions(){
   const sel = $("#rSection"); if (!sel) return;
+  if (isJobKind(formKind())){ jobSections(); return; }
   const keep = sel.value;
   sel.innerHTML = `<option value="">Choose…</option>` + sectionOptions($("#rType")?.value || "");
   sel.value = keep;

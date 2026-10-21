@@ -105,7 +105,8 @@ function bwPanel(c){
     st.ahead?.length ? `Already further on, waiting for the batch: ${idLinks(st.ahead)}` : "",
     solo.length ? `Taken out of the batch, processed on their own: ${idLinks(solo)}` : "",
     out.length ? `Left the workflow (rejected, stopped or closed): ${idLinks(out)}` : ""].filter(Boolean);
-  const head = n => `<h3>Workflow for the batch${st.lead?.routeName ? `: ${esc(routeLabel(st.lead))}` : ""} <span class="pill">${nS(n)} together</span></h3>`;
+  const L = st.lead || st.mem?.[0];   // before receipt the route is the first sample's
+  const head = n => `<h3>Workflow for the batch${L?.routeName ? `: ${esc(routeLabel(L))}` : ""} <span class="pill">${nS(n)} together</span></h3>`;
   if (!st.lead){
     if (st.mem.length){ const lead = st.mem[0];
       return `<div class="panel stack" id="bwBox">${head(st.mem.length)}${bwRail({ plan: planOf(lead), bi: 0, ti: targetIdx(lead), lead, at: st.mem, cur: 0 }, ref)}

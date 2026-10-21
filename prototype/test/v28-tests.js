@@ -51,16 +51,16 @@ const by = (j, c) => doc(j.ids[j.tags.indexOf(c)]);
 
   log("Submit: MET Lab job is a choice of its own");
   await H.tab(Tc, "submit");
-  check((await Tc.$$eval('input[name="rKind"]', rs => rs.map(r => r.value))).join(",") === "single,batch,job,met" && /MET Lab job/.test(await text(Tc, "#regForm .seg")), "Single sample, Batch, Shift job, MET Lab job");
+  check((await Tc.$$eval('input[name="rKind"]', rs => rs.map(r => r.value))).join(",") === "single,batch,job,met" && /MET Lab job/.test(await text(Tc, "#regForm .seg")), "Single sample, Batch, Shift end, MET Lab job");
   await Tc.check('input[name="rKind"][value="job"]'); await Tc.waitForTimeout(200);
-  check((await opts(Tc, "#jTpl")).join(",") === "mill,elution,cact" && /Shift samples/.test(await text(Tc, "#rJob .sub-t")) && await Tc.inputValue("#rPurpose") === "plant" && await Tc.inputValue("#rSection") === "PLT", "Shift job: the plant's templates, process control from PLT");
+  check((await opts(Tc, "#jTpl")).join(",") === "mill,elution,cact" && /Shift end samples/.test(await text(Tc, "#rJob .sub-t")) && await Tc.inputValue("#rPurpose") === "plant" && await Tc.inputValue("#rSection") === "PLT", "Shift end: the plant's templates, process control from PLT");
   await Tc.check('input[name="rKind"][value="met"]'); await Tc.waitForTimeout(200);
   check((await opts(Tc, "#jTpl")).join(",") === "cact,tank,brt,preg,qaqc" && /MET Lab samples/.test(await text(Tc, "#rJob .sub-t")) && await Tc.inputValue("#rSection") === "MET", "MET Lab job: Carbon activity, Tank profile, Bottle roll, Preg-robbing test, QA/QC set, from MET");
   const pur = {};
   for (const t of ["tank", "brt", "preg", "qaqc"]){ await Tc.selectOption("#jTpl", t); await Tc.waitForTimeout(120); pur[t] = await Tc.inputValue("#rPurpose") + "/" + await Tc.inputValue("#rSection"); }
   check(pur.tank === "plant/MET" && pur.brt === "met_br/MET" && pur.preg === "met_pri/MET" && pur.qaqc === "qc/MET", "each template's purpose: " + JSON.stringify(pur));
   await Tc.check('input[name="rKind"][value="job"]'); await Tc.waitForTimeout(200);
-  check(await Tc.inputValue("#jTpl") === "mill" && await Tc.inputValue("#rPurpose") === "plant" && await Tc.inputValue("#rSection") === "PLT", "back to Shift job: the Mill shift again, from PLT");
+  check(await Tc.inputValue("#jTpl") === "mill" && await Tc.inputValue("#rPurpose") === "plant" && await Tc.inputValue("#rSection") === "PLT", "back to Shift end: the Mill shift again, from PLT");
 
   log("The 11 CIL tanks: carbon from each on the Mill shift, drawn tank by tank");
   await jobForm(Tc, "job", "mill", "2026-10-22", "N"); await Tc.fill("#jN_n1", "50"); await Tc.fill("#jN_n2", "51"); await Tc.waitForTimeout(100);

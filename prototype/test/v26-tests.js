@@ -136,7 +136,7 @@ const live = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => v
   check(cids.length === 4 && cids.every(id => doc(id).test === "c_act" && doc(id).typeKey === "carbon"), "4 carbon samples for the activity test");
   await open(Tc, cref); await Tc.check("#bvOk"); await Tc.click("#bvRecvBtn"); await waitFor(() => cids.every(id => doc(id).stageKey === "received"), 10000); await open(Tc, cref);
   const ca0 = [",,SOLCA-0000,SOLCA-0015,SOLCA-0030,SOLCA-0045,SOLCA-0060,SOLCA-0120", ",,1,1,1,1,1,1", ",,mg/L,mg/L,mg/L,mg/L,mg/L,mg/L", "Sample,Description,Au CA-00,Au CA-15,Au CA-30,Au CA-45,Au CA-60,Au CA-120",
-    "MLDSCBRG20261018,regen,10.00,9.00,8.00,7.50,7.00,6.00", "MLSCBST20261018#31,stripped,10.00,9.10,8.60,8.40,7.80,6.50", "MLSCBLD20261018#31,loaded,10.00,9.30,9.00,8.70,8.20,7.70", "Supplier virgin carbon,virgin,10.00,8.40,7.80,7.10,6.30,5.20"].join("\n") + "\n";
+    "MLDSCBRG20261018,regen,10.00,9.00,8.00,7.50,7.00,6.00", "MLSCBST20261018#31,stripped,10.00,9.10,8.60,8.40,7.80,6.50", "MLSCBLD20261017#31,loaded,10.00,9.30,9.00,8.70,8.20,7.70", "Supplier virgin carbon,virgin,10.00,8.40,7.80,7.10,6.30,5.20"].join("\n") + "\n";
   await H.attachFile(Tc, `sub:${cref}`, "activity.csv", Buffer.from(ca0)); await H.saveAttach(Tc); await waitFor(() => cids.every(id => (doc(id).certs || []).length), 15000);
   const rg = live(doc(cids[0]).results.rows);
   check(rg.ca0 === "10.00" && rg.ca120 === "6.00" && live(doc(cids[3]).results.rows).ca60 === "6.30", "the activity readings at 0 to 120 min read by their column names (Au CA-00 … Au CA-120)");

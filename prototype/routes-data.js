@@ -956,9 +956,9 @@ const DEFAULT_ROUTES = [
     retention: [{ item: "Carbon sample", days: 30, then: "Returned to gold room" }] },
   /* v24d: a shift's samples submitted together (a job): received, analysed and released together with the lab's report for the job. Each
      sample keeps its own analysis, results, limits and retention; the job only shares the steps. Not chosen for a sample on its own. */
-  { code: "JOB", job: true, transit: 2, name: "Plant shift job (one report)", tests: ["aufx_ausx", "aufx", "ausx", "aufx_ausx_cn", "ausx_cn", "cn_only", "c_load", "c_act", "elu_sol", "psd"],
+  { code: "JOB", job: true, transit: 2, name: "Shift end or MET Lab job (one report)", tests: ["aufx_ausx", "aufx", "ausx", "aufx_ausx_cn", "ausx_cn", "cn_only", "c_load", "c_act", "elu_sol", "psd"],
     types: ["plant_feed", "ccd", "tsf", "carbon", "elution"], purposes: ["plant", "recon", "met"],
-    desc: "The samples of one shift (mill, CCD, TSF, carbon, elution), received together, analysed, and released together when the lab's report for the job is attached.",
+    desc: "The samples of one shift end (mill, CCD, TSF, carbon, elution) or one MET Lab job (tank profile, bottle roll, preg-robbing, QA/QC set, carbon activity), received together, analysed, and released together when the lab's report for the job is attached.",
     stages: [S("lab", "In analysis", 12, "test", "Preparation and analysis of every sample of the job; the report gives all the results.")],
     retention: [{ item: "Sample remainder", days: 30, then: "Disposed" }] },
   { code: "ELU-AUSX", transit: 2, name: "Elution solution: AuSx, AgSx & Cu", tests: ["elu_sol"], types: ["elution"], purposes: ["plant", "recon", "met"],

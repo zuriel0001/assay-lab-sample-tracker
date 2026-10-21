@@ -293,8 +293,8 @@ let bRows = [{ code: "", src: "" }, { code: "", src: "" }];
 const formKind = () => document.querySelector('input[name="rKind"]:checked')?.value || "single";
 const isJobKind = k => k === "job" || k === "met";   // v24d: a plant shift job, or (20 Oct) a MET Lab job: the same list of samples, its own templates
 function kindPicker(){
-  const k = ["batch", "job", "met"].includes(lsGet("regKind")) ? lsGet("regKind") : "single";
-  return `<div class="seg" role="radiogroup" aria-label="Samples"><label><input type="radio" name="rKind" value="single" ${k === "single" ? "checked" : ""}><span>Single sample</span></label><label><input type="radio" name="rKind" value="batch" ${k === "batch" ? "checked" : ""}><span>Batch</span></label><label><input type="radio" name="rKind" value="job" ${k === "job" ? "checked" : ""}><span>Shift job</span></label><label><input type="radio" name="rKind" value="met" ${k === "met" ? "checked" : ""}><span>MET Lab job</span></label></div>`;
+  const k0 = ["batch", "job", "met"].includes(lsGet("regKind")) ? lsGet("regKind") : "single", k = isJobKind(k0) && !kindFor(k0, mySec()) ? "single" : k0;
+  return `<div class="seg" role="radiogroup" aria-label="Samples"><label><input type="radio" name="rKind" value="single" ${k === "single" ? "checked" : ""}><span>Single sample</span></label><label><input type="radio" name="rKind" value="batch" ${k === "batch" ? "checked" : ""}><span>Batch</span></label>${kindFor("job", mySec()) ? `<label><input type="radio" name="rKind" value="job" ${k === "job" ? "checked" : ""}><span>Shift end</span></label>` : ""}${kindFor("met", mySec()) ? `<label><input type="radio" name="rKind" value="met" ${k === "met" ? "checked" : ""}><span>MET Lab job</span></label>` : ""}</div>`;
 }
 function batchBlock(){
   return `<div class="full batch-box" id="rBatch" hidden>
@@ -353,7 +353,12 @@ function showKind(v){
   const j = $("#rJob", v); if (j) j.hidden = !isJob;
   v.querySelectorAll(".sub-step.s1:not(.job-step)").forEach(x => { x.hidden = isJob; });
   const d = $("#rDetails", v); if (d) d.hidden = isJob;
-  if (isJob && job){ jobGroup(v); jobDefaults(v); }   // the kind's templates; the template's purpose and section (process control from PLT; a MET Lab job from MET)
+  if (isJob && job){ jobGroup(v); jobSections(v); jobPurposes(v); jobDefaults(v); }   // the kind's templates, sections and purposes; the template's purpose and section (process control from PLT; a MET Lab job from MET)
+  else {   // back to one sample or a batch: the sections and purposes of the sample type again
+    const sc = $("#rSection", v), pu = $("#rPurpose", v), ty = $("#rType", v)?.value || "";
+    if (sc?.dataset.job){ const k = sc.value; sc.innerHTML = `<option value="">Choose…</option>${sectionOptions(ty)}`; sc.value = [...sc.options].some(o => o.value === k) ? k : ""; delete sc.dataset.job; }
+    if (pu?.dataset.job){ const k = pu.value; pu.innerHTML = `<option value="">Choose…</option>${purposeOptions(ty)}`; pu.value = [...pu.options].some(o => o.value === k) ? k : ""; delete pu.dataset.job; }
+  }
   if (batch && !$("#rRows .r-code", v)) renderRows();
   submitLabel();
 }

@@ -175,7 +175,7 @@ function bindRecvMany(v){
   $("#rmBtn", box).onclick = receiveTicked;
   $("#rmScan", box).onclick = () => openScanner({ title: "Scan the bags", multi: true, hint: "Each bag scanned is ticked on the Awaiting receipt list. Press Done, then receive them.", onClose: () => renderBoard(),
     onCode: code => {
-      const c = code.toUpperCase(), found = rmList.filter(s => s.id === c || s.batchId === c || (s.tags || []).some(t => String(t).toUpperCase() === c));
+      const c = normKey(code), found = rmList.filter(s => normKey(s.id) === c || normKey(s.batchId) === c || (s.tags || []).some(t => normKey(t) === c));   // any case, with or without a code's space
       if (!found.length) return { ok: false, msg: `${code}: not waiting for receipt (or hidden by the board's filters)` };
       // a bag of a batch processed as one ticks its batch (v24d)
       const us = rmUnits(rmList).filter(u => u.ms.some(s => found.includes(s))), cool = us.filter(rmCool), ok = us.filter(u => !rmCool(u));

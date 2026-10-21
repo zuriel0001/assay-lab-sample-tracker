@@ -1,5 +1,5 @@
 
-/* ---------- v24d: a shift's samples as one job (Submit › Shift job) ----------
+/* ---------- v24d: a shift's samples as one job (Submit › Shift end; "Shift job" until 21 Oct) ----------
    At the end of a shift the plant sends the same samples every time (mill, CCD, TSF, carbon), the elution run its solutions, and now and
    then carbon for an activity test. A template lists them as the plant's reports do: point, code, description and analysis. The submitter
    picks the template, the shift and the date (codes follow: ML + NS/DS + point + date, as on the reports), unticks what was not sampled,
@@ -112,7 +112,7 @@ function jobRows(keep){
     ...(keep || []).filter(r => r.extra)];
 }
 function jobBlock(){
-  return `<div class="sub-step s1 job-step" id="rJob" hidden><div class="sub-t"><span class="num">1</span>Shift samples</div>
+  return `<div class="sub-step s1 job-step" id="rJob" hidden><div class="sub-t"><span class="num">1</span>Shift end samples</div>
     <div class="form">
       <label class="f"><span>Template</span><select id="jTpl" data-g="Plant">${JOB_TPL.filter(x => x.group === "Plant").map(x => `<option value="${x.key}">${esc(x.name)}</option>`).join("")}</select></label>
       <label class="f" id="jShiftBox"><span>Shift</span><select id="jShift"><option value="N">Night shift (NS)</option><option value="D">Day shift (DS)</option></select></label>
@@ -157,12 +157,13 @@ function bindJob(v){
   const hr = +localInput(Date.now()).slice(11, 13), night = hr >= 6 && hr < 18, back = night || hr < 6 ? 1 : 0;
   job = { tpl: lsGet("jobTpl_Plant") || lsGet("jobTpl") || "mill", shift: night ? "N" : "D", date: localInput(Date.now() - back * 86400e3).slice(0, 10), n: {}, c: {}, rows: [] };
   if (!JOB_TPL.some(x => x.key === job.tpl)) job.tpl = "mill";
+  job.date = jobDate(jobTpl(job.tpl));   // 21 Oct: a template without a shift (an elution run, the MET Lab's jobs) takes today's date
   tp.value = job.tpl; $("#jShift", v).value = job.shift; $("#jDate", v).value = job.date;
-  jobRows(); renderJob(); if (isJobKind(formKind())){ jobGroup(v); jobDefaults(v); }
+  jobRows(); renderJob(); if (isJobKind(formKind())){ jobGroup(v); jobSections(v); jobPurposes(v); jobDefaults(v); }
   const again = () => { jobRows(job.rows); renderJob(); };
-  tp.onchange = () => { job.tpl = tp.value; lsSet("jobTpl_" + jobKindGroup(), tp.value); job.n = {}; job.c = {}; jobRows(); renderJob(); jobDefaults(v); };
+  tp.onchange = () => { job.tpl = tp.value; lsSet("jobTpl_" + jobKindGroup(), tp.value); job.n = {}; job.c = {}; jobRows(); renderJob(); jobDateFor(v); jobPurposes(v); jobDefaults(v); };
   $("#jShift", v).onchange = e => { job.shift = e.target.value; again(); };
-  $("#jDate", v).onchange = e => { job.date = e.target.value; again(); };
+  $("#jDate", v).onchange = e => { job.date = e.target.value; job.dateSet = true; again(); };
   $("#jNums", v).addEventListener("input", e => {
     const c = e.target.id.match(/^jC_(\w+)$/); if (c){ job.c[c[1]] = e.target.value; jobRows(job.rows); renderJob(); return; }   // a count: the numbered rows follow
     const m = e.target.id.match(/^jN_(\w+)$/); if (!m) return; job.n[m[1]] = e.target.value.trim(); job.rows.forEach(r => { if (!r.extra){ if (!r.ec) r.code = jobFill(r.gen[0], job); if (!r.ed) r.desc = jobFill(r.gen[1], job); } });
@@ -184,21 +185,48 @@ function bindJob(v){
 /* Shift job lists the plant's templates, MET Lab job the MET Lab's (20 Oct: "MET Lab … should be independent", and "Met Jobs should also
    have 'carbon activity'"); each kind remembers its last. */
 const jobKindGroup = () => formKind() === "met" ? "MET Lab" : "Plant";
+/* 21 Oct: "MET jobs come from the Met department. Shift end comes from PP": Section lists only that section (the process plant, PLT or PP;
+   the MET Lab, MET), chosen for the submitter. A site without such a section keeps the whole list. */
+const jobSecs = g => { const all = cfg.sections || [], want = g === "MET Lab" ? (x => x.code === "MET" || /\bmet(allurgy| ?lab)\b/i.test(x.name || "")) : (x => ["PLT", "PP"].includes(x.code) || /process plant/i.test(x.name || "")); const l = all.filter(want); return l.length ? l : all; };
+const kindFor = (k, sec) => !sec || !knownSec(sec) || jobSecs(k === "met" ? "MET Lab" : "Plant").some(x => x.code === sec);   // a section account sees the kinds it sends
+function jobSections(v){
+  const sc = $("#rSection", v || document); if (!sc || !job) return;
+  const list = jobSecs(jobKindGroup()), keep = sc.value;
+  sc.innerHTML = (list.length === 1 ? "" : `<option value="">Choose…</option>`) + list.map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("");
+  sc.value = list.some(x => x.code === keep) ? keep : list.length === 1 ? list[0].code : "";
+  sc.dataset.job = jobKindGroup();
+}
+/* What a job's samples can be sent for: what its sample types take, and the template's usual purpose (QA/QC for the MET Lab's set). */
+function jobPurposes(v){
+  const pu = $("#rPurpose", v || document); if (!pu || !job) return;
+  const T = jobTpl(job.tpl), keys = new Set([T.pur, "other", ...[...new Set(job.rows.map(r => r.t))].flatMap(t => TYPE_PURPOSES[t] || [])]), keep = pu.value;
+  pu.innerHTML = `<option value="">Choose…</option>${purposeOptions("", keys)}`;
+  if (keep && keys.has(keep)) pu.value = keep;
+  pu.dataset.job = "1";
+}
+/* The date on the codes: a shift's start (the night shift began the day before), else today. Kept once the submitter sets it. */
+const jobDate = T => { const hr = +localInput(Date.now()).slice(11, 13), back = T && T.shift && (hr < 18) ? 1 : 0; return localInput(Date.now() - back * 86400e3).slice(0, 10); };
+function jobDateFor(v){
+  if (!job || job.dateSet) return;
+  const d = jobDate(jobTpl(job.tpl)); if (d === job.date) return;
+  job.date = d; const el = $("#jDate", v || document); if (el) el.value = d;
+  jobRows(job.rows); renderJob();
+}
 const inGroup = (x, g) => x.group === g || (x.also || []).includes(g);
 /* A MET Lab job runs on the job route too; its workflow and certificate say so (a carbon activity sent by MET counts as MET's). */
 function isMetJob(s){ const T = s && s.job ? JOB_TPL.find(x => x.key === s.job) : null; return !!T && (T.group === "MET Lab" || (s.section === "MET" && inGroup(T, "MET Lab"))); }
-function routeLabel(s, name){ const n = name ?? s?.routeName ?? ""; return s && s.route === "JOB" && isMetJob(s) ? "MET Lab job (one report)" : n; }
+function routeLabel(s, name){ const n = name ?? s?.routeName ?? ""; return s && s.route === "JOB" && s.job ? (isMetJob(s) ? "MET Lab job (one report)" : "Shift end (one report)") : n; }
 function jobGroup(v){
   const g = jobKindGroup(), tp = $("#jTpl", v || document); if (!tp || !job) return;
   const list = JOB_TPL.filter(x => inGroup(x, g));
   if (tp.dataset.g !== g){ tp.dataset.g = g; tp.innerHTML = list.map(x => `<option value="${x.key}">${esc(x.name)}</option>`).join(""); }
   if (!list.some(x => x.key === job.tpl)){ const last = lsGet("jobTpl_" + g); job.tpl = list.some(x => x.key === last) ? last : list[0].key; job.n = {}; job.c = {}; jobRows(); }
-  tp.value = job.tpl; renderJob();
-  const t = $("#rJob .sub-t", v || document); if (t) t.innerHTML = `<span class="num">1</span>${g === "MET Lab" ? "MET Lab samples" : "Shift samples"}`;
+  tp.value = job.tpl; renderJob(); jobDateFor(v);
+  const t = $("#rJob .sub-t", v || document); if (t) t.innerHTML = `<span class="num">1</span>${g === "MET Lab" ? "MET Lab samples" : "Shift end samples"}`;
 }
 /* The template's purpose and section (a MET Lab job from MET), filled in until the submitter picks their own. */
 function jobDefaults(v){
-  const T0 = jobTpl(job.tpl), T = jobKindGroup() === "MET Lab" ? { ...T0, sec: "MET" } : T0, pu = $("#rPurpose", v || document), sc = $("#rSection", v || document); if (!pu || !sc) return;
+  const T0 = jobTpl(job.tpl), T = { ...T0, sec: jobSecs(jobKindGroup()).length === 1 ? jobSecs(jobKindGroup())[0].code : jobKindGroup() === "MET Lab" ? "MET" : T0.sec }, pu = $("#rPurpose", v || document), sc = $("#rSection", v || document); if (!pu || !sc) return;
   if (!pu.value || pu.value === job.pu0){ if ([...pu.options].some(o => o.value === T.pur)){ pu.value = T.pur; job.pu0 = T.pur; } }
   if (!sc.value || sc.value === job.sc0){ if ([...sc.options].some(o => o.value === T.sec)){ sc.value = T.sec; sc.dataset.auto = "1"; job.sc0 = T.sec; } }
 }

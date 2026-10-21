@@ -267,8 +267,10 @@ function idFromText(raw){
   const h = v.indexOf("#");
   if (/^https?:\/\//i.test(v) && h >= 0) { try { v = decodeURIComponent(v.slice(h + 1)); } catch { v = v.slice(h + 1); } }
   v = v.toUpperCase().replace(/\s+/g, "");
-  let m = v.match(/^([A-Z]{2,5})-?(\d{8})-?(\d{1,4})$/);          // EXP-20261013-0001
-  if (m) return `${m[1]}-${m[2]}-${m[3].padStart(4, "0")}`;
+  // EXP-20261013-0001, also typed without its dashes (EXP202610130001). 21 Oct: only with a real date and, without dashes, all twelve
+  // digits: a plant's code such as MLSPE06020261023 (an elution run's, letters and eleven digits) is a code, not an ID to be rewritten.
+  let m = v.match(/^([A-Z]{2,5})-(\d{8})-(\d{1,4})$/) || v.match(/^([A-Z]{2,5})(\d{8})(\d{4})$/);
+  if (m && /^20\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])$/.test(m[2])) return `${m[1]}-${m[2]}-${m[3].padStart(4, "0")}`;
   m = v.match(/^([A-Z]{2,6})-(\d{4})-(\d{5})$/);                  // early format MET-2026-00001
   return m ? v : "";
 }
@@ -312,7 +314,7 @@ const routesForTest = (test, keep = "") => (cfg.routes || []).filter(r => (r.tes
 function mergeRoutes(saved, removed){
   const list = Array.isArray(saved) ? saved : [];
   const have = new Set(list.map(r => r.code)), gone = new Set(removed || []);
-  return [...clone(list).map(grind80).map(cilOnly).map(withQcp), ...clone(DEFAULT_ROUTES.filter(r => !have.has(r.code) && !gone.has(r.code)))];
+  return [...clone(list).map(grind80).map(cilOnly).map(jobName).map(withQcp), ...clone(DEFAULT_ROUTES.filter(r => !have.has(r.code) && !gone.has(r.code)))];
 }
 /* The lab pulverises to 80% passing 75 µm (version 16): routes saved with the earlier 85% wording are brought into line. */
 function grind80(r){
@@ -325,6 +327,8 @@ function cilOnly(r){
   r.name = fix(r.name); r.desc = fix(r.desc); (r.stages || []).forEach(x => { x.name = fix(x.name); x.note = fix(x.note); });
   return r;
 }
+/* 21 Oct: "change the name Shift Job to Shift End": the job route saved under its first name takes the new one. */
+function jobName(r){ if (r.code === "JOB" && r.name === "Plant shift job (one report)") r.name = "Shift end or MET Lab job (one report)"; return r; }
 /* Routes saved before lab batches existed get the batch type of the default route (or of a default route for the same test), and QA/QC text that matches it. */
 function withQcp(r){
   if (r.qcp != null){ if (!Array.isArray(r.qcg)) r.qcg = routeGroups(r); return r; }

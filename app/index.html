@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="7f75bfff0658" data-at="1792540962418"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 7c4f93ba6758) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="4df4dc0c237d" data-at="1792559455066"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 d8bcd2ff3e11) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1997,9 +1997,9 @@ const DEFAULT_ROUTES = [
     retention: [{ item: "Carbon sample", days: 30, then: "Returned to gold room" }] },
   /* v24d: a shift's samples submitted together (a job): received, analysed and released together with the lab's report for the job. Each
      sample keeps its own analysis, results, limits and retention; the job only shares the steps. Not chosen for a sample on its own. */
-  { code: "JOB", job: true, transit: 2, name: "Plant shift job (one report)", tests: ["aufx_ausx", "aufx", "ausx", "aufx_ausx_cn", "ausx_cn", "cn_only", "c_load", "c_act", "elu_sol", "psd"],
+  { code: "JOB", job: true, transit: 2, name: "Shift end or MET Lab job (one report)", tests: ["aufx_ausx", "aufx", "ausx", "aufx_ausx_cn", "ausx_cn", "cn_only", "c_load", "c_act", "elu_sol", "psd"],
     types: ["plant_feed", "ccd", "tsf", "carbon", "elution"], purposes: ["plant", "recon", "met"],
-    desc: "The samples of one shift (mill, CCD, TSF, carbon, elution), received together, analysed, and released together when the lab's report for the job is attached.",
+    desc: "The samples of one shift end (mill, CCD, TSF, carbon, elution) or one MET Lab job (tank profile, bottle roll, preg-robbing, QA/QC set, carbon activity), received together, analysed, and released together when the lab's report for the job is attached.",
     stages: [S("lab", "In analysis", 12, "test", "Preparation and analysis of every sample of the job; the report gives all the results.")],
     retention: [{ item: "Sample remainder", days: 30, then: "Disposed" }] },
   { code: "ELU-AUSX", transit: 2, name: "Elution solution: AuSx, AgSx & Cu", tests: ["elu_sol"], types: ["elution"], purposes: ["plant", "recon", "met"],
@@ -2547,8 +2547,10 @@ function idFromText(raw){
   const h = v.indexOf("#");
   if (/^https?:\/\//i.test(v) && h >= 0) { try { v = decodeURIComponent(v.slice(h + 1)); } catch { v = v.slice(h + 1); } }
   v = v.toUpperCase().replace(/\s+/g, "");
-  let m = v.match(/^([A-Z]{2,5})-?(\d{8})-?(\d{1,4})$/);          // EXP-20261013-0001
-  if (m) return `${m[1]}-${m[2]}-${m[3].padStart(4, "0")}`;
+  // EXP-20261013-0001, also typed without its dashes (EXP202610130001). 21 Oct: only with a real date and, without dashes, all twelve
+  // digits: a plant's code such as MLSPE06020261023 (an elution run's, letters and eleven digits) is a code, not an ID to be rewritten.
+  let m = v.match(/^([A-Z]{2,5})-(\d{8})-(\d{1,4})$/) || v.match(/^([A-Z]{2,5})(\d{8})(\d{4})$/);
+  if (m && /^20\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])$/.test(m[2])) return `${m[1]}-${m[2]}-${m[3].padStart(4, "0")}`;
   m = v.match(/^([A-Z]{2,6})-(\d{4})-(\d{5})$/);                  // early format MET-2026-00001
   return m ? v : "";
 }
@@ -2592,7 +2594,7 @@ const routesForTest = (test, keep = "") => (cfg.routes || []).filter(r => (r.tes
 function mergeRoutes(saved, removed){
   const list = Array.isArray(saved) ? saved : [];
   const have = new Set(list.map(r => r.code)), gone = new Set(removed || []);
-  return [...clone(list).map(grind80).map(cilOnly).map(withQcp), ...clone(DEFAULT_ROUTES.filter(r => !have.has(r.code) && !gone.has(r.code)))];
+  return [...clone(list).map(grind80).map(cilOnly).map(jobName).map(withQcp), ...clone(DEFAULT_ROUTES.filter(r => !have.has(r.code) && !gone.has(r.code)))];
 }
 /* The lab pulverises to 80% passing 75 µm (version 16): routes saved with the earlier 85% wording are brought into line. */
 function grind80(r){
@@ -2605,6 +2607,8 @@ function cilOnly(r){
   r.name = fix(r.name); r.desc = fix(r.desc); (r.stages || []).forEach(x => { x.name = fix(x.name); x.note = fix(x.note); });
   return r;
 }
+/* 21 Oct: "change the name Shift Job to Shift End": the job route saved under its first name takes the new one. */
+function jobName(r){ if (r.code === "JOB" && r.name === "Plant shift job (one report)") r.name = "Shift end or MET Lab job (one report)"; return r; }
 /* Routes saved before lab batches existed get the batch type of the default route (or of a default route for the same test), and QA/QC text that matches it. */
 function withQcp(r){
   if (r.qcp != null){ if (!Array.isArray(r.qcg)) r.qcg = routeGroups(r); return r; }
@@ -3066,7 +3070,7 @@ function watchSample(id, text){
       first = false;
       const hits = (await findByTag(text)).filter(x => x !== id);
       if (seq !== openSeq) return;
-      if (hits.length === 1) return openSample(hits[0]);
+      if (hits.length === 1) return watchSample(hits[0], "");   // a hit is a sample's ID: open it as it is (never read as text again, which could go round)
       if (hits.length){ current = { id: text, matches: hits }; renderTrack(); return; }
     }
     first = false;
@@ -4042,8 +4046,8 @@ function typeOptions(){
 }
 /* What the analysis is for, grouped (v24), and only what the sample type can be sent for (v24c, TYPE_PURPOSES); Other is always there. */
 const purposeOk = (typeKey, p) => { const ok = TYPE_PURPOSES[typeKey]; return !ok || p.key === "other" || ok.includes(p.key); };
-function purposeOptions(typeKey = ""){
-  const list = PURPOSES.filter(p => purposeOk(typeKey, p)), groups = [...new Set(list.map(p => p.g || ""))];
+function purposeOptions(typeKey = "", only = null){   // only: a set of purpose keys (a Shift end or MET Lab job's)
+  const list = PURPOSES.filter(p => purposeOk(typeKey, p) && (!only || only.has(p.key))), groups = [...new Set(list.map(p => p.g || ""))];
   return groups.map(g => { const o = list.filter(p => (p.g || "") === g).map(p => `<option value="${esc(p.key)}">${esc(p.name)}</option>`).join(""); return g ? `<optgroup label="${esc(g)}">${o}</optgroup>` : o; }).join("");
 }
 /* The section a purpose usually comes from, offered until the submitter picks one. */
@@ -4944,6 +4948,7 @@ function renderStages(){
 
 function refreshRegisterOptions(){
   const sel = $("#rSection"); if (!sel) return;
+  if (isJobKind(formKind())){ jobSections(); return; }
   const keep = sel.value;
   sel.innerHTML = `<option value="">Choose…</option>` + sectionOptions($("#rType")?.value || "");
   sel.value = keep;
@@ -7114,8 +7119,9 @@ function parseReport(grid, idx){
   const rowHasRead = (i, skip) => (grid[i] || []).some((t, j) => j !== skip && t && isRead(t));
   let idCol = -1, best = 0;
   for (let j = 0; j < nc; j++){ let n = 0; for (let i = 0; i < grid.length; i++) if (idx.has(normKey(cell(i, j)))) n++; if (n > best){ best = n; idCol = j; } }
+  const codeLike = t => /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9][A-Za-z0-9 ._\/#+-]{3,60}$/.test(t) && t.split(" ").length <= 2;
   if (idCol < 0){   // nothing known: the column of sample-like codes (letters and digits) on rows that carry readings
-    for (let j = 0; j < nc; j++){ let n = 0; for (let i = 0; i < grid.length; i++){ const t = cell(i, j); if (/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9][A-Za-z0-9 ._\/-]{3,30}$/.test(t) && t.split(" ").length <= 2 && rowHasRead(i, j)) n++; } if (n > best){ best = n; idCol = j; } }
+    for (let j = 0; j < nc; j++){ let n = 0; for (let i = 0; i < grid.length; i++){ const t = cell(i, j); if (codeLike(t) && rowHasRead(i, j)) n++; } if (n > best){ best = n; idCol = j; } }
   }
   if (idCol < 0) return { error: "No column of sample IDs was found in this file." };
   const kindOf = t => {
@@ -7128,6 +7134,8 @@ function parseReport(grid, idx){
   };
   let first = -1;
   for (let i = 0; i < grid.length && first < 0; i++){ const t = cell(i, idCol); if (t && rowHasRead(i, idCol) && kindOf(t)?.kind !== "x") first = i; }
+  // v24d (21 Oct): none known: the first row whose cell looks like a sample code (not a letterhead with the lab's name and phone numbers)
+  if (first < 0) for (let i = 0; i < grid.length && first < 0; i++) if (codeLike(cell(i, idCol)) && rowHasRead(i, idCol)) first = i;
   if (first < 0) for (let i = 0; i < grid.length && first < 0; i++) if (cell(i, idCol) && rowHasRead(i, idCol)) first = i;
   if (first < 0) return { error: "No sample readings were found in this file." };
   /* The heading row: above the first known sample, the row naming the most results (a row of mostly numbers is data, or repeat numbers).
@@ -7343,6 +7351,42 @@ document.addEventListener("click", e => {
   upScope = k === "batch" ? { batch: id } : k === "sample" ? { sample: id } : k === "sub" ? { sub: id } : {};   // sub: a submission batch, processed as one (v24d)
   attachInput().click();
 });
+/* v24d (21 Oct): the samples a file is attached to (a sample, a batch processed as one, a lab batch). */
+function scopeSamples(sc){
+  if (!sc) return [];
+  if (sc.sample) return [bs(sc.sample)].filter(Boolean);
+  if (sc.sub) return ((current?.batch === sc.sub ? current.docs : null) || [...samples.values()].filter(s => s.batchId === sc.sub)).filter(Boolean);
+  if (sc.batch){ const b = openBatches.get(sc.batch) || (batchLive && batchLive.id === sc.batch ? batchLive : null); return (b?.sids || []).map(bs).filter(Boolean); }
+  return [];
+}
+/* A report whose codes are this batch's codes with another date in them (MLSPTK0120261019 in the file, MLSPTK0120261020 here): the date on
+   the codes was chosen wrongly at submission, or the report is another day's. Offered, never done on its own: file code → sample. */
+const DATE8 = /(20\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])/;
+const date8Of = k => (normKey(k).match(DATE8) || [""])[0];
+const date8Text = d => { const m = String(d || "").match(/^(\d{4})(\d{2})(\d{2})$/); return m ? fmtDate(Date.UTC(+m[1], +m[2] - 1, +m[3], 12)) : String(d || ""); };
+function dateAlias(rep, sc){
+  const own = scopeSamples(sc); if (!rep || rep.error || !rep.rows || !own.length) return null;
+  const strip = k => normKey(k).replace(DATE8, "#"), mine = new Map();
+  for (const s of own) for (const k of new Set([s.id, ...(s.tags || [])].map(normKey))){ if (!DATE8.test(k)) continue; const st = strip(k); (mine.get(st) || mine.set(st, new Map()).get(st)).set(s.id, k); }
+  const hit = new Set(rep.rows.filter(r => r.sid).map(r => r.sid)), map = new Map(), took = new Map();
+  for (const r of rep.rows){
+    if (r.kind !== "x") continue;
+    const k = normKey(r.key); if (!DATE8.test(k)) continue;
+    const m = mine.get(strip(k)); if (!m || m.size !== 1) continue;
+    const [sid, code] = [...m][0]; if (hit.has(sid) || date8Of(code) === date8Of(k)) continue;
+    if (took.has(sid)){ map.delete(took.get(sid)); took.set(sid, ""); continue; }   // two of the file's codes for one sample: neither is read
+    took.set(sid, k); map.set(k, { sid, code, file: r.key });
+  }
+  if (!map.size) return null;
+  const v = [...map.values()];
+  return { map, n: v.length, of: own.length, from: [...new Set(v.map(x => date8Of(x.file)))], to: [...new Set(v.map(x => date8Of(x.code)))], bySid: new Map(v.map(x => [x.sid, x])) };
+}
+/* The report read again with the file's codes standing for this batch's samples. */
+function reread(u){
+  const idx = sampleIndex(u.scope); if (u.useAlias && u.alias) u.alias.map.forEach((x, k) => idx.set(k, x.sid));
+  u.rep = parseReport(u.grid, idx); u.plan = u.rep.error ? null : planUpload(u.rep, u.scope);
+}
+function useAlias(u, on){ u.useAlias = !!on && !!u.alias; reread(u); renderUpload(); }
 const kb = n => n < 1024 ? `${n} bytes` : n < 1048576 ? `${(n / 1024).toFixed(n < 10240 ? 1 : 0)} KB` : `${(n / 1048576).toFixed(1)} MB`;
 const KIND = { xls: "Excel 97-2003", xlsx: "Excel", csv: "Text (CSV)", pdf: "PDF", doc: "Word", docx: "Word", png: "Picture", jpg: "Picture", jpeg: "Picture" };
 const extOf = n => (String(n).match(/\.([A-Za-z0-9]{1,8})$/) || ["", "file"])[1].toLowerCase();
@@ -7358,7 +7402,7 @@ async function openUpload(file, scope){
   if (got.kind === "csv" && !["csv", "txt", "tsv"].includes(extOf(file.name)) && relNow()) got = { ...got, kind: extOf(file.name), grid: null };   // a PDF, a picture…: kept, not read
   const rep = got.grid ? parseReport(got.grid, sampleIndex(scope)) : { error: "This file's values can't be read here.", rows: [], cols: [], crms: [] };
   const sha = await sha256(got.bytes);
-  upState = { file: { name: file.name.slice(0, 120), size: file.size, kind: got.kind, sha }, bytes: got.bytes, grid: got.grid, rep, scope, plan: rep.error ? null : planUpload(rep, scope), prior: [], pick: new Set(), q: "" };
+  upState = { file: { name: file.name.slice(0, 120), size: file.size, kind: got.kind, sha }, bytes: got.bytes, grid: got.grid, rep, scope, plan: rep.error ? null : planUpload(rep, scope), prior: [], pick: new Set(), q: "", alias: dateAlias(rep, scope), useAlias: false, anyway: false };
   renderUpload();
   if (db && sha) try { upState.prior = (await db.collection("files").where("sha", "==", sha).limit(5).get()).docs.map(d => d.data()).filter(Boolean); renderUpload(); } catch {}
 }
@@ -7389,12 +7433,15 @@ function renderUpload(){
   const rowsRead = P ? [
     ...P.batches.concat(P.fresh).flatMap(t => t.b.pos.filter(x => Object.keys(t.vals[x.p] || {}).length).map(x => [x.t === "s" ? x.sid : x.t === "crm" ? t.crms[x.p] || x.crm : `${posLabel(QC_PROFILES[t.b.qcp] || {}, x)}${x.of ? " of " + x.of : ""}`, t.b.id || "New batch", Object.entries(t.vals[x.p]).map(([k, v]) => `${anShort(bAns(t.b).find(a => a.k === k) || { k, n: k })} ${v}`).join(", ")])),
     ...P.samples.map(x => [x.sid, "Sample record", Object.entries(x.rows).map(([k, v]) => `${anShort(anOf(bs(x.sid)).find(a => a.k === k) || { k, n: k })} ${v.raw}`).join(", ")])] : [];
-  const loose = relNow(), tg = loose ? uploadTargets(u) : [];
-  const any = loose ? tg.length > 0 : P && (P.batches.length || P.fresh.length || P.samples.length);
+  const loose = relNow(), tg = loose ? uploadTargets(u) : [], none = readsNone(u);
+  // a file naming none of these samples, or some of them under another date, is saved (and the samples released) only once the technician chooses
+  const hold = loose && (none || !!u.alias) && !u.useAlias && !u.anyway;
+  const any = (loose ? tg.length > 0 : P && (P.batches.length || P.fresh.length || P.samples.length)) && (!none || u.anyway || loose === false) && !hold;
   box.innerHTML = `<div class="modal-card stack" style="gap:12px">
     <div class="row" style="gap:8px"><h3 id="upTitle" style="margin:0">Results file</h3><span class="pill">${esc(KIND[u.file.kind] || u.file.kind)}</span><span style="flex:1"></span><button type="button" class="btn ghost small" id="upClose" aria-label="Close">✕</button></div>
     <div class="small"><b class="mono">${esc(u.file.name)}</b> · ${kb(u.file.size)}${m.ref ? ` · Lab ref <b class="mono">${esc(m.ref)}</b>` : ""}${m.project ? ` · ${esc(m.project)}` : ""}${r.rows ? ` · ${r.rows.length} row${r.rows.length === 1 ? "" : "s"} read` : ""}</div>
     ${u.prior.length ? `<div class="notice warn"><b>Attached before</b> ${u.prior.map(f => `${fmt(f.at)} by ${esc(f.tech || "")}`).join("; ")}</div>` : ""}
+    ${u.useAlias ? aliasOnNote(u) : none || u.alias ? noneNote(u, loose, none) : ""}
     ${r.error && !loose ? `<div class="notice bad">${esc(r.error)}</div>` : ""}
     ${save.length ? `<div class="up-sec"><h4>Saves</h4><ul class="up-list">${save.join("")}</ul></div>` : P && !any && !P.notReady.length && !loose ? `<div class="notice warn"><b>Nothing to save from this file.</b></div>` : ""}
     ${loose ? uploadTargetsHtml(u, tg) : ""}
@@ -7408,12 +7455,35 @@ function renderUpload(){
   $("#upSave", box).onclick = saveUpload;
   const uw = $("#upWit", box); if (uw){ uw.value = u.wit || ""; uw.onchange = () => { u.wit = uw.value; }; }   // kept when the dialog is drawn again
   $("#upMove", box)?.addEventListener("click", moveToAnalysis);
+  $("#upAlias", box)?.addEventListener("click", () => useAlias(u, true));
+  $("#upAliasOff", box)?.addEventListener("click", () => useAlias(u, false));
+  const an = $("#upAnyway", box); if (an) an.onchange = () => { u.anyway = an.checked; renderUpload(); };
   bindUploadTargets(box);
   $("#upBatches", box)?.addEventListener("click", () => { closeUpload(); setTab("batches"); });
   $("#upCols", box)?.addEventListener("click", () => { closeUpload(); cfgTab = "files"; setTab("stages"); });
   $("#upCrms", box)?.addEventListener("click", () => { closeUpload(); cfgTab = "crms"; setTab("stages"); });
   box.onclick = e => { if (e.target === box) closeUpload(); };
 }
+/* v24d (21 Oct): a file attached to a sample or batch that names samples, none of them this one's: said plainly (a wrong file, or the
+   codes' date), and released with it only when the technician says so. */
+function readsNone(u){
+  const sc = u.scope || {}; if (!(sc.sub || sc.sample || sc.batch) || !u.rep || u.rep.error || !(u.rep.rows || []).length) return false;
+  const own = new Set(scopeSamples(sc).map(s => s.id));
+  return own.size > 0 && !u.rep.rows.some(r => r.sid && own.has(r.sid));
+}
+function noneNote(u, loose, none){
+  const sc = u.scope || {}, what = sc.sample ? "sample" : sc.batch ? "lab batch" : "batch", a = u.alias, codes = [...new Set(u.rep.rows.map(r => r.key))];
+  const list = xs => `${xs.slice(0, 4).map(x => `<span class="mono">${esc(x)}</span>`).join(", ")}${xs.length > 4 ? ` +${xs.length - 4} more` : ""}`;
+  const mine = sc.sample ? "this sample's code" : `this ${what}'s codes`, dates = a ? `<b>${esc(a.from.map(date8Text).join(", "))}</b> in the file, <b>${esc(a.to.map(date8Text).join(", "))}</b> here` : "";
+  const why = "The date on the codes may have been chosen wrongly at submission, or the report is another day's.";
+  return `<div class="notice warn stack" id="upNone" style="gap:8px">
+    ${none ? `<div><b>None of this ${what}'s samples is in this file${a ? " as its codes stand" : ""}.</b> It names ${codes.length} sample${codes.length === 1 ? "" : "s"}: ${list(codes)}.</div>
+      ${a ? `<div>They are ${mine} with another date: ${dates} (${a.n} of ${a.of} sample${a.of === 1 ? "" : "s"}). ${why}</div>` : `<div>Check that it is the right file.</div>`}`
+      : `<div><b>${a.n} of the file's codes ${a.n === 1 ? "is" : "are"} ${mine} with another date</b> (${dates}): ${list([...a.map.values()].map(x => x.file))}. ${why}</div>`}
+    ${a ? `<div class="row"><button type="button" class="btn primary small" id="upAlias">Read the file's codes as ${sc.sample ? "this sample's" : `this ${what}'s`}</button></div>` : ""}
+    ${loose ? `<label class="row" style="gap:8px;font-weight:400"><input type="checkbox" id="upAnyway" ${u.anyway ? "checked" : ""}> <span>${none ? `Keep it as the results anyway and release ${sc.sample ? "the sample" : "them"} without values` : `Save without reading ${a.n === 1 ? "that one" : `those ${a.n}`}: released with the file, without values`}</span></label>` : ""}</div>`;
+}
+const aliasOnNote = u => `<div class="notice ok row" style="gap:8px"><span class="grow">Read with the file's codes dated <b>${esc(u.alias.from.map(date8Text).join(", "))}</b> for ${nS(u.alias.n)} dated <b>${esc(u.alias.to.map(date8Text).join(", "))}</b>. Each sample's record notes the file's code.</span><button type="button" class="btn ghost small" id="upAliasOff">Undo</button></div>`;
 /* v24, release at once: every file attached is accepted. The samples it is for are released with it: those the file names (their values
    filled in), else the sample or batch it was attached on, else the ones the technician ticks. A file the site can't read (a PDF, a
    picture, a report laid out another way) is kept as their results; the certificate points to it. */
@@ -7465,7 +7535,7 @@ async function moveToAnalysis(){
   u.busy = false;
   toast(`${ok} sample(s) moved to analysis.`);
   await movedIn(u.plan.notReady);
-  if (upState === u){ u.rep = parseReport(u.grid, sampleIndex(u.scope)); u.plan = u.rep.error ? null : planUpload(u.rep, u.scope); renderUpload(); }
+  if (upState === u){ reread(u); renderUpload(); }
 }
 /* The original file, kept once however many batches it fills: files/<ID> describes it, files/<ID>~1, ~2… hold it. */
 async function keepFile(u){
@@ -7507,7 +7577,7 @@ async function saveUpload(){
       return { stageKey: p[to].key, stageAt: at - 1000, history: hist };
     }));
     await movedIn(u.plan.notReady);
-    u.rep = parseReport(u.grid, sampleIndex(u.scope)); u.plan = u.rep.error ? null : planUpload(u.rep, u.scope);
+    reread(u);
   }
   const P = u.plan || { batches: [], fresh: [], samples: [] };
   const done = [];
@@ -7532,6 +7602,7 @@ async function saveUpload(){
     }
     if (P.samples.length){
       msg("Saving sample results…");
+      const al = sid => { const a = u.useAlias && u.alias?.bySid.get(sid); return a ? ` (the file names it ${a.file}, its code dated ${date8Text(date8Of(a.file))})` : ""; };
       const n = await pool(P.samples, 8, x => sampleWrite(x.sid, s => {
         if (!readyForResults(s)) return null;
         const bk = batchKeys(s), defs = anOf(s), rows = { ...rowsOf(s) };
@@ -7539,7 +7610,7 @@ async function saveUpload(){
         const all = withCalc(s, rows), at = nowAfter(s);
         return { results: { v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: patch(s.results?.rows, all), batch: s.results?.batch || "", inst, file: fileTag(f) }, fids: [...new Set([...(s.fids || []), f.id])],
           resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null,
-          history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, note: `Results from file ${f.name}: ${resSummary(defs, all)}` }] };
+          history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, note: `Results from file ${f.name}${al(x.sid)}: ${resSummary(defs, all)}` }] };
       }), (d, t) => msg(`Saving sample results… ${d} of ${t}`));
       done.push(`results on ${n} sample record${n === 1 ? "" : "s"}`);
     }
@@ -7896,8 +7967,8 @@ let bRows = [{ code: "", src: "" }, { code: "", src: "" }];
 const formKind = () => document.querySelector('input[name="rKind"]:checked')?.value || "single";
 const isJobKind = k => k === "job" || k === "met";   // v24d: a plant shift job, or (20 Oct) a MET Lab job: the same list of samples, its own templates
 function kindPicker(){
-  const k = ["batch", "job", "met"].includes(lsGet("regKind")) ? lsGet("regKind") : "single";
-  return `<div class="seg" role="radiogroup" aria-label="Samples"><label><input type="radio" name="rKind" value="single" ${k === "single" ? "checked" : ""}><span>Single sample</span></label><label><input type="radio" name="rKind" value="batch" ${k === "batch" ? "checked" : ""}><span>Batch</span></label><label><input type="radio" name="rKind" value="job" ${k === "job" ? "checked" : ""}><span>Shift job</span></label><label><input type="radio" name="rKind" value="met" ${k === "met" ? "checked" : ""}><span>MET Lab job</span></label></div>`;
+  const k0 = ["batch", "job", "met"].includes(lsGet("regKind")) ? lsGet("regKind") : "single", k = isJobKind(k0) && !kindFor(k0, mySec()) ? "single" : k0;
+  return `<div class="seg" role="radiogroup" aria-label="Samples"><label><input type="radio" name="rKind" value="single" ${k === "single" ? "checked" : ""}><span>Single sample</span></label><label><input type="radio" name="rKind" value="batch" ${k === "batch" ? "checked" : ""}><span>Batch</span></label>${kindFor("job", mySec()) ? `<label><input type="radio" name="rKind" value="job" ${k === "job" ? "checked" : ""}><span>Shift end</span></label>` : ""}${kindFor("met", mySec()) ? `<label><input type="radio" name="rKind" value="met" ${k === "met" ? "checked" : ""}><span>MET Lab job</span></label>` : ""}</div>`;
 }
 function batchBlock(){
   return `<div class="full batch-box" id="rBatch" hidden>
@@ -7956,7 +8027,12 @@ function showKind(v){
   const j = $("#rJob", v); if (j) j.hidden = !isJob;
   v.querySelectorAll(".sub-step.s1:not(.job-step)").forEach(x => { x.hidden = isJob; });
   const d = $("#rDetails", v); if (d) d.hidden = isJob;
-  if (isJob && job){ jobGroup(v); jobDefaults(v); }   // the kind's templates; the template's purpose and section (process control from PLT; a MET Lab job from MET)
+  if (isJob && job){ jobGroup(v); jobSections(v); jobPurposes(v); jobDefaults(v); }   // the kind's templates, sections and purposes; the template's purpose and section (process control from PLT; a MET Lab job from MET)
+  else {   // back to one sample or a batch: the sections and purposes of the sample type again
+    const sc = $("#rSection", v), pu = $("#rPurpose", v), ty = $("#rType", v)?.value || "";
+    if (sc?.dataset.job){ const k = sc.value; sc.innerHTML = `<option value="">Choose…</option>${sectionOptions(ty)}`; sc.value = [...sc.options].some(o => o.value === k) ? k : ""; delete sc.dataset.job; }
+    if (pu?.dataset.job){ const k = pu.value; pu.innerHTML = `<option value="">Choose…</option>${purposeOptions(ty)}`; pu.value = [...pu.options].some(o => o.value === k) ? k : ""; delete pu.dataset.job; }
+  }
   if (batch && !$("#rRows .r-code", v)) renderRows();
   submitLabel();
 }
@@ -8624,7 +8700,7 @@ function bindRecvMany(v){
   $("#rmBtn", box).onclick = receiveTicked;
   $("#rmScan", box).onclick = () => openScanner({ title: "Scan the bags", multi: true, hint: "Each bag scanned is ticked on the Awaiting receipt list. Press Done, then receive them.", onClose: () => renderBoard(),
     onCode: code => {
-      const c = code.toUpperCase(), found = rmList.filter(s => s.id === c || s.batchId === c || (s.tags || []).some(t => String(t).toUpperCase() === c));
+      const c = normKey(code), found = rmList.filter(s => normKey(s.id) === c || normKey(s.batchId) === c || (s.tags || []).some(t => normKey(t) === c));   // any case, with or without a code's space
       if (!found.length) return { ok: false, msg: `${code}: not waiting for receipt (or hidden by the board's filters)` };
       // a bag of a batch processed as one ticks its batch (v24d)
       const us = rmUnits(rmList).filter(u => u.ms.some(s => found.includes(s))), cool = us.filter(rmCool), ok = us.filter(u => !rmCool(u));
@@ -9000,7 +9076,8 @@ function bwPanel(c){
     st.ahead?.length ? `Already further on, waiting for the batch: ${idLinks(st.ahead)}` : "",
     solo.length ? `Taken out of the batch, processed on their own: ${idLinks(solo)}` : "",
     out.length ? `Left the workflow (rejected, stopped or closed): ${idLinks(out)}` : ""].filter(Boolean);
-  const head = n => `<h3>Workflow for the batch${st.lead?.routeName ? `: ${esc(routeLabel(st.lead))}` : ""} <span class="pill">${nS(n)} together</span></h3>`;
+  const L = st.lead || st.mem?.[0];   // before receipt the route is the first sample's
+  const head = n => `<h3>Workflow for the batch${L?.routeName ? `: ${esc(routeLabel(L))}` : ""} <span class="pill">${nS(n)} together</span></h3>`;
   if (!st.lead){
     if (st.mem.length){ const lead = st.mem[0];
       return `<div class="panel stack" id="bwBox">${head(st.mem.length)}${bwRail({ plan: planOf(lead), bi: 0, ti: targetIdx(lead), lead, at: st.mem, cur: 0 }, ref)}
@@ -9325,7 +9402,7 @@ function unitRows(list, rowOf){
   return out.map(r => r.n ? { id: r.id, type: r.type, what: `Batch of ${nS(r.n)}${r.what ? " · " + r.what : ""}`, where: [...r.where].filter(Boolean).join(", ") } : r);
 }
 
-/* ---------- v24d: a shift's samples as one job (Submit › Shift job) ----------
+/* ---------- v24d: a shift's samples as one job (Submit › Shift end; "Shift job" until 21 Oct) ----------
    At the end of a shift the plant sends the same samples every time (mill, CCD, TSF, carbon), the elution run its solutions, and now and
    then carbon for an activity test. A template lists them as the plant's reports do: point, code, description and analysis. The submitter
    picks the template, the shift and the date (codes follow: ML + NS/DS + point + date, as on the reports), unticks what was not sampled,
@@ -9438,7 +9515,7 @@ function jobRows(keep){
     ...(keep || []).filter(r => r.extra)];
 }
 function jobBlock(){
-  return `<div class="sub-step s1 job-step" id="rJob" hidden><div class="sub-t"><span class="num">1</span>Shift samples</div>
+  return `<div class="sub-step s1 job-step" id="rJob" hidden><div class="sub-t"><span class="num">1</span>Shift end samples</div>
     <div class="form">
       <label class="f"><span>Template</span><select id="jTpl" data-g="Plant">${JOB_TPL.filter(x => x.group === "Plant").map(x => `<option value="${x.key}">${esc(x.name)}</option>`).join("")}</select></label>
       <label class="f" id="jShiftBox"><span>Shift</span><select id="jShift"><option value="N">Night shift (NS)</option><option value="D">Day shift (DS)</option></select></label>
@@ -9483,12 +9560,13 @@ function bindJob(v){
   const hr = +localInput(Date.now()).slice(11, 13), night = hr >= 6 && hr < 18, back = night || hr < 6 ? 1 : 0;
   job = { tpl: lsGet("jobTpl_Plant") || lsGet("jobTpl") || "mill", shift: night ? "N" : "D", date: localInput(Date.now() - back * 86400e3).slice(0, 10), n: {}, c: {}, rows: [] };
   if (!JOB_TPL.some(x => x.key === job.tpl)) job.tpl = "mill";
+  job.date = jobDate(jobTpl(job.tpl));   // 21 Oct: a template without a shift (an elution run, the MET Lab's jobs) takes today's date
   tp.value = job.tpl; $("#jShift", v).value = job.shift; $("#jDate", v).value = job.date;
-  jobRows(); renderJob(); if (isJobKind(formKind())){ jobGroup(v); jobDefaults(v); }
+  jobRows(); renderJob(); if (isJobKind(formKind())){ jobGroup(v); jobSections(v); jobPurposes(v); jobDefaults(v); }
   const again = () => { jobRows(job.rows); renderJob(); };
-  tp.onchange = () => { job.tpl = tp.value; lsSet("jobTpl_" + jobKindGroup(), tp.value); job.n = {}; job.c = {}; jobRows(); renderJob(); jobDefaults(v); };
+  tp.onchange = () => { job.tpl = tp.value; lsSet("jobTpl_" + jobKindGroup(), tp.value); job.n = {}; job.c = {}; jobRows(); renderJob(); jobDateFor(v); jobPurposes(v); jobDefaults(v); };
   $("#jShift", v).onchange = e => { job.shift = e.target.value; again(); };
-  $("#jDate", v).onchange = e => { job.date = e.target.value; again(); };
+  $("#jDate", v).onchange = e => { job.date = e.target.value; job.dateSet = true; again(); };
   $("#jNums", v).addEventListener("input", e => {
     const c = e.target.id.match(/^jC_(\w+)$/); if (c){ job.c[c[1]] = e.target.value; jobRows(job.rows); renderJob(); return; }   // a count: the numbered rows follow
     const m = e.target.id.match(/^jN_(\w+)$/); if (!m) return; job.n[m[1]] = e.target.value.trim(); job.rows.forEach(r => { if (!r.extra){ if (!r.ec) r.code = jobFill(r.gen[0], job); if (!r.ed) r.desc = jobFill(r.gen[1], job); } });
@@ -9510,21 +9588,48 @@ function bindJob(v){
 /* Shift job lists the plant's templates, MET Lab job the MET Lab's (20 Oct: "MET Lab … should be independent", and "Met Jobs should also
    have 'carbon activity'"); each kind remembers its last. */
 const jobKindGroup = () => formKind() === "met" ? "MET Lab" : "Plant";
+/* 21 Oct: "MET jobs come from the Met department. Shift end comes from PP": Section lists only that section (the process plant, PLT or PP;
+   the MET Lab, MET), chosen for the submitter. A site without such a section keeps the whole list. */
+const jobSecs = g => { const all = cfg.sections || [], want = g === "MET Lab" ? (x => x.code === "MET" || /\bmet(allurgy| ?lab)\b/i.test(x.name || "")) : (x => ["PLT", "PP"].includes(x.code) || /process plant/i.test(x.name || "")); const l = all.filter(want); return l.length ? l : all; };
+const kindFor = (k, sec) => !sec || !knownSec(sec) || jobSecs(k === "met" ? "MET Lab" : "Plant").some(x => x.code === sec);   // a section account sees the kinds it sends
+function jobSections(v){
+  const sc = $("#rSection", v || document); if (!sc || !job) return;
+  const list = jobSecs(jobKindGroup()), keep = sc.value;
+  sc.innerHTML = (list.length === 1 ? "" : `<option value="">Choose…</option>`) + list.map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join("");
+  sc.value = list.some(x => x.code === keep) ? keep : list.length === 1 ? list[0].code : "";
+  sc.dataset.job = jobKindGroup();
+}
+/* What a job's samples can be sent for: what its sample types take, and the template's usual purpose (QA/QC for the MET Lab's set). */
+function jobPurposes(v){
+  const pu = $("#rPurpose", v || document); if (!pu || !job) return;
+  const T = jobTpl(job.tpl), keys = new Set([T.pur, "other", ...[...new Set(job.rows.map(r => r.t))].flatMap(t => TYPE_PURPOSES[t] || [])]), keep = pu.value;
+  pu.innerHTML = `<option value="">Choose…</option>${purposeOptions("", keys)}`;
+  if (keep && keys.has(keep)) pu.value = keep;
+  pu.dataset.job = "1";
+}
+/* The date on the codes: a shift's start (the night shift began the day before), else today. Kept once the submitter sets it. */
+const jobDate = T => { const hr = +localInput(Date.now()).slice(11, 13), back = T && T.shift && (hr < 18) ? 1 : 0; return localInput(Date.now() - back * 86400e3).slice(0, 10); };
+function jobDateFor(v){
+  if (!job || job.dateSet) return;
+  const d = jobDate(jobTpl(job.tpl)); if (d === job.date) return;
+  job.date = d; const el = $("#jDate", v || document); if (el) el.value = d;
+  jobRows(job.rows); renderJob();
+}
 const inGroup = (x, g) => x.group === g || (x.also || []).includes(g);
 /* A MET Lab job runs on the job route too; its workflow and certificate say so (a carbon activity sent by MET counts as MET's). */
 function isMetJob(s){ const T = s && s.job ? JOB_TPL.find(x => x.key === s.job) : null; return !!T && (T.group === "MET Lab" || (s.section === "MET" && inGroup(T, "MET Lab"))); }
-function routeLabel(s, name){ const n = name ?? s?.routeName ?? ""; return s && s.route === "JOB" && isMetJob(s) ? "MET Lab job (one report)" : n; }
+function routeLabel(s, name){ const n = name ?? s?.routeName ?? ""; return s && s.route === "JOB" && s.job ? (isMetJob(s) ? "MET Lab job (one report)" : "Shift end (one report)") : n; }
 function jobGroup(v){
   const g = jobKindGroup(), tp = $("#jTpl", v || document); if (!tp || !job) return;
   const list = JOB_TPL.filter(x => inGroup(x, g));
   if (tp.dataset.g !== g){ tp.dataset.g = g; tp.innerHTML = list.map(x => `<option value="${x.key}">${esc(x.name)}</option>`).join(""); }
   if (!list.some(x => x.key === job.tpl)){ const last = lsGet("jobTpl_" + g); job.tpl = list.some(x => x.key === last) ? last : list[0].key; job.n = {}; job.c = {}; jobRows(); }
-  tp.value = job.tpl; renderJob();
-  const t = $("#rJob .sub-t", v || document); if (t) t.innerHTML = `<span class="num">1</span>${g === "MET Lab" ? "MET Lab samples" : "Shift samples"}`;
+  tp.value = job.tpl; renderJob(); jobDateFor(v);
+  const t = $("#rJob .sub-t", v || document); if (t) t.innerHTML = `<span class="num">1</span>${g === "MET Lab" ? "MET Lab samples" : "Shift end samples"}`;
 }
 /* The template's purpose and section (a MET Lab job from MET), filled in until the submitter picks their own. */
 function jobDefaults(v){
-  const T0 = jobTpl(job.tpl), T = jobKindGroup() === "MET Lab" ? { ...T0, sec: "MET" } : T0, pu = $("#rPurpose", v || document), sc = $("#rSection", v || document); if (!pu || !sc) return;
+  const T0 = jobTpl(job.tpl), T = { ...T0, sec: jobSecs(jobKindGroup()).length === 1 ? jobSecs(jobKindGroup())[0].code : jobKindGroup() === "MET Lab" ? "MET" : T0.sec }, pu = $("#rPurpose", v || document), sc = $("#rSection", v || document); if (!pu || !sc) return;
   if (!pu.value || pu.value === job.pu0){ if ([...pu.options].some(o => o.value === T.pur)){ pu.value = T.pur; job.pu0 = T.pur; } }
   if (!sc.value || sc.value === job.sc0){ if ([...sc.options].some(o => o.value === T.sec)){ sc.value = T.sec; sc.dataset.auto = "1"; job.sc0 = T.sec; } }
 }

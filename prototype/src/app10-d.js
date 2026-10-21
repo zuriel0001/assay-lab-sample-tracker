@@ -145,8 +145,8 @@ function typeOptions(){
 }
 /* What the analysis is for, grouped (v24), and only what the sample type can be sent for (v24c, TYPE_PURPOSES); Other is always there. */
 const purposeOk = (typeKey, p) => { const ok = TYPE_PURPOSES[typeKey]; return !ok || p.key === "other" || ok.includes(p.key); };
-function purposeOptions(typeKey = ""){
-  const list = PURPOSES.filter(p => purposeOk(typeKey, p)), groups = [...new Set(list.map(p => p.g || ""))];
+function purposeOptions(typeKey = "", only = null){   // only: a set of purpose keys (a Shift end or MET Lab job's)
+  const list = PURPOSES.filter(p => purposeOk(typeKey, p) && (!only || only.has(p.key))), groups = [...new Set(list.map(p => p.g || ""))];
   return groups.map(g => { const o = list.filter(p => (p.g || "") === g).map(p => `<option value="${esc(p.key)}">${esc(p.name)}</option>`).join(""); return g ? `<optgroup label="${esc(g)}">${o}</optgroup>` : o; }).join("");
 }
 /* The section a purpose usually comes from, offered until the submitter picks one. */

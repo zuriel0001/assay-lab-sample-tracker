@@ -144,7 +144,7 @@ function watchSample(id, text){
       first = false;
       const hits = (await findByTag(text)).filter(x => x !== id);
       if (seq !== openSeq) return;
-      if (hits.length === 1) return openSample(hits[0]);
+      if (hits.length === 1) return watchSample(hits[0], "");   // a hit is a sample's ID: open it as it is (never read as text again, which could go round)
       if (hits.length){ current = { id: text, matches: hits }; renderTrack(); return; }
     }
     first = false;

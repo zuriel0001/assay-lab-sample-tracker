@@ -75,8 +75,9 @@ function parseReport(grid, idx){
   const rowHasRead = (i, skip) => (grid[i] || []).some((t, j) => j !== skip && t && isRead(t));
   let idCol = -1, best = 0;
   for (let j = 0; j < nc; j++){ let n = 0; for (let i = 0; i < grid.length; i++) if (idx.has(normKey(cell(i, j)))) n++; if (n > best){ best = n; idCol = j; } }
+  const codeLike = t => /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9][A-Za-z0-9 ._\/#+-]{3,60}$/.test(t) && t.split(" ").length <= 2;
   if (idCol < 0){   // nothing known: the column of sample-like codes (letters and digits) on rows that carry readings
-    for (let j = 0; j < nc; j++){ let n = 0; for (let i = 0; i < grid.length; i++){ const t = cell(i, j); if (/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9][A-Za-z0-9 ._\/-]{3,30}$/.test(t) && t.split(" ").length <= 2 && rowHasRead(i, j)) n++; } if (n > best){ best = n; idCol = j; } }
+    for (let j = 0; j < nc; j++){ let n = 0; for (let i = 0; i < grid.length; i++){ const t = cell(i, j); if (codeLike(t) && rowHasRead(i, j)) n++; } if (n > best){ best = n; idCol = j; } }
   }
   if (idCol < 0) return { error: "No column of sample IDs was found in this file." };
   const kindOf = t => {
@@ -89,6 +90,8 @@ function parseReport(grid, idx){
   };
   let first = -1;
   for (let i = 0; i < grid.length && first < 0; i++){ const t = cell(i, idCol); if (t && rowHasRead(i, idCol) && kindOf(t)?.kind !== "x") first = i; }
+  // v24d (21 Oct): none known: the first row whose cell looks like a sample code (not a letterhead with the lab's name and phone numbers)
+  if (first < 0) for (let i = 0; i < grid.length && first < 0; i++) if (codeLike(cell(i, idCol)) && rowHasRead(i, idCol)) first = i;
   if (first < 0) for (let i = 0; i < grid.length && first < 0; i++) if (cell(i, idCol) && rowHasRead(i, idCol)) first = i;
   if (first < 0) return { error: "No sample readings were found in this file." };
   /* The heading row: above the first known sample, the row naming the most results (a row of mostly numbers is data, or repeat numbers).
@@ -304,6 +307,42 @@ document.addEventListener("click", e => {
   upScope = k === "batch" ? { batch: id } : k === "sample" ? { sample: id } : k === "sub" ? { sub: id } : {};   // sub: a submission batch, processed as one (v24d)
   attachInput().click();
 });
+/* v24d (21 Oct): the samples a file is attached to (a sample, a batch processed as one, a lab batch). */
+function scopeSamples(sc){
+  if (!sc) return [];
+  if (sc.sample) return [bs(sc.sample)].filter(Boolean);
+  if (sc.sub) return ((current?.batch === sc.sub ? current.docs : null) || [...samples.values()].filter(s => s.batchId === sc.sub)).filter(Boolean);
+  if (sc.batch){ const b = openBatches.get(sc.batch) || (batchLive && batchLive.id === sc.batch ? batchLive : null); return (b?.sids || []).map(bs).filter(Boolean); }
+  return [];
+}
+/* A report whose codes are this batch's codes with another date in them (MLSPTK0120261019 in the file, MLSPTK0120261020 here): the date on
+   the codes was chosen wrongly at submission, or the report is another day's. Offered, never done on its own: file code → sample. */
+const DATE8 = /(20\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])/;
+const date8Of = k => (normKey(k).match(DATE8) || [""])[0];
+const date8Text = d => { const m = String(d || "").match(/^(\d{4})(\d{2})(\d{2})$/); return m ? fmtDate(Date.UTC(+m[1], +m[2] - 1, +m[3], 12)) : String(d || ""); };
+function dateAlias(rep, sc){
+  const own = scopeSamples(sc); if (!rep || rep.error || !rep.rows || !own.length) return null;
+  const strip = k => normKey(k).replace(DATE8, "#"), mine = new Map();
+  for (const s of own) for (const k of new Set([s.id, ...(s.tags || [])].map(normKey))){ if (!DATE8.test(k)) continue; const st = strip(k); (mine.get(st) || mine.set(st, new Map()).get(st)).set(s.id, k); }
+  const hit = new Set(rep.rows.filter(r => r.sid).map(r => r.sid)), map = new Map(), took = new Map();
+  for (const r of rep.rows){
+    if (r.kind !== "x") continue;
+    const k = normKey(r.key); if (!DATE8.test(k)) continue;
+    const m = mine.get(strip(k)); if (!m || m.size !== 1) continue;
+    const [sid, code] = [...m][0]; if (hit.has(sid) || date8Of(code) === date8Of(k)) continue;
+    if (took.has(sid)){ map.delete(took.get(sid)); took.set(sid, ""); continue; }   // two of the file's codes for one sample: neither is read
+    took.set(sid, k); map.set(k, { sid, code, file: r.key });
+  }
+  if (!map.size) return null;
+  const v = [...map.values()];
+  return { map, n: v.length, of: own.length, from: [...new Set(v.map(x => date8Of(x.file)))], to: [...new Set(v.map(x => date8Of(x.code)))], bySid: new Map(v.map(x => [x.sid, x])) };
+}
+/* The report read again with the file's codes standing for this batch's samples. */
+function reread(u){
+  const idx = sampleIndex(u.scope); if (u.useAlias && u.alias) u.alias.map.forEach((x, k) => idx.set(k, x.sid));
+  u.rep = parseReport(u.grid, idx); u.plan = u.rep.error ? null : planUpload(u.rep, u.scope);
+}
+function useAlias(u, on){ u.useAlias = !!on && !!u.alias; reread(u); renderUpload(); }
 const kb = n => n < 1024 ? `${n} bytes` : n < 1048576 ? `${(n / 1024).toFixed(n < 10240 ? 1 : 0)} KB` : `${(n / 1048576).toFixed(1)} MB`;
 const KIND = { xls: "Excel 97-2003", xlsx: "Excel", csv: "Text (CSV)", pdf: "PDF", doc: "Word", docx: "Word", png: "Picture", jpg: "Picture", jpeg: "Picture" };
 const extOf = n => (String(n).match(/\.([A-Za-z0-9]{1,8})$/) || ["", "file"])[1].toLowerCase();
@@ -319,7 +358,7 @@ async function openUpload(file, scope){
   if (got.kind === "csv" && !["csv", "txt", "tsv"].includes(extOf(file.name)) && relNow()) got = { ...got, kind: extOf(file.name), grid: null };   // a PDF, a picture…: kept, not read
   const rep = got.grid ? parseReport(got.grid, sampleIndex(scope)) : { error: "This file's values can't be read here.", rows: [], cols: [], crms: [] };
   const sha = await sha256(got.bytes);
-  upState = { file: { name: file.name.slice(0, 120), size: file.size, kind: got.kind, sha }, bytes: got.bytes, grid: got.grid, rep, scope, plan: rep.error ? null : planUpload(rep, scope), prior: [], pick: new Set(), q: "" };
+  upState = { file: { name: file.name.slice(0, 120), size: file.size, kind: got.kind, sha }, bytes: got.bytes, grid: got.grid, rep, scope, plan: rep.error ? null : planUpload(rep, scope), prior: [], pick: new Set(), q: "", alias: dateAlias(rep, scope), useAlias: false, anyway: false };
   renderUpload();
   if (db && sha) try { upState.prior = (await db.collection("files").where("sha", "==", sha).limit(5).get()).docs.map(d => d.data()).filter(Boolean); renderUpload(); } catch {}
 }
@@ -350,12 +389,15 @@ function renderUpload(){
   const rowsRead = P ? [
     ...P.batches.concat(P.fresh).flatMap(t => t.b.pos.filter(x => Object.keys(t.vals[x.p] || {}).length).map(x => [x.t === "s" ? x.sid : x.t === "crm" ? t.crms[x.p] || x.crm : `${posLabel(QC_PROFILES[t.b.qcp] || {}, x)}${x.of ? " of " + x.of : ""}`, t.b.id || "New batch", Object.entries(t.vals[x.p]).map(([k, v]) => `${anShort(bAns(t.b).find(a => a.k === k) || { k, n: k })} ${v}`).join(", ")])),
     ...P.samples.map(x => [x.sid, "Sample record", Object.entries(x.rows).map(([k, v]) => `${anShort(anOf(bs(x.sid)).find(a => a.k === k) || { k, n: k })} ${v.raw}`).join(", ")])] : [];
-  const loose = relNow(), tg = loose ? uploadTargets(u) : [];
-  const any = loose ? tg.length > 0 : P && (P.batches.length || P.fresh.length || P.samples.length);
+  const loose = relNow(), tg = loose ? uploadTargets(u) : [], none = readsNone(u);
+  // a file naming none of these samples, or some of them under another date, is saved (and the samples released) only once the technician chooses
+  const hold = loose && (none || !!u.alias) && !u.useAlias && !u.anyway;
+  const any = (loose ? tg.length > 0 : P && (P.batches.length || P.fresh.length || P.samples.length)) && (!none || u.anyway || loose === false) && !hold;
   box.innerHTML = `<div class="modal-card stack" style="gap:12px">
     <div class="row" style="gap:8px"><h3 id="upTitle" style="margin:0">Results file</h3><span class="pill">${esc(KIND[u.file.kind] || u.file.kind)}</span><span style="flex:1"></span><button type="button" class="btn ghost small" id="upClose" aria-label="Close">✕</button></div>
     <div class="small"><b class="mono">${esc(u.file.name)}</b> · ${kb(u.file.size)}${m.ref ? ` · Lab ref <b class="mono">${esc(m.ref)}</b>` : ""}${m.project ? ` · ${esc(m.project)}` : ""}${r.rows ? ` · ${r.rows.length} row${r.rows.length === 1 ? "" : "s"} read` : ""}</div>
     ${u.prior.length ? `<div class="notice warn"><b>Attached before</b> ${u.prior.map(f => `${fmt(f.at)} by ${esc(f.tech || "")}`).join("; ")}</div>` : ""}
+    ${u.useAlias ? aliasOnNote(u) : none || u.alias ? noneNote(u, loose, none) : ""}
     ${r.error && !loose ? `<div class="notice bad">${esc(r.error)}</div>` : ""}
     ${save.length ? `<div class="up-sec"><h4>Saves</h4><ul class="up-list">${save.join("")}</ul></div>` : P && !any && !P.notReady.length && !loose ? `<div class="notice warn"><b>Nothing to save from this file.</b></div>` : ""}
     ${loose ? uploadTargetsHtml(u, tg) : ""}
@@ -369,12 +411,35 @@ function renderUpload(){
   $("#upSave", box).onclick = saveUpload;
   const uw = $("#upWit", box); if (uw){ uw.value = u.wit || ""; uw.onchange = () => { u.wit = uw.value; }; }   // kept when the dialog is drawn again
   $("#upMove", box)?.addEventListener("click", moveToAnalysis);
+  $("#upAlias", box)?.addEventListener("click", () => useAlias(u, true));
+  $("#upAliasOff", box)?.addEventListener("click", () => useAlias(u, false));
+  const an = $("#upAnyway", box); if (an) an.onchange = () => { u.anyway = an.checked; renderUpload(); };
   bindUploadTargets(box);
   $("#upBatches", box)?.addEventListener("click", () => { closeUpload(); setTab("batches"); });
   $("#upCols", box)?.addEventListener("click", () => { closeUpload(); cfgTab = "files"; setTab("stages"); });
   $("#upCrms", box)?.addEventListener("click", () => { closeUpload(); cfgTab = "crms"; setTab("stages"); });
   box.onclick = e => { if (e.target === box) closeUpload(); };
 }
+/* v24d (21 Oct): a file attached to a sample or batch that names samples, none of them this one's: said plainly (a wrong file, or the
+   codes' date), and released with it only when the technician says so. */
+function readsNone(u){
+  const sc = u.scope || {}; if (!(sc.sub || sc.sample || sc.batch) || !u.rep || u.rep.error || !(u.rep.rows || []).length) return false;
+  const own = new Set(scopeSamples(sc).map(s => s.id));
+  return own.size > 0 && !u.rep.rows.some(r => r.sid && own.has(r.sid));
+}
+function noneNote(u, loose, none){
+  const sc = u.scope || {}, what = sc.sample ? "sample" : sc.batch ? "lab batch" : "batch", a = u.alias, codes = [...new Set(u.rep.rows.map(r => r.key))];
+  const list = xs => `${xs.slice(0, 4).map(x => `<span class="mono">${esc(x)}</span>`).join(", ")}${xs.length > 4 ? ` +${xs.length - 4} more` : ""}`;
+  const mine = sc.sample ? "this sample's code" : `this ${what}'s codes`, dates = a ? `<b>${esc(a.from.map(date8Text).join(", "))}</b> in the file, <b>${esc(a.to.map(date8Text).join(", "))}</b> here` : "";
+  const why = "The date on the codes may have been chosen wrongly at submission, or the report is another day's.";
+  return `<div class="notice warn stack" id="upNone" style="gap:8px">
+    ${none ? `<div><b>None of this ${what}'s samples is in this file${a ? " as its codes stand" : ""}.</b> It names ${codes.length} sample${codes.length === 1 ? "" : "s"}: ${list(codes)}.</div>
+      ${a ? `<div>They are ${mine} with another date: ${dates} (${a.n} of ${a.of} sample${a.of === 1 ? "" : "s"}). ${why}</div>` : `<div>Check that it is the right file.</div>`}`
+      : `<div><b>${a.n} of the file's codes ${a.n === 1 ? "is" : "are"} ${mine} with another date</b> (${dates}): ${list([...a.map.values()].map(x => x.file))}. ${why}</div>`}
+    ${a ? `<div class="row"><button type="button" class="btn primary small" id="upAlias">Read the file's codes as ${sc.sample ? "this sample's" : `this ${what}'s`}</button></div>` : ""}
+    ${loose ? `<label class="row" style="gap:8px;font-weight:400"><input type="checkbox" id="upAnyway" ${u.anyway ? "checked" : ""}> <span>${none ? `Keep it as the results anyway and release ${sc.sample ? "the sample" : "them"} without values` : `Save without reading ${a.n === 1 ? "that one" : `those ${a.n}`}: released with the file, without values`}</span></label>` : ""}</div>`;
+}
+const aliasOnNote = u => `<div class="notice ok row" style="gap:8px"><span class="grow">Read with the file's codes dated <b>${esc(u.alias.from.map(date8Text).join(", "))}</b> for ${nS(u.alias.n)} dated <b>${esc(u.alias.to.map(date8Text).join(", "))}</b>. Each sample's record notes the file's code.</span><button type="button" class="btn ghost small" id="upAliasOff">Undo</button></div>`;
 /* v24, release at once: every file attached is accepted. The samples it is for are released with it: those the file names (their values
    filled in), else the sample or batch it was attached on, else the ones the technician ticks. A file the site can't read (a PDF, a
    picture, a report laid out another way) is kept as their results; the certificate points to it. */
@@ -426,7 +491,7 @@ async function moveToAnalysis(){
   u.busy = false;
   toast(`${ok} sample(s) moved to analysis.`);
   await movedIn(u.plan.notReady);
-  if (upState === u){ u.rep = parseReport(u.grid, sampleIndex(u.scope)); u.plan = u.rep.error ? null : planUpload(u.rep, u.scope); renderUpload(); }
+  if (upState === u){ reread(u); renderUpload(); }
 }
 /* The original file, kept once however many batches it fills: files/<ID> describes it, files/<ID>~1, ~2… hold it. */
 async function keepFile(u){
@@ -468,7 +533,7 @@ async function saveUpload(){
       return { stageKey: p[to].key, stageAt: at - 1000, history: hist };
     }));
     await movedIn(u.plan.notReady);
-    u.rep = parseReport(u.grid, sampleIndex(u.scope)); u.plan = u.rep.error ? null : planUpload(u.rep, u.scope);
+    reread(u);
   }
   const P = u.plan || { batches: [], fresh: [], samples: [] };
   const done = [];
@@ -493,6 +558,7 @@ async function saveUpload(){
     }
     if (P.samples.length){
       msg("Saving sample results…");
+      const al = sid => { const a = u.useAlias && u.alias?.bySid.get(sid); return a ? ` (the file names it ${a.file}, its code dated ${date8Text(date8Of(a.file))})` : ""; };
       const n = await pool(P.samples, 8, x => sampleWrite(x.sid, s => {
         if (!readyForResults(s)) return null;
         const bk = batchKeys(s), defs = anOf(s), rows = { ...rowsOf(s) };
@@ -500,7 +566,7 @@ async function saveUpload(){
         const all = withCalc(s, rows), at = nowAfter(s);
         return { results: { v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: patch(s.results?.rows, all), batch: s.results?.batch || "", inst, file: fileTag(f) }, fids: [...new Set([...(s.fids || []), f.id])],
           resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null,
-          history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, note: `Results from file ${f.name}: ${resSummary(defs, all)}` }] };
+          history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: inst, res: true, note: `Results from file ${f.name}${al(x.sid)}: ${resSummary(defs, all)}` }] };
       }), (d, t) => msg(`Saving sample results… ${d} of ${t}`));
       done.push(`results on ${n} sample record${n === 1 ? "" : "s"}`);
     }
