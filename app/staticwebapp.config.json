@@ -5,6 +5,7 @@
     { "route": "/.auth/login/twitter", "statusCode": 404 },
     { "route": "/login", "redirect": "/.auth/login/aad" },
     { "route": "/logout", "redirect": "/.auth/logout" },
+    { "route": "/", "rewrite": "/index.html", "headers": { "Cache-Control": "no-cache" } },
     { "route": "/index.html", "headers": { "Cache-Control": "no-cache" } },
     { "route": "/azure-shim.js", "headers": { "Cache-Control": "no-cache" } },
     { "route": "/version.json", "headers": { "Cache-Control": "no-store" } }

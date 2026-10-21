@@ -6,12 +6,19 @@ const { CosmosClient } = require("@azure/cosmos");
 const { merge, matches, clone, sortAndLimit, FIELD, refuse } = require("./docutil");
 
 const DB = process.env.COSMOS_DATABASE || "tracker", CONTAINER = process.env.COSMOS_CONTAINER || "docs";
-const enc = s => encodeURIComponent(s);     // Cosmos ids can't hold / \ ? #
-const split = p => { const i = p.lastIndexOf("/"); return { pk: p.slice(0, i), id: enc(p.slice(i + 1)) }; };
-/* A lease's id spells its record's path with letters, digits, - _ . and ~hex~ only. A "%" in an id (as encodeURIComponent
-   writes the "/") is refused by the Cosmos DB service on reads, so it is kept out of ids. */
+const tildeHex = s => [...s].map(c => /[A-Za-z0-9._-]/.test(c) ? c : "~" + c.codePointAt(0).toString(16) + "~").join("");
+/* A record's id is the last part of its path. A "%" in an id is refused by the Cosmos DB service on reads (401), so no id may hold one.
+   A key of letters, digits and - _ . ! ~ * ' ( ) is its own id, as it always was. Any other key (a job sample's code with a space or a
+   "+", as in MLNSCOF 20261018) is spelt "~u~" and the key with letters, digits, - _ . and ~hex~ only; no plain id starts "~u~". */
+const docId = k => {
+  if (/^[A-Za-z0-9\-_.!~*'()]+$/.test(k) && !k.startsWith("~u~")) return k;
+  const s = "~u~" + tildeHex(k);
+  return s.length <= 250 ? s : "~u~h" + crypto.createHash("sha256").update(k).digest("hex");
+};
+const split = p => { const i = p.lastIndexOf("/"); return { pk: p.slice(0, i), id: docId(p.slice(i + 1)) }; };
+/* A lease's id spells its record's whole path with letters, digits, - _ . and ~hex~ only. */
 const leaseId = p => {
-  const s = [...p].map(c => /[A-Za-z0-9._-]/.test(c) ? c : "~" + c.codePointAt(0).toString(16) + "~").join("");
+  const s = tildeHex(p);
   return s.length <= 250 ? s : "h~" + crypto.createHash("sha256").update(p).digest("hex");
 };
 let last = 0;
@@ -126,10 +133,11 @@ function createCosmosStore(connectionString){
       }
       return { acquired: false, expiresAt: new Date(Date.now() + 500).toISOString() };
     },
-    /* For /api/health: how the service answers a read of a missing lease with an id like this store's and one with a "%". */
+    /* For /api/health: how the service answers a read of a missing lease with an id like this store's (404 is right), with the id this
+       store gives a key with a space, and with a "%" (refused). */
     async probeIds(){
       const c = await box(), out = {};
-      for (const [k, id] of [["plain", leaseId("health/probe")], ["percent", enc("health/probe")]]){
+      for (const [k, id] of [["plain", leaseId("health/probe")], ["space", docId("HEALTH PROBE")], ["percent", encodeURIComponent("health/probe")]]){
         try { const r = await c.item(id, "_lease").read(); out[k] = r.statusCode || (r.resource ? 200 : 404); }
         catch (e){ out[k] = e; }
       }
@@ -137,4 +145,4 @@ function createCosmosStore(connectionString){
     }
   };
 }
-module.exports = { createCosmosStore };
+module.exports = { createCosmosStore, docId };

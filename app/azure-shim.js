@@ -281,9 +281,20 @@ window.__restore = async (backup, progress) => {
    out, the page reloads itself at the next safe moment: while it is in the background, or after two minutes without use, and never while
    something typed is not yet saved, a dialog is open or a change is on its way to the server. Until then a bar offers to reload now.
    Reloading keeps the address, so an open sample opens again. */
+/* 21 Oct: the CDN was found serving "/" at an older build long after newer ones were out (/index.html was current). So a reload asks
+   for the page at an address no cache has seen (?v=<build>, dropped again once the page is up), and a page that reloaded for a build
+   and still is not on it does not reload itself for that build again for ten minutes: the bar stays, so it can never loop. */
 const BUILD = document.querySelector('meta[name="build"]')?.content || "";
 const BUILT = +(document.querySelector('meta[name="build"]')?.dataset.at || 0);   // when this version was built: only a newer one counts
 let newBuild = "", lastUse = Date.now();
+const RELOADED = "trackerReloadedFor";
+try { const u = new URL(location.href); if (u.searchParams.has("v")){ u.searchParams.delete("v"); history.replaceState(history.state, "", u.pathname + u.search + u.hash); } } catch {}
+const triedFor = (() => { try { const r = JSON.parse(sessionStorage.getItem(RELOADED) || "null"); return r && r.b !== BUILD && Date.now() - r.t < 600000 ? r.b : ""; } catch { return ""; } })();
+function goNew(){
+  try { sessionStorage.setItem(RELOADED, JSON.stringify({ b: newBuild, t: Date.now() })); } catch {}
+  const u = new URL(location.href); u.searchParams.set("v", newBuild || "1");
+  if (u.href === location.href) location.reload(); else location.replace(u.pathname + u.search + u.hash);
+}
 ["keydown", "pointerdown", "input"].forEach(t => document.addEventListener(t, () => { lastUse = Date.now(); }, true));
 const shown = el => el.isConnected && el.getClientRects().length > 0;
 const changedField = el => {
@@ -299,7 +310,7 @@ const unsavedWhy = () => writing > 0 ? "a change is being saved" : Date.now() - 
   [...document.querySelectorAll("input, textarea, select")].some(changedField) ? "something typed" : "";
 const unsaved = () => !!unsavedWhy();
 window.__unsavedWhy = unsavedWhy;
-const reloadIfSafe = () => { if (newBuild && !unsaved()) location.reload(); };
+const reloadIfSafe = () => { if (newBuild && newBuild !== triedFor && !unsaved()) goNew(); };
 function newVersionBar(){
   if (document.getElementById("newVersion") || !document.body) return;
   const b = document.createElement("div");
@@ -311,7 +322,7 @@ function newVersionBar(){
   document.head.appendChild(st);
   b.innerHTML = '<span>A new version of the tracker is out. This page reloads itself when nothing is being typed.</span>' +
     '<button type="button" id="newVersionGo" style="font:inherit;font-weight:600;padding:6px 14px;border-radius:6px;border:0;background:var(--accent,#9a6b12);color:var(--accent-ink,#fff);cursor:pointer">Reload now</button>';
-  b.querySelector("button").onclick = () => location.reload();
+  b.querySelector("button").onclick = goNew;
   document.body.appendChild(b);
 }
 async function checkBuild(){
