@@ -160,11 +160,11 @@ function renderDetails(typeKey){
   const was = {}; box.querySelectorAll("[id^='rD_']").forEach(el => { if (el.value) was[el.id] = el.value; });
   const t = typeOf(typeKey), fs = t?.fields || [];
   box.innerHTML = fs.length ? `<fieldset><div class="legend">${esc(t.name)}: details</div><div class="form">${fs.map(f => `<label class="f">${esc(f.l)}${f.o
-    ? `<select id="rD_${f.k}"><option value="">—</option>${f.o.map(o => `<option>${esc(o)}</option>`).join("")}</select>`
+    ? `<select id="rD_${f.k}"><option value="">—</option>${f.o.map(o => `<option>${esc(o)}</option>`).join("")}<option value="${OTHER_V}">Other…</option></select><input id="rD_${f.k}_x" class="d-other" maxlength="80" placeholder="Type it" hidden aria-label="${esc(f.l)}, other">`
     : `<input id="rD_${f.k}" ${f.t === "number" ? `type="number" step="any"` : ""} placeholder="${esc(f.ph || "")}">`}</label>`).join("")}</div></fieldset>` : "";
-  Object.entries(was).forEach(([id, val]) => { const el = document.getElementById(id); if (el && (el.tagName !== "SELECT" || [...el.options].some(o => o.value === val))) el.value = val; });
+  Object.entries(was).forEach(([id, val]) => { const el = document.getElementById(id); if (el && (el.tagName !== "SELECT" || [...el.options].some(o => o.value === val))) el.value = val; if (el && val === OTHER_V){ const x = document.getElementById(id + "_x"); if (x) x.hidden = false; } });
 }
-function autoRoute(){ const ty = $("#rType")?.value, te = $("#rTest")?.value; return ty && te ? routeFor(ty, te, $("#rPurpose")?.value) : null; }
+function autoRoute(){ const ty = $("#rType")?.value, te = $("#rTest")?.value; return ty && te ? (te === "x" ? OTHER_ROUTE : routeFor(ty, te, $("#rPurpose")?.value)) : null; }
 function formRoute(){ const pick = routeByCode($("#rRouteSel")?.value), te = $("#rTest")?.value; return pick && (pick.tests || []).includes(te) ? pick : autoRoute(); }
 function refreshFormRoute(){
   const box = $("#rRoute"); if (!box) return;
@@ -196,6 +196,7 @@ function renderSampleForm(mode){
     <div class="sub-step s1"><div class="sub-t"><span class="num">1</span>Sample<span class="typechip" id="rTypeChip"></span></div><div class="form">
       <label class="f"><span>Sample type <span class="req">*</span></span><select id="rType" required><option value="">Choose…</option>${typeOptions()}</select></label>
       <label class="f"><span>Analysis <span class="req">*</span></span><select id="rTest" required>${testOptions("")}</select></label>
+      <div class="full" id="rAnBox"></div>
       ${staff ? `<label class="f full" data-lab><span>Workflow route</span><select id="rRouteSel"><option value="">Automatic</option></select></label>` : ""}
       <div class="full" id="rRoute"></div>
     </div></div>
@@ -225,7 +226,6 @@ function renderSampleForm(mode){
         <label class="f">Mass per sample (kg)<input id="rMass" type="number" min="0" step="0.01"></label>
         <label class="f">Seal / chain-of-custody no.<input id="rSeal"></label>
         <fieldset class="full" id="rHaz"><div class="legend">Hazards</div><div class="checks">${HAZARDS.map(h => `<label><input type="checkbox" id="rHz_${h.k}" value="${h.k}"> ${esc(h.l)}</label>`).join("")}</div></fieldset>
-        <fieldset class="full"><div class="legend">Add-on analyses</div><div class="checks">${ADDONS.map((a, i) => `<label><input type="checkbox" id="rAn${i}" value="${a}"> ${a}</label>`).join("")}</div></fieldset>
         <label class="f full">Notes<textarea id="rNotes"></textarea></label>
       </div></details>
     <div class="row sticky-bar bar"><span class="small muted" id="rMsg"></span><button class="btn primary big" type="submit" id="rSubmit">${walk ? "Register and get sample ID" : "Submit and get sample ID"}</button></div>
@@ -252,18 +252,22 @@ function renderSampleForm(mode){
     secFor();
     chip();
     const keep = te.dataset.touched ? te.value : "";
-    te.innerHTML = testOptions(ty.value);
+    te.innerHTML = testOptions(ty.value) + xOpt(ty.value);
     te.value = keep || defaultTest(ty.value, pu.value);
     if (!te.value) te.value = defaultTest(ty.value, pu.value);
+    renderAnBox();
     if (!hz.dataset.touched) HAZARDS.forEach(h => { $("#rHz_" + h.k, v).checked = (typeOf(ty.value)?.haz || []).includes(h.k); });
     renderDetails(ty.value); refreshFormRoute();
   };
   pu.onchange = () => {
     pu.dataset.touched = "1"; $("#rWhyBox", v).hidden = pu.value !== "other"; secFor();
-    if (ty.value && !te.dataset.touched) te.value = defaultTest(ty.value, pu.value);
+    if (ty.value && !te.dataset.touched && te.value !== defaultTest(ty.value, pu.value)){ te.value = defaultTest(ty.value, pu.value); renderAnBox(); }
     refreshFormRoute();
   };
-  te.onchange = () => { te.dataset.touched = "1"; refreshFormRoute(); };
+  te.onchange = () => { te.dataset.touched = "1"; renderAnBox(); refreshFormRoute(); if (te.value === "x") $("#rAnBox .an-x", v)?.focus(); };
+  const ab = $("#rAnBox", v);   // v31: the summary names what is ticked and typed
+  ab.addEventListener("change", e => anSum(e.target.closest(".an-more")));
+  ab.addEventListener("input", e => { if (e.target.classList.contains("an-x")) anSum(e.target.closest(".an-more")); });
   hz.addEventListener("change", () => hz.dataset.touched = "1");
   $("#rRouteSel", v)?.addEventListener("change", refreshFormRoute);
   sc.addEventListener("change", () => { sc.dataset.touched = "1"; delete sc.dataset.auto; refreshFormRoute(); });
@@ -336,6 +340,8 @@ async function register(){
   const why = puK === "other" ? val("#rWhy").slice(0, 200) : "";
   if (puK === "other" && !why) return fail("Type why the sample is being tested.", "#rWhy");
   if (!teK) return fail("Choose the test requested.", "#rTest");
+  const anX = anRead($("#rAnBox .an-more")), more = { tests2: anX.tests2.filter(k => k !== teK), xan: anX.xan, typeKey: tyK, purposeKey: puK };
+  if (teK === "x" && !more.xan.length) return fail("Type the analysis under Other analysis.", "#rAnBox .an-x");
   if (!submitter) return fail("Type the name of the person submitting.", "#rSubmitter");
   if (!code) return fail("Choose the submitting section.", "#rSection");
   const handTo = lab ? "" : val("#rHandTo").slice(0, 60), handBadge = lab ? "" : val("#rHandBadge").slice(0, 20), subBadge = val("#rSubBadge").slice(0, 20);
@@ -360,11 +366,13 @@ async function register(){
   const batchName = batch ? val("#rBatchName").slice(0, 80) : "";
   btn.disabled = true; msg.textContent = allTags.length ? "Checking site sample codes…" : "Issuing IDs…";
   try {
-    for (const t of allTags){ const used = await tagOwner(t, teK); if (used) throw { code: "tagused", tag: t, id: used }; }
+    const gen = batch ? bGroupTags(n) : null, took = [];
+    for (const [i, ts] of tagSets.entries()) for (const t of ts){ const used = await tagOwner(t, teK); if (!used) continue; if (gen && !splitTags(bRows[i]?.code).length) took.push([i, t, used]); else throw { code: "tagused", tag: t, id: used }; }
+    if (took.length) throw { code: "taken", took };
     msg.textContent = "Issuing IDs…";
     const details = {};
-    (typeOf(tyK)?.fields || []).forEach(f => { const x = ($("#rD_" + f.k)?.value || "").trim(); if (x) details[f.l] = x; });
-    const rf = routeFields(r, teK), start = lab ? "received" : "submitted", startName = rf.plan.find(x => x.key === start).name;
+    (typeOf(tyK)?.fields || []).forEach(f => { const x = detailVal(f.k); if (x) details[f.l] = x; });
+    const rf = routeFields(r, teK, more), start = lab ? "received" : "submitted", startName = rf.plan.find(x => x.key === start).name;
     const containers = +$("#rContainers").value || null, massKg = +$("#rMass").value || null, seal = val("#rSeal"), siteRef = val("#rSiteRef");
     const t = typeOf(tyK), holdH = t?.hold && collected && lab ? Math.max(0, (recvAt - collected) / HOUR) : null;
     const recv = lab ? { bags: containers, mass: massKg, unit: "kg", seal: seal ? "ok" : "none", cond: "Good", temp: "", holdH, warn: holdH != null && holdH > t.hold ? [`holding time for ${t.holdWhat} exceeded: received ${hoursLabel(holdH)} after collection, limit ${hoursLabel(t.hold)}`] : [], ...(wit ? { wit } : {}) } : null;
@@ -373,7 +381,7 @@ async function register(){
       submitter, ...(subBadge ? { subBadge } : {}), section: code, receivedBy: lab ? session.name : "", receivedAt: recvAt, recvAt, recv,
       source: val("#rSource"), collectedAt: collected, containers, massKg, seal, priority: $("#rPriority").value,
       hazards: HAZARDS.filter(h => $("#rHz_" + h.k)?.checked).map(h => h.k),
-      analyses: ADDONS.filter((_, i) => $("#rAn" + i)?.checked), notes: val("#rNotes"),
+      analyses: [], ...(more.tests2.length || more.xan.length ? { tests2: more.tests2, xan: more.xan } : {}), notes: val("#rNotes"),
       createdAt: now, createdBy: lab ? session.u : "public", createdByName: lab ? session.name : submitter, updatedAt: now, stageKey: start, stageAt: lab ? recvAt : now, location: "", flag: "",
       open: true, onHand: lab, lab: true, ...(lab ? { sx: 1 } : {}), ...(walk ? { via: "walkin" } : {}), batchKey: n > 1 ? `${code}-${now.toString(36)}-${tabId.slice(0, 4)}` : "", batchSize: n, ...(batchName ? { batchName } : {})
     };
@@ -396,7 +404,7 @@ async function register(){
     msg.textContent = "";
     $("#rResult").innerHTML = `<div class="notice"><b>${n === 1 ? (mode === "register" ? "Sample registered." : "Sample submitted.") : `${n} samples ${mode === "register" ? "registered" : "submitted"}.`}</b>${ref ? ` Batch <b class="mono">${esc(ref)}</b>${batchName ? ` · ${esc(batchName)}` : ""}: processed as one, with one receipt, one workflow and one certificate.` : ""} Write ${n === 1 ? "this ID" : "these IDs"} on the sample bag${n === 1 ? "" : "s"}, or print the label${n === 1 ? "" : "s"}${lab ? ". Received now: on the Board under “Received & logged”" : walk ? ". It shows “Awaiting receipt” on the Board until a lab technician confirms it" : ", then bring or send the sample to the Assay Lab. It shows “Awaiting receipt” on the Board until a lab technician confirms it has arrived"}:
       <div class="label-strip" style="margin-top:8px">${ids.map((id, i) => `<code>${esc(id)}${tagSets[i].length ? ` · ${esc(tagSets[i].join(", "))}` : ""}</code>`).join("")}</div>
-      <div class="small" style="margin-top:8px">Workflow: <span class="code">${esc(r.code)}</span> ${esc(r.name)}. Results about ${hoursLabel(routeTat(r))} after the lab receives ${n === 1 ? "it" : "them"} (an estimate).</div>
+      <div class="small" style="margin-top:8px">Workflow: <span class="code">${esc(r.code)}</span> ${esc(r.name)}${rf.testName !== (testOf(teK)?.name || "") ? ` · ${esc(rf.testName)}` : ""}. Results about ${hoursLabel(routeTat(r))} after the lab receives ${n === 1 ? "it" : "them"} (an estimate).</div>
       <div class="row" style="margin-top:10px"><button type="button" class="btn primary" id="rLabels">Print ${n === 1 ? "label" : n + " labels"}</button><button type="button" class="btn" id="rCopy">Copy IDs</button>${n === 1 ? `<button type="button" class="btn" data-link="${esc(ids[0])}">Copy tracking link</button><button type="button" class="btn" data-open="${esc(ids[0])}">Track ${esc(ids[0])}</button>` : `<button type="button" class="btn" data-open="${esc(ref)}">Open the batch</button><button type="button" class="btn" data-link="${esc(ref)}">Copy batch link</button>`}<button type="button" class="btn" id="rSame">Same details again</button><button type="button" class="btn ghost" id="rAgain">${mode === "register" ? "Register more" : "Submit another"}</button></div></div>`;
     showResult();
     const same = formSnap();
@@ -411,6 +419,7 @@ async function register(){
   } catch (e) {
     btn.disabled = false; msg.textContent = "";
     if (e && e.code === "tagused") toast(`Site sample code ${e.tag} is already on open sample ${e.id}. Use another code, or leave it blank.`);
+    else if (e && e.code === "taken") offerFree(e.took);
     else if (e && e.code === "busy") toast("Could not issue an ID. Try again in a moment.");
     else writeFailed(e);
   }

@@ -69,7 +69,7 @@ async function typeResults(page, id, vals){
   const rcT = await Tc.$$eval("#rTest option", os => os.map(o => o.textContent));
   check(!(await Tc.$("#rTest optgroup")) && rcT[0] === "AuFx: fire assay, AAS finish" && rcT.slice(0, 3).every(x => /^AuFx: /.test(x)) && !rcT.some(x => /Carbon|Bullion|Slurry|Moisture|Specific gravity/.test(x)), "ore: one plain list, fire assay named AuFx first, nothing that does not apply to RC chips: " + rcT.join(" | "));
   await Tc.selectOption("#rType", "carbon"); await Tc.waitForTimeout(200);
-  check((await Tc.$$eval("#rTest option", os => os.map(o => o.value))).join() === "c_load,c_act,moisture", "carbon: Au loading, carbon activity (v24d) and moisture only");
+  check((await Tc.$$eval("#rTest option", os => os.map(o => o.value).filter(v => v !== "x"))).join() === "c_load,c_act,moisture", "carbon: Au loading, carbon activity (v24d) and moisture only");
   await Tc.selectOption("#rType", "tsf"); await Tc.selectOption("#rPurpose", "env"); await Tc.waitForTimeout(200);
   check((await Tc.$$eval("#rPurpose option", os => os.map(o => o.textContent))).includes("Environmental compliance (any site)") && await Tc.$eval("#rTest", e => e.value) === "cn_spec" && /CN-SPEC/.test(await text(Tc, "#rRoute")), "Environment sends a sample from any site; on a TSF sample it gets cyanide speciation first");
   const pageSrc = await Tc.evaluate(() => [...document.scripts].map(x => x.textContent).find(t => t.includes("/* ROUTES-BEGIN")) || "");   // the page's own data, on any build
@@ -77,11 +77,11 @@ async function typeResults(page, id, vals){
   const liveR = RD.DEFAULT_ROUTES.filter(r => !RD.RETIRED_ROUTES.includes(r.code)), want = Object.fromEntries(RD.TYPES.map(t => [t.key, t.tests.filter(k => liveR.some(r => r.tests.includes(k))).join()]));
   const mism = await Tc.evaluate(want => { const out = [], ty = document.querySelector("#rType"); let n = 0;
     for (const o of [...ty.options].filter(o => o.value && o.value !== "other")){ ty.value = o.value; ty.dispatchEvent(new Event("change")); n++;
-      const got = [...document.querySelectorAll("#rTest option")].map(x => x.value).join(); if (got !== want[o.value]) out.push(o.value + ": " + got + " / " + want[o.value]); }
+      const got = [...document.querySelectorAll("#rTest option")].map(x => x.value).filter(v => v !== "x").join(); if (got !== want[o.value]) out.push(o.value + ": " + got + " / " + want[o.value]); }
     return out.length ? out : n; }, want);
   check(typeof mism === "number" && mism === 17, "v24c: every sample type lists exactly its own analyses and nothing else: " + JSON.stringify(mism));
   await Tc.selectOption("#rType", "plant_feed"); await Tc.selectOption("#rPurpose", "met_br"); await Tc.waitForTimeout(200);
-  check((await Tc.$$eval("#rTest option", os => os.map(o => o.value))).join() === want.plant_feed, "a testwork purpose adds no analyses: a mill sample for a bottle roll offers the mill sample's own");
+  check((await Tc.$$eval("#rTest option", os => os.map(o => o.value).filter(v => v !== "x"))).join() === want.plant_feed, "a testwork purpose adds no analyses: a mill sample for a bottle roll offers the mill sample's own");
   log("v24c: What it is for matches the sample type");
   const TP = new Function(pageSrc.slice(pageSrc.indexOf("/* ROUTES-BEGIN"), pageSrc.indexOf("/* ROUTES-END */")) + ";return TYPE_PURPOSES;")();
   const pmis = await Tc.evaluate(TP => { const out = [], ty = document.querySelector("#rType"); let n = 0;

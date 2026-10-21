@@ -51,6 +51,13 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   check((await one(null, { op: "set", path: "samples/MLABPREG0120261013-2", data: jsub("MLABPREG0120261013-2", { tags: ["MLABPREG0120261013"] }) })).ok, "or its code with -2 when the code is already a sample's ID");
   check(!(await one(null, { op: "set", path: "samples/MLABPREG0520261013", data: sub("MLABPREG0520261013", { tags: ["MLABPREG0520261013"] }) })).ok, "only a job's sample has a code as its ID");
   check(!(await one(null, { op: "set", path: "samples/MLABPREG0620261013", data: jsub("MLABPREG0620261013", { batchId: "B-" + id }) })).ok, "a job's sample can't join another submission's batch");
+  // v31 (21 Oct): a first code and the date make a job's codes (MLABPPS01 + date, counted on), in several ID groups, with ticked and typed analyses.
+  const jb31 = `B-MET-${day}-0031`, j31 = (code, extra = {}) => sub(code, { section: "MET", job: "custom", tags: [code], batchId: jb31, batchSize: 5, test: "aufx", tests2: ["ausx"], xan: ["Sulphide S"], route: "OTHER", ...extra });
+  const codes31 = ["MLABPPS0120261021", "MLABPPS0220261021", "MLABCB0120261021", "MLABSL0120261021", "MLNSCOF 20261021"];
+  let ok31 = true; for (const c of codes31) ok31 = (await one(null, { op: "set", path: "samples/" + c, data: j31(c) })).ok && ok31;
+  check(ok31 && (await Promise.all(codes31.map(c => mem.get("samples/" + c)))).every(d => d && d.job === "custom" && d.xan[0] === "Sulphide S" && d.tests2[0] === "ausx" && d.route === "OTHER"),
+    "public may submit an Other testwork job in three ID groups (and a code with a space), with ticked and typed analyses (v31)");
+  check(!(await one(null, { op: "set", path: "samples/mlabpps0320261021", data: j31("mlabpps0320261021") })).ok, "a job code in lower case is refused (the page writes codes in upper case)");
 
   // Reads.
   await mem.update("samples/" + id, { results: { rows: { Au: { v: 1.2 } } }, certs: [{ no: id + "-R1", v: 1, at: now, code: "ABC", rows: { Au: { v: 1.2 } } }], amend: { x: 1 } });

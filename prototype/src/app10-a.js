@@ -298,9 +298,16 @@ const exampleId = (code) => `${code || (cfg.sections && cfg.sections[0]?.code) |
 
 /* ---------- workflow maths: each sample carries its own plan, built from its route ---------- */
 const typeOf = k => TYPES.find(t => t.key === k) || null;
-const testOf = k => TESTS.find(t => t.key === k) || null;
+const testOf = k => TESTS.find(t => t.key === k) || (k === "x" ? X_TEST : null);
 const purposeOf = k => PURPOSES.find(p => p.key === k) || null;
-const routeByCode = c => (cfg.routes || []).find(r => r.code === c) || null;
+const routeByCode = c => (cfg.routes || []).find(r => r.code === c) || (c === OTHER_ROUTE.code ? OTHER_ROUTE : null);
+/* v31: a sample sent only for an analysis typed by name ("Other (type it)"): its own route, never listed or chosen otherwise. */
+const X_TEST = { key: "x", cat: "Other", name: "Other analysis" };
+const OTHER_ROUTE = { code: "OTHER", job: true, transit: 2, name: "Other analysis (as typed)", tests: ["x"], types: ["*"], purposes: [],
+  desc: "An analysis that is not on the list, typed by name at submission: prepared and analysed as asked, its result typed or read from the lab's file.",
+  stages: [S("prep", "Preparation as asked", 2, "prep"), S("xan", "Analysis as asked", 6, "test", "", true), S("qc", "QA/QC review", 0.5, "qc")],
+  retention: [{ item: "Sample remainder", days: 30, then: "Disposed" }] };
+RESULTS.x = { an: [] };
 /* Routes in use: all but those retired in version 23, as the lab manager turned them on or off. Samples keep any route they are on. */
 const useOf = (r, use) => { const u = (use || {})[r.code]; return u != null ? !!u : !RETIRED_ROUTES.includes(r.code); };
 const routeOn = r => useOf(r, cfg.routeUse);
@@ -381,9 +388,13 @@ function buildPlan(r){
 /* Hours from receipt to results for a route (elapsed time when the lab works in shifts). */
 const routeTat = r => routeSpan(r);
 /* What a sample copies from its route, so later edits to the route never change samples already in the lab. */
-function routeFields(r, test){
-  return { route: r.code, routeName: r.name, test, testName: testOf(test)?.name || "", plan: buildPlan(r), retention: clone(r.retention || []),
+function routeFields(r, test, s){
+  const out = { route: r.code, routeName: r.name, test, testName: testOf(test)?.name || "", plan: buildPlan(r), retention: clone(r.retention || []),
     qc: r.qc || "", qcp: r.qcp || "", qcg: groupsFor(r, test), triggers: clone(r.triggers || []), two: !!r.two, grav: "", dil: [] };
+  /* v31: a sample sent for other analyses too keeps them: their steps join the route's, and its name lists them all. */
+  const t2 = (s?.tests2 || []).filter(k => k !== test), xa = s?.xan || [];
+  if (t2.length || xa.length) Object.assign(out, { plan: extraSteps(out.plan, t2, xa, s.typeKey, s.purposeKey), testName: anNames(test, t2, xa) });
+  return out;
 }
 /* The lab batches a route's samples join for one of its tests: the route's own for its first test; for another test, those whose results
    the test reports (its main result at least). */

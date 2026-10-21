@@ -55,10 +55,10 @@ const report = (rows, day) => Buffer.from([
   const allSec = await opts(Tc, "#rSection");
   await Tc.selectOption("#rType", "rc"); await Tc.waitForTimeout(150);   // a sample type chosen first does not narrow a job's purposes
   await Tc.check('input[name="rKind"][value="job"]'); await Tc.waitForTimeout(250);
-  check((await opts(Tc, "#rSection")).join(",") === "PLT" && await Tc.inputValue("#rSection") === "PLT" && /Shift end samples/.test(await text(Tc, "#rJob .sub-t")), "Shift end: Section lists only the process plant, chosen: " + (await opts(Tc, "#rSection")).join(","));
+  check((await opts(Tc, "#rSection")).includes("MET") && !(await opts(Tc, "#rSection")).includes("EXP") && await Tc.inputValue("#rSection") === "PLT" && /Shift end samples/.test(await text(Tc, "#rJob .sub-t")), "Shift end: the process plant chosen, MET and the other plant sections allowed (v31): " + (await opts(Tc, "#rSection")).join(","));
   check(await Tc.inputValue("#rPurpose") === "plant", "Shift end: process control filled in, whatever sample type was chosen before");
   await Tc.check('input[name="rKind"][value="met"]'); await Tc.waitForTimeout(250);
-  check((await opts(Tc, "#rSection")).join(",") === "MET" && await Tc.inputValue("#rSection") === "MET", "MET Lab job: Section lists only the MET Lab");
+  check((await opts(Tc, "#rSection")).includes("PLT") && await Tc.inputValue("#rSection") === "MET", "MET Lab job: the MET Lab chosen, others allowed (v31)");
   await Tc.selectOption("#jTpl", "qaqc"); await Tc.waitForTimeout(150);
   check(await Tc.inputValue("#rPurpose") === "qc" && await Tc.inputValue("#jDate") === today(), "the QA/QC set: quality control, its codes dated today (a job without a shift)");
   await Tc.selectOption("#jTpl", "tank"); await Tc.waitForTimeout(150);
@@ -123,7 +123,7 @@ const report = (rows, day) => Buffer.from([
   log("Phone");
   await Tc.setViewportSize({ width: 390, height: 844 });
   await jobForm(Tc, "met", "tank", "2026-10-24");
-  check(await Tc.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1) && (await opts(Tc, "#rSection")).join(",") === "MET", "the MET Lab job on a phone: no sideways scroll, MET only");
+  check(await Tc.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1) && await Tc.inputValue("#rSection") === "MET", "the MET Lab job on a phone: no sideways scroll, MET chosen");
   await Tc.setViewportSize({ width: 1280, height: 900 });
 
   console.log("Console errors:", JSON.stringify(errors));

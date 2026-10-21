@@ -1,6 +1,21 @@
 
 /* ---------- results ---------- */
-const resOf = s => RESULTS[s?.test] || RESULTS.fa_aas;
+/* v31: a sample sent for other analyses too reports theirs after its own: the ticked analyses' results (each once) and one per analysis
+   typed by name. */
+const resMemo = new WeakMap();
+function resOf(s){
+  const b = RESULTS[s?.test] || RESULTS.fa_aas, t2 = s?.tests2 || [], xa = s?.xan || [];
+  if (!t2.length && !xa.length) return b;
+  const m = resMemo.get(s); if (m && m.t2 === t2 && m.xa === xa) return m.out;
+  const an = [...b.an];
+  for (const k of t2) for (const a of RESULTS[k]?.an || []) if (!an.some(x => x.k === a.k)) an.push(a);
+  // a typed analysis the sample already reports (Cu among a cyanide test's metals) is that result, asked for; any other gets its own
+  const rest = xa.filter(n => { const i = an.findIndex(a => [a.k, a.s, a.n].some(x => x && normCol(x) === normCol(n))); if (i >= 0) an[i] = { ...an[i], opt: false }; return i < 0; });
+  an.push(...xAns(rest, an));
+  const out = { ...b, an };
+  resMemo.set(s, { t2, xa, out });
+  return out;
+}
 /* The lab batches a sample joins, [{ p: batch type, k: [results the batch checks] }], copied from its route. An over-range result repeated by
    gravimetric finish leaves its batch for a gravimetric one. */
 function groupsOf(s){

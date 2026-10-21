@@ -194,7 +194,7 @@ function buildTrack(v, s){
     ["Assay purpose", esc(s.purpose)],
     ["Test requested", esc(s.testName || testOf(s.test)?.name || "") || "—"],
     ["Workflow route", s.route ? `<span class="code">${esc(s.route)}</span> ${esc(routeLabel(s, s.routeName || r?.name || ""))} <button class="btn ghost small" data-route="${esc(s.route)}">See route</button>` : "Standard workflow (registered before routes were added)"],
-    ["Add-on analyses", (s.analyses || []).map(esc).join(", ") || "—"],
+    ...((s.analyses || []).length ? [["Add-on analyses", s.analyses.map(esc).join(", ")]] : []),
     ["Hazards", hazTags(s).length ? hazTags(s).map(h => esc(h.l)).join(", ") : "None declared"],
     ...(twoPerson(s) ? [["Custody", "Two-person custody: every step needs a witness"]] : []),
     ...(s.reassays ? [["Re-assays", `${s.reassays}${s.lastRedo ? `, last: ${esc(s.lastRedo)}` : ""}`]] : []),
@@ -276,6 +276,7 @@ function testOptions(typeKey, sel = ""){
 /* Route choices always follow the test: only routes that perform it are offered. */
 function syncRoutes(testSel, routeSel, s, infoEl){
   const test = testSel.value, list = routesForTest(test, s.route), keep = routeSel.value;
+  if (test === s.test && s.route && !list.some(r => r.code === s.route) && routeByCode(s.route)) list.unshift(routeByCode(s.route));   // v31: its own route (a job's, or for a typed analysis) always
   const pick = list.some(r => r.code === keep) ? keep : list.some(r => r.code === s.route) ? s.route : routeFor(s.typeKey, test, s.purposeKey)?.code || "";
   routeSel.innerHTML = list.length ? routeOptions(pick, list) : `<option value="">No route performs this test</option>`;
   if (infoEl){
@@ -562,7 +563,7 @@ async function doReceipt(kind){
     if ((wit = needWitness(s0, "#rcWit")) === null) return;
     if (typeOf(s0.typeKey)?.cool != null && c.temp === ""){ toast("Record the cooler temperature on arrival."); $("#rcTemp")?.focus(); return; }
     test = val("#rcTest"); r = routeByCode(val("#rcRoute"));
-    if (!r || !(r.tests || []).includes(test)){ toast("Choose a route that performs the test."); return; }
+    if (!r || !((r.tests || []).includes(test) || (r.code === s0.route && test === s0.test))){ toast("Choose a route that performs the test."); return; }
     if (test !== s0.test && !note){ toast("Give the reason for changing the test in the note."); $("#mvNote")?.focus(); return; }
     if (c.warn.length && !note){ toast("A receipt check failed. Describe it in the note, then confirm."); $("#mvNote")?.focus(); return; }
   }
@@ -575,7 +576,7 @@ async function doReceipt(kind){
       const at = Math.max(c.at, (s.createdAt || 0) + 1000), changed = r.code !== s.route || test !== s.test;
       const recv = { bags: c.bags || null, mass: c.mass, unit: c.unit, seal: c.seal, cond: c.cond, temp: c.temp, holdH: c.holdH, warn: c.warn, ...(wit ? { wit } : {}) };
       const upd = { stageKey: "received", stageAt: at, receivedBy: session.name, receivedAt: at, recvAt: at, recv, onHand: true, flag: "", inMid: `${s.id}~in` };
-      if (changed) Object.assign(upd, routeFields(r, test));
+      if (changed) Object.assign(upd, routeFields(r, test, s));
       const parts = [note || "Receipt confirmed; sample matches the submission"];
       if (test !== s.test) parts.push(`Test changed from ${s.testName || testOf(s.test)?.name || s.test} to ${testOf(test)?.name || test}`);
       if (r.code !== s.route) parts.push(`Route changed from ${s.route || "the standard workflow"} to ${r.code}`);
@@ -686,7 +687,7 @@ async function doReroute(){
     if (test !== s.test) parts.push(`Test changed from ${s.testName || testOf(s.test)?.name || s.test} to ${testOf(test)?.name || test}`);
     if (r.code !== s.route) parts.push(`Route changed from ${s.route || "the standard workflow"} to ${r.code}`);
     if (note) parts.push(note);
-    const upd = { ...routeFields(r, test), ...rerouteReset(s, r, test, at), ...soloUpd(s),
+    const upd = { ...routeFields(r, test, s), ...rerouteReset(s, r, test, at), ...soloUpd(s),
       history: [...(s.history || []), { key: to.key, sn: to.name, at, by: session.u, tech: session.name, ref, reroute: true, ...(wit ? { wit } : {}), ...(test !== s.test ? { testFrom: s.test, testTo: test } : {}), note: parts.join(". ") + soloNote(s) }] };
     if (to.key !== s.stageKey){ upd.stageKey = to.key; upd.stageAt = at; }
     return { upd, msg: `${s.id} is now on ${r.code}, at ${to.name}` };

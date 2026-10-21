@@ -83,12 +83,41 @@ const JOB_TPL = [
     ...Array.from({ length: C.n }, (_, i) => R("plant_feed", "Preg-rob test", "ausx", `MLABPREG${pad2(i + 1)}{D}`, `Preg-rob test ${pad2(i + 1)}: ore with the spiked solution`, { pair: i + 1, role: "Test" })),
     ...Array.from({ length: C.n }, (_, i) => R("plant_feed", "Preg-rob control", "ausx", `MLABPREG${pad2(C.n + i + 1)}{D}`, `Preg-rob control for ${pad2(i + 1)}`, { pair: i + 1, role: "Control" }))
   ] },
-  { key: "qaqc", name: "QA/QC set", group: "MET Lab", pur: "qc", sec: "MET", shift: false, cnt: [["pps", "Process plant samples (PPS)", 45], ["cb", "Carbon samples (CB)", 26], ["sl", "Filtrate solutions (SL)", 15]], n: [], rows: (S, C) => [
-    ...Array.from({ length: C.pps }, (_, i) => R("plant_feed", "Process plant sample", "aufx", `MLABPPS${pad2(i + 1)}{D}`, `MET QA/QC process plant sample ${pad2(i + 1)}`)),
-    ...Array.from({ length: C.cb }, (_, i) => R("carbon", "Carbon sample", "c_load", `MLABCB${pad2(i + 1)}{D}`, `MET QA/QC carbon sample ${pad2(i + 1)}`)),
-    ...Array.from({ length: C.sl }, (_, i) => R("plant_feed", "BRT filtrate", "ausx", `MLABSL${pad2(i + 1)}{D}`, `MET QA/QC filtrate solution ${pad2(i + 1)}`))
-  ] }
+  /* v31 (21 Oct): the QA/QC set's three series are its ID groups, each with its own first code and number of samples (more can be added). */
+  { key: "qaqc", name: "QA/QC set", group: "MET Lab", pur: "qc", sec: "MET", shift: false, n: [], rows: () => [], grp: [
+    { l: "Process plant (PPS)", f: "MLABPPS01", n: 45, t: "plant_feed", test: "aufx", pt: "Process plant sample", d: "MET QA/QC process plant sample" },
+    { l: "Carbon (CB)", f: "MLABCB01", n: 26, t: "carbon", test: "c_load", pt: "Carbon sample", d: "MET QA/QC carbon sample" },
+    { l: "Filtrate solution (SL)", f: "MLABSL01", n: 15, t: "plant_feed", test: "ausx", pt: "BRT filtrate", d: "MET QA/QC filtrate solution" }] },
+  /* v31: "leave room to type in a testwork aside the 5 routine ones, you know anything can come up": named by the submitter, its samples
+     from ID groups (first code, number, type, analysis); on Shift end it is "Other samples". */
+  { key: "custom", name: "Other testwork", names: { Plant: "Other samples" }, group: "Plant", also: ["MET Lab"], pur: "plant", purG: { "MET Lab": "met" }, sec: "PLT", shift: false, tw: true, n: [], rows: () => [],
+    grp: [{ f: "", n: 1, t: "plant_feed", test: "aufx_ausx" }] }
 ];
+/* v31: a template's ID groups: what it was last submitted with on this device, else its own (one empty group for a template of fixed rows). */
+const tplName = (T, g = jobKindGroup()) => (T.names || {})[g] || T.name;
+const tplPur = T => (T.purG || {})[jobKindGroup()] || T.pur;
+const grpKey = () => "jobGrp_" + job.tpl + (jobTpl(job.tpl).tw ? "_" + jobKindGroup() : "");
+const blankGrp = last => ({ f: "", n: 1, t: last?.t || "plant_feed", test: last?.test || pointTest(last?.t || "plant_feed", ""), t2: [], xa: [] });
+function jobGroupsFor(T){
+  const ok = g => g && typeof g === "object" && typeof g.f === "string" && g.f.length <= 50 && Number.isInteger(g.n) && g.n >= 0 && g.n <= 99 && typeOf(g.t) && typeof g.test === "string";
+  try { const s = JSON.parse(lsGet(grpKey()) || "null"); if (Array.isArray(s) && s.length && s.length <= IDG_MAX && s.every(ok))
+    return s.map(g => ({ f: g.f, n: g.n, t: g.t, test: g.test, t2: Array.isArray(g.t2) ? g.t2.filter(k => typeof k === "string").slice(0, 12) : [], xa: Array.isArray(g.xa) ? splitAn(g.xa.join(",")) : [], l: String(g.l || "").slice(0, 60), pt: typeof g.pt === "string" ? g.pt.slice(0, 60) : undefined, d: typeof g.d === "string" ? g.d.slice(0, 80) : undefined })); } catch {}
+  return clone(T.grp || [blankGrp()]).map(g => ({ t2: [], xa: [], ...g }));
+}
+/* The rows an ID group makes: its first code counted on (and the date), its label numbered; what was typed over on a row stays. */
+function groupRows(keep){
+  const prev = new Map((keep || []).filter(r => r.grp != null).map(r => [r.grp + ":" + r.gj, r])), out = [];
+  (job.g || []).forEach((g, gi) => {
+    if (!hasFirst(g)) return;
+    const n = Math.max(0, Math.min(99, +g.n || 0)), lab = g.d || g.l || "";
+    for (let j = 0; j < n; j++){
+      const o = prev.get(gi + ":" + j), gen = [seriesCode(g.f, j, n) + "{D}", lab ? `${lab} ${pad2(j + 1)}` : ""];
+      out.push({ on: o?.ut ? o.on : true, ut: !!o?.ut, ph: "", t: g.t, pt: g.pt ?? g.l ?? "", test: o?.tt ? o.test : g.test, t2: o?.tt ? o.t2 : [...(g.t2 || [])], xa: o?.tt ? o.xa : [...(g.xa || [])], tt: !!o?.tt,
+        code: o?.ec ? o.code : jobFill(gen[0], job), desc: o?.ed ? o.desc : jobFill(gen[1], job), det: null, mass: o?.mass || "", ec: !!o?.ec, ed: !!o?.ed, gen, grp: gi, gj: j });
+    }
+  });
+  return out;
+}
 /* Counts for a template's numbered sets (what was typed, or its usual number), up to 99 each. */
 const jobCounts = T => Object.fromEntries((T.cnt || []).map(([k, , d]) => { const v = job?.c?.[k]; return [k, Math.max(0, Math.min(99, v == null || v === "" ? d : +v || 0))]; }));
 const jobNum = (T, k) => { const e = (T.n || []).find(x => x[0] === k); return job?.n?.[k] != null && job.n[k] !== "" ? job.n[k] : e?.[2] || ""; };
@@ -104,12 +133,12 @@ function jobFill(x, ctx){
 /* The rows for the template, shift, date and numbers: generated codes and descriptions follow them, what was typed over stays. */
 function jobRows(keep){
   const T = jobTpl(job.tpl), S = JOB_SHIFT[job.shift] || JOB_SHIFT.N, base = T.rows(S, jobCounts(T));
-  const old = keep && keep.length === base.length ? keep : null;
+  const own = (keep || []).filter(r => !r.extra && r.grp == null), old = keep && own.length === base.length ? own : null;
   job.rows = [...base.map((r, i) => {
     const o = old && old[i];
     const on0 = !(r.off || []).includes(job.shift), fresh = r.ph && !o?.ec ? lsGet("jobFresh") || "" : "";
-    return { on: o?.ut ? o.on : on0, ut: !!o?.ut, ph: r.ph || "", t: r.t, pt: r.pt, test: o?.test || r.test, code: o?.ec ? o.code : fresh || jobFill(r.code, job), desc: o?.ed ? o.desc : jobFill(r.desc, job), det: r.det || null, mass: o?.mass || "", ec: !!o?.ec || !!fresh, ed: !!o?.ed, gen: [r.code, r.desc] }; }),
-    ...(keep || []).filter(r => r.extra)];
+    return { on: o?.ut ? o.on : on0, ut: !!o?.ut, ph: r.ph || "", t: r.t, pt: r.pt, test: o?.test || r.test, t2: o?.t2 || [], xa: o?.xa || [], tt: !!o?.tt, dc: !!o?.dc, code: o?.ec ? o.code : fresh || jobFill(r.code, job), desc: o?.ed ? o.desc : jobFill(r.desc, job), det: r.det || null, mass: o?.mass || "", ec: !!o?.ec || !!fresh, ed: !!o?.ed, gen: [r.code, r.desc] }; }),
+    ...groupRows(keep), ...(keep || []).filter(r => r.extra)];
 }
 function jobBlock(){
   return `<div class="sub-step s1 job-step" id="rJob" hidden><div class="sub-t"><span class="num">1</span>Shift end samples</div>
@@ -119,24 +148,39 @@ function jobBlock(){
       <label class="f"><span>Date on the codes</span><input id="jDate" type="date"></label>
       <div class="f" id="jNums"></div>
     </div>
+    <div id="jIdg"></div>
     <div class="tbl-wrap"><table class="jrows"><thead><tr><th><input type="checkbox" id="jAll" aria-label="Tick all" checked></th><th>Sample</th><th>Code</th><th>Description</th><th>Analysis</th><th id="jMassH" hidden>Mass (g)</th></tr></thead><tbody id="jRows"></tbody></table></div>
-    <div class="row" style="gap:8px"><select class="inp" id="jAdd" style="width:auto;max-width:100%" aria-label="Add a sample"><option value="">+ Add a sample…</option>${JOB_TYPES.map(t => `<optgroup label="${esc(typeOf(t)?.name || t)}">${(ptField(t).o || []).map(p => `<option value="${esc(t + "|" + p)}">${esc(p)}</option>`).join("")}</optgroup>`).join("")}</select>
+    <div class="row" style="gap:8px"><select class="inp" id="jAdd" style="width:auto;max-width:100%" aria-label="Add a sample"><option value="">+ Add a sample…</option>${JOB_TYPES.map(t => `<optgroup label="${esc(typeOf(t)?.name || t)}">${(ptField(t).o || []).map(p => `<option value="${esc(t + "|" + p)}">${esc(p)}</option>`).join("")}<option value="${esc(t)}|">Other point…</option></optgroup>`).join("")}<optgroup label="Other sample types">${TYPES.filter(t => !JOB_TYPES.includes(t.key)).map(t => `<option value="${esc(t.key)}|">${esc(t.name)}</option>`).join("")}</optgroup></select>
       <span class="small" id="jInfo"></span></div>
   </div>`;
 }
-const jobTestOpts = (t, sel) => typeTests(typeOf(t)).filter(k => testOn(k) || k === sel).map(k => `<option value="${esc(k)}" ${k === sel ? "selected" : ""}>${esc(testOf(k)?.name || k)}</option>`).join("");
+const jobTestOpts = (t, sel) => (t === "other" ? TESTS.map(x => x.key) : typeTests(typeOf(t) || { tests: [] })).filter(k => testOn(k) || k === sel).map(k => `<option value="${esc(k)}" ${k === sel ? "selected" : ""}>${esc(testOf(k)?.name || k)}</option>`).join("") + xOpt(t, sel);
+const jobTypeOpts = sel => `${JOB_TYPES.map(t => `<option value="${t}" ${t === sel ? "selected" : ""}>${esc(typeOf(t)?.name || t)}</option>`).join("")}<optgroup label="Other sample types">${TYPES.filter(t => !JOB_TYPES.includes(t.key)).map(t => `<option value="${t.key}" ${t.key === sel ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</optgroup>`;
+/* An ID group of a job: its type and analysis beside its first code and number; its label and other analyses under More. */
+const jobGrpExtra = (g, i) => `<label class="f g-tf"><span>Sample type</span><select class="inp g-t" data-g="${i}">${jobTypeOpts(g.t)}</select></label>
+  <label class="f g-af"><span>Analysis</span><select class="inp g-test" data-g="${i}">${jobTestOpts(g.t, g.test)}</select></label>
+  <details class="g-more"${(g.t2 || []).length || (g.xa || []).length || g.test === "x" ? " open" : ""}><summary>More</summary><label class="f"><span>Label</span><input class="inp g-l" data-g="${i}" value="${esc(g.l || "")}" maxlength="60" placeholder="e.g. Standards" autocomplete="off"></label>${anMore("jGA" + i, g.t, g.test, g.t2 || [], g.xa || [])}</details>`;
+function renderJobGroups(){
+  const box = $("#jIdg"); if (!box || !job) return;
+  const T = jobTpl(job.tpl), inner = idgBlock("j", job.g, { count: true, extra: jobGrpExtra });
+  box.innerHTML = T.grp ? inner : `<details class="idg-wrap"${job.gOpen || job.g.some(hasFirst) ? " open" : ""}><summary>ID groups <span class="muted small">first code + date</span></summary>${inner}</details>`;
+  idgPreview(box, job.g, job.date);
+}
+/* A row's other analyses fold under its analysis, filled in when opened. */
+const rowAn = (r, i) => { const l = anLabel(r.t, r.test, r.t2 || [], r.xa || []), open = !!l || r.test === "x";
+  return `<details class="an-more mini" data-j="${i}"${open ? " open" : ""}${open ? ' data-f="1"' : ""}><summary title="More analyses">${esc(l || "+ More")}</summary>${open ? anMoreBody(r.t, r.test, r.t2 || [], r.xa || []) : ""}</details>`; };
 function renderJob(){
   const body = $("#jRows"); if (!body || !job) return;
   const T = jobTpl(job.tpl);
   $("#jShiftBox").hidden = !T.shift;
-  const nb = $("#jNums"); if (nb && nb.dataset.tpl !== T.key){ nb.dataset.tpl = T.key; nb.innerHTML = `<div class="form">${(T.cnt || []).map(([k, l, d]) => `<label class="f"><span>${esc(l)}</span><input id="jC_${k}" type="number" min="0" max="99" step="1" inputmode="numeric" value="${esc(job.c?.[k] ?? d)}"></label>`).join("")}${T.n.map(([k, l, d, dl]) => `<label class="f"><span>${esc(l)}</span><input id="jN_${k}" ${dl ? 'inputmode="decimal"' : 'inputmode="numeric"'} maxlength="8" placeholder="${esc(d || (dl ? "e.g. 2.5" : "e.g. 31"))}" value="${esc(job.n[k] || "")}"></label>`).join("")}</div>`; }
+  const nb = $("#jNums"); if (nb && nb.dataset.tpl !== T.key + jobKindGroup()){ nb.dataset.tpl = T.key + jobKindGroup(); renderJobGroups(); nb.innerHTML = `<div class="form">${T.tw ? `<label class="f"><span>Testwork</span><input id="jTw" maxlength="60" placeholder="e.g. Leach kinetics" value="${esc(job.tw || "")}" autocomplete="off"></label>` : ""}${(T.cnt || []).map(([k, l, d]) => `<label class="f"><span>${esc(l)}</span><input id="jC_${k}" type="number" min="0" max="99" step="1" inputmode="numeric" value="${esc(job.c?.[k] ?? d)}"></label>`).join("")}${T.n.map(([k, l, d, dl]) => `<label class="f"><span>${esc(l)}</span><input id="jN_${k}" ${dl ? 'inputmode="decimal"' : 'inputmode="numeric"'} maxlength="8" placeholder="${esc(d || (dl ? "e.g. 2.5" : "e.g. 31"))}" value="${esc(job.n[k] || "")}"></label>`).join("")}</div>`; }
   $("#jMassH").hidden = !T.mass;
   body.innerHTML = job.rows.map((r, i) => `<tr class="${r.on ? "" : "off"}"><td><input type="checkbox" data-jon="${i}" ${r.on ? "checked" : ""} aria-label="Include ${esc(r.code)}"></td>
-    <td><span class="small muted">${esc(typeOf(r.t)?.name || r.t)}</span><div><b>${esc(r.pt)}</b></div></td>
+    <td><span class="small muted">${esc(typeOf(r.t)?.name || r.t)}</span><div>${r.ptx ? `<input class="inp j-pt" data-j="${i}" value="${esc(r.pt)}" maxlength="60" placeholder="Point or what it is" aria-label="Sampling point, row ${i + 1}" autocomplete="off">` : `<b>${esc(r.pt)}</b>`}</div></td>
     <td><input class="inp j-code" data-j="${i}" value="${esc(r.code)}" aria-label="Code, row ${i + 1}" placeholder="${esc(r.ph || "")}" autocomplete="off" spellcheck="false"></td>
     <td><input class="inp j-desc" data-j="${i}" value="${esc(r.desc)}" aria-label="Description, row ${i + 1}" placeholder="Description" autocomplete="off"></td>
-    <td><select class="inp j-test" data-j="${i}" aria-label="Analysis, row ${i + 1}">${jobTestOpts(r.t, r.test)}</select></td>${T.mass ? `<td>${r.det?.frac ? `<input class="inp j-mass" data-j="${i}" inputmode="decimal" value="${esc(r.mass || "")}" aria-label="Mass in grams, ${esc(r.code)}" placeholder="g">` : ""}</td>` : ""}</tr>`).join("");
-  jobHints();
+    <td><select class="inp j-test" data-j="${i}" aria-label="Analysis, row ${i + 1}">${jobTestOpts(r.t, r.test)}</select>${rowAn(r, i)}</td>${T.mass ? `<td>${r.det?.frac ? `<input class="inp j-mass" data-j="${i}" inputmode="decimal" value="${esc(r.mass || "")}" aria-label="Mass in grams, ${esc(r.code)}" placeholder="g">` : ""}</td>` : ""}</tr>`).join("");
+  jobHints(); idgPreview($("#jIdg"), job.g, job.date);
 }
 function jobHints(){
   if (!job) return;
@@ -155,40 +199,69 @@ function bindJob(v){
   const tp = $("#jTpl", v); if (!tp) return;
   /* In the morning the night shift's samples come in (the shift began the day before); in the evening the day shift's. */
   const hr = +localInput(Date.now()).slice(11, 13), night = hr >= 6 && hr < 18, back = night || hr < 6 ? 1 : 0;
-  job = { tpl: lsGet("jobTpl_Plant") || lsGet("jobTpl") || "mill", shift: night ? "N" : "D", date: localInput(Date.now() - back * 86400e3).slice(0, 10), n: {}, c: {}, rows: [] };
+  job = { tpl: lsGet("jobTpl_Plant") || lsGet("jobTpl") || "mill", shift: night ? "N" : "D", date: localInput(Date.now() - back * 86400e3).slice(0, 10), n: {}, c: {}, g: [], tw: "", rows: [] };
   if (!JOB_TPL.some(x => x.key === job.tpl)) job.tpl = "mill";
+  job.g = jobGroupsFor(jobTpl(job.tpl));
   job.date = jobDate(jobTpl(job.tpl));   // 21 Oct: a template without a shift (an elution run, the MET Lab's jobs) takes today's date
   tp.value = job.tpl; $("#jShift", v).value = job.shift; $("#jDate", v).value = job.date;
   jobRows(); renderJob(); if (isJobKind(formKind())){ jobGroup(v); jobSections(v); jobPurposes(v); jobDefaults(v); }
   const again = () => { jobRows(job.rows); renderJob(); };
-  tp.onchange = () => { job.tpl = tp.value; lsSet("jobTpl_" + jobKindGroup(), tp.value); job.n = {}; job.c = {}; jobRows(); renderJob(); jobDateFor(v); jobPurposes(v); jobDefaults(v); };
+  tp.onchange = () => { job.tpl = tp.value; lsSet("jobTpl_" + jobKindGroup(), tp.value); job.n = {}; job.c = {}; job.g = jobGroupsFor(jobTpl(job.tpl)); job.gOpen = false; jobRows(); renderJob(); jobDateFor(v); jobPurposes(v); jobDefaults(v); };
   $("#jShift", v).onchange = e => { job.shift = e.target.value; again(); };
-  $("#jDate", v).onchange = e => { job.date = e.target.value; job.dateSet = true; again(); };
-  $("#jNums", v).addEventListener("input", e => {
+  $("#jDate", v).onchange = e => { job.date = e.target.value; job.dateSet = true; again(); idgPreview($("#jIdg", v), job.g, job.date); };
+  $("#jNums", v).addEventListener("input", e => { if (e.target.id === "jTw"){ job.tw = e.target.value.trim().slice(0, 60); return; }
     const c = e.target.id.match(/^jC_(\w+)$/); if (c){ job.c[c[1]] = e.target.value; jobRows(job.rows); renderJob(); return; }   // a count: the numbered rows follow
     const m = e.target.id.match(/^jN_(\w+)$/); if (!m) return; job.n[m[1]] = e.target.value.trim(); job.rows.forEach(r => { if (!r.extra){ if (!r.ec) r.code = jobFill(r.gen[0], job); if (!r.ed) r.desc = jobFill(r.gen[1], job); } });
     document.querySelectorAll("#jRows .j-code").forEach(el => { el.value = job.rows[+el.dataset.j].code; }); document.querySelectorAll("#jRows .j-desc").forEach(el => { el.value = job.rows[+el.dataset.j].desc; }); jobHints(); });
+  /* v31: ID groups. The rows follow every change; a first code typed with its date gives the date to the date box. */
+  const ig = $("#jIdg", v), regen = () => { jobRows(job.rows); renderJob(); idgPreview(ig, job.g, job.date); };
+  ig.addEventListener("toggle", e => { if (e.target.classList?.contains("idg-wrap")) job.gOpen = e.target.open; }, true);
+  ig.addEventListener("input", e => { const el = e.target, g = job.g[+el.dataset.g];
+    if (el.classList.contains("g-first") && g){ g.f = el.value; regen(); }
+    else if (el.classList.contains("g-n") && g){ const k = Math.floor(+el.value); if (k >= 0 && k <= 99 && el.value !== ""){ g.n = k; regen(); } }
+    else if (el.classList.contains("g-l") && g){ g.l = el.value.slice(0, 60); regen(); }
+    else if (el.classList.contains("an-x")){ const d = el.closest(".an-more"), gr = job.g[+d.id.slice(3)]; if (gr){ gr.xa = anRead(d).xan; anSum(d); regen(); } } });
+  ig.addEventListener("change", e => { const el = e.target, gi = +el.dataset.g, g = job.g[gi];
+    if (el.classList.contains("g-first") && g){ const d = splitDated(el.value); if (d){ g.f = d.f; el.value = d.f; job.date = d.d; job.dateSet = true; $("#jDate", v).value = d.d; regen(); } }
+    else if (el.classList.contains("g-n") && g) el.value = g.n;
+    else if (el.classList.contains("g-t") && g){ g.t = el.value; g.test = pointTest(g.t, ""); g.t2 = []; renderJobGroups(); regen(); }
+    else if (el.classList.contains("g-test") && g){ g.test = el.value; g.t2 = (g.t2 || []).filter(k => k !== g.test); renderJobGroups(); regen(); if (g.test === "x") ig.querySelector(`#jGA${gi} .an-x`)?.focus(); }
+    else if (el.id === "jGn"){ resizeGroups(job.g, +el.value, blankGrp); job.gOpen = true; renderJobGroups(); regen(); ig.querySelector(`.g-first[data-g="${job.g.length - 1}"]`)?.focus(); }
+    else if (el.type === "checkbox" && el.closest(".an-more")){ const d = el.closest(".an-more"), gr = job.g[+d.id.slice(3)]; if (gr){ gr.t2 = anRead(d).tests2; anSum(d); regen(); } } });
   const rows = $("#jRows", v);
-  rows.addEventListener("input", e => { const el = e.target, r = job.rows[+el.dataset.j]; if (!r) return;
-    if (el.classList.contains("j-code")){ r.code = el.value; r.ec = true; } else if (el.classList.contains("j-desc")){ r.desc = el.value; r.ed = true; } else if (el.classList.contains("j-mass")){ r.mass = el.value.trim(); return; } jobHints(); });
+  rows.addEventListener("input", e => { const el = e.target, r = job.rows[+el.closest("[data-j]")?.dataset.j]; if (!r) return;
+    if (el.classList.contains("an-x")){ const d = el.closest(".an-more"); Object.assign(r, { xa: anRead(d).xan, tt: true }); anSum(d); return; }
+    if (el.classList.contains("j-code")){ r.code = el.value; r.ec = true; } else if (el.classList.contains("j-desc")){ r.desc = el.value; r.ed = true; } else if (el.classList.contains("j-mass")){ r.mass = el.value.trim(); return; } else if (el.classList.contains("j-pt")){ r.pt = el.value.trim(); return; } jobHints(); });
   rows.addEventListener("change", e => { const el = e.target;
     if (el.dataset.jon != null){ Object.assign(job.rows[+el.dataset.jon], { on: el.checked, ut: true }); el.closest("tr").classList.toggle("off", !el.checked); jobHints(); }
-    else if (el.classList.contains("j-test")) job.rows[+el.dataset.j].test = el.value; });
+    else if (el.classList.contains("j-test")){ const r = job.rows[+el.dataset.j]; Object.assign(r, { test: el.value, t2: (r.t2 || []).filter(k => k !== el.value), tt: true });
+      const d = el.parentElement.querySelector(".an-more"); if (d){ d.outerHTML = rowAn(r, +el.dataset.j); } if (r.test === "x") el.parentElement.querySelector(".an-x")?.focus(); }
+    else if (el.type === "checkbox" && el.closest(".an-more")){ const d = el.closest(".an-more"), r = job.rows[+d.dataset.j]; if (r){ Object.assign(r, { t2: anRead(d).tests2, tt: true }); anSum(d); } }
+    else if (el.classList.contains("j-code")){   // v31: initials typed without a date take the job's date ("the date will complete the ID name")
+      const r = job.rows[+el.dataset.j]; if (!r || r.ph || r.dc || !r.code.trim() || /\d{8}/.test(r.code) || !job.date) return;
+      r.code = r.code.replace(/^\s+/, "") + dayCode(job.date); r.dc = true; el.value = r.code; jobHints(); } });
+  rows.addEventListener("click", e => { const s = e.target.closest(".an-more.mini > summary"); if (!s) return; const d = s.parentElement, r = job.rows[+d.dataset.j];
+    if (r && !d.dataset.f){ d.dataset.f = "1"; d.insertAdjacentHTML("beforeend", anMoreBody(r.t, r.test, r.t2 || [], r.xa || [])); } });
   $("#jAll", v).onchange = e => { job.rows.forEach(r => { r.on = e.target.checked; r.ut = true; }); renderJob(); };
   $("#jAdd", v).onchange = e => {
     const [t, pt] = e.target.value.split("|"); e.target.value = ""; if (!t) return;
     if (job.rows.length >= 100) return toast("Up to 100 samples in one job.");
-    job.rows.push({ on: true, extra: true, t, pt, test: pointTest(t, pt), code: "", desc: "", det: null, ec: true, ed: true, gen: ["", ""] });
-    renderJob(); $(`#jRows .j-code[data-j="${job.rows.length - 1}"]`)?.focus();
+    job.rows.push({ on: true, extra: true, t, pt: pt || "", ptx: !pt, test: pointTest(t, pt), t2: [], xa: [], code: "", desc: "", det: null, ec: true, ed: true, gen: ["", ""] });
+    renderJob(); $(`#jRows ${pt ? ".j-code" : ".j-pt"}[data-j="${job.rows.length - 1}"]`)?.focus();
   };
 }
 /* Shift job lists the plant's templates, MET Lab job the MET Lab's (20 Oct: "MET Lab … should be independent", and "Met Jobs should also
    have 'carbon activity'"); each kind remembers its last. */
 const jobKindGroup = () => formKind() === "met" ? "MET Lab" : "Plant";
-/* 21 Oct: "MET jobs come from the Met department. Shift end comes from PP": Section lists only that section (the process plant, PLT or PP;
-   the MET Lab, MET), chosen for the submitter. A site without such a section keeps the whole list. */
-const jobSecs = g => { const all = cfg.sections || [], want = g === "MET Lab" ? (x => x.code === "MET" || /\bmet(allurgy| ?lab)\b/i.test(x.name || "")) : (x => ["PLT", "PP"].includes(x.code) || /process plant/i.test(x.name || "")); const l = all.filter(want); return l.length ? l : all; };
-const kindFor = (k, sec) => !sec || !knownSec(sec) || jobSecs(k === "met" ? "MET Lab" : "Plant").some(x => x.code === sec);   // a section account sees the kinds it sends
+/* 21 Oct: "MET jobs come from the Met department. Shift end comes from PP": that section is filled in (the process plant, PLT or PP; the
+   MET Lab, MET). v31 (21 Oct): "that is too strict, I think MET or some other relevant sections should come. but P.P can come by default":
+   Section lists every section that sends plant samples (those the job's sample types come from, and any an admin added). */
+const JOB_SEC = [...new Set(JOB_TYPES.flatMap(t => TYPE_SECTIONS[t] || []))];
+const isPP = x => ["PLT", "PP"].includes(x.code) || /process plant|^p\.?\s?p\.?$/i.test(x.name || "");
+const isMET = x => x.code === "MET" || /\bmet(allurgy| ?lab)\b/i.test(x.name || "");
+const jobSecs = g => { const all = cfg.sections || [], l = all.filter(x => JOB_SEC.includes(x.code) || !knownSec(x.code) || isPP(x) || isMET(x)); return l.length ? l : all; };
+const jobSec0 = g => ((cfg.sections || []).find(g === "MET Lab" ? isMET : isPP) || {}).code || "";
+const kindFor = (k, sec) => !sec || !knownSec(sec) || (k === "met" ? isMET((cfg.sections || []).find(x => x.code === sec) || { code: sec }) : jobSecs("Plant").some(x => x.code === sec));   // a section account sees the kinds it sends: MET Lab job from the MET Lab, Shift end from any plant section (v31)
 function jobSections(v){
   const sc = $("#rSection", v || document); if (!sc || !job) return;
   const list = jobSecs(jobKindGroup()), keep = sc.value;
@@ -199,7 +272,7 @@ function jobSections(v){
 /* What a job's samples can be sent for: what its sample types take, and the template's usual purpose (QA/QC for the MET Lab's set). */
 function jobPurposes(v){
   const pu = $("#rPurpose", v || document); if (!pu || !job) return;
-  const T = jobTpl(job.tpl), keys = new Set([T.pur, "other", ...[...new Set(job.rows.map(r => r.t))].flatMap(t => TYPE_PURPOSES[t] || [])]), keep = pu.value;
+  const T = jobTpl(job.tpl), keys = new Set([tplPur(T), "other", ...[...new Set(job.rows.map(r => r.t))].flatMap(t => TYPE_PURPOSES[t] || [])]), keep = pu.value;
   pu.innerHTML = `<option value="">Choose…</option>${purposeOptions("", keys)}`;
   if (keep && keys.has(keep)) pu.value = keep;
   pu.dataset.job = "1";
@@ -219,14 +292,15 @@ function routeLabel(s, name){ const n = name ?? s?.routeName ?? ""; return s && 
 function jobGroup(v){
   const g = jobKindGroup(), tp = $("#jTpl", v || document); if (!tp || !job) return;
   const list = JOB_TPL.filter(x => inGroup(x, g));
-  if (tp.dataset.g !== g){ tp.dataset.g = g; tp.innerHTML = list.map(x => `<option value="${x.key}">${esc(x.name)}</option>`).join(""); }
-  if (!list.some(x => x.key === job.tpl)){ const last = lsGet("jobTpl_" + g); job.tpl = list.some(x => x.key === last) ? last : list[0].key; job.n = {}; job.c = {}; jobRows(); }
+  if (tp.dataset.g !== g){ tp.dataset.g = g; tp.innerHTML = list.map(x => `<option value="${x.key}">${esc(tplName(x, g))}</option>`).join(""); }
+  if (!list.some(x => x.key === job.tpl)){ const last = lsGet("jobTpl_" + g); job.tpl = list.some(x => x.key === last) ? last : list[0].key; job.n = {}; job.c = {}; job.g = jobGroupsFor(jobTpl(job.tpl)); jobRows(); }
+  else if (jobTpl(job.tpl).tw && $("#jNums")?.dataset.tpl !== job.tpl + g){ job.g = jobGroupsFor(jobTpl(job.tpl)); jobRows(job.rows); }   // Other testwork keeps groups for each kind
   tp.value = job.tpl; renderJob(); jobDateFor(v);
   const t = $("#rJob .sub-t", v || document); if (t) t.innerHTML = `<span class="num">1</span>${g === "MET Lab" ? "MET Lab samples" : "Shift end samples"}`;
 }
 /* The template's purpose and section (a MET Lab job from MET), filled in until the submitter picks their own. */
 function jobDefaults(v){
-  const T0 = jobTpl(job.tpl), T = { ...T0, sec: jobSecs(jobKindGroup()).length === 1 ? jobSecs(jobKindGroup())[0].code : jobKindGroup() === "MET Lab" ? "MET" : T0.sec }, pu = $("#rPurpose", v || document), sc = $("#rSection", v || document); if (!pu || !sc) return;
+  const T0 = jobTpl(job.tpl), T = { ...T0, pur: tplPur(T0), sec: jobSecs(jobKindGroup()).length === 1 ? jobSecs(jobKindGroup())[0].code : jobSec0(jobKindGroup()) || (jobKindGroup() === "MET Lab" ? "MET" : T0.sec) }, pu = $("#rPurpose", v || document), sc = $("#rSection", v || document); if (!pu || !sc) return;
   if (!pu.value || pu.value === job.pu0){ if ([...pu.options].some(o => o.value === T.pur)){ pu.value = T.pur; job.pu0 = T.pur; } }
   if (!sc.value || sc.value === job.sc0){ if ([...sc.options].some(o => o.value === T.sec)){ sc.value = T.sec; sc.dataset.auto = "1"; job.sc0 = T.sec; } }
 }
@@ -237,7 +311,7 @@ async function registerJob(){
   const btn = $("#rSubmit"), msg = $("#rMsg");
   const fail = (m, focus) => { toast(m); const el = focus && $(focus); if (el){ const d = el.closest("details"); if (d) d.open = true; el.focus(); } };
   const rows = (job?.rows || []).filter(r => r.on), n = rows.length;
-  if (!n) return fail("Tick at least one sample.", "#jAll");
+  if (!n) return fail(job.g.some(hasFirst) || !jobTpl(job.tpl).grp && jobTpl(job.tpl).rows(JOB_SHIFT.N, jobCounts(jobTpl(job.tpl))).length ? "Tick at least one sample." : "Type the first code.", job.g.some(hasFirst) ? "#jAll" : "#jIdg .g-first");
   if (n > 100) return fail("Up to 100 samples in one job.");
   const blank = rows.findIndex(r => !r.code.trim()); if (blank >= 0) return fail("Every ticked sample needs its code.", `#jRows .j-code[data-j="${job.rows.indexOf(rows[blank])}"]`);
   const tags = rows.map(r => normTag(r.code)); if (new Set(tags.map(normKey)).size !== n) return fail("The same code appears twice in this job.", "#jRows .j-code.dup");
@@ -245,6 +319,7 @@ async function registerJob(){
   const badC = rows.findIndex(r => /[~\u0000-\u001f]/.test(r.code) || normTag(r.code).length > 60);
   if (badC >= 0) return fail(`${rows[badC].code.slice(0, 40)}: a code is the sample's ID, up to 60 characters and without ~.`, `#jRows .j-code[data-j="${job.rows.indexOf(rows[badC])}"]`);
   const noTest = rows.find(r => !r.test); if (noTest) return fail(`Choose the analysis for ${noTest.code}.`);
+  const noX = rows.find(r => r.test === "x" && !(r.xa || []).length); if (noX) return fail(`Type the analysis for ${noX.code}.`, noX.grp != null ? `#jGA${noX.grp} .an-x` : `#jRows .an-more[data-j="${job.rows.indexOf(noX)}"] summary`);
   const code = val("#rSection"), puK = val("#rPurpose") || "plant", submitter = val("#rSubmitter");
   if (!submitter) return fail("Type the name of the person submitting.", "#rSubmitter");
   if (!code) return fail("Choose the submitting section.", "#rSection");
@@ -262,18 +337,25 @@ async function registerJob(){
   // 21 Oct: a MET Lab job sends its final samples, analysed as they come; what is left goes back to the MET Lab (route MET-JOB)
   const MR = jobKindGroup() === "MET Lab" ? routeByCode("MET-JOB") : null, JR = MR || routeByCode("JOB"), T = jobTpl(job.tpl), S = JOB_SHIFT[job.shift] || JOB_SHIFT.N;
   const when = job.date ? fmtDate(fromInput(job.date + "T12:00")) : fmtDate(now);
-  const batchName = `${T.name}${T.shift ? `, ${S.name.toLowerCase()}` : ""}, ${when}`;
+  const batchName = `${T.tw && job.tw ? job.tw : tplName(T)}${T.shift ? `, ${S.name.toLowerCase()}` : ""}, ${when}`;
   btn.disabled = true; msg.textContent = "Checking the codes…";
   try {
     const owners = new Array(n); await pool(tags.map((t, i) => [t, i]), 6, async ([t, i]) => { owners[i] = await tagOwner(t, rows[i].test); return true; });
+    /* v31: a code made from a first code that is a sample's ID already, or on an open sample for the same analysis, stops the job with the
+       next free numbers offered (a code typed by hand keeps the rule: on an open sample, change it; a sample's ID, -2 after it). */
+    const made = rows.map((r, i) => [r, i]).filter(([r]) => r.grp != null && !r.ec), have = new Array(n);
+    await pool(made, 6, async ([, i]) => { try { const d = await db.doc("samples/" + skey(tags[i])).get(); have[i] = d.exists && d.data()?.id ? d.data().id : ""; } catch { have[i] = ""; } return true; });
+    const took = made.filter(([, i]) => owners[i] || have[i]);
+    if (took.length) throw { code: "taken", took: took.map(([r, i]) => [r.grp, r.gj, tags[i]]) };
     const used = owners.findIndex(Boolean); if (used >= 0) throw { code: "tagused", tag: tags[used], id: owners[used] };
     msg.textContent = "Issuing IDs…";
     const start = lab ? "received" : "submitted", priority = $("#rPriority").value, notes = val("#rNotes");
     const per = rows.map(r => {
-      const t = typeOf(r.t), nat = routeFor(r.t, r.test, puK), route = JR || nat;
+      const t = typeOf(r.t), nat = routeFor(r.t, r.test, puK), route = JR || nat || (r.test === "x" ? OTHER_ROUTE : null);
       if (!route) throw { code: "noroute", test: r.test };
       const rf = routeFields(route, r.test);
       if (JR) Object.assign(rf, { retention: MR ? clone(rf.retention) : clone(nat?.retention || rf.retention), triggers: clone(nat?.triggers || []), qcg: [], qcp: "", qc: "", baseRoute: nat?.code || "" });
+      Object.assign(rf, anFields(r.test, r.t2, r.xa));   // v31: its other analyses (the job's one step covers them)
       return { r, t, rf };
     });
     const startName = per[0].rf.plan.find(x => x.key === start)?.name || "Submitted";
@@ -285,7 +367,7 @@ async function registerJob(){
     const make = (id, i, batchId) => {
       const { r, t, rf } = per[i], recv = recvOf(r.t), w = recv?.wit || "";
       const d = r.det || {}, mass = String(r.mass || "").replace(",", ".").trim();
-      const details = { [ptField(r.t).l]: r.pt, ...(T.shift && (t?.fields || []).some(f => f.k === "shift") ? { Shift: S.name.replace(/ shift$/, "") } : {}), ...(d.bv ? { "Time or bed volume": d.bv } : {}), ...(r.t === "elution" && job.n.n1 ? { "Elution batch / strip no.": job.n.n1 } : {}),
+      const details = { ...(r.pt ? { [ptField(r.t).l]: r.pt } : {}), ...(T.tw && job.tw ? { Testwork: job.tw } : {}), ...(T.shift && (t?.fields || []).some(f => f.k === "shift") ? { Shift: S.name.replace(/ shift$/, "") } : {}), ...(d.bv ? { "Time or bed volume": d.bv } : {}), ...(r.t === "elution" && job.n.n1 ? { "Elution batch / strip no.": job.n.n1 } : {}),
         ...(d.tank != null ? { "CIL tank": d.tank === 0 ? "Pre-leach" : String(d.tank) } : {}), ...(d.frac ? { "Size fraction": d.frac, BRT: d.side } : {}), ...(d.frac && mass && isFinite(+mass) && +mass > 0 ? { "Mass (g)": String(+mass) } : {}),
         ...(d.pair ? { "Preg-rob pair": pad2(d.pair), "Preg-rob": d.role } : {}), ...Object.fromEntries((T.n || []).filter(x => x[3] && job.n[x[0]]).map(x => [x[3], job.n[x[0]]])) };
       const body = { ...base, ...rf, id, type: t?.name || r.t, typeKey: r.t, details, hazards: [...(t?.haz || [])], recv, batchIndex: i + 1, ...(batchId && n > 1 ? { batchId } : {}),
@@ -331,6 +413,7 @@ async function registerJob(){
     await pool(Array.from({ length: n - 1 }, (_, i) => i + 1), 6, async i => { ids[i] = await claimCode(i, () => ref); msg.textContent = `Saved ${++saved} of ${n}…`; return true; });
     ids.forEach((id, i) => db.doc("tagidx/" + tagKey(tags[i])).set({ sid: id, tag: tags[i], at: now }).catch(() => {}));
     const fr = rows.find(r => r.ph && r.code.trim()); if (fr) lsSet("jobFresh", fr.code.trim().slice(0, 40));
+    lsSet(grpKey(), JSON.stringify(job.g.map(g => ({ f: g.f, n: +g.n || 0, t: g.t, test: g.test, t2: g.t2 || [], xa: g.xa || [], l: g.l || "", ...(g.pt != null ? { pt: g.pt } : {}), ...(g.d ? { d: g.d } : {}) }))));   // v31: the template remembers its groups
     if (lab) ids.forEach(id => { flushLedger(id); syncStock(id); });
     msg.textContent = "";
     const own = ids.every((id, i) => id === tags[i]);
@@ -349,8 +432,21 @@ async function registerJob(){
     if (e && e.code === "tagused") toast(`Code ${e.tag} is already on open sample ${e.id} for the same analysis. Change it, or untick it.`);
     else if (e && e.code === "noroute") toast(`No workflow route performs ${testOf(e.test)?.name || e.test}. Ask the lab manager.`);
     else if (e && e.code === "busy") toast("Could not issue an ID. Try again in a moment.");
+    else if (e && e.code === "taken") offerJobFree(e.took);
     else writeFailed(e);
   }
+}
+/* v31: codes from a first code that are taken: marked, with the groups' next free numbers a tap away. */
+function offerJobFree(took){
+  const on = new Set(took.map(([gi, j]) => gi + ":" + j));
+  document.querySelectorAll("#jRows .j-code").forEach(el => { const r = job.rows[+el.dataset.j]; el.classList.toggle("taken", !!r && on.has(r.grp + ":" + r.gj)); });
+  toast(`${took[0][2]}${took.length > 1 ? ` and ${took.length - 1} more` : ""}: already used.`);
+  const info = $("#jInfo"); if (!info) return;
+  info.classList.remove("bad-t");
+  info.innerHTML = `<span class="bad-t">${took.length} already used</span> <button type="button" class="btn small" id="jFree">Next free numbers</button>`;
+  $("#jFree").onclick = async e => { e.target.disabled = true; e.target.textContent = "Checking…";
+    const taken = async (c, gi) => { if (await tagOwner(c, job.g[gi]?.test)) return true; try { const d = await db.doc("samples/" + skey(c)).get(); return d.exists && !!d.data()?.id; } catch { return false; } };
+    const fs = await nextFree(job.g, took.map(([gi, j]) => [gi, j]), job.date, taken); renderJobGroups(); jobRows(job.rows); renderJob(); toast(`Now from ${fs.join(", ")}`); };
 }
 /* On a single sample's form: choosing the sampling point fills in the analysis it usually gets, until the analysis is chosen by hand. */
 document.addEventListener("change", e => {

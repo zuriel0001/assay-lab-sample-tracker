@@ -15,8 +15,9 @@ const shown = (page, sel) => page.isVisible(sel).catch(() => false);
 const CORE = "/mnt/project-files/sample-tracking-azure/api/lib/core.js";
 let checkSubmission = null;
 if (fs.existsSync(CORE)){
-  const m = fs.readFileSync(CORE, "utf8").match(/  function checkSubmission\(id, d\)\{[\s\S]*?\n    return "";\n  \}/);
-  if (m) checkSubmission = eval("(" + m[0].trim() + ")");
+  const src = fs.readFileSync(CORE, "utf8"), m = src.match(/  function checkSubmission\(id, d\)\{[\s\S]*?\n    return "";\n  \}/);
+  const ids = (src.match(/\nconst SAMPLE_ID =[\s\S]*?\n(?=const qaqc)/) || [""])[0];   // the ID rules it uses (SAMPLE_ID, JOB_ID, skey, jobIdOk; v24d)
+  if (m) checkSubmission = eval("(() => {" + ids + "\nreturn " + m[0].trim() + ";})()");
 }
 
 (async () => {

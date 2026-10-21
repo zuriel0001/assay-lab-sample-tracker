@@ -53,9 +53,9 @@ const by = (j, c) => doc(j.ids[j.tags.indexOf(c)]);
   await H.tab(Tc, "submit");
   check((await Tc.$$eval('input[name="rKind"]', rs => rs.map(r => r.value))).join(",") === "single,batch,job,met" && /MET Lab job/.test(await text(Tc, "#regForm .seg")), "Single sample, Batch, Shift end, MET Lab job");
   await Tc.check('input[name="rKind"][value="job"]'); await Tc.waitForTimeout(200);
-  check((await opts(Tc, "#jTpl")).join(",") === "mill,elution,cact" && /Shift end samples/.test(await text(Tc, "#rJob .sub-t")) && await Tc.inputValue("#rPurpose") === "plant" && await Tc.inputValue("#rSection") === "PLT", "Shift end: the plant's templates, process control from PLT");
+  check((await opts(Tc, "#jTpl")).join(",") === "mill,elution,cact,custom" && /Shift end samples/.test(await text(Tc, "#rJob .sub-t")) && await Tc.inputValue("#rPurpose") === "plant" && await Tc.inputValue("#rSection") === "PLT", "Shift end: the plant's templates, process control from PLT");
   await Tc.check('input[name="rKind"][value="met"]'); await Tc.waitForTimeout(200);
-  check((await opts(Tc, "#jTpl")).join(",") === "cact,tank,brt,preg,qaqc" && /MET Lab samples/.test(await text(Tc, "#rJob .sub-t")) && await Tc.inputValue("#rSection") === "MET", "MET Lab job: Carbon activity, Tank profile, Bottle roll, Preg-robbing test, QA/QC set, from MET");
+  check((await opts(Tc, "#jTpl")).join(",") === "cact,tank,brt,preg,qaqc,custom" && /MET Lab samples/.test(await text(Tc, "#rJob .sub-t")) && await Tc.inputValue("#rSection") === "MET", "MET Lab job: Carbon activity, Tank profile, Bottle roll, Preg-robbing test, QA/QC set, from MET");
   const pur = {};
   for (const t of ["tank", "brt", "preg", "qaqc"]){ await Tc.selectOption("#jTpl", t); await Tc.waitForTimeout(120); pur[t] = await Tc.inputValue("#rPurpose") + "/" + await Tc.inputValue("#rSection"); }
   check(pur.tank === "plant/MET" && pur.brt === "met_br/MET" && pur.preg === "met_pri/MET" && pur.qaqc === "qc/MET", "each template's purpose: " + JSON.stringify(pur));
@@ -168,7 +168,7 @@ const by = (j, c) => doc(j.ids[j.tags.indexOf(c)]);
   log("QA/QC set: reported as it is");
   await jobForm(Tc, "met", "qaqc", "2026-10-22");
   check((await codes(Tc)).length === 86, "45 PPS, 26 CB and 15 SL by default");
-  await Tc.fill("#jC_pps", "3"); await Tc.waitForTimeout(150); await Tc.fill("#jC_cb", "2"); await Tc.waitForTimeout(150); await Tc.fill("#jC_sl", "2"); await Tc.waitForTimeout(200);
+  await Tc.fill('#jIdg .g-n[data-g="0"]', "3"); await Tc.waitForTimeout(150); await Tc.fill('#jIdg .g-n[data-g="1"]', "2"); await Tc.waitForTimeout(150); await Tc.fill('#jIdg .g-n[data-g="2"]', "2"); await Tc.waitForTimeout(200);   // v31: ID groups
   cs = await codes(Tc);
   check(cs.join(",") === "MLABPPS0120261022,MLABPPS0220261022,MLABPPS0320261022,MLABCB0120261022,MLABCB0220261022,MLABSL0120261022,MLABSL0220261022", "3 PPS, 2 CB, 2 SL: " + cs.length);
   const qc = await submit(Tc);

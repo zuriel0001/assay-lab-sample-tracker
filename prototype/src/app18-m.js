@@ -156,8 +156,8 @@ function rowValues(rep, cells, defs, r = 1, clash){
   for (const c of rep.cols){
     if ((c.rep || 1) !== r) continue;
     const raw = c.calc ? c.calc(cells) : (cells[c.i] || "").trim(); if (!raw) continue;
-    const ok = defs.filter(a => !a.calc && (c.text ? a.t === "text" : !a.t));
-    const exact = ok.filter(a => nameIs(c.name, a) && unitScore(c.unit, a.u) > 0);
+    const ok = defs.filter(a => !a.calc && (a.x || (c.text ? a.t === "text" : !a.t)));
+    const exact = ok.filter(a => nameIs(c.name, a) && (a.x || unitScore(c.unit, a.u) > 0));
     let pick = exact.length === 1 ? exact[0] : null;
     if (!pick && c.concept){
       const sc = ok.filter(a => conceptOf(a) === c.concept && phaseFits(c.name, a)).map(a => [a, unitScore(c.unit, a.u)]).filter(x => x[1] > 0), top = Math.max(0, ...sc.map(x => x[1])), b = sc.filter(x => x[1] === top);
@@ -165,7 +165,7 @@ function rowValues(rep, cells, defs, r = 1, clash){
     }
     if (!pick) continue;
     if (got[pick.k]){ if (got[pick.k].raw !== raw && clash) clash.push(`${anShort(pick)}: ${got[pick.k].col.name} ${got[pick.k].raw} and ${c.name} ${raw}`); continue; }
-    got[pick.k] = { raw, col: c }; c.used = true;   // read: not listed under Columns not read
+    got[pick.k] = { raw: pick.x && c.unit && !c.text && !raw.endsWith(c.unit) ? `${raw} ${c.unit}` : raw, col: c }; c.used = true;   // read: not listed under Columns not read
   }
   return got;
 }

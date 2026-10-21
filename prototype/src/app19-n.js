@@ -302,6 +302,7 @@ function batchBlock(){
       <label class="f"><span>Number of samples <span class="req">*</span></span><input id="rCount" type="number" min="2" max="100" step="1" value="${bRows.length}" inputmode="numeric"></label>
       <label class="f"><span>Batch name</span><input id="rBatchName" maxlength="80" placeholder="e.g. Night shift CIL survey" autocomplete="off"></label>
     </div>
+    <div id="rIdgBox"></div>
     <div class="tbl-wrap"><table class="brows"><thead><tr><th>#</th><th>Site sample code</th><th>Source location</th><th></th></tr></thead><tbody id="rRows"></tbody></table></div>
     <div class="row"><button type="button" class="btn small" id="rAddRow">+ Add sample</button><span class="small" id="rRowInfo"></span></div>
   </div>`;
@@ -309,7 +310,9 @@ function batchBlock(){
 /* One code on the first row only counts up for the rest, keeping its zero padding (T-0101, T-0102, …): shown greyed in the empty rows. */
 const rowCodes = () => bRows.map(r => splitTags(r.code).map(normTag));
 function rowTags(){
-  const c = rowCodes(), firstOnly = c[0].length === 1 && c.slice(1).every(x => !x.length);
+  const c = rowCodes(), gen = bGroupTags(c.length);
+  if (gen) return c.map((x, i) => x.length ? x : gen[i] || []);   // v31: the ID groups' codes fill the rows not typed over
+  const firstOnly = c[0].length === 1 && c.slice(1).every(x => !x.length);
   return firstOnly && c.length > 1 ? batchTags(c[0], c.length) : c;
 }
 function renderRows(){
@@ -330,6 +333,7 @@ function rowHints(){
   });
   const info = $("#rRowInfo");
   if (info){ const filled = tags.filter(t => t.length).length; info.textContent = dup.size ? "Same code twice" : `${bRows.length} samples${filled ? ` · ${filled} with a code` : ""}`; info.classList.toggle("bad-t", dup.size > 0); }
+  document.querySelectorAll("#rRows .r-code.taken").forEach(el => el.classList.remove("taken"));
   submitLabel();
 }
 function setRowCount(n){
@@ -338,7 +342,7 @@ function setRowCount(n){
   if (n === bRows.length && $("#rRows .r-code")) return;   // re-drawing would drop the box someone is typing in
   while (bRows.length < n) bRows.push({ code: "", src: "" });
   bRows.length = n;
-  renderRows();
+  bFit(); renderRows(); bPreview();
 }
 function submitLabel(){
   const b = $("#rSubmit"), f = $("#regForm"); if (!b || !f) return;
@@ -364,14 +368,18 @@ function showKind(v){
 }
 function bindKind(v){
   bRows = [{ code: "", src: "" }, { code: "", src: "" }];
+  bindBGroups(v);
   v.querySelectorAll('input[name="rKind"]').forEach(r => r.addEventListener("change", () => { lsSet("regKind", formKind() === "single" ? "" : formKind()); showKind(v); if (formKind() === "batch") $("#rRows .r-code", v)?.focus(); }));
   bindJob(v);
-  $("#rCount", v).addEventListener("input", e => { const n = +e.target.value; if (n >= 2 && n <= 100) setRowCount(n); });
-  $("#rCount", v).addEventListener("change", e => { const n = Math.floor(+e.target.value); if (n > 100) toast("Up to 100 samples in one batch."); if (n >= 2) setRowCount(n); e.target.value = bRows.length; });
+  $("#rCount", v).addEventListener("input", e => { const n = +e.target.value; if (bGroups.length > 1) return; if (n >= 2 && n <= 100) setRowCount(n); });
+  $("#rCount", v).addEventListener("change", e => { const n = Math.floor(+e.target.value); if (bGroups.length > 1){ e.target.value = bRows.length; return; } if (n > 100) toast("Up to 100 samples in one batch."); if (n >= 2) setRowCount(n); e.target.value = bRows.length; });
   $("#rAddRow", v).addEventListener("click", () => { if (bRows.length >= 100) return toast("Up to 100 samples in one batch."); setRowCount(bRows.length + 1); $("#rCount", v).value = bRows.length; $(`#rRows .r-code[data-i="${bRows.length - 1}"]`, v)?.focus(); });
   const rows = $("#rRows", v);
   rows.addEventListener("input", e => { const el = e.target, i = +el.dataset.i; if (!bRows[i]) return; bRows[i][el.classList.contains("r-code") ? "code" : "src"] = el.value; rowHints(); });
-  rows.addEventListener("click", e => { const d = e.target.closest("[data-rdel]"); if (!d || bRows.length <= 2) return; bRows.splice(+d.dataset.rdel, 1); $("#rCount", v).value = bRows.length; renderRows(); });
+  rows.addEventListener("click", e => { const d = e.target.closest("[data-rdel]"); if (!d || bRows.length <= 2) return;
+    const i = +d.dataset.rdel, [gi] = bRowGroup(i), many = bGroups.length > 1;
+    if (many){ const g = bGroups[gi]; g.n = (+g.n || 1) - 1; if (g.n < 1) bGroups.splice(gi, 1); }   // v31: the row leaves its ID group
+    bRows.splice(i, 1); $("#rCount", v).value = bRows.length; bFit(); renderRows(); if (many) renderBGroups(); else bPreview(); });
   /* Enter moves down a row (a new row at the end) instead of sending the form. */
   rows.addEventListener("keydown", e => {
     const el = e.target; if (e.key !== "Enter" || !el.matches(".r-code,.r-src")) return;
