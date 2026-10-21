@@ -36,7 +36,7 @@ async function receive(P, j){
 }
 /* A report laid out as the lab's LIMS prints it, with its letterhead on the first row. */
 const report = (rows, day) => Buffer.from([
-  `Test Report,Example Laboratory Ltd,Phone: (+233) 244 000000 ext: 52271,${day},Total Samples:,${rows.length},Page 1 of 1`,
+  `Test Report,Example Laboratory Ltd,Phone: 000 000 0000,${day},Total Samples:,${rows.length},Page 1 of 1`,
   "",
   ",,,FAA505,SOL81X,ISE06T",
   ",,,ppm,mg/L,-",
