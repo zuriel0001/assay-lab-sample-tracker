@@ -354,6 +354,10 @@ function submitLabel(){
 }
 function showKind(v){
   const batch = formKind() === "batch", isJob = isJobKind(formKind());
+  // v33: the purpose and section chosen for one sample or a batch, for a Shift end and for a MET Lab job are each kept and come back with it
+  const side = isJob ? jobKindGroup() : "solo", pu0 = $("#rPurpose", v), sc0 = $("#rSection", v), kept = showKind.kept ||= {};
+  if (showKind.side && showKind.side !== side && pu0 && sc0) kept[showKind.side] = { pu: pu0.value, sc: sc0.value, put: pu0.dataset.touched || "", sct: sc0.dataset.touched || "", sca: sc0.dataset.auto || "" };
+  const back = showKind.side && showKind.side !== side ? kept[side] : null; showKind.side = side;
   $("#rBatch", v).hidden = !batch; const bs = $("#rBatchStep", v); if (bs) bs.hidden = !batch;
   const s1t = $("#rS1t", v); if (s1t) s1t.textContent = batch ? "Type and analysis" : "Sample";
   v.querySelectorAll("[data-single]").forEach(x => { x.hidden = batch || isJob; });
@@ -367,12 +371,19 @@ function showKind(v){
     if (sc?.dataset.job){ const k = sc.value; sc.innerHTML = `<option value="">Choose…</option>${sectionOptions(ty)}`; sc.value = [...sc.options].some(o => o.value === k) ? k : ""; delete sc.dataset.job; }
     if (pu?.dataset.job){ const k = pu.value; pu.innerHTML = `<option value="">Choose…</option>${purposeOptions(ty)}`; pu.value = [...pu.options].some(o => o.value === k) ? k : ""; delete pu.dataset.job; }
   }
+  if (back && pu0 && sc0){
+    const has = (el, x) => !!x && [...el.options].some(o => o.value === x), flag = (el, k, x) => { if (x) el.dataset[k] = x; else delete el.dataset[k]; };
+    if (has(pu0, back.pu)){ pu0.value = back.pu; flag(pu0, "touched", back.put); }
+    if (has(sc0, back.sc)){ sc0.value = back.sc; flag(sc0, "touched", back.sct); flag(sc0, "auto", back.sca); }
+    const wb = $("#rWhyBox", v); if (wb) wb.hidden = pu0.value !== "other";
+    if (!isJob) refreshFormRoute();
+  }
   if (batch && !$("#rRows .r-code", v)) renderRows();
   [...v.querySelectorAll("#regForm > .sub-step")].filter(x => !x.hidden).forEach((x, i) => { const n = x.querySelector(".sub-t .num"); if (n) n.textContent = i + 1; });
   submitLabel();
 }
 function bindKind(v){
-  bRows = [{ code: "", src: "" }, { code: "", src: "" }];
+  bRows = [{ code: "", src: "" }, { code: "", src: "" }]; showKind.side = ""; showKind.kept = {};   // a new form: nothing kept from the last one
   bindBGroups(v);
   v.querySelectorAll('input[name="rKind"]').forEach(r => r.addEventListener("change", () => { lsSet("regKind", formKind() === "single" ? "" : formKind()); showKind(v); if (formKind() === "batch") $("#rRows .r-code", v)?.focus(); }));
   bindJob(v);

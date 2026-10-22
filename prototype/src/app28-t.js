@@ -222,12 +222,14 @@ function bindJob(v){
   const hr = +localInput(Date.now()).slice(11, 13), night = hr >= 6 && hr < 18, back = night || hr < 6 ? 1 : 0;
   job = { tpl: lsGet("jobTpl_Plant") || lsGet("jobTpl") || "mill", shift: night ? "N" : "D", date: localInput(Date.now() - back * 86400e3).slice(0, 10), n: {}, c: {}, g: [], tw: "", rows: [] };
   if (!JOB_TPL.some(x => x.key === job.tpl)) job.tpl = "mill";
+  jobKept.clear();   // v33: a new form keeps nothing from the last one
   job.g = jobGroupsFor(jobTpl(job.tpl));
   job.date = jobDate(jobTpl(job.tpl));   // 21 Oct: a template without a shift (an elution run, the MET Lab's jobs) takes today's date
   tp.value = job.tpl; $("#jShift", v).value = job.shift; $("#jDate", v).value = job.date;
   jobRows(); renderJob(); if (isJobKind(formKind())){ jobGroup(v); jobSections(v); jobPurposes(v); jobDefaults(v); }
   const again = () => { jobRows(job.rows); renderJob(); };
-  tp.onchange = () => { job.tpl = tp.value; lsSet("jobTpl_" + jobKindGroup(), tp.value); job.n = {}; job.c = {}; job.open = new Map(); job.g = jobGroupsFor(jobTpl(job.tpl)); jobRows(); renderJob(); jobDateFor(v); jobPurposes(v); jobDefaults(v); };
+  tp.onchange = () => { const g = jobKindGroup(); jobKeep(jobKey(job.tpl, g)); job.tpl = tp.value; lsSet("jobTpl_" + g, tp.value); if (!jobBack(jobKey(job.tpl, g))) jobFresh();   // v33: each template's entries come back with it
+    renderJob(); jobDateFor(v); jobPurposes(v); jobDefaults(v); };
   $("#jShift", v).onchange = e => { job.shift = e.target.value; again(); };
   $("#jDate", v).onchange = e => { const was = dayCode(job.date); job.date = e.target.value; job.dateSet = true;
     job.rows.forEach(r => { if (r.dc && was && r.code.endsWith(was)) r.code = r.code.slice(0, -8) + dayCode(job.date); });   // v32: a code the date completed follows it
@@ -316,12 +318,23 @@ const inGroup = (x, g) => x.group === g || (x.also || []).includes(g);
 /* A MET Lab job runs on the job route too; its workflow and certificate say so (a carbon activity sent by MET counts as MET's). */
 function isMetJob(s){ if (s && s.route === "MET-JOB") return true; const T = s && s.job ? JOB_TPL.find(x => x.key === s.job) : null; return !!T && (T.group === "MET Lab" || (s.section === "MET" && inGroup(T, "MET Lab"))); }
 function routeLabel(s, name){ const n = name ?? s?.routeName ?? ""; return s && s.route === "JOB" && s.job ? (isMetJob(s) ? "MET Lab job (one report)" : "Shift end (one report)") : n; }
+/* v33 (22 Oct, "keep what's typed when you switch between Single, Batch, Shift end and MET Lab job" — "yes, add it"): each template keeps
+   what was typed on it (rows ticked, codes and descriptions typed over, analyses, masses, numbers, counts, ID groups, the testwork name)
+   while another kind or template is on screen, and gets it back. A template in both kinds (Carbon activity) is one; Other testwork is
+   one for each kind. */
+const jobKept = new Map(), jobKey = (tpl, g) => tpl + (jobTpl(tpl).tw ? "|" + g : "");
+function jobKeep(k){ if (job) jobKept.set(k, clone({ n: job.n, c: job.c, g: job.g, tw: job.tw, rows: job.rows, open: [...(job.open || new Map())] })); }
+function jobBack(k){ const s = jobKept.get(k); if (!s) return false; Object.assign(job, { n: s.n, c: s.c, g: s.g, tw: s.tw, open: new Map(s.open) }); jobRows(s.rows); return true; }
+function jobFresh(){ job.n = {}; job.c = {}; job.tw = ""; job.open = new Map(); job.g = jobGroupsFor(jobTpl(job.tpl)); jobRows(); }
 function jobGroup(v){
   const g = jobKindGroup(), tp = $("#jTpl", v || document); if (!tp || !job) return;
   const list = JOB_TPL.filter(x => inGroup(x, g));
   if (tp.dataset.g !== g){ tp.dataset.g = g; tp.innerHTML = list.map(x => `<option value="${x.key}">${esc(tplName(x, g))}</option>`).join(""); }
-  if (!list.some(x => x.key === job.tpl)){ const last = lsGet("jobTpl_" + g); job.tpl = list.some(x => x.key === last) ? last : list[0].key; job.n = {}; job.c = {}; job.g = jobGroupsFor(jobTpl(job.tpl)); jobRows(); }
-  else if (jobTpl(job.tpl).tw && $("#jNums")?.dataset.tpl !== job.tpl + g){ job.g = jobGroupsFor(jobTpl(job.tpl)); jobRows(job.rows); }   // Other testwork keeps groups for each kind
+  const last = lsGet("jobTpl_" + g), tpl = list.some(x => x.key === job.tpl) ? job.tpl : list.some(x => x.key === last) ? last : list[0].key;
+  const was = job.kg ? jobKey(job.tpl, job.kg) : "";
+  if (!job.kg && tpl === job.tpl){ if (jobTpl(tpl).tw){ job.g = jobGroupsFor(jobTpl(tpl)); jobRows(job.rows); } }   // first shown: as built (Other testwork: this kind's groups)
+  else if (jobKey(tpl, g) !== was){ if (was) jobKeep(was); job.tpl = tpl; if (!jobBack(jobKey(tpl, g))) jobFresh(); }
+  job.kg = g;
   tp.value = job.tpl; renderJob(); jobDateFor(v);
   const t = $("#rJob .sub-t", v || document); if (t) t.innerHTML = `<span class="num">1</span>${g === "MET Lab" ? "MET Lab samples" : "Shift end samples"}`;
 }

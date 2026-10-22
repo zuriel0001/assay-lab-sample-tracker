@@ -258,6 +258,27 @@ async function toLast(page, id){
   await open(Tc, a1); const tcT = await text(Tc, "#view-track");
   check(tcT.includes(note) && tcT.includes("last: AuFx over range: diluted re-run"), "lab staff: the reason in the custody line and the facts");
 
+  log("v33: what was typed stays when switching between Single, Batch, Shift end and MET Lab job, and between templates");
+  await H.tab(Tc, "submit"); if (await Tc.$("#rAgain")) await Tc.click("#rAgain");
+  const kind = async k => { await Tc.check(`input[name="rKind"][value="${k}"]`); await Tc.waitForTimeout(250); };
+  await kind("single"); await Tc.selectOption("#rType", "core"); await Tc.waitForTimeout(100); await Tc.selectOption("#rPurpose", "exp"); await Tc.selectOption("#rSection", "EXP"); await Tc.fill("#rTag", "KEEP-01");
+  await kind("batch"); await Tc.fill("#rCount", "3"); await Tc.dispatchEvent("#rCount", "change"); await Tc.fill('#rIdgBox .g-first[data-g="0"]', "KEEPB01"); await Tc.waitForTimeout(100);
+  await kind("job"); await Tc.selectOption("#jTpl", "mill"); await Tc.waitForTimeout(200);
+  const pp = [await Tc.inputValue("#rPurpose"), await Tc.inputValue("#rSection")];
+  await Tc.uncheck('[data-jon="0"]'); await Tc.fill('#jRows .j-code[data-j="1"]', "MLKEEP1"); await Tc.waitForTimeout(100);
+  await kind("met"); await Tc.selectOption("#jTpl", "brt"); await Tc.waitForTimeout(200); await Tc.selectOption("#jGn", "1"); await Tc.waitForTimeout(150); await Tc.fill('#jIdg .g-first[data-g="0"]', "MLABBRT07"); await Tc.waitForTimeout(150);
+  await Tc.selectOption("#jTpl", "qaqc"); await Tc.waitForTimeout(200); await Tc.selectOption("#jTpl", "brt"); await Tc.waitForTimeout(200);
+  check(await Tc.inputValue("#jGn") === "1" && await Tc.inputValue('#jIdg .g-first[data-g="0"]') === "MLABBRT07", "a template keeps its ID group and first code across a switch of template");
+  await kind("job"); await Tc.waitForTimeout(150);
+  check(await Tc.inputValue("#jTpl") === "mill" && !(await Tc.isChecked('[data-jon="0"]')) && /^MLKEEP1(\d{8})?$/.test(await Tc.inputValue('#jRows .j-code[data-j="1"]')) && await Tc.inputValue("#rPurpose") === pp[0] && await Tc.inputValue("#rSection") === pp[1], "back on Shift end: the mill shift's untick and typed code (the date completing it), its purpose and section");
+  await kind("met");
+  check(await Tc.inputValue("#jTpl") === "brt" && await Tc.inputValue('#jIdg .g-first[data-g="0"]') === "MLABBRT07", "back on MET Lab job: the bottle roll as left");
+  await kind("single");
+  check(await Tc.inputValue("#rType") === "core" && await Tc.inputValue("#rPurpose") === "exp" && await Tc.inputValue("#rSection") === "EXP" && await Tc.inputValue("#rTag") === "KEEP-01", "back on Single: type, purpose, section and site sample code as typed");
+  await kind("batch");
+  check(await Tc.inputValue("#rCount") === "3" && await Tc.inputValue('#rIdgBox .g-first[data-g="0"]') === "KEEPB01", "and the batch as left");
+  await H.tab(Tc, "submit"); if (await Tc.$("#rAgain")) await Tc.click("#rAgain");
+
   log("v33: a tile narrows the lanes (no list in between, a chip to clear it); Lanes | List, never both");
   await H.tab(Tc, "board"); await Tc.waitForTimeout(400);
   await Tc.click('.stats.tiles [data-bpick="lab"]'); await Tc.waitForTimeout(250);
