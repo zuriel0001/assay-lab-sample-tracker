@@ -98,9 +98,14 @@ function renderBoard(){
   const relSet = new Set(relReady);
   if (list.some(s => !stage(s, s.stageKey))) laneDefs.push({ key: "__unknown", name: "Stage removed (move these)" });
   const showStep = { intake: 1, prep: 1, test: 1, qc: 1 };
+  /* v33 (22 Oct, "the tiles are scattered ... the from top row should fill in that order. there shouldn't be a fixed space for a certain
+     tiles of items"): with a tile, section or route chosen, only the lanes holding samples show, filling the rows from the top left in
+     workflow order; with nothing chosen every lane shows, as before. */
+  const narrowed = !!shown || !!boardSec || !!boardRoute;
   const lanes = laneDefs.map(x => {
     const items = list.filter(s => { const st = stage(s, s.stageKey); return (!shown || shown.has(s)) && (x.key === "__unknown" ? !st : relSet.has(s) ? x.key === "qc" : st && st.phase === x.key); })
       .sort((a, b) => (status(b).late - status(a).late) || (b.priority === "Urgent") - (a.priority === "Urgent") || a.stageAt - b.stageAt);
+    if (narrowed && !items.length) return "";
     return `<div class="lane ph-${x.key}"><h4>${esc(x.name)} <span${items.length !== laneCards(items).length ? ` title="${items.length} samples"` : ""}>${laneCards(items).length}</span></h4>
       <div class="cards">${laneCards(items).slice(0, 40).map(c => { if (c.docs) return batchChip(c, x.key); const s = c.s, stt = status(s), stp = stage(s, s.stageKey), od = overdueMaterials(s), tm = cardTime(s);
         return `<button class="chip ${tm.cls}${stt.late ? " late" : ""}${s.priority === "Urgent" ? " urgent" : ""}" data-open="${esc(s.id)}"${stageDue(s) && !stp?.final ? ` title="Due ${esc(fmt(stageDue(s)))}"` : ""}>

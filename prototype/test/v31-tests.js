@@ -283,8 +283,14 @@ async function toLast(page, id){
   await H.tab(Tc, "board"); await Tc.waitForTimeout(400);
   await Tc.click('.stats.tiles [data-bpick="lab"]'); await Tc.waitForTimeout(250);
   check(await Tc.isVisible(".pick-chip") && /Showing In the lab, before results · \d+/.test(await text(Tc, ".pick-chip")) && !(await Tc.$("#view-board table")) && (await Tc.$$(".lanes .chip")).length > 0, "In the lab: the lanes narrowed, a chip says so, no table");
+  const order = ["await", "intake", "prep", "test", "qc", "report"], laneKs = () => Tc.$$eval(".lanes .lane", ls => ls.map(l => [(l.className.match(/ph-(\w+)/) || [])[1], l.querySelectorAll(".chip").length]));
+  const lnk = await laneKs();
+  check(lnk.length > 0 && lnk.every(([, n]) => n > 0) && lnk.map(([k]) => order.indexOf(k)).every((x, i, a) => !i || x > a[i - 1]), "with a tile chosen only the lanes holding samples show, in workflow order from the top left: " + lnk.map(([k, n]) => k + " " + n).join(", "));
   await Tc.click(".pick-chip .pk-x"); await Tc.waitForTimeout(200);
-  check(!(await Tc.$(".pick-chip")) && await Tc.$eval('.stats.tiles [data-bpick="lab"]', b => b.getAttribute("aria-pressed")) === "false", "× shows everything again");
+  check(!(await Tc.$(".pick-chip")) && await Tc.$eval('.stats.tiles [data-bpick="lab"]', b => b.getAttribute("aria-pressed")) === "false" && (await laneKs()).length === 6, "× shows everything again, every lane");
+  await Tc.selectOption("#bdSec", "PLT"); await Tc.waitForTimeout(250);
+  check((await laneKs()).every(([, n]) => n > 0), "a section chosen: the same, empty lanes hidden");
+  await Tc.selectOption("#bdSec", ""); await Tc.waitForTimeout(200);
   await Tc.click('[data-bview="list"]'); await Tc.waitForTimeout(250);
   const lr = await Tc.$$eval("#bdList tbody tr", r => r.length).catch(() => 0);
   check(lr > 0 && !(await Tc.$(".lanes")) && await Tc.evaluate(() => localStorage.getItem("boardView")) === "list", "List: the board as a table instead of the lanes (" + lr + " rows)");
