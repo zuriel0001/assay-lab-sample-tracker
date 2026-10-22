@@ -13,7 +13,7 @@ const a = tail.indexOf("async function signIn("), b = tail.indexOf("async functi
 if (a < 0 || b < 0) throw new Error("harness layout changed");
 tail = tail.slice(0, a) + tail.slice(b);
 fs.writeFileSync(path.join(work, "harness.js"), fs.readFileSync(path.join(__dirname, "harness-head.js"), "utf8") + "\n" + tail);
-const suites = process.argv.slice(2).length ? process.argv.slice(2) : ["run.js", "results-tests.js", "v12-tests.js", "v13-tests.js", "review-tests-v11.js", "review-v11-scenarios.js", "hours-shortcut-tests.js", "v14-tests.js", "work-hours-unit.js", "v15-tests.js", "v16-tests.js", "v17-tests.js", "v18-tests.js", "v20-tests.js", "v21-tests.js", "v22-tests.js", "v23-tests.js", "v24-tests.js", "v25-tests.js", "v26-tests.js", "v27-tests.js", "v28-tests.js", "v29-tests.js", "v30-tests.js", "v31-tests.js", "v34-tests.js", "v35-tests.js", "v36-tests.js", "v37-tests.js", "azure-extra.js"];
+const suites = process.argv.slice(2).length ? process.argv.slice(2) : ["run.js", "results-tests.js", "v12-tests.js", "v13-tests.js", "review-tests-v11.js", "review-v11-scenarios.js", "hours-shortcut-tests.js", "v14-tests.js", "work-hours-unit.js", "v15-tests.js", "v16-tests.js", "v17-tests.js", "v18-tests.js", "v20-tests.js", "v21-tests.js", "v22-tests.js", "v23-tests.js", "v24-tests.js", "v25-tests.js", "v26-tests.js", "v27-tests.js", "v28-tests.js", "v29-tests.js", "v30-tests.js", "v31-tests.js", "v34-tests.js", "v35-tests.js", "v36-tests.js", "v37-tests.js", "v38-tests.js", "azure-extra.js"];
 /* Checks the prototype's suites make differently here. Since v13 no suite reads a sentence build.py section 10 takes out.
    v14-tests.js: tracking links and bag-label QR codes carry this site's own address, not the Claude artifact's, and the suite
    opens them there; where no QR decoder is installed, a label's QR code is compared with the page's own encoder run in Node on the text it
@@ -33,7 +33,11 @@ const qrOf = (() => { const page = require("fs").readFileSync(path.join(process.
   "v15-tests.js": [['await A.evaluate(() => window.__dbPush("settings/stages", { ...window.__mirror["settings/stages"], logo: "javascript:alert(1)" })); await A.waitForTimeout(200);',
     'await H.broadcast("settings/stages", { ...store["settings/stages"], logo: "javascript:alert(1)" }); await A.waitForTimeout(400);']],
   "v16-tests.js": [['const src = fs.readFileSync(H.FILE.replace("file://", ""), "utf8");', 'const src = fs.readFileSync(require("path").join(process.env.AZ_ROOT, "app/index.html"), "utf8");']],   // this build's page
-  "v26-tests.js": [['const src = require("fs").readFileSync(H.FILE.replace("file://", ""), "utf8");', 'const src = require("fs").readFileSync(require("path").join(process.env.AZ_ROOT, "app/index.html"), "utf8");']]   // this build's page
+  "v26-tests.js": [['const src = require("fs").readFileSync(H.FILE.replace("file://", ""), "utf8");', 'const src = require("fs").readFileSync(require("path").join(process.env.AZ_ROOT, "app/index.html"), "utf8");']],   // this build's page
+  // The prototype's suites open the page file itself, without a doctype, so Chromium lays it out in quirks mode; this build's page
+  // is a full document (as the published artifact is), where a table cell's lines are taller: the phone Ledger's shortest card measures
+  // about 200 px here against 172 there.
+  "v38-tests.js": [["lh.every(h => h < 300) && Math.min(...lh) < 200", "lh.every(h => h < 300) && Math.min(...lh) < 230"]]
 };
 let bad = 0;
 for (const s of suites){

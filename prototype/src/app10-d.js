@@ -59,7 +59,7 @@ function renderBoard(){
   const listMode = !wall && boardView() === "list", laneable = !!(cur && cur.pick && !(cur.k === "await" && canEdit()) && !(todo && TODO_K.includes(cur.k)));
   const shown = laneable ? new Set(cur.pick) : null, asList = !!cur && (!laneable || listMode);
   const chip = c => `<div class="pick-note pick-chip"${asList ? "" : ` id="bdPick"`}><span>Showing <b>${esc(c.l)}</b> · ${c.n}</span>${c.link ? `<button type="button" class="linkish small" data-goto="${c.link[0]}">${esc(c.link[1])}</button>` : ""}<button type="button" class="pk-x" data-bpick="${c.k}" aria-label="Show everything again" title="Show everything again">×</button></div>`;
-  const pickTable = (rows, k) => rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>Sample</th><th>Type</th><th>Analysis · route</th><th>Where it is</th></tr></thead><tbody>${rows.slice(0, 100).map(r => `<tr><td>${r.id ? `<button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>` : "—"}</td><td>${esc(r.type)}</td><td>${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`).join("")}</tbody></table></div>
+  const pickTable = (rows, k, mv = k === "list" && rows.some(r => canStepOn(samples.get(r.id)))) => rows.length ? `${mv ? moveBar(rows) : ""}<div class="tbl-wrap"><table class="cardy"><thead><tr>${mv ? `<th class="mv-c"><input type="checkbox" id="bdMvAll" aria-label="Tick every sample that can move"></th>` : ""}<th>Sample</th><th>Type</th><th>Analysis · route</th><th>Where it is</th></tr></thead><tbody>${rows.slice(0, 100).map(r => `<tr>${mv ? `<td class="mv-c">${canStepOn(samples.get(r.id)) ? `<input type="checkbox" data-mv="${esc(r.id)}" ${bdTicks.has(r.id) ? "checked" : ""} aria-label="Tick ${esc(r.id)}">` : ""}</td>` : ""}<td>${r.id ? `<button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>` : "—"}</td><td>${esc(r.type)}</td><td>${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`).join("")}</tbody></table></div>
       ${rows.length > 100 ? `<div class="small muted">+${rows.length - 100} more: use the filters or look a sample up by ID</div>` : ""}` : `<div class="small muted">Nothing to list on this device yet.</div>`;
   const pickHtml = !cur ? "" : !asList ? chip(cur) : cur.k === "await" && canEdit() ? recvManyPanel(cur) : todo && TODO_K.includes(cur.k) ? todoPanel(cur, todo, chip) : `<div class="panel pick-list stack" id="bdPick">${chip(cur)}${pickTable(cur.rows, cur.k)}</div>`;
   const sumHtml = sums.filter(x => !x.hide).map(x => {
@@ -120,7 +120,7 @@ function renderBoard(){
   const scrolled = laneScroll();
   // List: the board's samples as one table (a tile's samples when one is chosen), in lane order, late and urgent first
   const phI = s => { const st = stage(s, s.stageKey); return relSet.has(s) ? PHASES.findIndex(p => p.key === "qc") : st ? PHASES.findIndex(p => p.key === st.phase) : 99; };
-  const listHtml = !listMode || cur ? "" : `<div class="panel pick-list stack" id="bdList"><div class="pick-note"><span>In the lab · ${unitCount(list)}</span></div>${pickTable(unitRows(list.slice().sort((a, b) => phI(a) - phI(b) || (status(b).late - status(a).late) || (b.priority === "Urgent") - (a.priority === "Urgent") || a.stageAt - b.stageAt), s => sRow(s)), "")}</div>`;
+  const listHtml = !listMode || cur ? "" : `<div class="panel pick-list stack" id="bdList"><div class="pick-note"><span>In the lab · ${unitCount(list)}</span></div>${pickTable(unitRows(list.slice().sort((a, b) => phI(a) - phI(b) || (status(b).late - status(a).late) || (b.priority === "Urgent") - (a.priority === "Urgent") || a.stageAt - b.stageAt), s => sRow(s)), "list")}</div>`;
   v.innerHTML = `<div class="stack">
     ${wallHead}
     ${filters}
@@ -130,7 +130,7 @@ function renderBoard(){
     ${pickHtml}${listHtml}
     ${alerts.length ? `<div class="notice bad" id="bdAlerts"><b>Past a limit:</b> ${alerts.slice(0, 12).map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button> <span class="small">${esc(openAlerts(s).map(h => alertLine(s, h)).join("; "))}</span>`).join("<br>")}${alerts.length > 12 ? `<br>+${alerts.length - 12} more` : ""}<div class="small">Open each sample, act as the limit says and record what was done and who was told. In the production system these also go out by email or SMS.</div></div>` : ""}
     ${listMode || asList ? "" : `<div class="lanes">${lanes}</div>`}</div>`;
-  bind(); bindRecvMany(v);
+  bind(); bindRecvMany(v); bindMoveList(v);
   fitLanes(scrolled);
 }
 
@@ -512,16 +512,17 @@ function renderLedger(){
   if (f.dir !== "all") rows = rows.filter(r => r.base === f.dir);
   if (f.sec) rows = rows.filter(r => r.sec === f.sec);
   if (f.q){ const q = f.q.toLowerCase(); rows = rows.filter(r => [r.sid, r.type, r.sub, r.tag, r.tech, r.wit, r.ref, r.note, r.item, r.route].join(" ").toLowerCase().includes(q)); }
+  const ownTag = r => r.tag && normKey(r.tag) !== normKey(r.sid), tagCol = rows.some(ownTag);   // v38: no column of dashes
   const body = rows.map(r => `<tr class="${r.reversed ? "reversed" : ""}">
-    <td style="white-space:nowrap">${fmtFull(r.at)}</td>
-    <td><span class="dirp ${r.dir === "in" ? "dir-in" : r.dir === "rev" ? "dir-rev" : "dir-out"}">${r.dir === "in" ? "IN" : r.dir === "rev" ? "REV" : "OUT"}</span>${r.reversed ? `<div><span class="pill warn">Reversed</span></div>` : ""}</td>
-    <td><button class="linkish" data-open="${esc(r.sid)}">${esc(r.sid)}</button>${!shownQa.has(r.sid) && shownQa.add(r.sid) ? qaOfNote(r.sid) + qaPickBox(r.sid) : ""}${!shownRedo.has(r.sid) && redoFor(r.sid) && shownRedo.add(r.sid) ? `<div><button type="button" class="btn ghost small reassay-btn" data-reassay="${esc(r.sid)}">Re-assay</button></div>` : ""}</td>
-    <td class="mono">${r.tag && normKey(r.tag) !== normKey(r.sid) ? esc(r.tag) : "—"}</td>
-    <td>${esc(r.type)}<div class="small mono"><span style="color:var(--accent)">${esc(r.route || "")}</span>${r.sec ? ` <span class="muted">${esc(r.sec)}</span>` : ""}</div></td>
-    <td>${esc(r.item || "")}${r.qty ? `<div class="small muted">${esc(r.qty)}</div>` : ""}</td>
-    <td>${r.dir === "in" ? esc(r.from || "Mine site") : r.dir === "rev" ? "Reversal of an earlier movement" : esc(DISPO[r.kind] || r.kind || "")}${r.dir === "in" && r.sub ? `<div class="small muted">by ${esc(r.sub)}</div>` : ""}</td>
-    <td>${esc(r.tech) || who(r.by)}${r.wit ? `<div class="small muted">Witness: ${esc(r.wit)}</div>` : ""}</td>
-    <td>${r.ref ? `<span class="mono small">${esc(r.ref)}</span>${r.note ? "<br>" : ""}` : ""}${esc(r.note) || ""}</td></tr>`).join("");
+    <td class="lg-d" style="white-space:nowrap">${fmtFull(r.at)}</td>
+    <td class="lg-dir"><span class="dirp ${r.dir === "in" ? "dir-in" : r.dir === "rev" ? "dir-rev" : "dir-out"}">${r.dir === "in" ? "IN" : r.dir === "rev" ? "REV" : "OUT"}</span>${r.reversed ? `<div><span class="pill warn">Reversed</span></div>` : ""}</td>
+    <td class="lg-id"><button class="linkish" data-open="${esc(r.sid)}">${esc(r.sid)}</button>${!shownQa.has(r.sid) && shownQa.add(r.sid) ? qaOfNote(r.sid) + qaPickBox(r.sid) : ""}${!shownRedo.has(r.sid) && redoFor(r.sid) && shownRedo.add(r.sid) ? `<div><button type="button" class="btn ghost small reassay-btn" data-reassay="${esc(r.sid)}">Re-assay</button></div>` : ""}</td>
+    ${tagCol ? `<td class="mono lg-tag${ownTag(r) ? "" : " nil"}">${ownTag(r) ? esc(r.tag) : "—"}</td>` : ""}
+    <td class="lg-ty">${esc(r.type)}<div class="small mono"><span style="color:var(--accent)">${esc(r.route || "")}</span>${r.sec ? ` <span class="muted">${esc(r.sec)}</span>` : ""}</div></td>
+    <td class="lg-m">${esc(r.item || "")}${r.qty ? `<div class="small muted">${esc(r.qty)}</div>` : ""}</td>
+    <td class="lg-f">${r.dir === "in" ? esc(r.from || "Mine site") : r.dir === "rev" ? "Reversal of an earlier movement" : esc(DISPO[r.kind] || r.kind || "")}${r.dir === "in" && r.sub ? `<div class="small muted">by ${esc(r.sub)}</div>` : ""}</td>
+    <td class="lg-l">${esc(r.tech) || who(r.by)}${r.wit ? `<div class="small muted">Witness: ${esc(r.wit)}</div>` : ""}</td>
+    <td class="lg-n${r.ref || r.note ? "" : " nil"}">${r.ref ? `<span class="mono small">${esc(r.ref)}</span>${r.note ? "<br>" : ""}` : ""}${esc(r.note) || ""}</td></tr>`).join("");
   const act = rows.filter(r => !r.reversed && r.dir !== "rev"), inN = act.filter(r => r.dir === "in").length, outN = act.filter(r => r.dir === "out").length, revN = rows.filter(r => r.dir === "rev").length;
   const rc = recon && recon.m === f.month ? recon : null;
   keepUiSimple(v, () => {
@@ -533,17 +534,17 @@ function renderLedger(){
         ${rc ? `<div class="stat c-blue${rc.closing ? "" : " zero"}"><div class="n">${rc.closing}</div><div class="l">On hand at month end</div></div>` : ""}
         ${revN ? `<div class="stat c-grey"><div class="n">${revN}</div><div class="l">Reversals</div></div>` : ""}
       </div>
-      <div class="row">
+      <div class="row lg-tools">
         <input class="inp" id="lgMonth" type="month" style="width:auto" value="${esc(f.month)}" aria-label="Month">
         <select class="inp" id="lgDir" style="width:auto"><option value="all">In and out</option><option value="in">Inbound only</option><option value="out">Outbound only</option></select>
         <select class="inp" id="lgSec" style="width:auto"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${f.sec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
         <input class="inp" id="lgQ" placeholder="Search ID, site code, type, submitter, technician" style="flex:1 1 220px;width:auto" value="${esc(f.q)}">
         <button class="btn" id="lgCsv">Export CSV</button>
       </div>
-      ${rc ? `<div class="recon"><b>Month check:</b> ${rc.opening} on hand at the start + ${rc.ins} received − ${rc.outs} fully out = <b>${rc.closing}</b> on hand at the end${rc.now != null ? (rc.now === rc.closing ? ` <span class="pill ok">matches the ${rc.now} on hand now</span>` : ` <span class="pill bad">${rc.now} on hand now: check for missing movements</span>`) : ""}.</div>` : ""}
-      ${signoffHtml(rc, revN)}
+      ${rc ? `<div class="lg-month"><div class="recon"><b>Month check:</b> ${rc.opening} on hand at the start + ${rc.ins} received − ${rc.outs} fully out = <b>${rc.closing}</b> on hand at the end${rc.now != null ? (rc.now === rc.closing ? ` <span class="pill ok">matches the ${rc.now} on hand now</span>` : ` <span class="pill bad">${rc.now} on hand now: check for missing movements</span>`) : ""}.</div>` : ""}
+      ${signoffHtml(rc, revN)}${rc ? "</div>" : ""}
       <p class="small muted" style="margin:0">${inN} inbound and ${outN} outbound movement${outN === 1 ? "" : "s"}${revN ? `, ${revN} reversal${revN === 1 ? "" : "s"}` : ""} in ${esc(monthText(f.month))}. Times are ${esc(TZ() || "this device's")} time.</p>
-      ${!ledgerReady && db ? `<div class="panel empty"><strong>Loading ${esc(f.month)}…</strong></div>` : rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>Date &amp; time</th><th>Dir.</th><th>Sample ID</th><th>Site code</th><th>Type</th><th>Material</th><th>From / to</th><th>Lab</th><th>Reference · note</th></tr></thead><tbody>${body}</tbody></table></div>`
+      ${!ledgerReady && db ? `<div class="panel empty"><strong>Loading ${esc(f.month)}…</strong></div>` : rows.length ? `<div class="tbl-wrap"><table class="cardy lg-t"><thead><tr><th>Date &amp; time</th><th>Dir.</th><th>Sample ID</th>${tagCol ? "<th>Site code</th>" : ""}<th>Type</th><th>Material</th><th>From / to</th><th>Lab</th><th>Reference · note</th></tr></thead><tbody>${body}</tbody></table></div>`
         : `<div class="panel empty"><strong>No ledger entries${f.dir !== "all" || f.q || f.sec ? " match these filters" : ` in ${esc(f.month)}`}</strong>Entries appear when samples are received at the lab or leave it.</div>`}
     </div>`;
   });

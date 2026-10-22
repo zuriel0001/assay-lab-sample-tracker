@@ -63,7 +63,7 @@ async function maintenance(){
 
 /* ---------- boot ---------- */
 const typingIn = sel => { const a = document.activeElement; return !!(a && a.closest?.(sel) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); };
-function rerenderSoon(){ clearTimeout(rerenderSoon.t); rerenderSoon.t = setTimeout(() => { if (tab === "board"){ if (typingIn("#bdPick.todo")) return void setTimeout(rerenderSoon, 1200); renderBoard(); } else if (tab === "ledger") renderLedger(); else if (tab === "results") renderResultsTab(); else if (tab === "storage") renderStorage(); else if (tab === "track" && !current && !typingIn("#view-track")) renderTrack(); updateCount(); }, 80); }
+function rerenderSoon(){ clearTimeout(rerenderSoon.t); rerenderSoon.t = setTimeout(() => { if (tab === "board"){ if (typingIn("#bdPick.todo")) return void setTimeout(rerenderSoon, 1200); renderBoard(); } else if (tab === "ledger") renderLedger(); else if (tab === "results"){ if (typingIn("#rgBox")) return void setTimeout(rerenderSoon, 1200); renderResultsTab(); } else if (tab === "storage") renderStorage(); else if (tab === "track" && !current && !typingIn("#view-track")) renderTrack(); updateCount(); }, 80); }
 /* Default limits added in version 23 (P01 on, for the new routes) join limits saved before them; once settings are saved again, a limit the
    lab manager removed stays removed. */
 const LIMITS_V = 23;

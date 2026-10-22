@@ -24,7 +24,7 @@ function batchState(docs){
 /* The rail of the batch: the lead sample's route up to storage; done steps with when and who, the open one with what it waits for. */
 function bwRail(st, ref){
   const { plan, bi, ti, lead, at, cur } = st, now = Date.now(), cert = certOfBatch(lead, ref), q = at.map(wqOf).find(Boolean);
-  return `<ol class="rail">${plan.slice(0, ti + 2).map((x, i) => {
+  return railOl(plan.slice(0, ti + 2).map((x, i) => {
     const done = i < cur || bi > ti;
     let meta = "";
     if (done){
@@ -45,7 +45,7 @@ function bwRail(st, ref){
     } else meta = x.phase === "store" ? (allBack(lead) ? "What is left goes back with the results" : "Each material kept for its own period after results") : `${hoursLabel(x.hours)} allowed`;
     const late = i === cur && i < ti && at.some(s => status(s).late);
     return `<li class="${done ? "done" : i === cur ? "current" + (late ? " late" : "") : "upcoming"}"><span class="dot">${done ? "✓" : ""}</span><div><div class="st-name">${esc(x.name)}</div><div class="st-meta">${meta}</div></div></li>`;
-  }).join("")}</ol>`;
+  }));
 }
 /* The materials of the batch, item by item over all its samples at the step: one put-away, one return or disposal for them all. A job's
    samples keep different materials (pulp, filtrate, solution, carbon), so an item is its slot and its name. */
@@ -130,13 +130,13 @@ function bwPanel(c){
       if (next?.phase === "qc" && plan[bi].phase !== "qc") at.forEach(s => { const h = qcEntryBlock(s); if (h) holds.push(`${s.id}: ${h}`); });
       act = `${holds.length ? `<div class="notice warn" id="bwHold"><b>Before ${esc(next?.name || "the next step")}:</b> ${esc(holds.slice(0, 4).join(" "))}${holds.length > 4 ? ` +${holds.length - 4} more` : ""}</div>` : ""}
         <div class="row step-row"><button type="button" class="btn primary" id="bwNext" ${holds.length ? "disabled data-hold" : ""}>Move ${nS(n)} to: ${esc(next?.name || "")}</button></div>${form}
-        ${relNow() ? `<div class="row" style="gap:8px"><span class="pill" id="bwCount">Results in: ${n - missing.length} of ${n}</span><button type="button" class="btn" data-attach="sub:${esc(ref)}">Attach results file for the batch</button></div>` : ""}`;
+        ${relNow() ? `<div class="row" style="gap:8px"><span class="pill" id="bwCount">Results in: ${n - missing.length} of ${n}</span><button type="button" class="btn" data-attach="sub:${esc(ref)}">Attach results file for the batch</button>${bwGridBtn(at, ref)}</div>` : ""}`;
     } else if (missing.length && !waiting){
       act = `<div class="row step-row"><button type="button" class="btn primary" id="bwWaitBtn">Move ${nS(n)} to: Results released</button></div>${form}`;
     } else {
       if (!missing.length && !relNow()) at.forEach(s => { const h = releaseBlock(s) || (relSelf(s) ? SELF_MSG : ""); if (h) holds.push(`${s.id}: ${h}`); });
       /* v37: the release (or, still waiting, attaching the file) first */
-      const count = `<div class="row step-row"><span class="pill ${missing.length ? "" : "ok"}" id="bwCount">Results in: ${n - missing.length} of ${n}</span><button type="button" class="btn${missing.length ? " primary" : ""}" data-attach="sub:${esc(ref)}">Attach results file for the batch</button></div>`;
+      const count = `<div class="row step-row"><span class="pill ${missing.length ? "" : "ok"}" id="bwCount">Results in: ${n - missing.length} of ${n}</span><button type="button" class="btn${missing.length ? " primary" : ""}" data-attach="sub:${esc(ref)}">Attach results file for the batch</button>${missing.length ? bwGridBtn(at, ref) : ""}</div>`;
       act = missing.length ? `${count}<div class="notice" id="bwWait"><b>Waiting for the results of ${nS(missing.length)}${missing.length < n ? ` (${missing.slice(0, 6).map(s => s.id).join(", ")}${missing.length > 6 ? "…" : ""})` : ""}.</b> Values are read from the file by ID or site sample code; results typed on a sample's own record count too.${relNow() ? " The batch is released with one certificate when you save it." : ""}</div>`
         : `${holds.length ? `<div class="notice warn" id="bwHold"><b>Release on hold:</b> ${esc(holds.slice(0, 4).join(" "))}${holds.length > 4 ? ` +${holds.length - 4} more` : ""}</div>` : ""}
         ${canRelease() ? `<div class="row step-row"><button type="button" class="btn primary" id="bwRelease" ${holds.length ? "disabled data-hold" : ""}>Release results and issue the batch certificate</button></div>${two ? `<div class="form">${witnessField("bwRelWit", "Witness to the release (two-person custody)")}</div>` : ""}`
@@ -146,7 +146,7 @@ function bwPanel(c){
     act = `${certLine}${bi > ti ? `<div class="row" style="gap:8px"><span class="pill ok">Workflow complete</span><span class="small muted">All ${nS(n)} on the shelf. Each material is returned or disposed of below when its retention period ends.</span></div>` : ""}${bwWq(st)}${bwMats(st)}`;
   }
   return `<div class="panel stack" id="bwBox">${head(st.mem.length)}
-    <div class="actions stack" id="bwAct" style="gap:10px">${act}</div>
+    <div class="actions stack" id="bwAct" style="gap:10px">${act}${edit && bi >= 1 && bi < ti ? bwGrid(at, ref) : ""}</div>
     ${bwRail(st, ref)}
     ${asides.length ? `<div class="small muted">${asides.join("<br>")}</div>` : ""}</div>`;   // v37: the step's action on top, then the steps
 }
@@ -161,6 +161,7 @@ function bindBw(v){
   $("#bwDrop", v)?.addEventListener("click", () => bwAnswer("drop"));
   v.querySelectorAll("[data-bmat]").forEach(b => b.addEventListener("click", () => bwMat(b.dataset.bmat)));
   v.querySelectorAll("[data-bcert]").forEach(b => b.addEventListener("click", () => showBatchCert(b.dataset.bcert)));
+  bindBwGrid(v);
   if (bwBusy) document.querySelectorAll("#bwBox button").forEach(b => b.disabled = true);
   const wb = $("#bmWitBox", v);   // the witness to a disposal, asked for on the material being disposed
   if (wb){

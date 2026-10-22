@@ -122,6 +122,7 @@ function renderStaffResults(v){
         <select class="inp" id="resDays" style="width:auto" aria-label="Period">${[7, 30, 90].map(d => `<option value="${d}" ${resDays === d ? "selected" : ""}>${d} days</option>`).join("")}</select>
         ${ev ? `<label class="row" style="gap:6px"><input type="checkbox" id="resDue" ${resDue ? "checked" : ""}> To evaluate only</label>` : ""}
       </div></div>
+    ${resultsWaitPanel()}
     ${turnaroundPanel(list)}
     ${list.length ? `<div class="panel"><div class="tbl-wrap"><table class="cardy restbl"><thead><tr><th>Sample</th><th>Type · for</th><th>Results</th><th>Released</th>${ev ? "<th>Flags</th><th>Evaluation</th>" : ""}</tr></thead><tbody>
       ${list.slice(0, 300).map(s => { const c = lastCert(s), fl = ev ? evalFlags(s) : [], e = lastEval(s);
@@ -139,6 +140,7 @@ function renderStaffResults(v){
   $("#resSec", v).onchange = e => { resSec = e.target.value; renderResultsTab(); };
   $("#resDays", v).onchange = e => { resDays = +e.target.value; watchStaffResults(); renderResultsTab(); };
   $("#resDue", v)?.addEventListener("change", e => { resDue = e.target.checked; renderResultsTab(); });
+  bindResultsWait(v);
 }
 
 /* ---------- the title and logo in the header lead home: the board for lab staff (v24c) ---------- */

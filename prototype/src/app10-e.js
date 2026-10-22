@@ -13,7 +13,6 @@ function renderRoutes(){
   v.innerHTML = `<div class="stack">
     <div class="panel stack" style="gap:8px">
       <h2>Workflow routes</h2>
-      <p class="small muted" style="margin:0">Each sample follows the route for its sample type and the test requested. The route is picked automatically at submission and the lab technician confirms or changes it at receipt; only routes that perform the requested test can be chosen. Every route starts with <b>Submitted</b> and <b>Received &amp; logged</b>, and ends with <b>Results released</b> and retention in storage. Each retained material is then returned, sent out or disposed on its own date. Expected finish times add up the hours below and are estimates: queues can add to them.${isAdmin() ? " Admins edit routes on the Settings tab." : ""}</p>
       <div class="row" style="gap:6px"><span class="ph-tag ph-intake">Intake</span><span class="ph-tag ph-prep">Preparation</span><span class="ph-tag ph-test">Analysis / test</span><span class="ph-tag ph-qc">QA/QC</span></div>
     </div>
     <div class="panel stack" style="gap:10px"><h3>All ${liveTests.length} tests</h3>

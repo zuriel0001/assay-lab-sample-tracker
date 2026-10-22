@@ -169,7 +169,7 @@ function buildTrack(v, s){
       meta = proj.out[x.key] ? `Expected ${fmt(proj.out[x.key])}` : x.phase === "store" ? (allBack(s) ? "What is left goes back with the results" : `Each material kept for its own period after results`) : `${hoursLabel(x.hours)} allowed`;
     }
     return `<li class="${cls}"><span class="dot">${mark}</span><div><div class="st-name">${esc(x.name)}${x.redo && s.reassays ? ` <span class="pill warn">re-assayed ×${s.reassays}</span>` : ""}</div><div class="st-meta">${meta}</div>${note ? `<div class="st-note">${esc(note)}</div>` : ""}</div></li>`;
-  }).join("");
+  });   // v38: folded by railOl
 
   const hist = (s.history || []).slice().reverse().map(h => `<li>
       <div>${h.redo ? `<span class="pill warn">Re-assay</span> ` : h.reroute ? `<span class="pill info">${h.testTo ? "Test changed" : "Route changed"}</span> ` : h.corr ? `<span class="pill warn">Correction</span> ` : h.skipped ? `<span class="pill warn">Skipped steps</span> ` : ""}<b>${esc(stageName(s, h))}</b>${h.ref ? ` · <span>${esc(h.ref)}</span>` : ""}${h.loc ? ` · <span>${esc(h.loc)}</span>` : ""}</div>
@@ -244,10 +244,10 @@ function buildTrack(v, s){
     ${grouped(s) ? batchNote(s) : ""}
     ${s.flag && awaiting(s) ? `<div class="notice warn"><b>Flagged at receipt:</b> ${esc(s.flag)}</div>` : ""}
     ${(s.ledgerPending || []).length ? `<div class="notice warn">A ledger entry for this sample is still being saved. It is retried automatically.</div>` : ""}
-    <div class="grid2">
+    <div class="grid2${s.relAt && canSeeResults(s) && !canEdit() ? " res-first" : ""}">
       <div class="panel stack"><h3>Workflow${s.routeName ? `: ${esc(routeLabel(s))}` : ""}${grouped(s) ? ` <span class="pill">with batch ${esc(s.batchId)}</span>` : ""}</h3>
         <div class="actions" id="actBox">${actions}</div>
-        <ol class="rail">${rail}</ol>
+        ${railOl(rail)}
         ${qcBlock}</div>
       <div class="stack">
         ${resultsPanel(s)}
@@ -309,7 +309,7 @@ function receiptForm(s){
       <label class="f"><span>Bags / containers received</span><input id="rcBags" type="number" min="0" step="1" value="${esc(s.containers || 1)}"></label>
       <label class="f"><span>Mass received (${unit})</span><input id="rcMass" type="number" min="0" step="any" placeholder="Weigh on arrival"></label>
       <label class="f"><span>Seal check</span><select id="rcSeal">${s.seal ? `<option value="ok">Seal intact, number matches</option><option value="bad">Seal number does not match</option><option value="broken">Seal broken or missing</option>` : `<option value="none">No seal on the submission</option><option value="ok">Sealed (note the number)</option><option value="broken">Seal broken</option>`}</select></label>
-      <label class="f"><span>Condition</span><select id="rcCond">${CONDITIONS.map(c => `<option>${esc(c)}</option>`).join("")}</select></label>
+      ${condPick("rc")}
       ${t?.cool != null ? `<label class="f"><span>Cooler temperature on arrival (°C) <span class="req">*</span></span><input id="rcTemp" type="number" step="0.1" placeholder="Limit ${t.cool} °C"></label>` : ""}
       ${twoPerson(s) ? witnessField("rcWit") : ""}
       <label class="f"><span>Test requested</span><select id="rcTest">${testOptions(s.typeKey, s.test)}</select></label>
@@ -321,7 +321,7 @@ function receiptForm(s){
 }
 function receiptChecks(s){
   const t = typeOf(s.typeKey), at = fromInput($("#rcAt")?.value), warn = [];
-  const bags = +($("#rcBags")?.value || 0), mass = $("#rcMass")?.value || "", seal = val("#rcSeal"), cond = val("#rcCond") || "Good", temp = $("#rcTemp") ? $("#rcTemp").value : "";
+  const bags = +($("#rcBags")?.value || 0), mass = $("#rcMass")?.value || "", seal = val("#rcSeal"), cond = condRead("rc"), temp = $("#rcTemp") ? $("#rcTemp").value : "";
   if (s.containers && $("#rcBags")?.value !== "" && bags !== +s.containers) warn.push(`${bagsText(bags)} received, ${s.containers} submitted`);
   if (seal === "bad") warn.push("seal number does not match the submission");
   if (seal === "broken") warn.push("seal broken or missing");
@@ -465,6 +465,7 @@ function materialsPanel(s){
     ${grouped(s) ? `<p class="small" id="matBatch" style="margin:0">Put away, returned and disposed of with batch <button type="button" class="linkish mono" data-open="${esc(s.batchId)}">${esc(s.batchId)}</button>, on the batch page.</p>` : ""}
     ${q ? `<div class="notice small" style="margin:0">Waiting for <b>${esc(q.wit)}</b> to confirm ${q.kind === "store" ? "the storage" : esc(wqText(s, q))}. Nothing else is recorded on the material until then.</div>` : ""}
     ${edit && !closed && !q && twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div class="form"><div class="full">${witnessField("mtWit", "Witness (two-person custody: confirms a disposal from their own account)")}</div></div>` : ""}
+    ${edit && !closed && !q ? storeAllRow(s) : ""}
     <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
     ${edit && !closed && !twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div id="mtWitBox" class="mat-wit" hidden>${witnessField("mtWit", "Witness to the disposal (a second person)")}</div>` : ""}</div>`;
 }
@@ -480,7 +481,7 @@ function bindTrack(v, s){
       $("#rcInfo", v).innerHTML = lines.map(esc).join(" ") + (c.warn.length ? `<div class="notice warn" style="margin-top:6px"><b>Check before confirming:</b> ${c.warn.map(esc).join("; ")}. Describe it in the note; it is printed on the record.</div>` : "");
     };
     syncers.push(info);
-    ["#rcTest", "#rcRoute", "#rcAt", "#rcBags", "#rcSeal", "#rcCond", "#rcTemp"].forEach(id => { const el = $(id, v); if (el){ el.addEventListener("change", info); el.addEventListener("input", info); } });
+    ["#rcTest", "#rcRoute", "#rcAt", "#rcBags", "#rcSeal", "#rcCondPick", "#rcCondOther", "#rcTemp"].forEach(id => { const el = $(id, v); if (el){ el.addEventListener("change", info); el.addEventListener("input", info); } });
     info();
   }
   const xt = $("#rrTest", v), xr = $("#rrCode", v);
@@ -490,6 +491,7 @@ function bindTrack(v, s){
   v.querySelectorAll("[data-receipt]").forEach(b => b.addEventListener("click", () => doReceipt(b.dataset.receipt)));
   bindReject(v, "rc", $("#rejOpen", v), $("#rcFields", v));
   v.querySelectorAll("[data-mat]").forEach(b => b.addEventListener("click", () => doMaterial(b.dataset.mat)));
+  $("#mxAll", v)?.addEventListener("click", doStoreAll);
   bindWq(v);
   // v24d: the witness to a disposal is asked for on the material being disposed, only when Dispose is chosen.
   const wb = $("#mtWitBox", v);

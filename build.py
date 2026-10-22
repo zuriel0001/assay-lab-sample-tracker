@@ -319,7 +319,6 @@ put('''
       Check the ID on the bag or submission form. IDs look like <span class="mono">${esc(exampleId())}</span>: section code, submission date, running number. Site sample codes and site references are searched too.''', '''
       Check the ID on the bag.''')
 put('''</strong>Entries appear when samples are received at the lab or leave it.</div>''', '''</strong></div>''')
-put('''<strong>No released results yet</strong>Certificates for ${esc(session.sec)} samples appear here as soon as the lab releases them.</div>''', '''<strong>No released results yet</strong></div>''')
 
 # With its placeholder text gone, the route preview takes no space until there is a route to show.
 put('@media (max-width:760px){.login-grid{grid-template-columns:minmax(0,1fr)}}',
@@ -337,7 +336,6 @@ put('''after the lab receives ${n === 1 ? "it" : "them"} (an estimate).</div>'''
 
 # In / out ledger, Workflow routes
 put('''in ${esc(monthText(f.month))}. Times are ${esc(TZ() || "this device's")} time.</p>''', '''in ${esc(monthText(f.month))}.</p>''')   # v24c: what the ledger is for now sits in its heading
-drop('''<p class="small muted" style="margin:0">Each sample follows the route for its sample type and the test requested. The route is picked automatically at submission and the lab technician confirms or changes it at receipt; only routes that perform the requested test can be chosen. Every route starts with <b>Submitted</b> and <b>Received &amp; logged</b>, and ends with <b>Results released</b> and retention in storage. Each retained material is then returned, sent out or disposed on its own date. Expected finish times add up the hours below and are estimates: queues can add to them.${isAdmin() ? " Admins edit routes on the Settings tab." : ""}</p>''')
 
 # Settings
 drop('''<div class="notice">Edit accounts, sections, the site time zone and workflow routes, then press Save settings. Changes apply for everyone.</div>''')
@@ -349,10 +347,6 @@ put('''<span>The permit and guideline limits (marked Permit) are placeholders. R
 drop('''<p class="small muted" style="margin:0">${relNow() ? "A result past a limit is flagged to the people who evaluate results (Results tab); the release does not wait." : "A result past a limit holds the release until someone records what was done and who was told (printed on the certificate)."} "Only when" limits a row to one sampling point.</p>''')
 drop('''<p class="small muted" style="margin:0">A sample's route is chosen from its sample type, test and purpose when it is submitted. Changes apply to samples submitted after you save; samples already in the lab keep the steps they started with. Steps 1 and 2 (Submitted, Received &amp; logged) and the closing steps (Results released, storage, return or disposal) are shared by every route.</p>''')
 drop('''${inUse ? `<p class="small muted" style="margin:0">${inUse} open sample(s) are on this route. They keep the steps, QA/QC rule and retention they started with.</p>` : ""}''')
-
-# Results
-put('''Certificates of analysis for samples your section submitted, newest first. ${fresh ?''', '''${fresh ?''')
-put(''' : "Nothing new since you last looked."} In the production system this notice also goes to the section by email.</p>''', ''' : "Nothing new since you last looked."}</p>''')
 
 # On Azure "quota_exceeded" means one record grew past what Cosmos DB holds (samples are never deleted).
 put('toast("The register is full. Archive or delete old samples before adding more.");', 'toast("This record is too large to save. Tell the lab manager.");')

@@ -1133,6 +1133,89 @@ table:has([data-lf="act"]) :is(td,th){padding-left:6px;padding-right:6px}
 @media (max-width:760px){.top-meta:has(#signBtn[hidden]) .who{display:none}}
 /* A hazard mark reads ⚠ CN, so it is not taken for the CN analysis beside the route code */
 .haz:not(.two)::before{content:"\26A0\FE0E";margin-right:3px}
+/* v38: the results grid (one row per sample, one column per result) */
+.rg{gap:10px}
+.rg-g h4{margin:0 0 4px;font-size:var(--t-md)}
+.rg-t{border-collapse:collapse;width:auto}
+.rg-t th{font-size:var(--t-sm);text-align:left;white-space:nowrap;padding:4px 6px}
+.rg-t td{padding:3px 6px;vertical-align:middle}
+.rg-t td:first-child{min-width:9em}
+.rg-t .inp{width:7.5em;min-height:0;padding:4px 6px;font-size:var(--t-md)}
+.rg-t select.inp{width:auto;max-width:12em}
+.rg-t input.inp:not(.mono){width:12em}
+.rg-t tr:focus-within>td{background:color-mix(in srgb,var(--accent,#c9a227) 10%,var(--panel))}
+#rgWait .pill.gold{font-size:var(--t-sm)}
+@media(max-width:640px){
+  .rg-t .inp{width:6em}
+  .rg-t td:first-child{min-width:0}
+}
+.rg .tbl-wrap{width:fit-content;max-width:100%}
+/* v38: the steps folded to the one before, now and next */
+.rail li.rl-fold{display:none}
+.rail-sum{display:grid;grid-template-columns:22px minmax(0,1fr);gap:12px;align-items:center;position:relative;width:100%;background:none;border:0;padding:0 0 14px;margin:0;text-align:left;color:var(--muted);font:inherit;font-size:var(--t-sm);cursor:pointer;min-height:0}
+.rail-sum:hover span:last-child,.rail-sum:focus-visible span:last-child{text-decoration:underline;color:var(--ink)}
+.rail-sum.done::before{content:"";position:absolute;left:10px;top:20px;bottom:-2px;width:2px;background:var(--ok)}
+.rail-sum.done .dot{background:var(--ok);border-color:var(--ok);color:var(--panel)}
+.rail-sum .dot{border-style:dashed}
+.rail-sum.done .dot{border-style:solid}
+.rail+.rail-sum{padding:0}
+.rail-less{align-self:flex-start}
+@media (max-width:820px){.grid2.res-first>.stack:last-child{order:-1}}   /* released: on a phone the results come before the steps */
+/* v38: condition at receipt as chips plus a typed one */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:18px;padding:3px 10px;font-size:var(--t-sm);font-weight:500;cursor:pointer;background:var(--panel)}
+.chips label:has(input:checked){border-color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,var(--panel))}
+.chips input[type=checkbox]{flex:none;min-height:0;width:16px;height:16px;margin:0}
+.chips .inp{flex:1 1 9em;width:auto;min-height:0;padding:3px 10px;border-radius:18px;font-size:var(--t-sm)}
+.mv-c{width:34px;text-align:center}.mv-c input{width:18px;height:18px;min-height:0;margin:0}
+/* v38: a job's rows on a phone: the name (type after it) and ⋯ on one line, the code under it; ⋯ opens description and analysis */
+.jrows .j-x{display:none}
+@media (max-width:620px){
+  .jrows tbody tr:not(.j-gh){grid-template-columns:30px minmax(0,1fr);align-items:center;padding:6px 0;row-gap:4px}
+  .jrows tbody tr:not(.j-gh) td:first-child{grid-row:1/span 4;width:30px;padding-top:0;align-self:start;margin-top:4px}
+  .jrows tbody tr:not(.j-gh) td:nth-child(n+4){display:none}
+  .jrows tbody tr.jx td:nth-child(n+4),.jrows tbody tr td:has(.j-mass){display:block}
+  .jrows tbody tr:not(.j-gh) td:nth-child(2){min-width:0;display:flex;flex-direction:row-reverse;justify-content:flex-end;align-items:baseline;gap:6px}
+  .jrows tbody tr:not(.j-gh) td:nth-child(2) .small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+  .jrows tbody tr:not(.j-gh) td:nth-child(2)>div{display:flex;align-items:center;min-width:0;flex:0 0 auto;max-width:100%}
+  .jrows tbody tr:not(.j-gh)>td{background:none}
+  .jrows tbody tr:not(.j-gh) td:nth-child(2)>div>b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .jrows tbody tr:not(.j-gh) td:nth-child(2) .j-pt{flex:1 1 auto;min-width:0}
+  .jrows .j-x{display:inline-grid;place-items:center;flex:none;margin-left:6px;width:30px;height:22px;min-height:0;padding:0;border:1px solid var(--line);border-radius:11px;background:var(--panel);color:var(--muted);font:inherit;font-size:var(--t-sm);line-height:1;cursor:pointer}
+  .jrows .j-x[aria-expanded="true"]{border-color:var(--accent);color:var(--accent)}
+  .jrows .inp{min-height:36px}
+}
+/* v38: a tidier Ledger: filters on one row, the month check and sign-off in one box, a short card per movement on a phone */
+.lg-tools{flex-wrap:wrap;gap:8px}
+.lg-tools #lgQ{flex:1 1 160px;min-width:0}
+.lg-month{display:flex;flex-direction:column;gap:6px;padding:8px 14px;border:1px solid var(--line);border-left:4px solid var(--ok);border-radius:var(--r);background:var(--panel)}
+.lg-month .recon{border:0;padding:0;background:none;border-radius:0}
+.lg-month .signoff{padding:0;border:0;background:none;gap:6px}
+.lg-month:has(.signoff.done){background:var(--ok-soft)}
+.lg-month:has(.signoff.changed){background:var(--warn-soft);border-left-color:var(--warn)}
+.lg-tools #lgSec{max-width:15em}
+.lg-month .signoff{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+@media (min-width:641px){.lg-t td.lg-l,.lg-t td.lg-m{white-space:nowrap}}
+@media (max-width:640px){
+  .cstats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .cstats .stat{padding:8px 10px}
+  .cstats .stat .n{font-size:var(--t-xl)}
+  .cstats .stat .l{font-size:var(--t-xs);line-height:1.25}
+  .lg-tools{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .lg-tools>*{width:100%!important;min-width:0}
+  .lg-tools #lgQ{grid-column:1/-1;grid-row:3}
+  table.cardy.lg-t tr{display:grid;grid-template-columns:44px minmax(0,1fr) minmax(0,1fr);column-gap:8px;row-gap:2px;align-items:start;padding:8px 12px}
+  table.cardy.lg-t td{padding:0;min-height:0}
+  table.cardy.lg-t td::before{display:none}
+  table.cardy.lg-t .lg-dir{grid-column:1;grid-row:1/span 3}
+  table.cardy.lg-t .lg-id{grid-column:2/-1;grid-row:1}
+  table.cardy.lg-t .lg-d{grid-column:2/-1;grid-row:2;font-size:var(--t-xs);color:var(--muted)}
+  table.cardy.lg-t .lg-ty,table.cardy.lg-t .lg-f{grid-column:2}
+  table.cardy.lg-t .lg-m,table.cardy.lg-t .lg-l{grid-column:3}
+  table.cardy.lg-t .lg-tag,table.cardy.lg-t .lg-n{grid-column:2/-1}
+  table.cardy.lg-t td:not(.lg-id):not(.lg-dir){font-size:var(--t-sm)}
+}
+#view-results td[data-l="Results"]{white-space:normal}#view-results td[data-l="Type · test"]{min-width:9em}
 </style>
 
 <div class="wrap">
@@ -3132,7 +3215,7 @@ function buildTrack(v, s){
       meta = proj.out[x.key] ? `Expected ${fmt(proj.out[x.key])}` : x.phase === "store" ? (allBack(s) ? "What is left goes back with the results" : `Each material kept for its own period after results`) : `${hoursLabel(x.hours)} allowed`;
     }
     return `<li class="${cls}"><span class="dot">${mark}</span><div><div class="st-name">${esc(x.name)}${x.redo && s.reassays ? ` <span class="pill warn">re-assayed ×${s.reassays}</span>` : ""}</div><div class="st-meta">${meta}</div>${note ? `<div class="st-note">${esc(note)}</div>` : ""}</div></li>`;
-  }).join("");
+  });   // v38: folded by railOl
 
   const hist = (s.history || []).slice().reverse().map(h => `<li>
       <div>${h.redo ? `<span class="pill warn">Re-assay</span> ` : h.reroute ? `<span class="pill info">${h.testTo ? "Test changed" : "Route changed"}</span> ` : h.corr ? `<span class="pill warn">Correction</span> ` : h.skipped ? `<span class="pill warn">Skipped steps</span> ` : ""}<b>${esc(stageName(s, h))}</b>${h.ref ? ` · <span>${esc(h.ref)}</span>` : ""}${h.loc ? ` · <span>${esc(h.loc)}</span>` : ""}</div>
@@ -3207,10 +3290,10 @@ function buildTrack(v, s){
     ${grouped(s) ? batchNote(s) : ""}
     ${s.flag && awaiting(s) ? `<div class="notice warn"><b>Flagged at receipt:</b> ${esc(s.flag)}</div>` : ""}
     ${(s.ledgerPending || []).length ? `<div class="notice warn">A ledger entry for this sample is still being saved. It is retried automatically.</div>` : ""}
-    <div class="grid2">
+    <div class="grid2${s.relAt && canSeeResults(s) && !canEdit() ? " res-first" : ""}">
       <div class="panel stack"><h3>Workflow${s.routeName ? `: ${esc(routeLabel(s))}` : ""}${grouped(s) ? ` <span class="pill">with batch ${esc(s.batchId)}</span>` : ""}</h3>
         <div class="actions" id="actBox">${actions}</div>
-        <ol class="rail">${rail}</ol>
+        ${railOl(rail)}
         ${qcBlock}</div>
       <div class="stack">
         ${resultsPanel(s)}
@@ -3272,7 +3355,7 @@ function receiptForm(s){
       <label class="f"><span>Bags / containers received</span><input id="rcBags" type="number" min="0" step="1" value="${esc(s.containers || 1)}"></label>
       <label class="f"><span>Mass received (${unit})</span><input id="rcMass" type="number" min="0" step="any" placeholder="Weigh on arrival"></label>
       <label class="f"><span>Seal check</span><select id="rcSeal">${s.seal ? `<option value="ok">Seal intact, number matches</option><option value="bad">Seal number does not match</option><option value="broken">Seal broken or missing</option>` : `<option value="none">No seal on the submission</option><option value="ok">Sealed (note the number)</option><option value="broken">Seal broken</option>`}</select></label>
-      <label class="f"><span>Condition</span><select id="rcCond">${CONDITIONS.map(c => `<option>${esc(c)}</option>`).join("")}</select></label>
+      ${condPick("rc")}
       ${t?.cool != null ? `<label class="f"><span>Cooler temperature on arrival (°C) <span class="req">*</span></span><input id="rcTemp" type="number" step="0.1" placeholder="Limit ${t.cool} °C"></label>` : ""}
       ${twoPerson(s) ? witnessField("rcWit") : ""}
       <label class="f"><span>Test requested</span><select id="rcTest">${testOptions(s.typeKey, s.test)}</select></label>
@@ -3284,7 +3367,7 @@ function receiptForm(s){
 }
 function receiptChecks(s){
   const t = typeOf(s.typeKey), at = fromInput($("#rcAt")?.value), warn = [];
-  const bags = +($("#rcBags")?.value || 0), mass = $("#rcMass")?.value || "", seal = val("#rcSeal"), cond = val("#rcCond") || "Good", temp = $("#rcTemp") ? $("#rcTemp").value : "";
+  const bags = +($("#rcBags")?.value || 0), mass = $("#rcMass")?.value || "", seal = val("#rcSeal"), cond = condRead("rc"), temp = $("#rcTemp") ? $("#rcTemp").value : "";
   if (s.containers && $("#rcBags")?.value !== "" && bags !== +s.containers) warn.push(`${bagsText(bags)} received, ${s.containers} submitted`);
   if (seal === "bad") warn.push("seal number does not match the submission");
   if (seal === "broken") warn.push("seal broken or missing");
@@ -3428,6 +3511,7 @@ function materialsPanel(s){
     ${grouped(s) ? `<p class="small" id="matBatch" style="margin:0">Put away, returned and disposed of with batch <button type="button" class="linkish mono" data-open="${esc(s.batchId)}">${esc(s.batchId)}</button>, on the batch page.</p>` : ""}
     ${q ? `<div class="notice small" style="margin:0">Waiting for <b>${esc(q.wit)}</b> to confirm ${q.kind === "store" ? "the storage" : esc(wqText(s, q))}. Nothing else is recorded on the material until then.</div>` : ""}
     ${edit && !closed && !q && twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div class="form"><div class="full">${witnessField("mtWit", "Witness (two-person custody: confirms a disposal from their own account)")}</div></div>` : ""}
+    ${edit && !closed && !q ? storeAllRow(s) : ""}
     <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
     ${edit && !closed && !twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div id="mtWitBox" class="mat-wit" hidden>${witnessField("mtWit", "Witness to the disposal (a second person)")}</div>` : ""}</div>`;
 }
@@ -3443,7 +3527,7 @@ function bindTrack(v, s){
       $("#rcInfo", v).innerHTML = lines.map(esc).join(" ") + (c.warn.length ? `<div class="notice warn" style="margin-top:6px"><b>Check before confirming:</b> ${c.warn.map(esc).join("; ")}. Describe it in the note; it is printed on the record.</div>` : "");
     };
     syncers.push(info);
-    ["#rcTest", "#rcRoute", "#rcAt", "#rcBags", "#rcSeal", "#rcCond", "#rcTemp"].forEach(id => { const el = $(id, v); if (el){ el.addEventListener("change", info); el.addEventListener("input", info); } });
+    ["#rcTest", "#rcRoute", "#rcAt", "#rcBags", "#rcSeal", "#rcCondPick", "#rcCondOther", "#rcTemp"].forEach(id => { const el = $(id, v); if (el){ el.addEventListener("change", info); el.addEventListener("input", info); } });
     info();
   }
   const xt = $("#rrTest", v), xr = $("#rrCode", v);
@@ -3453,6 +3537,7 @@ function bindTrack(v, s){
   v.querySelectorAll("[data-receipt]").forEach(b => b.addEventListener("click", () => doReceipt(b.dataset.receipt)));
   bindReject(v, "rc", $("#rejOpen", v), $("#rcFields", v));
   v.querySelectorAll("[data-mat]").forEach(b => b.addEventListener("click", () => doMaterial(b.dataset.mat)));
+  $("#mxAll", v)?.addEventListener("click", doStoreAll);
   bindWq(v);
   // v24d: the witness to a disposal is asked for on the material being disposed, only when Dispose is chosen.
   const wb = $("#mtWitBox", v);
@@ -3853,7 +3938,7 @@ function renderBoard(){
   const listMode = !wall && boardView() === "list", laneable = !!(cur && cur.pick && !(cur.k === "await" && canEdit()) && !(todo && TODO_K.includes(cur.k)));
   const shown = laneable ? new Set(cur.pick) : null, asList = !!cur && (!laneable || listMode);
   const chip = c => `<div class="pick-note pick-chip"${asList ? "" : ` id="bdPick"`}><span>Showing <b>${esc(c.l)}</b> · ${c.n}</span>${c.link ? `<button type="button" class="linkish small" data-goto="${c.link[0]}">${esc(c.link[1])}</button>` : ""}<button type="button" class="pk-x" data-bpick="${c.k}" aria-label="Show everything again" title="Show everything again">×</button></div>`;
-  const pickTable = (rows, k) => rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>Sample</th><th>Type</th><th>Analysis · route</th><th>Where it is</th></tr></thead><tbody>${rows.slice(0, 100).map(r => `<tr><td>${r.id ? `<button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>` : "—"}</td><td>${esc(r.type)}</td><td>${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`).join("")}</tbody></table></div>
+  const pickTable = (rows, k, mv = k === "list" && rows.some(r => canStepOn(samples.get(r.id)))) => rows.length ? `${mv ? moveBar(rows) : ""}<div class="tbl-wrap"><table class="cardy"><thead><tr>${mv ? `<th class="mv-c"><input type="checkbox" id="bdMvAll" aria-label="Tick every sample that can move"></th>` : ""}<th>Sample</th><th>Type</th><th>Analysis · route</th><th>Where it is</th></tr></thead><tbody>${rows.slice(0, 100).map(r => `<tr>${mv ? `<td class="mv-c">${canStepOn(samples.get(r.id)) ? `<input type="checkbox" data-mv="${esc(r.id)}" ${bdTicks.has(r.id) ? "checked" : ""} aria-label="Tick ${esc(r.id)}">` : ""}</td>` : ""}<td>${r.id ? `<button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>` : "—"}</td><td>${esc(r.type)}</td><td>${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`).join("")}</tbody></table></div>
       ${rows.length > 100 ? `<div class="small muted">+${rows.length - 100} more: use the filters or look a sample up by ID</div>` : ""}` : `<div class="small muted">Nothing to list on this device yet.</div>`;
   const pickHtml = !cur ? "" : !asList ? chip(cur) : cur.k === "await" && canEdit() ? recvManyPanel(cur) : todo && TODO_K.includes(cur.k) ? todoPanel(cur, todo, chip) : `<div class="panel pick-list stack" id="bdPick">${chip(cur)}${pickTable(cur.rows, cur.k)}</div>`;
   const sumHtml = sums.filter(x => !x.hide).map(x => {
@@ -3914,7 +3999,7 @@ function renderBoard(){
   const scrolled = laneScroll();
   // List: the board's samples as one table (a tile's samples when one is chosen), in lane order, late and urgent first
   const phI = s => { const st = stage(s, s.stageKey); return relSet.has(s) ? PHASES.findIndex(p => p.key === "qc") : st ? PHASES.findIndex(p => p.key === st.phase) : 99; };
-  const listHtml = !listMode || cur ? "" : `<div class="panel pick-list stack" id="bdList"><div class="pick-note"><span>In the lab · ${unitCount(list)}</span></div>${pickTable(unitRows(list.slice().sort((a, b) => phI(a) - phI(b) || (status(b).late - status(a).late) || (b.priority === "Urgent") - (a.priority === "Urgent") || a.stageAt - b.stageAt), s => sRow(s)), "")}</div>`;
+  const listHtml = !listMode || cur ? "" : `<div class="panel pick-list stack" id="bdList"><div class="pick-note"><span>In the lab · ${unitCount(list)}</span></div>${pickTable(unitRows(list.slice().sort((a, b) => phI(a) - phI(b) || (status(b).late - status(a).late) || (b.priority === "Urgent") - (a.priority === "Urgent") || a.stageAt - b.stageAt), s => sRow(s)), "list")}</div>`;
   v.innerHTML = `<div class="stack">
     ${wallHead}
     ${filters}
@@ -3924,7 +4009,7 @@ function renderBoard(){
     ${pickHtml}${listHtml}
     ${alerts.length ? `<div class="notice bad" id="bdAlerts"><b>Past a limit:</b> ${alerts.slice(0, 12).map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button> <span class="small">${esc(openAlerts(s).map(h => alertLine(s, h)).join("; "))}</span>`).join("<br>")}${alerts.length > 12 ? `<br>+${alerts.length - 12} more` : ""}<div class="small">Open each sample, act as the limit says and record what was done and who was told. In the production system these also go out by email or SMS.</div></div>` : ""}
     ${listMode || asList ? "" : `<div class="lanes">${lanes}</div>`}</div>`;
-  bind(); bindRecvMany(v);
+  bind(); bindRecvMany(v); bindMoveList(v);
   fitLanes(scrolled);
 }
 
@@ -4306,16 +4391,17 @@ function renderLedger(){
   if (f.dir !== "all") rows = rows.filter(r => r.base === f.dir);
   if (f.sec) rows = rows.filter(r => r.sec === f.sec);
   if (f.q){ const q = f.q.toLowerCase(); rows = rows.filter(r => [r.sid, r.type, r.sub, r.tag, r.tech, r.wit, r.ref, r.note, r.item, r.route].join(" ").toLowerCase().includes(q)); }
+  const ownTag = r => r.tag && normKey(r.tag) !== normKey(r.sid), tagCol = rows.some(ownTag);   // v38: no column of dashes
   const body = rows.map(r => `<tr class="${r.reversed ? "reversed" : ""}">
-    <td style="white-space:nowrap">${fmtFull(r.at)}</td>
-    <td><span class="dirp ${r.dir === "in" ? "dir-in" : r.dir === "rev" ? "dir-rev" : "dir-out"}">${r.dir === "in" ? "IN" : r.dir === "rev" ? "REV" : "OUT"}</span>${r.reversed ? `<div><span class="pill warn">Reversed</span></div>` : ""}</td>
-    <td><button class="linkish" data-open="${esc(r.sid)}">${esc(r.sid)}</button>${!shownQa.has(r.sid) && shownQa.add(r.sid) ? qaOfNote(r.sid) + qaPickBox(r.sid) : ""}${!shownRedo.has(r.sid) && redoFor(r.sid) && shownRedo.add(r.sid) ? `<div><button type="button" class="btn ghost small reassay-btn" data-reassay="${esc(r.sid)}">Re-assay</button></div>` : ""}</td>
-    <td class="mono">${r.tag && normKey(r.tag) !== normKey(r.sid) ? esc(r.tag) : "—"}</td>
-    <td>${esc(r.type)}<div class="small mono"><span style="color:var(--accent)">${esc(r.route || "")}</span>${r.sec ? ` <span class="muted">${esc(r.sec)}</span>` : ""}</div></td>
-    <td>${esc(r.item || "")}${r.qty ? `<div class="small muted">${esc(r.qty)}</div>` : ""}</td>
-    <td>${r.dir === "in" ? esc(r.from || "Mine site") : r.dir === "rev" ? "Reversal of an earlier movement" : esc(DISPO[r.kind] || r.kind || "")}${r.dir === "in" && r.sub ? `<div class="small muted">by ${esc(r.sub)}</div>` : ""}</td>
-    <td>${esc(r.tech) || who(r.by)}${r.wit ? `<div class="small muted">Witness: ${esc(r.wit)}</div>` : ""}</td>
-    <td>${r.ref ? `<span class="mono small">${esc(r.ref)}</span>${r.note ? "<br>" : ""}` : ""}${esc(r.note) || ""}</td></tr>`).join("");
+    <td class="lg-d" style="white-space:nowrap">${fmtFull(r.at)}</td>
+    <td class="lg-dir"><span class="dirp ${r.dir === "in" ? "dir-in" : r.dir === "rev" ? "dir-rev" : "dir-out"}">${r.dir === "in" ? "IN" : r.dir === "rev" ? "REV" : "OUT"}</span>${r.reversed ? `<div><span class="pill warn">Reversed</span></div>` : ""}</td>
+    <td class="lg-id"><button class="linkish" data-open="${esc(r.sid)}">${esc(r.sid)}</button>${!shownQa.has(r.sid) && shownQa.add(r.sid) ? qaOfNote(r.sid) + qaPickBox(r.sid) : ""}${!shownRedo.has(r.sid) && redoFor(r.sid) && shownRedo.add(r.sid) ? `<div><button type="button" class="btn ghost small reassay-btn" data-reassay="${esc(r.sid)}">Re-assay</button></div>` : ""}</td>
+    ${tagCol ? `<td class="mono lg-tag${ownTag(r) ? "" : " nil"}">${ownTag(r) ? esc(r.tag) : "—"}</td>` : ""}
+    <td class="lg-ty">${esc(r.type)}<div class="small mono"><span style="color:var(--accent)">${esc(r.route || "")}</span>${r.sec ? ` <span class="muted">${esc(r.sec)}</span>` : ""}</div></td>
+    <td class="lg-m">${esc(r.item || "")}${r.qty ? `<div class="small muted">${esc(r.qty)}</div>` : ""}</td>
+    <td class="lg-f">${r.dir === "in" ? esc(r.from || "Mine site") : r.dir === "rev" ? "Reversal of an earlier movement" : esc(DISPO[r.kind] || r.kind || "")}${r.dir === "in" && r.sub ? `<div class="small muted">by ${esc(r.sub)}</div>` : ""}</td>
+    <td class="lg-l">${esc(r.tech) || who(r.by)}${r.wit ? `<div class="small muted">Witness: ${esc(r.wit)}</div>` : ""}</td>
+    <td class="lg-n${r.ref || r.note ? "" : " nil"}">${r.ref ? `<span class="mono small">${esc(r.ref)}</span>${r.note ? "<br>" : ""}` : ""}${esc(r.note) || ""}</td></tr>`).join("");
   const act = rows.filter(r => !r.reversed && r.dir !== "rev"), inN = act.filter(r => r.dir === "in").length, outN = act.filter(r => r.dir === "out").length, revN = rows.filter(r => r.dir === "rev").length;
   const rc = recon && recon.m === f.month ? recon : null;
   keepUiSimple(v, () => {
@@ -4327,17 +4413,17 @@ function renderLedger(){
         ${rc ? `<div class="stat c-blue${rc.closing ? "" : " zero"}"><div class="n">${rc.closing}</div><div class="l">On hand at month end</div></div>` : ""}
         ${revN ? `<div class="stat c-grey"><div class="n">${revN}</div><div class="l">Reversals</div></div>` : ""}
       </div>
-      <div class="row">
+      <div class="row lg-tools">
         <input class="inp" id="lgMonth" type="month" style="width:auto" value="${esc(f.month)}" aria-label="Month">
         <select class="inp" id="lgDir" style="width:auto"><option value="all">In and out</option><option value="in">Inbound only</option><option value="out">Outbound only</option></select>
         <select class="inp" id="lgSec" style="width:auto"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${f.sec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
         <input class="inp" id="lgQ" placeholder="Search ID, site code, type, submitter, technician" style="flex:1 1 220px;width:auto" value="${esc(f.q)}">
         <button class="btn" id="lgCsv">Export CSV</button>
       </div>
-      ${rc ? `<div class="recon"><b>Month check:</b> ${rc.opening} on hand at the start + ${rc.ins} received − ${rc.outs} fully out = <b>${rc.closing}</b> on hand at the end${rc.now != null ? (rc.now === rc.closing ? ` <span class="pill ok">matches the ${rc.now} on hand now</span>` : ` <span class="pill bad">${rc.now} on hand now: check for missing movements</span>`) : ""}.</div>` : ""}
-      ${signoffHtml(rc, revN)}
+      ${rc ? `<div class="lg-month"><div class="recon"><b>Month check:</b> ${rc.opening} on hand at the start + ${rc.ins} received − ${rc.outs} fully out = <b>${rc.closing}</b> on hand at the end${rc.now != null ? (rc.now === rc.closing ? ` <span class="pill ok">matches the ${rc.now} on hand now</span>` : ` <span class="pill bad">${rc.now} on hand now: check for missing movements</span>`) : ""}.</div>` : ""}
+      ${signoffHtml(rc, revN)}${rc ? "</div>" : ""}
       <p class="small muted" style="margin:0">${inN} inbound and ${outN} outbound movement${outN === 1 ? "" : "s"}${revN ? `, ${revN} reversal${revN === 1 ? "" : "s"}` : ""} in ${esc(monthText(f.month))}. Times are ${esc(TZ() || "this device's")} time.</p>
-      ${!ledgerReady && db ? `<div class="panel empty"><strong>Loading ${esc(f.month)}…</strong></div>` : rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>Date &amp; time</th><th>Dir.</th><th>Sample ID</th><th>Site code</th><th>Type</th><th>Material</th><th>From / to</th><th>Lab</th><th>Reference · note</th></tr></thead><tbody>${body}</tbody></table></div>`
+      ${!ledgerReady && db ? `<div class="panel empty"><strong>Loading ${esc(f.month)}…</strong></div>` : rows.length ? `<div class="tbl-wrap"><table class="cardy lg-t"><thead><tr><th>Date &amp; time</th><th>Dir.</th><th>Sample ID</th>${tagCol ? "<th>Site code</th>" : ""}<th>Type</th><th>Material</th><th>From / to</th><th>Lab</th><th>Reference · note</th></tr></thead><tbody>${body}</tbody></table></div>`
         : `<div class="panel empty"><strong>No ledger entries${f.dir !== "all" || f.q || f.sec ? " match these filters" : ` in ${esc(f.month)}`}</strong>Entries appear when samples are received at the lab or leave it.</div>`}
     </div>`;
   });
@@ -4387,7 +4473,6 @@ function renderRoutes(){
   v.innerHTML = `<div class="stack">
     <div class="panel stack" style="gap:8px">
       <h2>Workflow routes</h2>
-      <p class="small muted" style="margin:0">Each sample follows the route for its sample type and the test requested. The route is picked automatically at submission and the lab technician confirms or changes it at receipt; only routes that perform the requested test can be chosen. Every route starts with <b>Submitted</b> and <b>Received &amp; logged</b>, and ends with <b>Results released</b> and retention in storage. Each retained material is then returned, sent out or disposed on its own date. Expected finish times add up the hours below and are estimates: queues can add to them.${isAdmin() ? " Admins edit routes on the Settings tab." : ""}</p>
       <div class="row" style="gap:6px"><span class="ph-tag ph-intake">Intake</span><span class="ph-tag ph-prep">Preparation</span><span class="ph-tag ph-test">Analysis / test</span><span class="ph-tag ph-qc">QA/QC</span></div>
     </div>
     <div class="panel stack" style="gap:10px"><h3>All ${liveTests.length} tests</h3>
@@ -5362,6 +5447,7 @@ async function pool(items, n, fn, step){ let i = 0, ok = 0, done = 0; await Prom
 let secRes = [], secResSub = null, secResKey = "";
 const seenKey = () => "seen-" + (session?.u || "");
 function watchSectionResults(){
+  watchSectionLab();   // v38: and the section's samples in the lab (My samples)
   const key = session?.role === "section" && db ? session.sec : "";
   if (key === secResKey) return;
   if (secResSub){ secResSub(); secResSub = null; }
@@ -5377,14 +5463,7 @@ function resultsBadge(){ if (session && session.role !== "section") return staff
 function renderResultsTab(){
   const v = $("#view-results"); if (!v) return;
   if (session?.role !== "section"){ if (session) renderStaffResults(v); else v.innerHTML = ""; return; }
-  const seen = +lsGet(seenKey()) || 0, list = secRes.slice().sort((a, b) => b.certs.at(-1).at - a.certs.at(-1).at).slice(0, 200), fresh = newResults().length;
-  v.innerHTML = `<div class="stack"><div class="panel stack" style="gap:8px"><h2>Results for ${esc(session.sec)} · ${esc(sectionName(session.sec))}</h2>
-      <p class="small muted" style="margin:0">Certificates of analysis for samples your section submitted, newest first. ${fresh ? `<b>${fresh} new since you last marked them as seen.</b>` : "Nothing new since you last looked."} In the production system this notice also goes to the section by email.</p>
-      ${fresh ? `<div class="row"><button type="button" class="btn" id="secSeen">Mark all as seen</button></div>` : ""}</div>
-    ${list.length ? `<div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>Sample</th><th>Type</th>${list.some(ownCode) ? "<th>Site code</th>" : ""}<th>Test</th><th>Certificate</th><th>Released</th></tr></thead><tbody>
-      ${list.map(s => { const c = s.certs.at(-1); return `<tr><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>${c.at > seen ? ` <span class="pill gold">New</span>` : ""}</td><td>${esc(s.type || "")}</td>${list.some(ownCode) ? `<td class="mono">${esc(ownCode(s)) || "—"}</td>` : ""}<td>${esc(c.testName || "")}</td><td class="mono">${esc(c.no)}${c.amends ? ` <span class="pill warn">Amended</span>` : ""}</td><td style="white-space:nowrap">${fmt(c.at)}</td></tr>`; }).join("")}</tbody></table></div></div>`
-      : `<div class="panel empty"><strong>No released results yet</strong>Certificates for ${esc(session.sec)} samples appear here as soon as the lab releases them.</div>`}</div>`;
-  $("#secSeen", v)?.addEventListener("click", () => { lsSet(seenKey(), String(Date.now())); resultsBadge(); renderResultsTab(); });
+  return renderSectionResults(v);   // v38: My samples (in the lab and released, with values and an export)
 }
 /* ---------- stock records: the board holds only samples in the lab; stored material is listed from small stock records ---------- */
 /* Every sample write keeps two derived fields in step: `lab` (the board loads lab == true) and `sx`, set while the sample's stock record
@@ -7531,6 +7610,7 @@ function renderStaffResults(v){
         <select class="inp" id="resDays" style="width:auto" aria-label="Period">${[7, 30, 90].map(d => `<option value="${d}" ${resDays === d ? "selected" : ""}>${d} days</option>`).join("")}</select>
         ${ev ? `<label class="row" style="gap:6px"><input type="checkbox" id="resDue" ${resDue ? "checked" : ""}> To evaluate only</label>` : ""}
       </div></div>
+    ${resultsWaitPanel()}
     ${turnaroundPanel(list)}
     ${list.length ? `<div class="panel"><div class="tbl-wrap"><table class="cardy restbl"><thead><tr><th>Sample</th><th>Type · for</th><th>Results</th><th>Released</th>${ev ? "<th>Flags</th><th>Evaluation</th>" : ""}</tr></thead><tbody>
       ${list.slice(0, 300).map(s => { const c = lastCert(s), fl = ev ? evalFlags(s) : [], e = lastEval(s);
@@ -7548,6 +7628,7 @@ function renderStaffResults(v){
   $("#resSec", v).onchange = e => { resSec = e.target.value; renderResultsTab(); };
   $("#resDays", v).onchange = e => { resDays = +e.target.value; watchStaffResults(); renderResultsTab(); };
   $("#resDue", v)?.addEventListener("change", e => { resDue = e.target.checked; renderResultsTab(); });
+  bindResultsWait(v);
 }
 
 /* ---------- the title and logo in the header lead home: the board for lab staff (v24c) ---------- */
@@ -8038,7 +8119,7 @@ function batchState(docs){
 /* The rail of the batch: the lead sample's route up to storage; done steps with when and who, the open one with what it waits for. */
 function bwRail(st, ref){
   const { plan, bi, ti, lead, at, cur } = st, now = Date.now(), cert = certOfBatch(lead, ref), q = at.map(wqOf).find(Boolean);
-  return `<ol class="rail">${plan.slice(0, ti + 2).map((x, i) => {
+  return railOl(plan.slice(0, ti + 2).map((x, i) => {
     const done = i < cur || bi > ti;
     let meta = "";
     if (done){
@@ -8059,7 +8140,7 @@ function bwRail(st, ref){
     } else meta = x.phase === "store" ? (allBack(lead) ? "What is left goes back with the results" : "Each material kept for its own period after results") : `${hoursLabel(x.hours)} allowed`;
     const late = i === cur && i < ti && at.some(s => status(s).late);
     return `<li class="${done ? "done" : i === cur ? "current" + (late ? " late" : "") : "upcoming"}"><span class="dot">${done ? "✓" : ""}</span><div><div class="st-name">${esc(x.name)}</div><div class="st-meta">${meta}</div></div></li>`;
-  }).join("")}</ol>`;
+  }));
 }
 /* The materials of the batch, item by item over all its samples at the step: one put-away, one return or disposal for them all. A job's
    samples keep different materials (pulp, filtrate, solution, carbon), so an item is its slot and its name. */
@@ -8144,13 +8225,13 @@ function bwPanel(c){
       if (next?.phase === "qc" && plan[bi].phase !== "qc") at.forEach(s => { const h = qcEntryBlock(s); if (h) holds.push(`${s.id}: ${h}`); });
       act = `${holds.length ? `<div class="notice warn" id="bwHold"><b>Before ${esc(next?.name || "the next step")}:</b> ${esc(holds.slice(0, 4).join(" "))}${holds.length > 4 ? ` +${holds.length - 4} more` : ""}</div>` : ""}
         <div class="row step-row"><button type="button" class="btn primary" id="bwNext" ${holds.length ? "disabled data-hold" : ""}>Move ${nS(n)} to: ${esc(next?.name || "")}</button></div>${form}
-        ${relNow() ? `<div class="row" style="gap:8px"><span class="pill" id="bwCount">Results in: ${n - missing.length} of ${n}</span><button type="button" class="btn" data-attach="sub:${esc(ref)}">Attach results file for the batch</button></div>` : ""}`;
+        ${relNow() ? `<div class="row" style="gap:8px"><span class="pill" id="bwCount">Results in: ${n - missing.length} of ${n}</span><button type="button" class="btn" data-attach="sub:${esc(ref)}">Attach results file for the batch</button>${bwGridBtn(at, ref)}</div>` : ""}`;
     } else if (missing.length && !waiting){
       act = `<div class="row step-row"><button type="button" class="btn primary" id="bwWaitBtn">Move ${nS(n)} to: Results released</button></div>${form}`;
     } else {
       if (!missing.length && !relNow()) at.forEach(s => { const h = releaseBlock(s) || (relSelf(s) ? SELF_MSG : ""); if (h) holds.push(`${s.id}: ${h}`); });
       /* v37: the release (or, still waiting, attaching the file) first */
-      const count = `<div class="row step-row"><span class="pill ${missing.length ? "" : "ok"}" id="bwCount">Results in: ${n - missing.length} of ${n}</span><button type="button" class="btn${missing.length ? " primary" : ""}" data-attach="sub:${esc(ref)}">Attach results file for the batch</button></div>`;
+      const count = `<div class="row step-row"><span class="pill ${missing.length ? "" : "ok"}" id="bwCount">Results in: ${n - missing.length} of ${n}</span><button type="button" class="btn${missing.length ? " primary" : ""}" data-attach="sub:${esc(ref)}">Attach results file for the batch</button>${missing.length ? bwGridBtn(at, ref) : ""}</div>`;
       act = missing.length ? `${count}<div class="notice" id="bwWait"><b>Waiting for the results of ${nS(missing.length)}${missing.length < n ? ` (${missing.slice(0, 6).map(s => s.id).join(", ")}${missing.length > 6 ? "…" : ""})` : ""}.</b> Values are read from the file by ID or site sample code; results typed on a sample's own record count too.${relNow() ? " The batch is released with one certificate when you save it." : ""}</div>`
         : `${holds.length ? `<div class="notice warn" id="bwHold"><b>Release on hold:</b> ${esc(holds.slice(0, 4).join(" "))}${holds.length > 4 ? ` +${holds.length - 4} more` : ""}</div>` : ""}
         ${canRelease() ? `<div class="row step-row"><button type="button" class="btn primary" id="bwRelease" ${holds.length ? "disabled data-hold" : ""}>Release results and issue the batch certificate</button></div>${two ? `<div class="form">${witnessField("bwRelWit", "Witness to the release (two-person custody)")}</div>` : ""}`
@@ -8160,7 +8241,7 @@ function bwPanel(c){
     act = `${certLine}${bi > ti ? `<div class="row" style="gap:8px"><span class="pill ok">Workflow complete</span><span class="small muted">All ${nS(n)} on the shelf. Each material is returned or disposed of below when its retention period ends.</span></div>` : ""}${bwWq(st)}${bwMats(st)}`;
   }
   return `<div class="panel stack" id="bwBox">${head(st.mem.length)}
-    <div class="actions stack" id="bwAct" style="gap:10px">${act}</div>
+    <div class="actions stack" id="bwAct" style="gap:10px">${act}${edit && bi >= 1 && bi < ti ? bwGrid(at, ref) : ""}</div>
     ${bwRail(st, ref)}
     ${asides.length ? `<div class="small muted">${asides.join("<br>")}</div>` : ""}</div>`;   // v37: the step's action on top, then the steps
 }
@@ -8175,6 +8256,7 @@ function bindBw(v){
   $("#bwDrop", v)?.addEventListener("click", () => bwAnswer("drop"));
   v.querySelectorAll("[data-bmat]").forEach(b => b.addEventListener("click", () => bwMat(b.dataset.bmat)));
   v.querySelectorAll("[data-bcert]").forEach(b => b.addEventListener("click", () => showBatchCert(b.dataset.bcert)));
+  bindBwGrid(v);
   if (bwBusy) document.querySelectorAll("#bwBox button").forEach(b => b.disabled = true);
   const wb = $("#bmWitBox", v);   // the witness to a disposal, asked for on the material being disposed
   if (wb){
@@ -8626,8 +8708,8 @@ function renderJob(){
   $("#jShiftBox").hidden = !T.shift;
   const nb = $("#jNums"); if (nb && nb.dataset.tpl !== T.key + jobKindGroup()){ nb.dataset.tpl = T.key + jobKindGroup(); renderJobGroups(); nb.innerHTML = `<div class="form">${T.tw ? `<label class="f"><span>Testwork</span><input id="jTw" maxlength="60" placeholder="e.g. Leach kinetics" value="${esc(job.tw || "")}" autocomplete="off"></label>` : ""}${(T.cnt || []).map(([k, l, d]) => `<label class="f"><span>${esc(l)}</span><input id="jC_${k}" type="number" min="0" max="99" step="1" inputmode="numeric" value="${esc(job.c?.[k] ?? d)}"></label>`).join("")}${T.n.map(([k, l, d, dl]) => `<label class="f"><span>${esc(l)}</span><input id="jN_${k}" ${dl ? 'inputmode="decimal"' : 'inputmode="numeric"'} maxlength="8" placeholder="${esc(d || (dl ? "e.g. 2.5" : "e.g. 31"))}" value="${esc(job.n[k] || "")}"></label>`).join("")}</div>`; }
   $("#jMassH").hidden = !T.mass;
-  const rowHtml = (r, i) => `<tr class="${r.on ? "" : "off"}"><td><input type="checkbox" data-jon="${i}" ${r.on ? "checked" : ""} aria-label="Include ${esc(r.code)}"></td>
-    <td><span class="small muted">${esc(typeOf(r.t)?.name || r.t)}</span><div>${r.ptx ? `<input class="inp j-pt" data-j="${i}" value="${esc(r.pt)}" maxlength="60" placeholder="Point or what it is" aria-label="Sampling point, row ${i + 1}" autocomplete="off">` : `<b>${esc(r.pt)}</b>`}</div></td>
+  const rowHtml = (r, i) => `<tr class="${r.on ? "" : "off"}${jxOn(r, i) ? " jx" : ""}"><td><input type="checkbox" data-jon="${i}" ${r.on ? "checked" : ""} aria-label="Include ${esc(r.code)}"></td>
+    <td><span class="small muted">${esc(typeOf(r.t)?.name || r.t)}</span><div>${r.ptx ? `<input class="inp j-pt" data-j="${i}" value="${esc(r.pt)}" maxlength="60" placeholder="Point or what it is" aria-label="Sampling point, row ${i + 1}" autocomplete="off">` : `<b>${esc(r.pt)}</b>`}<button type="button" class="j-x" data-jx="${i}" aria-expanded="${jxOn(r, i)}" aria-label="Description and analysis, row ${i + 1}">⋯</button></div></td>
     <td><input class="inp j-code" data-j="${i}" value="${esc(r.code)}" aria-label="Code, row ${i + 1}" placeholder="${esc(r.ph || "")}" autocomplete="off" spellcheck="false"></td>
     <td><input class="inp j-desc" data-j="${i}" value="${esc(r.desc)}" aria-label="Description, row ${i + 1}" placeholder="Description" autocomplete="off"></td>
     <td><select class="inp j-test" data-j="${i}" aria-label="Analysis, row ${i + 1}">${jobTestOpts(r.t, r.test)}</select>${rowAn(r, i)}</td>${T.mass ? `<td>${r.det?.frac ? `<input class="inp j-mass" data-j="${i}" inputmode="decimal" value="${esc(r.mass || "")}" aria-label="Mass in grams, ${esc(r.code)}" placeholder="g">` : ""}</td>` : ""}</tr>`;
@@ -9870,6 +9952,233 @@ async function rejectBatch(){
 }
 /* v37 review: the header's search box selects what it holds when you go back to it, so the last ID typed is replaced, not added to */
 document.addEventListener("focusin", e => { if (e.target.id === "lookupInput") setTimeout(() => { if (document.activeElement === e.target) e.target.select(); }, 0); });
+/* ---------- v38 (22 Oct, idea 1): a results grid ----------
+   Zuriel 18:06Z: "complete everything ... without asking me any questions". Type the results of many samples in one table: one table per
+   analysis (its own columns), one row per sample. Tab moves along a row, Enter down a column. Save writes each row that has a value the way
+   the record's Save does: complete results are released at once (a batch with its batch certificate); four eyes, "results before release"
+   and two-person custody (released from the record, with the witness) are unchanged. On the batch page and under Results. */
+const rgVals = {};   // what is typed, by sample and result: it survives the page being drawn again
+let rgOpen = "", rgBusy = false, rgAll = false;   // rgAll: the optional results get columns too
+const canGrid = s => { const ph = stage(s, s.stageKey)?.phase; return canEdit() && !!s && !awaiting(s) && s.open !== false && curIdx(s) >= 1 && curIdx(s) < targetIdx(s) && (ph === "test" || ph === "qc"); };
+const gridAns = s => anOf(s).filter(a => !a.calc);
+const gridKey = s => (s.test === "x" ? "x:" + (s.testName || "") : s.test) + "|" + gridAns(s).map(a => a.k).join(",");
+/* Samples whose results are still to come and can be typed now. */
+const waitingGrid = list => list.filter(s => canGrid(s) && resMissing(s));
+function gridCell(s, a, i){
+  const id = `rg${i}_${a.k}`, k = s.id + "|" + a.k, raw = rgVals[k] ?? s.results?.rows?.[a.k]?.raw ?? (a.t === "pick" ? ptGiven(s) : "");
+  const lbl = `${esc(s.id)} ${esc(a.n)}`;
+  if (a.t === "pick") return `<select class="inp" id="${id}" data-rgk="${esc(k)}" aria-label="${lbl}"><option value="">—</option>${(a.opts || []).map(o => `<option ${o === raw ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
+  return `<input class="inp${a.t === "text" ? "" : " mono"}" id="${id}" data-rgk="${esc(k)}" ${a.t === "text" ? "" : `data-num inputmode="decimal"`} autocomplete="off" value="${esc(raw)}" aria-label="${lbl}" placeholder="${a.dl != null ? `<${esc(fmtNum(a.dl))}` : ""}">`;
+}
+/* The grid for a list of samples; rows are numbered across the tables so every box has its own id. */
+function resultsGrid(list, key){
+  const groups = new Map(); list.slice(0, 200).forEach(s => { const g = gridKey(s); if (!groups.has(g)) groups.set(g, []); groups.get(g).push(s); });
+  let i = 0;
+  let hidden = 0;
+  const tables = [...groups.values()].map(ss => { const all = gridAns(ss[0]), name = ss[0].testName || testOf(ss[0].test)?.name || "";
+    const ans = rgAll ? all : all.filter(a => !a.opt || ss.some(s => s.results?.rows?.[a.k] || rgVals[s.id + "|" + a.k]));   // optional results only when asked for (or already given)
+    hidden = Math.max(hidden, all.length - ans.length);
+    return `<div class="rg-g"><h4>${esc(name)} <span class="pill">${nS(ss.length)}</span></h4><div class="tbl-wrap"><table class="rg-t"><thead><tr><th>Sample</th>${ans.map(a => `<th>${esc(anShort(a))}${a.u ? ` <span class="muted">${esc(a.u)}</span>` : ""}${a.opt ? ` <span class="muted">opt.</span>` : ""}</th>`).join("")}</tr></thead>
+      <tbody>${ss.map(s => { const r = i++; return `<tr data-rgs="${esc(s.id)}" data-rgi="${r}"><td><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>${ownCode(s) || tagText(s) ? `<div class="small muted mono">${esc(ownCode(s) || tagText(s))}</div>` : ""}${twoPerson(s) ? ` <span class="haz two" title="Two-person custody: released from its record, with the witness">2P</span>` : ""}</td>${ans.map(a => `<td>${gridCell(s, a, r)}</td>`).join("")}</tr>`; }).join("")}</tbody></table></div></div>`; }).join("");
+  return `<div class="rg stack" id="rgBox" data-rgkey="${esc(key)}">${tables}
+    <div class="row step-row"><button type="button" class="btn primary" id="rgSave" ${rgBusy ? "disabled" : ""}>${rgBusy ? "Saving…" : "Save results"}</button>${hidden || rgAll ? `<button type="button" class="btn ghost" id="rgAll" aria-pressed="${rgAll}">${rgAll ? "Fewer columns" : `Optional results (${hidden})`}</button>` : ""}<button type="button" class="btn ghost" id="rgClose">Close</button><span class="small muted">Enter: next sample · &lt;DL: below detection</span></div></div>`;
+}
+function bindGrid(v, list, after){
+  const box = $("#rgBox", v); if (!box) return;
+  box.addEventListener("input", e => { const k = e.target.dataset?.rgk; if (k) rgVals[k] = e.target.value; });
+  box.addEventListener("change", e => { const k = e.target.dataset?.rgk; if (k) rgVals[k] = e.target.value; });
+  box.addEventListener("keydown", e => {   // Enter: the same result on the next sample
+    if (e.key !== "Enter" || !e.target.dataset?.rgk) return;
+    e.preventDefault();
+    const td = e.target.closest("td"), tr = td.parentElement, col = [...tr.children].indexOf(td), nx = (e.shiftKey ? tr.previousElementSibling : tr.nextElementSibling)?.children[col]?.querySelector("input,select");
+    (nx || $("#rgSave", box)).focus(); nx?.select?.();
+  });
+  $("#rgClose", box).onclick = () => { rgOpen = ""; after(); };
+  $("#rgAll", box)?.addEventListener("click", () => { rgAll = !rgAll; after(); $("#rgAll")?.focus(); });
+  $("#rgSave", box).onclick = () => saveGrid(list, after);
+}
+async function saveGrid(list, after){
+  if (rgBusy || !canEdit()) return;
+  const jobs = [];
+  for (const tr of document.querySelectorAll("#rgBox tr[data-rgs]")){
+    const s = list.find(x => x.id === tr.dataset.rgs); if (!s) continue;
+    const rows = readRows(`rg${tr.dataset.rgi}_`, anOf(s), s.results?.rows); if (!rows) return;   // a value that can't be read: said, and nothing saved
+    const typed = Object.keys(rows).filter(k => rgVals[s.id + "|" + k] != null && rows[k].raw !== s.results?.rows?.[k]?.raw);   // only what was typed here (a filled-in sampling point alone saves nothing)
+    if (typed.length) jobs.push([s, rows]);
+  }
+  if (!jobs.length){ toast("Type at least one result."); return; }
+  rgBusy = true; $("#rgSave") && ($("#rgSave").disabled = true, $("#rgSave").textContent = "Saving…");
+  let rel = 0; const batches = new Set();
+  const ok = await pool(jobs, 5, ([s0, rows]) => sampleWrite(s0.id, s => {
+    if (!canGrid(s)) return null;
+    const at = nowAfter(s), all = withCalc(s, rows);
+    const next = { v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: patch(s.results?.rows, all), batch: s.results?.batch || "", inst: s.results?.inst || "" };
+    if (grouped(s)) batches.add(s.batchId);
+    return { upd: { results: next, resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null,
+      history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at, by: session.u, tech: session.name, ref: "", res: true, note: `Results ${s.results ? "updated" : "entered"} (results grid): ${resSummary(anOf(s), all)}` }] } };
+  }, upd => { if (upd.relAt) rel++; }));
+  for (const [s] of jobs) gridAns(s).forEach(a => delete rgVals[s.id + "|" + a.k]);
+  let bRel = 0;
+  if (relNow()) for (const ref of batches){ const r = await releaseGroup(ref, "", true); bRel += r.n || 0; }
+  rgBusy = false;
+  toast(`Results saved on ${nS(ok)}${rel + bRel ? `; ${rel + bRel} released` : ""}${ok < jobs.length ? `; ${jobs.length - ok} could not be saved (moved on meanwhile?)` : ""}`);
+  after();
+}
+/* The Results tab (lab staff): the samples waiting for results, with the grid a tap away. */
+function resultsWaitPanel(){
+  if (!canEdit()) return "";
+  const list = waitingGrid([...samples.values()]); if (!list.length && rgOpen !== "res") return "";
+  return `<div class="panel stack" id="rgWait" style="gap:10px"><div class="row" style="gap:10px"><h3 style="margin:0">Waiting for results</h3><span class="pill gold">${nS(list.length)}</span><span class="grow"></span>${rgOpen === "res" ? "" : `<button type="button" class="btn primary" id="rgOpenRes" ${list.length ? "" : "disabled"}>Type results</button>`}</div>
+    ${rgOpen === "res" && list.length ? resultsGrid(list, "res") : ""}</div>`;
+}
+function bindResultsWait(v){
+  const list = waitingGrid([...samples.values()]);
+  $("#rgOpenRes", v)?.addEventListener("click", () => { rgOpen = "res"; renderResultsTab(); $("#rgBox input,#rgBox select")?.focus(); });
+  bindGrid(v, list, () => renderResultsTab());
+}
+/* The batch page: "Type results" beside the batch's results file; the grid opens in the step's box. */
+const bwGridBtn = (at, ref) => at.some(canGrid) && rgOpen !== "bw:" + ref ? `<button type="button" class="btn" id="bwGridBtn">Type results</button>` : "";
+const bwGrid = (at, ref) => rgOpen === "bw:" + ref && at.some(canGrid) ? resultsGrid(at.filter(canGrid), "bw:" + ref) : "";
+function bindBwGrid(v){
+  const ref = current?.batch; if (!ref) return;
+  $("#bwGridBtn", v)?.addEventListener("click", () => { rgOpen = "bw:" + ref; renderTrack(); $("#rgBox input,#rgBox select")?.focus(); });
+  if ($("#rgBox", v)) bindGrid(v, (batchState(current.docs || []).at || []).filter(canGrid), () => { if (current?.batch) renderTrack(); });
+}
+
+/* ---------- v38 (idea 2): a shorter record ----------
+   The steps fold to the one before, the one now and the one after; "4 steps done" and "3 more steps" open them all (remembered on this
+   device), "Fewer steps" folds them again. Every step stays in the page, only hidden. Records and the batch page alike. */
+let railAll = lsGet("railAll") === "1";
+function railOl(items){
+  const n = items.length, cls = items.map(h => (/^\s*<li class="([^"]*)"/.exec(h) || [])[1] || "");
+  let f = cls.findIndex(c => /\bcurrent\b/.test(c));
+  if (f < 0) f = Math.max(0, cls.map(c => /\b(done|skipped)\b/.test(c)).lastIndexOf(true));
+  const a = f - 1 >= 2 ? f - 1 : 0, b = n - 1 - (f + 1) >= 2 ? f + 2 : n;   // hide only two or more in a row
+  if (n <= 5 || (!a && b === n)) return `<ol class="rail">${items.join("")}</ol>`;
+  if (railAll) return `<ol class="rail">${items.join("")}</ol><button type="button" class="btn ghost small rail-less" data-rail-all="0">Fewer steps</button>`;
+  const skip = cls.slice(0, a).some(c => /skipped/.test(c));
+  return `${a ? `<button type="button" class="rail-sum done" data-rail-all="1"><span class="dot">✓</span><span>${a} ${skip ? "earlier steps" : "steps done"}</span></button>` : ""}<ol class="rail">${items.map((h, i) => i < a || i >= b ? h.replace(/^(\s*<li class=")/, "$1rl-fold ") : h).join("")}</ol>${b < n ? `<button type="button" class="rail-sum" data-rail-all="1"><span class="dot"></span><span>${n - b} more step${n - b === 1 ? "" : "s"}</span></button>` : ""}`;
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest?.("[data-rail-all]"); if (!b) return;
+  railAll = b.dataset.railAll === "1"; lsSet("railAll", railAll ? "1" : "");
+  renderTrack();
+});
+
+/* ---------- v38 (idea 7): the condition at receipt, several at once plus a typed one ----------
+   Nothing ticked and nothing typed is "Good"; what is ticked or typed is kept as one line ("Wet; Labels unclear or wrong; torn corner"). */
+const COND_PICK = CONDITIONS.filter(c => c !== "Good" && !/^Other/.test(c));
+const condPick = p => `<div class="f full cond-f"><span>Condition</span><div class="checks chips" id="${p}CondPick">${COND_PICK.map((c, i) => `<label><input type="checkbox" id="${p}C${i}" value="${esc(c)}"> ${esc(c)}</label>`).join("")}<input class="inp" id="${p}CondOther" autocomplete="off" placeholder="Other" aria-label="Other condition"></div></div>`;
+const condRead = p => [...document.querySelectorAll(`#${p}CondPick input[type=checkbox]:checked`)].map(x => x.value).concat(val(`#${p}CondOther`) || []).join("; ") || "Good";
+
+/* ---------- v38 (idea 8): put every material away at once ----------
+   Two or more materials still to put away: one location for them all, one press; each gets its own custody line, as one by one. */
+const toPut = s => (s.materials || []).filter(m => m.status === "kept" && !m.loc);
+const storeAllRow = s => toPut(s).length < 2 ? "" : `<div class="row step-row mat-all"><input class="inp" id="mxAllLoc" data-clear autocomplete="off" placeholder="Location for all" aria-label="Location for all" style="flex:1 1 180px;min-width:0;width:auto"><button type="button" class="btn primary" id="mxAll">Put all ${toPut(s).length} away</button></div>`;
+async function doStoreAll(){
+  const s0 = current?.body; if (!s0) return;
+  const loc = val("#mxAllLoc");
+  if (wqOf(s0)){ toast(`Waiting for ${s0.wq.wit} to confirm. Withdraw that request first.`); return; }
+  if (!loc){ toast("Type the storage location first."); $("#mxAllLoc")?.focus(); return; }
+  const wit = twoPerson(s0) && s0.stageKey === "released" ? "" : needWitness(s0, "#mtWit"); if (wit === null) return;
+  await act(s => {
+    let cur = s, upd = {}, n = 0, msg = "";
+    for (const m of toPut(s)){ const r = matUpd(cur, m.k, "store", loc, wit); if (!r) continue; upd = { ...upd, ...r.upd }; cur = { ...cur, ...r.upd }; msg = r.msg; n++; }
+    if (!n){ toast("Nothing left to put away."); return null; }
+    return { upd, msg: `${n} materials stored at ${loc}${/workflow is complete|ask a witness/.test(msg) ? msg.replace(/^[^.]*/, "") : ""}` };
+  }, { anyStage: true, clear: ["mxAllLoc", "mtWit"] });
+}
+
+/* ---------- v38 (idea 3): several samples one step on, from the board's List ----------
+   Tick the samples (each goes to its own next step); a sample at its last lab step goes on to wait for its results. Not offered for a
+   batch processed as one (its page moves it), a two-person sample (its witness signs each step), a release, or a step a rule holds. */
+const bdTicks = new Set();
+function canStepOn(s){
+  if (!canEdit() || !s || grouped(s) || awaiting(s) || twoPerson(s) || s.open === false || wqOf(s) || waitingRes(s)) return false;
+  const ci = curIdx(s), nx = planOf(s)[ci + 1]; if (ci < 1 || !nx) return false;
+  if (nx.target) return ci === targetIdx(s) - 1 && resMissing(s);
+  const to = stage(s, nx.key); return !!to && !(to.phase === "qc" && stage(s, s.stageKey)?.phase !== "qc" && qcEntryBlock(s));
+}
+const mvTicked = () => [...bdTicks].filter(id => canStepOn(samples.get(id)));
+const moveBar = () => { const n = mvTicked().length; return `<div class="row step-row" id="bdMoveBar"><button type="button" class="btn primary" id="bdMove" ${n ? "" : "disabled"}>${n ? `Move ${nS(n)} one step` : "Move one step"}</button></div>`; };
+function bindMoveList(v){
+  const bar = $("#bdMove", v); if (!bar) return;
+  const sync = () => { const n = mvTicked().length; bar.disabled = !n; bar.textContent = n ? `Move ${nS(n)} one step` : "Move one step"; const all = $("#bdMvAll", v), bs = [...v.querySelectorAll("[data-mv]")]; if (all) all.checked = bs.length > 0 && bs.every(b => b.checked); };
+  v.querySelectorAll("[data-mv]").forEach(b => b.addEventListener("change", () => { b.checked ? bdTicks.add(b.dataset.mv) : bdTicks.delete(b.dataset.mv); sync(); }));
+  $("#bdMvAll", v)?.addEventListener("change", e => { v.querySelectorAll("[data-mv]").forEach(b => { b.checked = e.target.checked; b.checked ? bdTicks.add(b.dataset.mv) : bdTicks.delete(b.dataset.mv); }); sync(); });
+  bar.addEventListener("click", doMoveMany); sync();
+}
+function stepOnUpd(s){
+  if (!canStepOn(s)) return null;
+  const ci = curIdx(s), nx = planOf(s)[ci + 1], at = nowAfter(s), line = { at, by: session.u, tech: session.name, ref: "" };
+  if (nx.target) return { rw: { key: s.stageKey, at }, history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name || s.stageKey, ...line, rw: true, note: "Done: waiting for the results (moved from the board list)" }] };
+  return { stageKey: nx.key, stageAt: at, history: [...(s.history || []), { key: nx.key, sn: stage(s, nx.key)?.name || nx.key, ...line, note: "Moved from the board list" }] };
+}
+async function doMoveMany(){
+  const ids = mvTicked(); if (!ids.length) return;
+  const b = $("#bdMove"); if (b){ b.disabled = true; b.textContent = "Moving…"; }
+  const ok = await pool(ids, 4, id => sampleWrite(id, stepOnUpd));
+  ids.forEach(id => bdTicks.delete(id));
+  toast(ok === ids.length ? `Moved ${nS(ok)} one step` : `Moved ${ok} of ${ids.length}; the others changed meanwhile`);
+  renderBoard();
+}
+
+/* ---------- v38 (idea 4): My samples, for a section account ----------
+   What the section has in the lab now (step, results expected), then its released results with the values, an Export CSV of them, and a
+   search. The values are the section's own (the server sends them to that section only). */
+let secQ = "", secLab = [], secLabSub = null, secLabKey = "";
+/* The section's samples in the lab: its own query (the Azure server lets a section account list its own section only). */
+function watchSectionLab(){
+  const key = session?.role === "section" && db ? session.sec : "";
+  if (key === secLabKey) return;
+  if (secLabSub){ secLabSub(); secLabSub = null; }
+  secLabKey = key; secLab = [];
+  if (!key) return;
+  secLabSub = db.collection("samples").where("section", "==", key).where("lab", "==", true).limit(200).onSnapshot(snap => {
+    secLab = snap.docs.map(d => d.data()).filter(x => x && x.id);
+    if (tab === "results") renderResultsTab();
+  }, () => {});
+}
+function renderSectionResults(v){
+  const seen = +lsGet(seenKey()) || 0, fresh = newResults().length, q = secQ.trim().toUpperCase().replace(/\s+/g, "");
+  const hit = s => !q || [s.id, tagText(s), ownCode(s) || "", s.type || "", s.testName || ""].some(x => String(x).toUpperCase().replace(/\s+/g, "").includes(q));
+  const list = secRes.slice().sort((a, b) => b.certs.at(-1).at - a.certs.at(-1).at).slice(0, 200).filter(hit);
+  watchSectionLab();
+  const lab = secLab.filter(s => s.section === session.sec && s.open !== false && curIdx(s) < targetIdx(s) && hit(s)).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const keepFocus = document.activeElement?.id === "secQ";
+  v.innerHTML = `<div class="stack"><div class="panel stack res-head" style="gap:10px">
+      <div class="row" style="gap:10px"><h2 style="margin:0">Results for ${esc(session.sec)} · ${esc(sectionName(session.sec))}</h2><span class="grow"></span>${fresh ? `<span class="pill gold">${fresh} new since you last looked</span><button type="button" class="btn" id="secSeen">Mark all as seen</button>` : ""}<button type="button" class="btn" id="secCsv" ${secRes.length ? "" : "disabled"}>Export CSV</button></div>
+      <div class="row bd-tools"><input class="inp" id="secQ" placeholder="Search ID, site code, type" value="${esc(secQ)}" style="flex:1 1 220px;width:auto"></div></div>
+    ${lab.length ? `<div class="panel stack" id="secLab" style="gap:8px"><h3 style="margin:0">In the lab <span class="pill">${nS(lab.length)}</span></h3><div class="tbl-wrap"><table class="cardy"><thead><tr><th>Sample</th><th>Type · test</th><th>Now</th><th>Results expected</th></tr></thead><tbody>
+      ${lab.slice(0, 100).map(s => { const st = status(s), eta = projection(s).eta; return `<tr><td data-l="Sample"><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>${ownCode(s) || tagText(s) ? `<div class="small muted mono">${esc(ownCode(s) || tagText(s))}</div>` : ""}</td><td data-l="Type · test">${esc(s.type || "")}<div class="small muted">${esc(s.testName || "")}</div></td><td data-l="Now"><span class="pill ${st.cls}">${esc(waitingRes(s) ? "Waiting for results" : st.label)}</span></td><td data-l="Results expected" style="white-space:nowrap">${eta ? esc(fmt(eta)) : "—"}</td></tr>`; }).join("")}</tbody></table></div></div>` : ""}
+    ${list.length ? `<div class="panel stack" style="gap:8px"><h3 style="margin:0">Released</h3><div class="tbl-wrap"><table class="cardy"><thead><tr><th>Sample</th><th>Type · test</th><th>Results</th><th>Certificate</th><th>Released</th></tr></thead><tbody>
+      ${list.map(s => { const c = s.certs.at(-1); return `<tr><td data-l="Sample"><button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>${c.at > seen ? ` <span class="pill gold">New</span>` : ""}${ownCode(s) ? `<div class="small muted mono">${esc(ownCode(s))}</div>` : ""}</td><td data-l="Type · test">${esc(s.type || "")}<div class="small muted">${esc(c.testName || "")}</div></td><td data-l="Results" class="mono small">${esc(certSummary(c, s))}</td><td data-l="Certificate" class="mono">${esc(c.no)}${c.amends ? ` <span class="pill warn">Amended</span>` : ""}</td><td data-l="Released" style="white-space:nowrap">${fmt(c.at)}</td></tr>`; }).join("")}</tbody></table></div></div>`
+      : `<div class="panel empty"><strong>${q ? "Nothing matches the search" : "No released results yet"}</strong></div>`}</div>`;
+  const qi = $("#secQ", v);
+  qi.addEventListener("input", () => { secQ = qi.value; renderResultsTab(); });
+  if (keepFocus){ qi.focus(); qi.setSelectionRange(qi.value.length, qi.value.length); }
+  $("#secSeen", v)?.addEventListener("click", () => { lsSet(seenKey(), String(Date.now())); resultsBadge(); renderResultsTab(); });
+  $("#secCsv", v)?.addEventListener("click", () => sectionCsv(list));
+}
+async function sectionCsv(list){
+  const dl = window.claude?.use ? await claude.use("downloads") : null;
+  if (!dl){ toast("Downloads are not available in this view."); return; }
+  const q = x => `"${String(x ?? "").replace(/"/g, '""')}"`, head = ["Sample ID", "Site sample code", "Type", "Test", "Certificate", "Released (site)", "Results", "Amended"];
+  const lines = list.map(s => { const c = s.certs.at(-1); return [s.id, ownCode(s) || tagText(s), s.type, c.testName, c.no, fmtFull(c.at), certSummary(c, s), c.amends ? "yes" : ""].map(q).join(","); });
+  try { await dl.save({ filename: `results-${session.sec}-${dayKey(Date.now())}.csv`, data: [head.map(q).join(","), ...lines].join("\n") }); }
+  catch { toast("Download was not saved."); }
+}
+
+/* ---------- v38 (idea 5): Shift end and MET Lab job rows on a phone, one line each ----------
+   Tick, name and code on one line; the description and analysis (filled in from the template) open with ⋯ on the row. A row with a typed
+   analysis or extra analyses shows them. Computers are unchanged. */
+const jxOpen = new Set();
+const jxOn = (r, i) => jxOpen.has(i) || r.test === "x" || (r.t2 || []).length > 0 || (r.xa || []).length > 0;
+document.addEventListener("click", e => {
+  const b = e.target.closest?.("[data-jx]"); if (!b) return;
+  const i = +b.dataset.jx, tr = b.closest("tr"), on = !tr.classList.contains("jx");
+  on ? jxOpen.add(i) : jxOpen.delete(i); tr.classList.toggle("jx", on); b.setAttribute("aria-expanded", String(on));
+});
 
 /* ---------- upgrade of records written by earlier versions (runs once, under a lease) ---------- */
 function upgradeSample(s){
@@ -9935,7 +10244,7 @@ async function maintenance(){
 
 /* ---------- boot ---------- */
 const typingIn = sel => { const a = document.activeElement; return !!(a && a.closest?.(sel) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); };
-function rerenderSoon(){ clearTimeout(rerenderSoon.t); rerenderSoon.t = setTimeout(() => { if (tab === "board"){ if (typingIn("#bdPick.todo")) return void setTimeout(rerenderSoon, 1200); renderBoard(); } else if (tab === "ledger") renderLedger(); else if (tab === "results") renderResultsTab(); else if (tab === "storage") renderStorage(); else if (tab === "track" && !current && !typingIn("#view-track")) renderTrack(); updateCount(); }, 80); }
+function rerenderSoon(){ clearTimeout(rerenderSoon.t); rerenderSoon.t = setTimeout(() => { if (tab === "board"){ if (typingIn("#bdPick.todo")) return void setTimeout(rerenderSoon, 1200); renderBoard(); } else if (tab === "ledger") renderLedger(); else if (tab === "results"){ if (typingIn("#rgBox")) return void setTimeout(rerenderSoon, 1200); renderResultsTab(); } else if (tab === "storage") renderStorage(); else if (tab === "track" && !current && !typingIn("#view-track")) renderTrack(); updateCount(); }, 80); }
 /* Default limits added in version 23 (P01 on, for the new routes) join limits saved before them; once settings are saved again, a limit the
    lab manager removed stays removed. */
 const LIMITS_V = 23;
