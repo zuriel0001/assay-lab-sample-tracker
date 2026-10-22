@@ -115,6 +115,16 @@ async function batchToResults(page, ref){
   check(await vis(Tc) === 3, "Fewer steps folds them again");
   await open(Tc, ref); await Tc.waitForTimeout(200);
   check(await Tc.isVisible("#bwBox .rail-sum"), "the batch page's steps fold the same way");
+  // 22 Oct review: Put all away on the batch page too, one location for every material of the batch
+  const bPut = new Set(bt.flatMap(id => (doc(id).materials || []).filter(m => m.status === "kept" && !m.loc).map(m => m.item))).size;
+  check(bPut >= 2 && await text(Tc, "#bmAll") === `Put all ${bPut} away`, `the batch's retained material offers: ${await text(Tc, "#bmAll")}`);
+  await Tc.click("#bmAll"); await Tc.waitForTimeout(300);
+  check(/location/.test(await H.toastText(Tc)) && bt.every(id => (doc(id).materials || []).every(m => !m.loc)), "the batch: a location is needed first");
+  await Tc.fill("#bmAllLoc", "Rack C1"); await Tc.click("#bmAll");
+  await waitFor(() => bt.every(id => doc(id).stageKey === "storage"), 8000);
+  check(bt.every(id => { const d = doc(id), k = d.materials.filter(m => m.status === "kept"); return d.stageKey === "storage" && k.length >= 2 && k.every(m => m.loc === "Rack C1") && d.history.filter(h => /put away$/.test(h.note || "")).length === k.length; }), "every sample's materials on the shelf at Rack C1, each with its own custody line; the batch in storage");
+  await open(Tc, ref); await Tc.waitForTimeout(300);
+  check(!(await Tc.$("#bmAll")) && /Kept at Rack C1/.test(await text(Tc, "#bmBox")), "nothing left to put away: the button goes, the table says where");
   const Pl = await newUser(browser, { uid: "u_pl", name: "Plant", canEdit: false, names }, { width: 390, height: 844 }); await signIn(Pl, "plant");
   await open(Pl, singles[2]); await Pl.waitForTimeout(300);
   check(await Pl.evaluate(() => { const r = document.querySelector("#resPanel"), w = document.querySelector(".panel .rail"); return !!r && !!w && r.getBoundingClientRect().top < w.getBoundingClientRect().top; }), "a section account on a phone sees the released results before the steps");

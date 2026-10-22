@@ -88,10 +88,19 @@ local copy) found no broken flow: the MET Lab's final samples still go back to t
 - **Ledger on a phone**: IN / OUT / REV stay on one line (OUT broke to "OU / T").
 - **Ledger on a computer**: the table was 1315 px in its 1206 px box at any screen size, so *Reference · note* sat past the right edge. The
   time may go under the date and Material may wrap; it now fits.
+- **Put all away on the batch page.** v38 gave a record *Put all n away*; a batch (a Shift end batch keeps solution, carbon, pulp and
+  filtrate) now has it too: one location, one press, each sample's materials stored with a custody line each (`bwStoreAll`).
+- **Today counts a batch once.** *Results released today* (Board tile and the Sample tab's Today) counted a MET Lab job's samples one by
+  one once they had gone back to the MET Lab (44 for six batches); *Received today* missed batches released and gone the same day (2 for
+  six). Both now count each batch once, closed or not (`unitCount(list, true)`, `recvTodayList`); Received today opens a list when some of
+  them have left the lanes.
+- **Phone cards**: on the Results tab and a batch's sample list the sample ID heads each card on one line (it broke mid-code), the
+  results run the card's width; a record's results table fits (values wrap, tighter cells).
 - **Text size: Small for everyone, no Aa** (Zuriel, 23:01: "I think the small font is better. and l want that tab to select font fully
   removed"). The scale is v36's Small (`--ts` .95: body about 18 px on a computer, 17 on a phone); the Aa button and its menu are gone from the
   header, and a choice a device kept (`textSize`) is cleared on load.
-- Tests: `v30-tests.js` 22 (one more: no limit on the preg-robbing and bottle roll solutions); `v36-tests.js` 13 (the text size checks
+- Tests: `v30-tests.js` 24 (no limit on the preg-robbing and bottle roll solutions; Today's counts and list); `v38-tests.js` 57 (the batch's
+  Put all away); `v36-tests.js` 13 (the text size checks
   now check Small and no Aa); `v37-tests.js` checks the theme button on the sync pill's row instead of beside Aa.
 - Not changed: the MET Lab's working tables (bottle roll fractions, carbon activity) scroll sideways on a phone, as data tables do; the
   admin's account table scrolls sideways too. `test/walk.js` (the v21 polish walk) stops early on v38 (it picks the analysis `plant_solids`, which a Mill sample

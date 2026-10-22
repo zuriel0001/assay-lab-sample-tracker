@@ -91,4 +91,18 @@
   table.cardy.mat-t tr:has(+ tr.mat-ctl){border-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0;padding-bottom:4px}
   table.cardy.mat-t tr.mat-ctl{margin-top:-8px;border-top:0;border-top-left-radius:0;border-top-right-radius:0;padding-top:0}
   table.cardy.mat-t .mat-row>*{flex:1 1 100%!important}
+  table.res th,table.res td{padding-left:6px;padding-right:6px}   /* a record's four result columns fit a phone (they ran 10 px over) */
+  table.res td:nth-child(2){white-space:normal}   /* a long value (+75 28.0 · -75 72.0) wraps instead of pushing Unit off the screen */
+  /* Results cards on a phone: the sample ID heads the card on one line (it broke mid-code, MLSCBLD20261020#6 / 0) and the results run the
+     card's full width under their label (they were a narrow column of a few words a line). */
+  table.cardy.restbl td:first-child{padding-left:0}
+  table.cardy.restbl td:first-child::before{display:none}
+  table.cardy.restbl td:first-child>.linkish,table.cardy.restbl td:first-child>a.mono{white-space:nowrap;overflow-wrap:normal;font-size:var(--t-md)}
+  table.cardy.restbl td[data-label="Results"]{padding-left:0}
+  table.cardy.restbl td[data-label="Results"]::before{position:static;display:block;width:auto;margin-bottom:2px}
+  /* A batch's samples on a phone: the sample ID heads each card on one line; the row number is the card's place in the list. */
+  table.cardy.bm-t td:first-child{display:none}
+  table.cardy.bm-t td:nth-child(2){padding-left:0}
+  table.cardy.bm-t td:nth-child(2)::before{display:none}
+  table.cardy.bm-t td:nth-child(2)>.linkish,table.cardy.bm-t td:nth-child(2)>a.mono{white-space:nowrap;overflow-wrap:normal;font-size:var(--t-md)}
 }

@@ -102,6 +102,15 @@ async function certText(P){ await P.click("[data-bcert]"); await P.waitForSelect
   check(el.ids.every(id => doc(id).stageKey === "released" && doc(id).materials.some(m => m.status === "kept")), "released, its material kept to put away");
   check(/Strip profile/.test(await certText(Tc)), "the strip profile still on its certificate");
 
+  log("Today: a batch counts once, even when its samples went back to the MET Lab at release (22 Oct review)");
+  const unit = x => x.batchId && x.batchSize > 1 && !x.solo ? x.batchId : x.id, docs = Object.values(store).filter(x => x && x.id && x.createdAt);
+  const relU = new Set(docs.filter(x => x.relAt).map(unit)).size, recvU = new Set(docs.filter(x => x.recvAt || x.receivedAt).map(unit)).size;
+  await H.tab(Tc, "board"); await H.tab(Tc, "track"); if (!(await Tc.$(".hero"))) await H.tab(Tc, "track"); await Tc.waitForSelector(".hero", { timeout: 4000 }).catch(() => {});
+  const td = Object.fromEntries(await Tc.$$eval(".today button", bs => bs.map(b => [b.dataset.today, +b.querySelector(".n").textContent])));
+  check(relU >= 5 && td.rel === relU && td.recvToday === recvU, `Released today ${td.rel} (${relU} batches), received today ${td.recvToday} (${recvU}), not one per returned sample`);
+  await Tc.click('[data-today="recvToday"]'); await Tc.waitForTimeout(300);
+  check((await Tc.$$eval("#bdList [data-open], .pick-list [data-open]", bs => [...new Set(bs.map(b => b.dataset.open))])).length === recvU, "Received today opens the list of those batches, those gone back included");
+
   log("Routes");
   await H.tab(Tc, "routes"); await Tc.waitForTimeout(400);
   check(/MET Lab final samples \(one report\)/.test(await text(Tc, "#view-routes")), "Routes: MET Lab final samples (one report)");

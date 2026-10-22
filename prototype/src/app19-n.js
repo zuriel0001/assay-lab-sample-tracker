@@ -481,7 +481,7 @@ function renderBatchView(v){
     </div>` : ""}
     ${bwPanel(c)}
     ${plantViews(docs)}
-    <div class="panel"><div class="tbl-wrap"><table class="cardy"><thead><tr><th>#</th><th>Sample ID</th>${codeCol ? "<th>Site sample code</th>" : ""}${srcCol ? "<th>Source</th>" : ""}${ptCol || mixed ? "<th>Sample</th>" : ""}<th>Status</th><th></th></tr></thead><tbody>${docs.map(row).join("")}</tbody></table></div></div>
+    <div class="panel"><div class="tbl-wrap"><table class="cardy bm-t"><thead><tr><th>#</th><th>Sample ID</th>${codeCol ? "<th>Site sample code</th>" : ""}${srcCol ? "<th>Source</th>" : ""}${ptCol || mixed ? "<th>Sample</th>" : ""}<th>Status</th><th></th></tr></thead><tbody>${docs.map(row).join("")}</tbody></table></div></div>
   </div>`;
   if (keepWit && $("#bvWit", v)) $("#bvWit", v).value = keepWit;
   fillNames(v);

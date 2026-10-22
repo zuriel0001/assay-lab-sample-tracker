@@ -43,16 +43,19 @@ function clearForm(ids){
     });
   });
 }
+/* 22 Oct review: received today counts what was released and closed today too (a MET Lab job's samples go back at release and leave the
+   lists of open samples: Received today said 2 when six batches came in). */
+const recvTodayList = (pass = () => true) => [...new Map([...releasedToday.values(), ...samples.values()].filter(s => pass(s) && isToday(recvOf(s))).map(s => [s.id, s])).values()];
 function renderTrack(){
   const v = $("#view-track");
   if (!current){
     v.dataset.ctx = "";
     const staff = isStaff() && allowedTabs().includes("board"), list = [...samples.values()];
     const today = staff ? [
-      ["in", "recvToday", unitCount(list.filter(s => isToday(recvOf(s)))), "Received today"],   // v24d: a batch counts once
+      ["in", "recvToday", unitCount(recvTodayList(), true), "Received today"],   // v24d: a batch counts once
       ["due", "dueToday", unitCount(list.filter(dueToday)), "Results due today"],
       ["late", "late", unitCount(list.filter(s => { const i = curIdx(s); return i > 0 && i < targetIdx(s) && status(s).late; })), "Running late"],
-      ["rel", "rel", unitCount([...releasedToday.values()]), "Results released today"]   // each opens its list on the board (v24c); a zero does nothing
+      ["rel", "rel", unitCount([...releasedToday.values()], true), "Results released today"]   // each opens its list on the board (v24c); a zero does nothing
     ] : [];
     v.innerHTML = `<div class="stack">
       <div class="panel hero"><h2>Find a sample</h2>

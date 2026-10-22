@@ -40,11 +40,13 @@ function renderBoard(){
     ...(canEdit() ? [{ k: "relready", n: relReady.length, l: relNow() ? "Waiting for results" : "Ready for release", tone: relNow() ? "gold" : "ok", pick: relReady }] : []),
     ...(isStaff() && !relNow() ? [{ k: "alerts", n: alerts.length, l: "Results past an action or permit limit, not yet recorded", tone: "bad", pick: alerts }] : []),
     ...(isStaff() ? [{ k: "req", n: unitCount(reqL), l: "Re-assay requested", tone: "bad", rows: unitRows(reqL, s => { const e = lastRedo(s); return sRow(s, "Requested" + (e ? ` by ${e.tech}${e.note ? ": " + e.note : ""}` : "")); }) }] : []),
-    { k: "rel", n: unitCount(relL), l: "Results released today", tone: "ok", rows: unitRows(relL, s => sRow(s, "Released " + fmt(s.relAt))) },
+    { k: "rel", n: unitCount(relL, true), l: "Results released today", tone: "ok", rows: unitRows(relL, s => sRow(s, "Released " + fmt(s.relAt)), true) },
     { k: "unstored", n: notStored, l: `Released, not yet put in storage${unstoredLate ? `, ${unstoredLate} over a day` : ""}`, tone: unstoredLate ? "warn" : "info", pick: unstored },
     { k: "retention", n: dueM, l: `Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}`, tone: "warn", link: ["storage", "Open Storage"],
       rows: dueS.map(x => x.s ? sRow(x.s, x.items.join(", ") + " past retention") : { id: x.id, type: x.type || "", what: x.route || "", where: x.items.join(", ") + " past retention" }) },
-    ...(boardPick === "recvToday" ? [{ k: "recvToday", l: "Received today", tone: "", pick: list.filter(s => isToday(recvOf(s))), hide: true }] : []),
+    // received today: the lanes filtered to them while all are still in the lab, else a list (some released and gone back today)
+    ...(boardPick === "recvToday" ? [(r => r.every(s => samples.has(s.id)) ? { k: "recvToday", l: "Received today", tone: "", pick: r, hide: true }
+      : { k: "recvToday", l: "Received today", tone: "", n: unitCount(r, true), rows: unitRows(r, s => sRow(s), true), hide: true })(recvTodayList(pass))] : []),
     ...(boardPick === "dueToday" ? [{ k: "dueToday", l: "Results due today", tone: "", pick: list.filter(dueToday), hide: true }] : []),
     ...(boardPick === "todo" && todo ? [{ k: "todo", l: "To do today", tone: "", n: todo.store.length + todo.due.length, rows: [], hide: true }] : [])
   ];

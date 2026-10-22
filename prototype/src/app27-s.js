@@ -72,8 +72,27 @@ function bwMats(st){
   return `<div class="stack" id="bmBox" style="gap:8px"><b>Retained material of the batch</b>
     ${q ? `<div class="notice small" style="margin:0">Waiting for <b>${esc(q.wit)}</b> to confirm ${q.kind === "store" ? "the storage" : "a movement"}. Nothing else is recorded on the material until then.</div>` : ""}
     ${edit && two ? `<div class="form"><div class="full">${witnessField("bmWit", "Witness (two-person custody: confirms a disposal from their own account)")}</div></div>` : ""}
+    ${edit ? bwStoreAllRow(items) : ""}
     <div class="tbl-wrap"><table class="cardy mat-t"><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
     ${edit && !two ? `<div id="bmWitBox" class="mat-wit" hidden>${witnessField("bmWit", "Witness to the disposal (a second person)")}</div>` : ""}</div>`;
+}
+/* 22 Oct review: Put all away on the batch page too (v38 gave it to the record). A Shift end batch keeps four materials (solution, carbon,
+   pulp, filtrate): two or more not yet put away take one location and one press; each sample gets a custody line per material, as one by
+   one. */
+const bwStoreAllRow = items => { const n = [...items.values()].filter(x => x.noLoc).length; return n < 2 ? "" : `<div class="row step-row mat-all"><input class="inp" id="bmAllLoc" data-clear autocomplete="off" placeholder="Location for all" aria-label="Location for all" style="flex:1 1 180px;min-width:0;width:auto"><button type="button" class="btn primary" id="bmAll">Put all ${n} away</button></div>`; };
+async function bwStoreAll(){
+  const st = batchState(current?.docs || []); if (!st.lead) return;
+  const loc = val("#bmAllLoc"), bref = current.batch, two = st.at.some(twoPerson);
+  if (st.at.some(wqOf)){ toast("Waiting for the witness to confirm. Withdraw that request first."); return; }
+  if (!loc){ toast("Type the storage location first."); $("#bmAllLoc")?.focus(); return; }
+  const wit = two && st.lead.stageKey !== "released" ? needWitness(st.lead, "#bmWit") : ""; if (wit === null) return;
+  const ids = st.at.filter(s => grouped(s) && toPut(s).length).map(s => s.id);
+  await bwEach("Put away", ids, s => {
+    if (!grouped(s) || wqOf(s)) return null;
+    let cur = s, upd = {}, n = 0;
+    for (const m of toPut(s)){ const r = matUpd(cur, m.k, "store", loc, wit, bref); if (!r) continue; upd = { ...upd, ...r.upd }; cur = { ...cur, ...r.upd }; n++; }
+    return n ? { upd, msg: `${n} materials stored at ${loc}` } : null;
+  }, ["bmAllLoc", "bmWit"]);
 }
 /* The witness request of the batch (storage, or a disposal on a critical batch): the witness confirms it for all the samples at once. */
 function bwWq(st){
@@ -160,6 +179,8 @@ function bindBw(v){
   $("#bwBack", v)?.addEventListener("click", () => bwAnswer("back"));
   $("#bwDrop", v)?.addEventListener("click", () => bwAnswer("drop"));
   v.querySelectorAll("[data-bmat]").forEach(b => b.addEventListener("click", () => bwMat(b.dataset.bmat)));
+  $("#bmAll", v)?.addEventListener("click", bwStoreAll);
+  $("#bmAllLoc", v)?.addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); bwStoreAll(); } });
   v.querySelectorAll("[data-bcert]").forEach(b => b.addEventListener("click", () => showBatchCert(b.dataset.bcert)));
   bindBwGrid(v);
   if (bwBusy) document.querySelectorAll("#bwBox button").forEach(b => b.disabled = true);
@@ -424,13 +445,15 @@ function confRows(list, sRow){
 }
 
 /* ---------- counting work, not bags: a batch is one item on the board, its tiles, the Today strip and the Board tab ---------- */
-const unitKey = s => grouped(s) ? "B:" + s.batchId : s.id;
-const unitCount = list => new Set(list.map(unitKey)).size;
+/* all (22 Oct review): a batch counts once even when its samples have closed. Released today counted a MET Lab job's samples, back with the
+   MET Lab at release, one by one (44 for six batches). */
+const unitKey = (s, all) => (all ? batchOf(s) : grouped(s)) ? "B:" + s.batchId : s.id;
+const unitCount = (list, all) => new Set(list.map(s => unitKey(s, all))).size;
 /* Rows for a board list: a sample on its own, or one row for a batch (its reference, "Batch of n samples", where its samples are). */
-function unitRows(list, rowOf){
+function unitRows(list, rowOf, all){
   const out = [], seen = new Map();
   for (const s of list){
-    if (!grouped(s)){ out.push(rowOf(s)); continue; }
+    if (!(all ? batchOf(s) : grouped(s))){ out.push(rowOf(s)); continue; }
     const g = seen.get(s.batchId); if (g){ g.n++; g.where.add(rowOf(s).where); continue; }
     const r = rowOf(s), x = { ...r, id: s.batchId, n: 1, where: new Set([r.where]) }; seen.set(s.batchId, x); out.push(x);
   }
