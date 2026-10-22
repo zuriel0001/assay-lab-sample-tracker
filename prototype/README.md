@@ -2,7 +2,7 @@
 
 > **In the GitHub repository** this folder is `prototype/`. Left out: the old version folders (`v9/`, `v10/` and so on; git history keeps versions from now on), and `test/v18-tests.js` and `test/shot18.js`, which read the lab's two real reports and quote their sample codes and values. Those two run only in the project folder, with the private reports present.
 
-This folder holds the **v33** source of the prototype (published to the artifact on 2026-10-21; the Azure site is built from it)
+This folder holds the **v34** source of the prototype (published to the artifact on 2026-10-22; the Azure site is built from it)
 (https://claude.ai/artifact/5JgoyE2wokT67u8TCtYDop). The build thread owns all edits; reviewers should read and run, not change these
 files. Earlier versions are in git history.
 
@@ -10,7 +10,7 @@ files. Earlier versions are in git history.
 |---|---|
 | `assay-lab-sample-tracker.html` | The whole page (HTML, CSS, JS in one file), exactly as published (called `met-lab-sample-tracker.html` before the rename). Uses the Artifact runtime `window.claude` db, user and downloads capabilities. |
 | `routes-data.js` | Tests, sample types, the 50 workflow routes (13 in use since v23; `RETIRED_ROUTES` lists the others), `RESULTS` (what each test reports, including picked and calculated results), `QC_PROFILES` (lab batch rules), `ROUTE_QC` and `ROUTE_GROUPS` (the batches each route's samples join, one per analytical method), `qcRuleText` / `routeQcText` (write each route's QA/QC text from the same numbers the batches enforce). |
-| `src/` | The page is built from these: `app10-a.js` … `app10-f.js`, `app12-g.js` (results, limits, four eyes, amendments, certificates, lab batches, section results), `app13-h.js` (stock records, Storage tab, the selected batch's samples), `app14-i.js` (lab working hours, Settings tabs, QR codes and bag labels), `app15-j.js` (navigation, theme, logo, wall screen, time left), `app16-k.js` (reference material change history and renames, board lanes that scroll), `app18-l.js` (reads a results file in the page: old Excel .xls, .xlsx, CSV and text; SHA-256; base64), `app18-m.js` (recognises a lab report, matches it to samples, batches and QC, the preview, saving and the kept file), `app19-n.js` (blind QA/QC re-assay, a batch or a single sample on the form, the batch page and its receipt, the custody scroll), `app20-o.js` (search suggestions, recently opened, the same details again, tables as cards on a phone, the tab title), `app24-p.js` (departments, evaluation of released results, re-assay requests, the Results tab for staff, the title leading home), `app25-q.js` (scan a bag label, receive several at once, the disposal witness, the monthly ledger sign-off and its summary, turnaround), `app26-r.js` … `app28-t.js` (two-person custody, a batch processed as one, shift jobs), `app29-u.js` (the strip profile and carbon activity charts and tables), `app31-v.js` (v31: first code + date, ID groups, more analyses, typed values; v32: the ID groups section), `css10.css`, `css11.css`, `css12.css`, `css14.css`, `css15.css` (design refresh; its icon block is written by `tools/icons.py`), `css16.css`, `css18.css`, `css19.css`, `css20.css`, `css24.css` (a size larger, colour, the v24 pieces), `css31.css` (v31, v32), `base.html` (markup, base CSS and the start of the script). `cd src && python3 build24.py` writes the page into `src/`; copy it up a folder. |
+| `src/` | The page is built from these: `app10-a.js` … `app10-f.js`, `app12-g.js` (results, limits, four eyes, amendments, certificates, lab batches, section results), `app13-h.js` (stock records, Storage tab, the selected batch's samples), `app14-i.js` (lab working hours, Settings tabs, QR codes and bag labels), `app15-j.js` (navigation, theme, logo, wall screen, time left), `app16-k.js` (reference material change history and renames, board lanes that scroll), `app18-l.js` (reads a results file in the page: old Excel .xls, .xlsx, CSV and text; SHA-256; base64), `app18-m.js` (recognises a lab report, matches it to samples, batches and QC, the preview, saving and the kept file), `app19-n.js` (blind QA/QC re-assay, a batch or a single sample on the form, the batch page and its receipt, the custody scroll), `app20-o.js` (search suggestions, recently opened, the same details again, tables as cards on a phone, the tab title), `app24-p.js` (departments, evaluation of released results, re-assay requests, the Results tab for staff, the title leading home), `app25-q.js` (scan a bag label, receive several at once, the disposal witness, the monthly ledger sign-off and its summary, turnaround), `app26-r.js` … `app28-t.js` (two-person custody, a batch processed as one, shift jobs), `app29-u.js` (the strip profile and carbon activity charts and tables), `app31-v.js` (v31: first code + date, ID groups, more analyses, typed values; v32: the ID groups section), `app32-w.js` (v34: the month's audit pack, its Excel and PDF writers, and the Board's daily to-do), `css10.css`, `css11.css`, `css12.css`, `css14.css`, `css15.css` (design refresh; its icon block is written by `tools/icons.py`), `css16.css`, `css18.css`, `css19.css`, `css20.css`, `css24.css` (a size larger, colour, the v24 pieces), `css31.css` (v31, v32), `base.html` (markup, base CSS and the start of the script). `cd src && python3 build24.py` writes the page into `src/`; copy it up a folder. |
 | `tools/icons.py` | Prints the icon definitions at the top of `css15.css` (24 px stroke icons drawn as CSS masks). |
 | `test/harness.js` | Shared mock of the db capability: several browser pages on one store, with `where` filters (including `array-contains`), `orderBy`, `limit`, recursive `update` merge, update-requires-existence, leases, frozen snapshots and deletes. Batch helpers (`createBatch`, `fillBatch` for one or many results per position, `saveBatch`). |
 | `test/v31-tests.js` | New: v31. A first code and the date make a batch's or a job's codes with the count continued; a whole code typed gives its date to the date box; ID groups on Batch (one series per group, Number of samples adds them up, ✕ takes a row from its group) and on jobs (QA/QC's PPS, CB and SL are three groups; a fourth added; remembered by the template); codes already used offer the next free numbers; several analyses on a sample (ticks and typed, their steps, results by hand and by file, certificate); Other (type it) on route OTHER and its receipt; Other… in the details lists; Shift end and MET Lab job sections; Other testwork; a Shift end row with a typed point, the date completing its code, and other analyses. v32: the ID groups strip first, each group boxed, bottle roll groups replacing the template's codes, folded group rows, re-assay reasons hidden from readers who may not see results. v33: a batch's samples first, the Board's tiles narrowing the lanes, Lanes | List, entries kept across kinds and templates, empty lanes hidden while narrowed. Last run: **83 PASS**. |
@@ -27,6 +27,7 @@ files. Earlier versions are in git history.
 | `test/v17-tests.js` | One entry tab per sign-in state, Received now at the lab for staff, the hand-over name and badge (required on walk-ins, the Azure server rule run against them, record, custody log, receipt, board, both names after receipt). Last run: **25 PASS**, no console errors. |
 | `test/v16-tests.js` | Walk-in registration for everyone (and the Azure server's public-submission rule run against it), Submit after sign-in, the Other reason, the receiver on the workflow line, 80% grind (also for routes saved with 85%), reference materials renamed and edited with a change history and the control chart following a renamed material, the board tiles and scrolling lanes, ZIJIN. Last run: **42 PASS** (one check moved to v17, the job form also has no explanatory paragraph), no console errors. |
 | `test/v15-tests.js` | The design refresh (navigation and More menu at computer, tablet and phone widths, header, theme, board summary and filters (tiles and grid lanes since v16), time left, wall screen, record progress, Today strip, company logo, touch sizes, sticky bars, zebra tables, print). Last run: **46 PASS**, no console errors. |
+| `test/v34-tests.js` | New: v34. The Board's daily to-do (reminder once a day, Store at the last location, a batch in one tap, the witness rules for critical samples and disposals, Return, Send out, viewers without it) and the audit pack (Excel and PDF for the supervisor and manager only, opened with openpyxl and pypdf when installed). |
 | `test/run-all.sh` | Runs every browser suite one at a time and prints one line per suite. |
 | `test/run.js` | End-to-end tests of the workflow. Last run: **107 PASS**, no console errors. |
 | `test/v14-tests.js` | New: Settings tabs, lab working hours (due times, overdue, round-the-clock steps), the trimmed defaults, bag labels (QR decoded with jsQR), tracking-link scans. Needs `jsqr` (`npm i jsqr@1.4.0`; set `NODE_PATH` to include it). Last run: **27 PASS**, no console errors. |
@@ -66,6 +67,44 @@ NODE_PATH=$(npm root -g):/path/to/jsqr/node_modules timeout 400 node v14-tests.j
 The tests write screenshots next to themselves. The Chromium path is in `harness.js`. Run the suites one
 at a time: scenario R in `review-tests-v11.js` times ID claims, and the batch tests wait on several writes per
 step, so they can miss their time budgets when several browsers share the CPU.
+
+## What v34 changes: the month's audit pack, and a daily to-do for storage and disposal (2026-10-22)
+
+Zuriel, 2026-10-22 10:48Z: "Okay, implement 2 and 3" (2: an audit pack, one click for the month's ledger, disposals with witnesses,
+critical-sample witness confirmations and sign-offs as PDF and Excel; 3: released samples not yet stored and materials past retention as a
+daily to-do for lab staff, shown on sign-in and on the Board, each one tap to store or dispose, the witness rule kept).
+
+- **Audit pack** (`app32-w.js`): on the Ledger, beside *Month summary* in the sign-off box, the lab supervisor and manager have a small
+  *Audit pack: Excel | PDF* for the month in the month picker (hidden for a month still to come). Each is one click and one file,
+  `audit-pack-YYYY-MM.xlsx` or `.pdf`, made in the page through the downloads capability (the Azure site's shim saves it the same way). The
+  month is read afresh, whatever the Ledger's filters show: its movements, the stock records of the samples on hand in it (for the month
+  check), `signoff/YYYY-MM`, and the records of the critical samples among them (stock records marked `two`, and any movement noted
+  "Confirmed by the witness") for their witness confirmations (`wcf`) and send-backs (`wsb`) in the month.
+  - The workbook has five sheets, each with a bold frozen header: *Summary* (the month check as numbers, movements, disposals and those
+    without a witness, confirmations, the last sign-off and whether the month changed after it), *Ledger* (the CSV export's columns, oldest
+    first, reversals included), *Disposals* (who recorded it, the witness, *Witness confirmed in own account* for critical samples),
+    *Witness confirmations* (what: Storage or the material and where it went; who asked; who confirmed; Confirmed or Sent back; the request
+    id) and *Sign-offs*. It is written by a small built-in writer (`xlsxBook`, `zipStore`: inline strings, a zip without compression).
+  - The PDF is A4 landscape: the title and the month check, then the same tables, a header row repeated on each page and *Page n of m* at
+    the foot. It is written by a small built-in writer (`pdfDoc`, `pdfTable`) in the standard Helvetica fonts, so nothing is embedded or
+    downloaded; a character those fonts lack prints as "?".
+  - No server change: everything it reads, a supervisor already reads on the Ledger and the sample pages.
+- **Daily to-do** (`todoUnits`, `todoPanel` in `app32-w.js`): for lab staff (technician, supervisor, manager) on the Board.
+  - At the top, on the first visit of the day (so at sign-in), one line: *To do today · 3 to put away · 4 past retention [Open] ×*. Open or
+    × hides it until the next day on that device (`todoSeen:<user>` in local storage).
+  - The two tiles *Released, not yet put in storage* and *Materials past retention* now open the to-do (their part of it) in place of the
+    lanes, like the other tiles that list things; viewers keep the plain list. Open shows both parts.
+  - *To put away*: each released sample (a batch processed as one is one row) with the materials still to shelve, when it was released and
+    *Over a day*; a Location box (filled with the last location typed, `todoLoc`) and **Store**: every material still to shelve goes to that
+    location in one tap. On a critical sample the Witness box at the top is needed: Store puts it away and asks that person to confirm the
+    storage from their own account (the same request as on the sample page); the row then shows *Waiting for … to confirm*.
+  - *Past retention*: each material past its date (stored samples from their stock records too), oldest first, with the button its retention
+    says: **Dispose**, **Return**, **Archive**, or **Send out** (with a box for the external lab and waybill). Dispose needs the witness (a
+    second person); on a critical sample the witness confirms it from their own account, as on the sample page. Enter in a box presses the
+    row's button.
+  - Writes go through `sampleWrite` with `matUpd`, `askStoreUpd` and `askOutUpd`, the same changes as the sample and batch pages, so the
+    ledger, stock records and the server's witness checks are unchanged. While someone types in a row the Board does not redraw under them.
+- Tests: `v34-tests.js` (43).
 
 ## What v33 changes: a batch's samples first, a shorter Board, entries kept when switching (2026-10-22)
 

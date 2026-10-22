@@ -190,9 +190,12 @@ const RULES = { samples: sampleRule, batches: batchRule, ledger: ledgerRule };
    the lab manager adds one in their own name; nothing is changed or removed afterwards. */
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 const count = v => Number.isInteger(v) && v >= 0 && v < 1e7;
+/* On hand at the start and at the end are counted from the stock records, so a month with movements missing from the ledger can come out
+   below 0; the page signs off what it shows, and the sign-off keeps it on record. */
+const balance = v => Number.isInteger(v) && v > -1e7 && v < 1e7;
 function signProblem(a, e){
   if (!e || typeof e !== "object" || Array.isArray(e) || Object.keys(e).some(k => !["at", "by", "tech", "role", "opening", "ins", "outs", "closing", "rev", "note"].includes(k)) ||
-      !Number.isFinite(e.at) || !["opening", "ins", "outs", "closing", "rev"].every(k => count(e[k])) || !short(e.note, 200) || !short(e.role, 20)) return "Not a valid ledger sign-off.";
+      !Number.isFinite(e.at) || !["ins", "outs", "rev"].every(k => count(e[k])) || !["opening", "closing"].every(k => balance(e[k])) || !short(e.note, 200) || !short(e.role, 20)) return "Not a valid ledger sign-off.";
   return signedBy(a)(e) ? "" : "A ledger sign-off is made under the name of the person signed in.";
 }
 function signoffRule(a, id, cur, next){

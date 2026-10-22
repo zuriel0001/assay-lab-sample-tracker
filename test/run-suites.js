@@ -13,7 +13,7 @@ const a = tail.indexOf("async function signIn("), b = tail.indexOf("async functi
 if (a < 0 || b < 0) throw new Error("harness layout changed");
 tail = tail.slice(0, a) + tail.slice(b);
 fs.writeFileSync(path.join(work, "harness.js"), fs.readFileSync(path.join(__dirname, "harness-head.js"), "utf8") + "\n" + tail);
-const suites = process.argv.slice(2).length ? process.argv.slice(2) : ["run.js", "results-tests.js", "v12-tests.js", "v13-tests.js", "review-tests-v11.js", "review-v11-scenarios.js", "hours-shortcut-tests.js", "v14-tests.js", "work-hours-unit.js", "v15-tests.js", "v16-tests.js", "v17-tests.js", "v18-tests.js", "v20-tests.js", "v21-tests.js", "v22-tests.js", "v23-tests.js", "v24-tests.js", "v25-tests.js", "v26-tests.js", "v27-tests.js", "v28-tests.js", "v29-tests.js", "v30-tests.js", "v31-tests.js", "azure-extra.js"];
+const suites = process.argv.slice(2).length ? process.argv.slice(2) : ["run.js", "results-tests.js", "v12-tests.js", "v13-tests.js", "review-tests-v11.js", "review-v11-scenarios.js", "hours-shortcut-tests.js", "v14-tests.js", "work-hours-unit.js", "v15-tests.js", "v16-tests.js", "v17-tests.js", "v18-tests.js", "v20-tests.js", "v21-tests.js", "v22-tests.js", "v23-tests.js", "v24-tests.js", "v25-tests.js", "v26-tests.js", "v27-tests.js", "v28-tests.js", "v29-tests.js", "v30-tests.js", "v31-tests.js", "v34-tests.js", "azure-extra.js"];
 /* Checks the prototype's suites make differently here. Since v13 no suite reads a sentence build.py section 10 takes out.
    v14-tests.js: tracking links and bag-label QR codes carry this site's own address, not the Claude artifact's, and the suite
    opens them there; where no QR decoder is installed, a label's QR code is compared with the page's own encoder run in Node on the text it

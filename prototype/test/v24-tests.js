@@ -215,7 +215,7 @@ async function typeResults(page, id, vals){
   await Tc.click(`#bdPick [data-open="${b1}"]`); await Tc.waitForTimeout(400);
   check(/Sample ID|Workflow/i.test(await text(Tc, "#view-track")) && (await text(Tc, "#view-track")).includes(b1), "a sample in the list opens its record");
   await H.tab(Tc, "board"); await Tc.waitForTimeout(300);
-  for (const b of btns.filter(b => b[0] !== "rel")){ await Tc.click(`[data-bpick="${b[0]}"]`); await Tc.waitForTimeout(200); const n = await Tc.$$eval("#bdPick tbody tr", rs => rs.length).catch(() => 0) || await Tc.$$eval(".lanes .chip", cs => cs.length).catch(() => 0); check(n > 0, `the ${b[0]} tile opens a list of ${n} (v33: or narrows the lanes to them)`); await Tc.click(`#bdPick [data-bpick="${b[0]}"]`).catch(() => {}); await Tc.waitForTimeout(150); }
+  for (const b of btns.filter(b => b[0] !== "rel")){ await Tc.click(`[data-bpick="${b[0]}"]`); await Tc.waitForTimeout(200); const n = await Tc.$$eval("#bdPick tbody tr, #bdPick .todo-row", rs => rs.length).catch(() => 0) || await Tc.$$eval(".lanes .chip", cs => cs.length).catch(() => 0); check(n > 0, `the ${b[0]} tile opens a list of ${n} (v33: or narrows the lanes to them; v34: the lab's to-do for storage and retention)`); await Tc.click(`#bdPick [data-bpick="${b[0]}"]`).catch(() => {}); await Tc.waitForTimeout(150); }
   check(!(await Tc.$('[data-bpick="qc"]')) && !/QC to act on/.test(await text(Tc, "#view-board")), "the lab's board has no QC-to-act-on tile");
   await H.tab(Tc, "storage"); await Tc.waitForTimeout(400);
   check(!/Retained material, oldest due first/.test(await text(Tc, "#view-storage")) && !(await Tc.$("#view-storage h2")), "v24c: Storage starts with its cards, no heading text");

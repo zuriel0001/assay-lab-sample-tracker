@@ -3,5 +3,5 @@ node_modules/
 .DS_Store
 # test and build outputs (not part of the site)
 prototype/src/assay-lab-sample-tracker.html
-prototype/test/out-*.txt
+prototype/test/out-*
 prototype/test/*.png

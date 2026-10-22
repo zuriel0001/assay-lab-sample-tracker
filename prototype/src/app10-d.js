@@ -26,6 +26,7 @@ function renderBoard(){
   const flagged = unitCount(waiting.filter(s => s.flag));
   const relL = [...releasedToday.values()].filter(pass), reqL = isStaff() ? [...reqs.values()].filter(pass) : [];
   const confL = canEdit() ? [...confs.values()].filter(x => myConf(x)) : [];   // v24d: a witness's confirmation asked of the person signed in
+  const todo = canEdit() && !wall ? todoUnits(pass) : null;   // v34: lab staff's to-do (put away, past retention), each one tap
   // v24c: every tile with a number opens the list of what it counts (and the lanes narrow to those samples when they are in the lab).
   const stName = s => { try { return stage(s, s.stageKey)?.name || ""; } catch { return ""; } };
   const sRow = (s, where) => ({ id: s.id, type: s.type || typeOf(s.typeKey)?.name || "", what: [testOf(s.test)?.name, s.route].filter(Boolean).join(" · "), where: where ?? stName(s) });
@@ -48,7 +49,8 @@ function renderBoard(){
     { k: "retention", n: dueM, l: `Materials past retention${dueS.length ? `, on ${dueS.length} sample(s)` : ""}`, tone: "warn", link: ["storage", "Open Storage"],
       rows: dueS.map(x => x.s ? sRow(x.s, x.items.join(", ") + " past retention") : { id: x.id, type: x.type || "", what: x.route || "", where: x.items.join(", ") + " past retention" }) },
     ...(boardPick === "recvToday" ? [{ k: "recvToday", l: "Received today", tone: "", pick: list.filter(s => isToday(recvOf(s))), hide: true }] : []),
-    ...(boardPick === "dueToday" ? [{ k: "dueToday", l: "Results due today", tone: "", pick: list.filter(dueToday), hide: true }] : [])
+    ...(boardPick === "dueToday" ? [{ k: "dueToday", l: "Results due today", tone: "", pick: list.filter(dueToday), hide: true }] : []),
+    ...(boardPick === "todo" && todo ? [{ k: "todo", l: "To do today", tone: "", n: todo.store.length + todo.due.length, rows: [], hide: true }] : [])
   ];
   // v24d: a batch processed as one counts once and is one row (its samples stay separate records)
   sums.forEach(x => { if (x.pick){ x.n = unitCount(x.pick); if (!x.rows) x.rows = unitRows(x.pick, s => sRow(s)); } if (!x.rows) x.rows = []; if (x.link && !allowedTabs().includes(x.link[0])) delete x.link; });
@@ -58,14 +60,14 @@ function renderBoard(){
      lanes, with a small chip to clear it, and no list in between; a tile of things not on the lanes (released today, re-assays requested,
      materials past retention, trends) and the lab's Awaiting receipt (ticks to receive) show their list in place of the lanes. Lanes | List
      (kept on the device) shows the board as a table instead; never both. The wall screen always shows lanes. */
-  const listMode = !wall && boardView() === "list", laneable = !!(cur && cur.pick && !(cur.k === "await" && canEdit()));
+  const listMode = !wall && boardView() === "list", laneable = !!(cur && cur.pick && !(cur.k === "await" && canEdit()) && !(todo && TODO_K.includes(cur.k)));
   const shown = laneable ? new Set(cur.pick) : null, asList = !!cur && (!laneable || listMode);
   const chip = c => `<div class="pick-note pick-chip"${asList ? "" : ` id="bdPick"`}><span>Showing <b>${esc(c.l)}</b> · ${c.n}</span>${c.link ? `<button type="button" class="linkish small" data-goto="${c.link[0]}">${esc(c.link[1])}</button>` : ""}<button type="button" class="pk-x" data-bpick="${c.k}" aria-label="Show everything again" title="Show everything again">×</button></div>`;
   const pickTable = (rows, k) => rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>${k === "trends" ? "Reference material" : "Sample"}</th>${k === "trends" ? "" : "<th>Type</th>"}<th>${k === "trends" ? "Batch" : "Analysis · route"}</th><th>${k === "trends" ? "Trend" : "Where it is"}</th></tr></thead><tbody>${rows.slice(0, 100).map(r => k === "trends"
         ? `<tr><td>${esc(r.type)}</td><td class="mono">${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`
         : `<tr><td>${r.id ? `<button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>` : "—"}</td><td>${esc(r.type)}</td><td>${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`).join("")}</tbody></table></div>
       ${rows.length > 100 ? `<div class="small muted">+${rows.length - 100} more: use the filters or look a sample up by ID</div>` : ""}` : `<div class="small muted">Nothing to list on this device yet.</div>`;
-  const pickHtml = !cur ? "" : !asList ? chip(cur) : cur.k === "await" && canEdit() ? recvManyPanel(cur) : `<div class="panel pick-list stack" id="bdPick">${chip(cur)}${pickTable(cur.rows, cur.k)}</div>`;
+  const pickHtml = !cur ? "" : !asList ? chip(cur) : cur.k === "await" && canEdit() ? recvManyPanel(cur) : todo && TODO_K.includes(cur.k) ? todoPanel(cur, todo, chip) : `<div class="panel pick-list stack" id="bdPick">${chip(cur)}${pickTable(cur.rows, cur.k)}</div>`;
   const sumHtml = sums.filter(x => !x.hide).map(x => {
     const act = !x.n ? "" : `data-bpick="${x.k}" aria-pressed="${boardPick === x.k}"`, inner = `<span class="n">${x.n}</span><span class="l">${esc(x.l)}</span>`;
     return act ? `<button type="button" class="stat tile ${x.tone}" ${act}>${inner}</button>` : `<div class="stat tile ${x.tone}${x.n ? "" : " zero"}">${inner}</div>`;
@@ -85,11 +87,11 @@ function renderBoard(){
     v.querySelectorAll("[data-bview]").forEach(x => x.onclick = () => { lsSet("boardView", x.dataset.bview); renderBoard(); });
     const w = $("#bdWall"); if (w) w.onclick = () => setWall(!wall);
     v.querySelectorAll("[data-wall-exit]").forEach(x => x.onclick = () => setWall(false));
-    wallClock();
+    wallClock(); bindTodo(v, todo);
   };
   if (!list.length && (boardSec || boardRoute)){ v.innerHTML = `<div class="stack">${wallHead}${filters}<div class="panel empty"><strong>No samples in the lab match these filters</strong></div></div>`; bind(); return; }
   if (!list.length){   // v24c: the tiles stay, so today's releases and anything past retention can still be opened
-    v.innerHTML = `${wallHead}<div class="stack">${tilesOpen}${sumHtml}</div>${pickHtml}${boardReqNote()}<div class="panel empty"><strong>No samples in the lab</strong>
+    v.innerHTML = `${wallHead}<div class="stack">${todoNote(todo)}${tilesOpen}${sumHtml}</div>${pickHtml}${boardReqNote()}<div class="panel empty"><strong>No samples in the lab</strong>
       <div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-goto="submit">Submit a sample</button>${allowedTabs().includes("storage") ? `<button class="btn" data-goto="storage">Storage</button>` : ""}</div></div></div>`;
     bind(); return;
   }
@@ -129,6 +131,7 @@ function renderBoard(){
   v.innerHTML = `<div class="stack">
     ${wallHead}
     ${filters}
+    ${todoNote(todo)}
     ${tilesOpen}${sumHtml}</div>
     ${boardReqNote()}
     ${pickHtml}${listHtml}
@@ -489,9 +492,9 @@ function ledgerWatch(){
     if (tab === "ledger" && JSON.stringify(recon) !== was) renderLedger();   // stock records change often; the view only when the counts do
   }, () => {});
 }
-function ledgerRows(){
+function ledgerRows(docs = ledgerDocs){
   const rows = [];
-  for (const d of ledgerDocs) for (const m of Object.values(d.m || {})) rows.push({ ...m });   // snapshots are frozen: work on copies
+  for (const d of docs) for (const m of Object.values(d.m || {})) rows.push({ ...m });   // snapshots are frozen: work on copies
   const reversed = new Set(rows.filter(r => r.dir === "rev").map(r => r.rev));
   const byMid = Object.fromEntries(rows.map(r => [r.mid, r]));
   rows.forEach(r => { r.reversed = reversed.has(r.mid); r.base = r.dir === "rev" ? (byMid[r.rev]?.dir || "out") : r.dir; });
@@ -499,14 +502,14 @@ function ledgerRows(){
 }
 /* Month reconciliation: on hand at the start + received − fully out = on hand at the end, from the samples' stock records; the receipts
    are counted from the ledger itself, so a missing movement shows as a difference. */
-function computeRecon(m){
-  if (!reconStock || !ledgerReady){ recon = null; return; }
+function reconOf(m, stock, rows){
   const start = monthStart(m), end = monthEnd(m);
-  const opening = reconStock.filter(x => x.recvAt < start).length;
-  const ins = new Set(ledgerRows().filter(r => r.dir === "in" && !r.reversed).map(r => r.sid)).size;
-  const outs = reconStock.filter(x => x.gone < end).length;
-  recon = { m, opening, ins, outs, closing: opening + ins - outs, now: m === monthKey(Date.now()) ? reconStock.filter(x => x.gone === OPEN_T).length : null };
+  const opening = stock.filter(x => x.recvAt < start).length;
+  const ins = new Set(rows.filter(r => r.dir === "in" && !r.reversed).map(r => r.sid)).size;
+  const outs = stock.filter(x => x.gone < end).length;
+  return { m, opening, ins, outs, closing: opening + ins - outs, now: m === monthKey(Date.now()) ? stock.filter(x => x.gone === OPEN_T).length : null };
 }
+function computeRecon(m){ recon = reconStock && ledgerReady ? reconOf(m, reconStock, ledgerRows()) : null; }
 function renderLedger(){
   const v = $("#view-ledger");
   ledgerWatch(); watchStore(); watchSignoff(ledgerFilter.month || monthKey(Date.now()));
@@ -562,6 +565,7 @@ function renderLedger(){
   $("#lgSummary")?.addEventListener("click", () => showMonthSummary(rc, ledgerRows(), revN));
   $("#lgSignBtn")?.addEventListener("click", () => signOffMonth(rc, revN));
   $("#lgSignNote")?.addEventListener("input", e => { signNote = e.target.value; });
+  v.querySelectorAll("[data-audit]").forEach(b => b.onclick = () => saveAudit(b.dataset.audit));
   fillNames(v);
 }
 /* Keeps focus and caret in place when a list view re-draws (the ledger search box, for example). */
@@ -570,13 +574,15 @@ function keepUiSimple(v, build){
   build();
   if (fid){ const el = document.getElementById(fid); if (el){ el.focus({ preventScroll: true }); if (caret) try { el.setSelectionRange(...caret); } catch {} } }
 }
+/* One movement as a row of the CSV export and of the audit pack's Ledger sheet. */
+const LEDGER_HEAD = ["Date time (site)", "Direction", "Reversed", "Sample ID", "Site sample code", "Section", "Type", "Route", "Material", "Quantity", "From / to", "Reference", "Submitted by", "Lab staff", "Witness", "Note", "Movement ID"];
+const ledgerLine = r => [fmtFull(r.at), r.dir.toUpperCase(), r.reversed ? "yes" : "", r.sid, r.tag, r.sec, r.type, r.route, r.item, r.qty,
+  r.dir === "in" ? r.from : r.dir === "rev" ? "Reversal" : DISPO[r.kind] || r.kind, r.ref, r.dir === "in" ? r.sub : "", r.tech, r.wit, r.note, r.mid];
 async function exportCsv(rows){
   const dl = window.claude?.use ? await claude.use("downloads") : null;
   if (!dl){ toast("Downloads are not available in this view."); return; }
   const q = x => `"${String(x ?? "").replace(/"/g, '""')}"`;
-  const head = ["Date time (site)", "Direction", "Reversed", "Sample ID", "Site sample code", "Section", "Type", "Route", "Material", "Quantity", "From / to", "Reference", "Submitted by", "Lab staff", "Witness", "Note", "Movement ID"];
-  const lines = rows.map(r => [fmtFull(r.at), r.dir.toUpperCase(), r.reversed ? "yes" : "", r.sid, r.tag, r.sec, r.type, r.route, r.item, r.qty,
-    r.dir === "in" ? r.from : r.dir === "rev" ? "Reversal" : DISPO[r.kind] || r.kind, r.ref, r.dir === "in" ? r.sub : "", r.tech, r.wit, r.note, r.mid].map(q).join(","));
-  try { await dl.save({ filename: `sample-ledger-${ledgerFilter.month}.csv`, data: [head.map(q).join(","), ...lines].join("\n") }); }
+  const lines = rows.map(r => ledgerLine(r).map(q).join(","));
+  try { await dl.save({ filename: `sample-ledger-${ledgerFilter.month}.csv`, data: [LEDGER_HEAD.map(q).join(","), ...lines].join("\n") }); }
   catch { toast("Download was not saved."); }
 }

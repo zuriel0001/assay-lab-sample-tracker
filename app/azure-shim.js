@@ -221,7 +221,7 @@ const user = {
 const downloads = {
   async save(o){
     window.__downloaded = o;
-    const blob = o.data instanceof Blob ? o.data : new Blob([o.data], { type: o.mimeType || o.type || (/\.csv$/i.test(o.filename) ? "text/csv" : /\.html?$/i.test(o.filename) ? "text/html" : "application/octet-stream") });
+    const blob = o.data instanceof Blob ? o.data : new Blob([o.data], { type: o.mimeType || o.type || (/\.csv$/i.test(o.filename) ? "text/csv" : /\.html?$/i.test(o.filename) ? "text/html" : /\.pdf$/i.test(o.filename) ? "application/pdf" : /\.xlsx$/i.test(o.filename) ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "application/octet-stream") });
     const a = document.createElement("a"), url = URL.createObjectURL(blob);
     a.href = url; a.download = o.filename || "download"; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 10000);

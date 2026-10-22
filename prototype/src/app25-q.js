@@ -231,7 +231,7 @@ function signoffHtml(rc, revN){
   return `<div class="signoff ${s ? (changed ? "changed" : "done") : ""}" id="lgSign">
     ${s ? `<div><b>Signed off</b> by ${esc(s.tech)} on ${esc(fmt(s.at))}: ${s.opening} + ${s.ins} − ${s.outs} = <b>${s.closing}</b> on hand${s.note ? ` · ${esc(s.note)}` : ""}.${changed ? ` <span class="pill warn">The month changed after sign-off</span>` : ""}</div>` : `<div><b>Not signed off</b>${cur ? " (the month is not over yet)" : ""}.</div>`}
     <div class="row" style="gap:8px">
-      <button type="button" class="btn small" id="lgSummary">Month summary</button>
+      <button type="button" class="btn small" id="lgSummary">Month summary</button>${canApprove() && !future ? auditButtons() : ""}
       ${approve && (!s || changed) ? `<input class="inp" id="lgSignNote" placeholder="Note (optional)" value="${esc(signNote)}" style="flex:1 1 180px;width:auto"><button type="button" class="btn primary small" id="lgSignBtn">${s ? "Sign off again" : `Sign off ${esc(m)}`}</button>` : ""}
     </div></div>`;
 }

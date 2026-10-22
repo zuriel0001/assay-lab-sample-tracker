@@ -70,3 +70,29 @@
   .idg{padding:5px}
   .idg-row{padding:5px 8px 7px}
 }
+/* v34: the audit pack on the Ledger's sign-off box; the Board's daily to-do (put away, past retention) */
+.aud-pk{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:4px}
+.aud-pk .lbl{font-size:14px;color:var(--muted)}
+.todo-note{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;padding:3px 4px 3px 12px;border:1px solid color-mix(in srgb,var(--warn) 35%,var(--line));border-radius:var(--r);background:var(--warn-soft);font-size:15px}
+.todo-note > span:not(.grow) + span:not(.grow)::before{content:"· ";color:var(--muted)}
+.todo-note .pk-x{border:0;background:none;color:var(--muted);font:inherit;font-size:18px;line-height:1;width:28px;height:28px;border-radius:50%;cursor:pointer}
+.todo-note .pk-x:hover,.todo-note .pk-x:focus-visible{background:var(--panel);color:var(--ink)}
+.todo-top{gap:8px;align-items:center}
+.td-wit{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--muted)}
+.td-wit select{min-height:34px;padding:4px 8px;max-width:14rem}
+.todo-sec{display:grid;gap:4px}
+.todo-h{display:flex;align-items:center;gap:6px;font-weight:600;font-size:15px}
+.todo-list{border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
+.todo-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:5px 10px}
+.todo-row + .todo-row{border-top:1px solid var(--line)}
+.todo-row .td-what{min-width:0;overflow-wrap:anywhere}
+.todo-row .td-what .small{font-size:14px}
+.todo-row .td-act{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.todo-row .inp{min-height:34px;padding:4px 8px}
+.todo-row .td-loc{width:11rem}
+.todo-row .td-ref{width:13rem}
+@media (max-width:720px){
+  .todo-row{grid-template-columns:1fr}
+  .todo-row .td-act{justify-content:flex-start}
+  .todo-row .td-loc,.todo-row .td-ref{flex:1 1 8rem;width:auto}
+}

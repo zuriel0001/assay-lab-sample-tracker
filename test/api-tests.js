@@ -220,7 +220,10 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   const so = "signoff/2026-10", sg = (who, x = {}) => ({ at: Date.now(), ...who, role: "super", opening: 3, ins: 10, outs: 4, closing: 9, rev: 0, note: "", ...x });
   check(!(await one("t1@site.com", { op: "set", path: so, data: { id: "2026-10", month: "2026-10", signs: [sg(T1)] } })).ok, "a technician can't sign off the ledger");
   check(!(await one("s1@site.com", { op: "set", path: so, data: { id: "2026-10", month: "2026-10", signs: [sg(T1)] } })).ok, "a sign-off is made in the name of the person signed in");
-  check(!(await one("s1@site.com", { op: "set", path: so, data: { id: "2026-10", month: "2026-10", signs: [sg(S1, { closing: -1 })] } })).ok, "a sign-off carries whole counts");
+  check(!(await one("s1@site.com", { op: "set", path: so, data: { id: "2026-10", month: "2026-10", signs: [sg(S1, { closing: 1.5 })] } })).ok &&
+    !(await one("s1@site.com", { op: "set", path: so, data: { id: "2026-10", month: "2026-10", signs: [sg(S1, { outs: -1 })] } })).ok, "a sign-off carries whole counts");
+  check((await one("s1@site.com", { op: "set", path: "signoff/2026-09", data: { id: "2026-09", month: "2026-09", signs: [sg(S1, { opening: 0, ins: 0, outs: 4, closing: -4 })] } })).ok,
+    "v34: a month with movements missing from the ledger (on hand at the end below 0) is still signed off, as the page shows it");
   check(!(await one("s1@site.com", { op: "set", path: "signoff/2026-13", data: { id: "2026-13", month: "2026-13", signs: [sg(S1)] } })).ok, "a sign-off is for a real month");
   check((await one("s1@site.com", { op: "set", path: so, data: { id: "2026-10", month: "2026-10", signs: [sg(S1)] } })).ok, "a supervisor signs off a month");
   const so1 = (await one("v@site.com", { op: "get", path: so })).data;
