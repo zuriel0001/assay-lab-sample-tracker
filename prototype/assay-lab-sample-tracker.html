@@ -982,6 +982,21 @@ body.wall .stats.tiles.fit{grid-template-columns:repeat(auto-fill,minmax(170px,1
 .vz-own{display:inline-block;margin-top:4px;padding:2px 8px;border-radius:999px;background:var(--c-violet-soft);color:var(--c-violet);font-size:13px}
 
 /* v31: ID groups (first code + date, the count continued), more analyses on a sample, a typed value in a fixed list */
+/* v33 (22 Oct): a batch's samples are a step of their own, first: no second box inside it; Number of samples narrow, Batch name beside it;
+   the codes the groups count up read as filled in (they are what is saved unless typed over). */
+.batch-step .batch-box{padding:0;border:0;background:none}
+.batch-box .bn-row{grid-template-columns:minmax(0,12.5rem) minmax(0,1fr);align-items:end}
+.brows .r-code.gen::placeholder{color:var(--ink);opacity:1}
+@media (max-width:720px){.batch-box .bn-row{grid-template-columns:minmax(0,8.5rem) minmax(0,1fr)}}
+/* v33: the Board's chip for a chosen tile (cleared with ×), and Lanes | List beside Wall screen; both small */
+.pick-note.pick-chip{display:inline-flex;align-self:flex-start;flex-wrap:wrap;gap:4px 8px;padding:3px 4px 3px 12px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));border-radius:999px;background:var(--accent-soft);font-size:15px;max-width:100%}
+.pick-chip .pk-x{border:0;background:none;color:var(--muted);font:inherit;font-size:18px;line-height:1;width:28px;height:28px;border-radius:50%;cursor:pointer}
+.pick-chip .pk-x:hover,.pick-chip .pk-x:focus-visible{background:var(--panel);color:var(--ink)}
+.pick-list > .pick-chip{margin-bottom:2px}
+.bd-view{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.bd-view button{border:0;background:none;padding:7px 12px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer}
+.bd-view button + button{border-left:1px solid var(--line)}
+.bd-view button[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink);font-weight:600}
 /* v32: the ID groups section: one light box, the number of groups on a filled strip first, a small box per group (compact, both themes) */
 .idg{display:grid;gap:6px;margin:4px 0 12px;padding:6px;border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--accent-soft) 38%,var(--panel))}
 .idg.none{padding:0;border:0;background:none}
@@ -3206,7 +3221,7 @@ function buildTrack(v, s){
   const hist = (s.history || []).slice().reverse().map(h => `<li>
       <div>${h.redo ? `<span class="pill warn">Re-assay</span> ` : h.reroute ? `<span class="pill info">${h.testTo ? "Test changed" : "Route changed"}</span> ` : h.corr ? `<span class="pill warn">Correction</span> ` : h.skipped ? `<span class="pill warn">Skipped steps</span> ` : ""}<b>${esc(stageName(s, h))}</b>${h.ref ? ` · <span>${esc(h.ref)}</span>` : ""}${h.loc ? ` · <span>${esc(h.loc)}</span>` : ""}</div>
       <time>${fmt(h.at)} · by ${h.tech ? esc(h.tech) : h.name ? `${esc(h.name)} (submitter)` : who(h.by)}${h.wit ? `, witnessed by ${esc(h.wit)}` : ""}</time>
-      ${h.note && !((h.res || h.ev) && !canSeeResults(s)) ? `<div>${esc(h.note)}</div>` : ""}${h.hand || h.badge ? `<div>Handed to <b>${esc(h.hand || "—")}</b>${h.badge ? `, badge <span class="mono">${esc(h.badge)}</span>` : ""}</div>` : ""}</li>`).join("");
+      ${h.note && !((h.res || h.ev || h.redo) && !canSeeResults(s)) ? `<div>${esc(h.note)}</div>` : ""}${h.hand || h.badge ? `<div>Handed to <b>${esc(h.hand || "—")}</b>${h.badge ? `, badge <span class="mono">${esc(h.badge)}</span>` : ""}</div>` : ""}</li>`).join("");
 
   const det = s.details ? Object.entries(s.details).map(([k, val]) => `${esc(k)}: <b>${esc(val)}</b>`).join(" · ") : "";
   const rv = s.recv || null;
@@ -3229,7 +3244,7 @@ function buildTrack(v, s){
     ...((s.analyses || []).length ? [["Add-on analyses", s.analyses.map(esc).join(", ")]] : []),
     ["Hazards", hazTags(s).length ? hazTags(s).map(h => esc(h.l)).join(", ") : "None declared"],
     ...(twoPerson(s) ? [["Custody", "Two-person custody: every step needs a witness"]] : []),
-    ...(s.reassays ? [["Re-assays", `${s.reassays}${s.lastRedo ? `, last: ${esc(s.lastRedo)}` : ""}`]] : []),
+    ...(s.reassays ? [["Re-assays", `${s.reassays}${s.lastRedo && canSeeResults(s) ? `, last: ${esc(s.lastRedo)}` : ""}`]] : []),   // a re-assay's reason can carry values (as the Azure server's redactSample)
     ["Source location", esc(s.source) || "—"],
     ["Quantity submitted", esc(qtyText(s.containers, s.massKg, "kg")) || "—"],
     ["Seal / custody no.", s.seal ? `<span class="mono">${esc(s.seal)}</span>` : "—"],
@@ -3920,14 +3935,18 @@ function renderBoard(){
   sums.forEach(x => { if (x.pick){ x.n = unitCount(x.pick); if (!x.rows) x.rows = unitRows(x.pick, s => sRow(s)); } if (!x.rows) x.rows = []; if (x.link && !allowedTabs().includes(x.link[0])) delete x.link; });
   const cur = sums.find(x => x.k === boardPick && x.n);
   if (boardPick && !cur) boardPick = "";
-  const shown = cur && cur.pick ? new Set(cur.pick) : null;
-  const pickHtml = !cur ? "" : cur.k === "await" && canEdit() ? recvManyPanel(cur) : `<div class="panel pick-list stack" id="bdPick">
-      <div class="pick-note"><span>Showing <b>${esc(cur.l)}</b>: ${cur.n}</span>${cur.link ? `<button type="button" class="btn small" data-goto="${cur.link[0]}">${esc(cur.link[1])}</button>` : ""}<span class="grow"></span><button type="button" class="btn ghost small" data-bpick="${cur.k}">Close</button></div>
-      ${cur.rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>${cur.k === "trends" ? "Reference material" : "Sample"}</th>${cur.k === "trends" ? "" : "<th>Type</th>"}<th>${cur.k === "trends" ? "Batch" : "Analysis · route"}</th><th>${cur.k === "trends" ? "Trend" : "Where it is"}</th></tr></thead><tbody>${cur.rows.slice(0, 100).map(r => cur.k === "trends"
+  /* v33 (22 Oct, "the BOARD page looks long, these 2 sections feels like duplicates"): a tile whose samples are on the lanes filters the
+     lanes, with a small chip to clear it, and no list in between; a tile of things not on the lanes (released today, re-assays requested,
+     materials past retention, trends) and the lab's Awaiting receipt (ticks to receive) show their list in place of the lanes. Lanes | List
+     (kept on the device) shows the board as a table instead; never both. The wall screen always shows lanes. */
+  const listMode = !wall && boardView() === "list", laneable = !!(cur && cur.pick && !(cur.k === "await" && canEdit()));
+  const shown = laneable ? new Set(cur.pick) : null, asList = !!cur && (!laneable || listMode);
+  const chip = c => `<div class="pick-note pick-chip"${asList ? "" : ` id="bdPick"`}><span>Showing <b>${esc(c.l)}</b> · ${c.n}</span>${c.link ? `<button type="button" class="linkish small" data-goto="${c.link[0]}">${esc(c.link[1])}</button>` : ""}<button type="button" class="pk-x" data-bpick="${c.k}" aria-label="Show everything again" title="Show everything again">×</button></div>`;
+  const pickTable = (rows, k) => rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>${k === "trends" ? "Reference material" : "Sample"}</th>${k === "trends" ? "" : "<th>Type</th>"}<th>${k === "trends" ? "Batch" : "Analysis · route"}</th><th>${k === "trends" ? "Trend" : "Where it is"}</th></tr></thead><tbody>${rows.slice(0, 100).map(r => k === "trends"
         ? `<tr><td>${esc(r.type)}</td><td class="mono">${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`
-        : `<tr><td>${r.id ? `<button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>` : "—"}</td><td>${esc(r.type)}</td><td>${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="small muted">Nothing to list on this device yet.</div>`}
-      ${cur.rows.length > 100 ? `<div class="small muted">+${cur.rows.length - 100} more: use the filters or look a sample up by ID</div>` : ""}
-      ${shown ? `<div class="small muted">The lanes below show only these samples.</div>` : ""}</div>`;
+        : `<tr><td>${r.id ? `<button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>` : "—"}</td><td>${esc(r.type)}</td><td>${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`).join("")}</tbody></table></div>
+      ${rows.length > 100 ? `<div class="small muted">+${rows.length - 100} more: use the filters or look a sample up by ID</div>` : ""}` : `<div class="small muted">Nothing to list on this device yet.</div>`;
+  const pickHtml = !cur ? "" : !asList ? chip(cur) : cur.k === "await" && canEdit() ? recvManyPanel(cur) : `<div class="panel pick-list stack" id="bdPick">${chip(cur)}${pickTable(cur.rows, cur.k)}</div>`;
   const sumHtml = sums.filter(x => !x.hide).map(x => {
     const act = !x.n ? "" : `data-bpick="${x.k}" aria-pressed="${boardPick === x.k}"`, inner = `<span class="n">${x.n}</span><span class="l">${esc(x.l)}</span>`;
     return act ? `<button type="button" class="stat tile ${x.tone}" ${act}>${inner}</button>` : `<div class="stat tile ${x.tone}${x.n ? "" : " zero"}">${inner}</div>`;
@@ -3935,15 +3954,16 @@ function renderBoard(){
   // v24d (20 Oct): the tiles fill whole rows: one row of up to 8 on a wide screen, otherwise two even rows (none alone on a row of its own)
   const tN = sums.filter(x => !x.hide).length, tilesOpen = `<div class="stats tiles fit" style="--n1:${tN <= 8 ? tN : Math.ceil(tN / 2)};--n2:${Math.ceil(tN / 2)}">`;
   const filters = `<div class="bd-top bd-tools">
-    <select class="inp" id="bdSec" style="width:auto;max-width:100%" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${boardSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
-    <select class="inp" id="bdRoute" style="width:auto;max-width:100%" aria-label="Test or route"><option value="">All tests and routes</option>${routeOptions(boardRoute, boardRoutes())}</select>
-    <span class="grow"></span>${isStaff() ? `<button type="button" class="btn ghost" id="bdWall">${wall ? "Exit wall screen" : "Wall screen"}</button>` : ""}</div>`;
+    <select class="inp" id="bdSec" style="width:auto;max-width:min(340px,100%)" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${boardSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
+    <select class="inp" id="bdRoute" style="width:auto;max-width:min(340px,100%)" aria-label="Test or route"><option value="">All tests and routes</option>${routeOptions(boardRoute, boardRoutes())}</select>
+    <span class="grow"></span>${wall ? "" : `<span class="bd-view" role="group" aria-label="Board view"><button type="button" data-bview="lanes" aria-pressed="${!listMode}">Lanes</button><button type="button" data-bview="list" aria-pressed="${listMode}">List</button></span>`}${isStaff() ? `<button type="button" class="btn ghost" id="bdWall">${wall ? "Exit wall screen" : "Wall screen"}</button>` : ""}</div>`;
   const wallHead = `<div class="wall-head"><h2>Assay Lab · Workflow board</h2><span class="clock" id="wallClock"></span><button type="button" class="btn" data-wall-exit>Exit</button></div>`;
   const bind = () => {
     const a = $("#bdSec"), b = $("#bdRoute");
     if (a) a.onchange = e => { boardSec = e.target.value; renderBoard(); };
     if (b) b.onchange = e => { boardRoute = e.target.value; renderBoard(); };
     v.querySelectorAll("[data-bpick]").forEach(x => x.onclick = () => { boardPick = boardPick === x.dataset.bpick ? "" : x.dataset.bpick; renderBoard(); });
+    v.querySelectorAll("[data-bview]").forEach(x => x.onclick = () => { lsSet("boardView", x.dataset.bview); renderBoard(); });
     const w = $("#bdWall"); if (w) w.onclick = () => setWall(!wall);
     v.querySelectorAll("[data-wall-exit]").forEach(x => x.onclick = () => setWall(false));
     wallClock();
@@ -3979,19 +3999,24 @@ function renderBoard(){
       ${!items.length ? `<div class="small muted">None</div>` : ""}</div>`;
   }).join("");
   const scrolled = laneScroll();
+  // List: the board's samples as one table (a tile's samples when one is chosen), in lane order, late and urgent first
+  const phI = s => { const st = stage(s, s.stageKey); return relSet.has(s) ? PHASES.findIndex(p => p.key === "qc") : st ? PHASES.findIndex(p => p.key === st.phase) : 99; };
+  const listHtml = !listMode || cur ? "" : `<div class="panel pick-list stack" id="bdList"><div class="pick-note"><span>In the lab · ${unitCount(list)}</span></div>${pickTable(unitRows(list.slice().sort((a, b) => phI(a) - phI(b) || (status(b).late - status(a).late) || (b.priority === "Urgent") - (a.priority === "Urgent") || a.stageAt - b.stageAt), s => sRow(s)), "")}</div>`;
   v.innerHTML = `<div class="stack">
     ${wallHead}
     ${filters}
     ${tilesOpen}${sumHtml}</div>
     ${boardReqNote()}
-    ${pickHtml}
+    ${pickHtml}${listHtml}
     ${alerts.length ? `<div class="notice bad" id="bdAlerts"><b>Past a limit:</b> ${alerts.slice(0, 12).map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button> <span class="small">${esc(openAlerts(s).map(h => alertLine(s, h)).join("; "))}</span>`).join("<br>")}${alerts.length > 12 ? `<br>+${alerts.length - 12} more` : ""}<div class="small">Open each sample, act as the limit says and record what was done and who was told. In the production system these also go out by email or SMS.</div></div>` : ""}
     ${trends.length ? `<div class="notice warn" id="bdTrends"><b>Reference material trends:</b> ${esc(trends.map(t => `${t.crm}${t.k ? " " + t.k : ""}: ${t.msg}`).join("; "))}. See the control chart on the <button type="button" class="linkish" data-goto="batches">Lab batches</button> tab.</div>` : ""}
-    <div class="lanes">${lanes}</div></div>`;
+    ${listMode || asList ? "" : `<div class="lanes">${lanes}</div>`}</div>`;
   bind(); bindRecvMany(v);
   fitLanes(scrolled);
 }
 
+/* v33: Lanes or List, kept on the device. */
+const boardView = () => lsGet("boardView") === "list" ? "list" : "lanes";
 /* The board's route filter: routes in use, and any other route a sample in the lab is on. */
 function boardRoutes(){ const on = new Set([...samples.values()].map(s => s.route)); return (cfg.routes || []).filter(r => routeOn(r) || on.has(r.code) || r.code === boardRoute); }
 /* ---------- submit and register ---------- */
@@ -4068,7 +4093,8 @@ function renderSampleForm(mode){
   v.innerHTML = `<form class="panel stack sub-form" id="regForm" data-mode="${mode}" autocomplete="off" novalidate>
     <div class="form-h sub-head"><h2>${walk ? "Register at lab" : "Submit a sample"}</h2>${kindPicker()}${walk ? `<span class="pill info">Waits for receipt by a lab technician</span>` : ""}
       ${staff ? `<label class="recv-toggle" title="Tick when the sample is in your hands: it is received at once and skips Awaiting receipt"><input type="checkbox" id="rRecvNow"> Received now at the lab, by me</label>` : ""}</div>
-    <div class="sub-step s1"><div class="sub-t"><span class="num">1</span>Sample<span class="typechip" id="rTypeChip"></span></div><div class="form">
+    <div class="sub-step batch-step" id="rBatchStep" hidden><div class="sub-t"><span class="num">1</span>Batch samples</div>${batchBlock()}</div>
+    <div class="sub-step s1"><div class="sub-t"><span class="num">1</span><span id="rS1t">Sample</span><span class="typechip" id="rTypeChip"></span></div><div class="form">
       <label class="f"><span>Sample type <span class="req">*</span></span><select id="rType" required><option value="">Choose…</option>${typeOptions()}</select></label>
       <label class="f"><span>Analysis <span class="req">*</span></span><select id="rTest" required>${testOptions("")}</select></label>
       <div class="full" id="rAnBox"></div>
@@ -4084,13 +4110,11 @@ function renderSampleForm(mode){
     <div class="sub-step s3"><div class="sub-t"><span class="num">3</span>${walk ? "Who brought it" : "Who sent it"}</div><div class="form">
       <div class="f pair"><label class="f"><span>Submitted by <span class="req">*</span></span><input id="rSubmitter" required placeholder="Name"></label><label class="f badge-f"><span>Badge no.</span><input id="rSubBadge" maxlength="20" autocomplete="off"></label></div>
       <label class="f" data-single>Site sample code<input id="rTag" placeholder="e.g. MILL-A-001" autocomplete="off" spellcheck="false"></label>
-      <label class="f" data-hand><span>Handed to (lab technician)${walk ? req : ""}</span><input id="rHandTo" maxlength="60" list="rTechList" autocomplete="off"></label>
-      <label class="f" data-hand><span>Technician's badge no.${walk ? req : ""}</span><input id="rHandBadge" maxlength="20" autocomplete="off"></label>
+      <div class="f pair" data-hand><label class="f"><span>Handed to (lab technician)${walk ? req : ""}</span><input id="rHandTo" maxlength="60" list="rTechList" autocomplete="off"></label><label class="f badge-f"><span>Badge no.${walk ? req : ""}</span><input id="rHandBadge" maxlength="20" autocomplete="off" aria-label="Technician's badge no."></label></div>
       <datalist id="rTechList">${techs.map(n => `<option value="${esc(n)}">`).join("")}</datalist>
       ${staff ? `<details class="f recv-at" id="rRecvAtBox" data-lab><summary>Received <b id="rRecvAtTxt">now</b> · change</summary><input id="rRecvAt" type="datetime-local" required value="${localInput(now)}" aria-label="Date and time received"></details>
       <div id="rWitBox" data-lab hidden>${witnessField("rWit")}</div>
       <label class="f" id="rTempBox" data-lab hidden><span>Cooler temperature (°C) <span class="req">*</span></span><input id="rTemp" inputmode="decimal" maxlength="6" autocomplete="off"></label>` : ""}
-      ${batchBlock()}
     </div></div>
       <details class="form-more" id="rMore"><summary>More details <span class="muted small">site reference, collection time, priority, hazards, notes</span></summary><div class="form">
         <div class="full" id="rDetails"></div>
@@ -7932,7 +7956,7 @@ function kindPicker(){
 }
 function batchBlock(){
   return `<div class="full batch-box" id="rBatch" hidden>
-    <div class="form">
+    <div class="form bn-row">
       <label class="f"><span>Number of samples <span class="req">*</span></span><input id="rCount" type="number" min="2" max="100" step="1" value="${bRows.length}" inputmode="numeric"></label>
       <label class="f"><span>Batch name</span><input id="rBatchName" maxlength="80" placeholder="e.g. Night shift CIL survey" autocomplete="off"></label>
     </div>
@@ -7962,8 +7986,9 @@ function rowHints(){
   tags.forEach((t, i) => t.forEach(x => { if (seen.has(x)){ dup.add(i); dup.add(seen.get(x)); } else seen.set(x, i); }));
   document.querySelectorAll("#rRows .r-code").forEach(el => {
     const i = +el.dataset.i;
-    el.placeholder = !c[i].length && tags[i]?.length ? tags[i].join(", ") : i === 0 ? "e.g. MILL-A-001" : "";
-    el.classList.toggle("dup", dup.has(i));
+    const gen = !c[i].length && !!tags[i]?.length;
+    el.placeholder = gen ? tags[i].join(", ") : i === 0 ? `e.g. MLABPPS01${(bDate || localInput(Date.now()).slice(0, 10)).replace(/-/g, "")}` : "";
+    el.classList.toggle("gen", gen); el.classList.toggle("dup", dup.has(i));
   });
   const info = $("#rRowInfo"), keep = $("#rFree") && (rowHints.took || []).every(([i, t]) => (tags[i] || []).includes(t));   // v32: Next free numbers stays while its codes do
   if (keep) return submitLabel();
@@ -7987,7 +8012,8 @@ function submitLabel(){
 }
 function showKind(v){
   const batch = formKind() === "batch", isJob = isJobKind(formKind());
-  $("#rBatch", v).hidden = !batch;
+  $("#rBatch", v).hidden = !batch; const bs = $("#rBatchStep", v); if (bs) bs.hidden = !batch;
+  const s1t = $("#rS1t", v); if (s1t) s1t.textContent = batch ? "Type and analysis" : "Sample";
   v.querySelectorAll("[data-single]").forEach(x => { x.hidden = batch || isJob; });
   // v24d: a shift job lists its samples (each with its own type and analysis) instead of one sample type and analysis
   const j = $("#rJob", v); if (j) j.hidden = !isJob;
@@ -8000,6 +8026,7 @@ function showKind(v){
     if (pu?.dataset.job){ const k = pu.value; pu.innerHTML = `<option value="">Choose…</option>${purposeOptions(ty)}`; pu.value = [...pu.options].some(o => o.value === k) ? k : ""; delete pu.dataset.job; }
   }
   if (batch && !$("#rRows .r-code", v)) renderRows();
+  [...v.querySelectorAll("#regForm > .sub-step")].filter(x => !x.hidden).forEach((x, i) => { const n = x.querySelector(".sub-t .num"); if (n) n.textContent = i + 1; });
   submitLabel();
 }
 function bindKind(v){
@@ -8649,7 +8676,7 @@ function recvManyPanel(cur){
     <td>${esc(s.type || "")}${twoPerson(s) ? ` <span class="haz two" title="Two-person custody">2P</span>` : ""}</td><td>${esc([testOf(s.test)?.name, s.route].filter(Boolean).join(" · "))}</td>
     <td>${esc(fmt(s.createdAt))}${s.handedTo ? `<div class="small muted">Handed to ${esc(s.handedTo)}</div>` : ""}</td></tr>`; };
   return `<div class="panel pick-list stack" id="bdPick">
-    <div class="pick-note"><span>Showing <b>${esc(cur.l)}</b>: ${cur.n}</span><span class="grow"></span><button type="button" class="btn ghost small" data-bpick="${cur.k}">Close</button></div>
+    <div class="pick-note pick-chip"><span>Showing <b>${esc(cur.l)}</b> · ${cur.n}</span><button type="button" class="pk-x" data-bpick="${cur.k}" aria-label="Show everything again" title="Show everything again">×</button></div>
     <div class="tbl-wrap"><table class="cardy"><thead><tr><th><input type="checkbox" id="rmAll" aria-label="Tick all" ${ids.size && n === ids.size ? "checked" : ""}></th><th>Sample</th><th>Type</th><th>Analysis · route</th><th>Submitted</th></tr></thead><tbody>${units.slice(0, 100).map(row).join("")}</tbody></table></div>
     <div class="recv-many stack" id="rmBox">
       <div class="form">${meBox("Received by")}
@@ -8657,8 +8684,7 @@ function recvManyPanel(cur){
         ${two ? witnessField("rmWit") : ""}
         <label class="recv-toggle full"><input type="checkbox" id="rmOk" ${rmOk ? "checked" : ""}> The ticked bags match their submissions, seals intact, good condition</label></div>
       <div class="row" style="gap:8px"><button type="button" class="btn primary" id="rmBtn" ${n && !rmBusy ? "" : "disabled"}>${rmBusy ? "Receiving…" : `Receive ${n} ticked`}</button><button type="button" class="btn" id="rmScan">Scan bags</button><span class="small muted">Tick the bags in front of you, or scan their labels. A bag with a problem: open it and flag it.</span></div>
-    </div>
-    <div class="small muted">The lanes below show only these samples.</div></div>`;
+    </div></div>`;
 }
 function bindRecvMany(v){
   const box = $("#bdPick", v); if (!box || !$("#rmBox", box)) return;

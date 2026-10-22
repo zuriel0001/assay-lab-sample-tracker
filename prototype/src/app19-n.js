@@ -298,7 +298,7 @@ function kindPicker(){
 }
 function batchBlock(){
   return `<div class="full batch-box" id="rBatch" hidden>
-    <div class="form">
+    <div class="form bn-row">
       <label class="f"><span>Number of samples <span class="req">*</span></span><input id="rCount" type="number" min="2" max="100" step="1" value="${bRows.length}" inputmode="numeric"></label>
       <label class="f"><span>Batch name</span><input id="rBatchName" maxlength="80" placeholder="e.g. Night shift CIL survey" autocomplete="off"></label>
     </div>
@@ -328,8 +328,9 @@ function rowHints(){
   tags.forEach((t, i) => t.forEach(x => { if (seen.has(x)){ dup.add(i); dup.add(seen.get(x)); } else seen.set(x, i); }));
   document.querySelectorAll("#rRows .r-code").forEach(el => {
     const i = +el.dataset.i;
-    el.placeholder = !c[i].length && tags[i]?.length ? tags[i].join(", ") : i === 0 ? "e.g. MILL-A-001" : "";
-    el.classList.toggle("dup", dup.has(i));
+    const gen = !c[i].length && !!tags[i]?.length;
+    el.placeholder = gen ? tags[i].join(", ") : i === 0 ? `e.g. MLABPPS01${(bDate || localInput(Date.now()).slice(0, 10)).replace(/-/g, "")}` : "";
+    el.classList.toggle("gen", gen); el.classList.toggle("dup", dup.has(i));
   });
   const info = $("#rRowInfo"), keep = $("#rFree") && (rowHints.took || []).every(([i, t]) => (tags[i] || []).includes(t));   // v32: Next free numbers stays while its codes do
   if (keep) return submitLabel();
@@ -353,7 +354,8 @@ function submitLabel(){
 }
 function showKind(v){
   const batch = formKind() === "batch", isJob = isJobKind(formKind());
-  $("#rBatch", v).hidden = !batch;
+  $("#rBatch", v).hidden = !batch; const bs = $("#rBatchStep", v); if (bs) bs.hidden = !batch;
+  const s1t = $("#rS1t", v); if (s1t) s1t.textContent = batch ? "Type and analysis" : "Sample";
   v.querySelectorAll("[data-single]").forEach(x => { x.hidden = batch || isJob; });
   // v24d: a shift job lists its samples (each with its own type and analysis) instead of one sample type and analysis
   const j = $("#rJob", v); if (j) j.hidden = !isJob;
@@ -366,6 +368,7 @@ function showKind(v){
     if (pu?.dataset.job){ const k = pu.value; pu.innerHTML = `<option value="">Choose…</option>${purposeOptions(ty)}`; pu.value = [...pu.options].some(o => o.value === k) ? k : ""; delete pu.dataset.job; }
   }
   if (batch && !$("#rRows .r-code", v)) renderRows();
+  [...v.querySelectorAll("#regForm > .sub-step")].filter(x => !x.hidden).forEach((x, i) => { const n = x.querySelector(".sub-t .num"); if (n) n.textContent = i + 1; });
   submitLabel();
 }
 function bindKind(v){

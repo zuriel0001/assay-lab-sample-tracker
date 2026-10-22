@@ -1,5 +1,20 @@
 
 /* v31: ID groups (first code + date, the count continued), more analyses on a sample, a typed value in a fixed list */
+/* v33 (22 Oct): a batch's samples are a step of their own, first: no second box inside it; Number of samples narrow, Batch name beside it;
+   the codes the groups count up read as filled in (they are what is saved unless typed over). */
+.batch-step .batch-box{padding:0;border:0;background:none}
+.batch-box .bn-row{grid-template-columns:minmax(0,12.5rem) minmax(0,1fr);align-items:end}
+.brows .r-code.gen::placeholder{color:var(--ink);opacity:1}
+@media (max-width:720px){.batch-box .bn-row{grid-template-columns:minmax(0,8.5rem) minmax(0,1fr)}}
+/* v33: the Board's chip for a chosen tile (cleared with ×), and Lanes | List beside Wall screen; both small */
+.pick-note.pick-chip{display:inline-flex;align-self:flex-start;flex-wrap:wrap;gap:4px 8px;padding:3px 4px 3px 12px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));border-radius:999px;background:var(--accent-soft);font-size:15px;max-width:100%}
+.pick-chip .pk-x{border:0;background:none;color:var(--muted);font:inherit;font-size:18px;line-height:1;width:28px;height:28px;border-radius:50%;cursor:pointer}
+.pick-chip .pk-x:hover,.pick-chip .pk-x:focus-visible{background:var(--panel);color:var(--ink)}
+.pick-list > .pick-chip{margin-bottom:2px}
+.bd-view{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.bd-view button{border:0;background:none;padding:7px 12px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer}
+.bd-view button + button{border-left:1px solid var(--line)}
+.bd-view button[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink);font-weight:600}
 /* v32: the ID groups section: one light box, the number of groups on a filled strip first, a small box per group (compact, both themes) */
 .idg{display:grid;gap:6px;margin:4px 0 12px;padding:6px;border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--accent-soft) 38%,var(--panel))}
 .idg.none{padding:0;border:0;background:none}

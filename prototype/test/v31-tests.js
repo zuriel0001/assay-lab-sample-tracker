@@ -51,11 +51,17 @@ async function toLast(page, id){
 
   log("Batch: the first code and the date make every row's code, the count continued");
   await batchForm(Tc, "plant_feed", "aufx", 3);
+  // v33 (22 Oct): "under 'Batch', swap the location of the red and green. how it looks like on Shift end and met tabs"
+  const steps = await Tc.$$eval("#regForm > .sub-step:not([hidden]) .sub-t", es => es.map(e => { const c = e.cloneNode(true); c.querySelector(".typechip")?.remove(); return c.textContent.replace(/\s+/g, " ").trim(); }));
+  check(steps.join("|") === "1 Batch samples|2 Type and analysis|3 What it is for|4 Who sent it" || steps.join("|") === "1Batch samples|2Type and analysis|3What it is for|4Who sent it", "a batch's samples come first, the steps numbered as shown: " + steps.join("|"));
+  check(await Tc.$eval("#rBatchStep", st => { const c = st.querySelector("#rCount").getBoundingClientRect(), n = st.querySelector("#rBatchName").getBoundingClientRect(); return Math.abs(c.top - n.top) < 2 && c.width < n.width / 2; }), "Batch name beside a narrower Number of samples");
+  check(/^e\.g\. MLABPPS01\d{8}$/.test(await Tc.getAttribute('#rRows .r-code[data-i="0"]', "placeholder")), "the first row's example is a code in the new form");
   check(await Tc.isVisible("#rIdgBox .g-first") && await Tc.isVisible("#rBGDate") && (await opts(Tc, "#rBGn")).join() === "1,2,3,4,5,6,7,8,9,10" && await Tc.inputValue("#rBGn") === "1", "a batch has a first code, the date on the codes and ID groups (1 to 10, 1 at first)");
   await Tc.fill("#rBGDate", "2026-10-22"); await Tc.dispatchEvent("#rBGDate", "input");
   await Tc.fill('#rIdgBox .g-first[data-g="0"]', "mlabpps01"); await Tc.waitForTimeout(150);
   check((await rowPh(Tc)).join() === "MLABPPS0120261022,MLABPPS0220261022,MLABPPS0320261022", "MLABPPS01 on 22 Oct: " + (await rowPh(Tc)).join());
   check(/MLABPPS0120261022 … MLABPPS0320261022/.test(await text(Tc, "#rIdgBox .g-ex")), "the codes it makes, first to last, under the first code");
+  check(await Tc.$$eval("#rRows .r-code", es => es.every(e => e.classList.contains("gen") && getComputedStyle(e, "::placeholder").opacity === "1")), "the counted codes read as filled in, in every row");
   await Tc.fill("#rCount", "12"); await Tc.dispatchEvent("#rCount", "change"); await Tc.waitForTimeout(150);
   const ph12 = await rowPh(Tc);
   check(ph12.length === 12 && ph12[9] === "MLABPPS1020261022" && ph12[11] === "MLABPPS1220261022", "12 samples: the count goes on to 12, keeping two digits");
@@ -241,6 +247,32 @@ async function toLast(page, id){
   await Tc.fill("#rSubmitter", "Mill shift"); await Tc.click("#rSubmit"); const ms = await idsOut(Tc), t1 = doc("MLNSTRSH20261024");
   check(!!t1 && t1.details["Sampling point"] === "Trash screen" && JSON.stringify(t1.tests2) === '["cn_only"]' && JSON.stringify(t1.xan) === '["Pb"]' && t1.route === "JOB" && /\+ Cyanide: NaCN, WAD & pH \+ Pb$/.test(t1.testName), "stored with its point, its other analyses and the job's route: " + JSON.stringify(t1 && { d: t1.details, n: t1.testName }));
   check(ms.length > 30, "with the rest of the shift: " + ms.length);
+
+  log("v32: a re-assay's reason (it can carry values) only for those who see results; the re-assay itself shows to all");
+  const rk = "samples/" + a1, s1r = store[rk], note = "Re-assay: AuFx 14.200 g/t is over the 10 g/t range";
+  store[rk] = { ...s1r, reassays: 1, lastRedo: "AuFx over range: diluted re-run", history: [...s1r.history, { key: s1r.stageKey, sn: "Re-assay", at: Date.now(), by: "u_t", tech: "Tech", redo: true, note }] };
+  await H.broadcast(rk, store[rk]); await Tc.waitForTimeout(300);
+  const Pub = await newUser(browser, { uid: "u_pub", name: "Public", canEdit: false, names }); await Pub.waitForTimeout(500);
+  await open(Pub, a1); const pubT = await text(Pub, "#view-track");
+  check(/Re-assay/.test(await text(Pub, "#view-track .hist")) && !pubT.includes("14.200") && !pubT.includes("diluted re-run") && /Re-assays\s*1/.test(pubT), "signed out: the re-assay mark and count, not its reason");
+  await open(Tc, a1); const tcT = await text(Tc, "#view-track");
+  check(tcT.includes(note) && tcT.includes("last: AuFx over range: diluted re-run"), "lab staff: the reason in the custody line and the facts");
+
+  log("v33: a tile narrows the lanes (no list in between, a chip to clear it); Lanes | List, never both");
+  await H.tab(Tc, "board"); await Tc.waitForTimeout(400);
+  await Tc.click('.stats.tiles [data-bpick="lab"]'); await Tc.waitForTimeout(250);
+  check(await Tc.isVisible(".pick-chip") && /Showing In the lab, before results · \d+/.test(await text(Tc, ".pick-chip")) && !(await Tc.$("#view-board table")) && (await Tc.$$(".lanes .chip")).length > 0, "In the lab: the lanes narrowed, a chip says so, no table");
+  await Tc.click(".pick-chip .pk-x"); await Tc.waitForTimeout(200);
+  check(!(await Tc.$(".pick-chip")) && await Tc.$eval('.stats.tiles [data-bpick="lab"]', b => b.getAttribute("aria-pressed")) === "false", "× shows everything again");
+  await Tc.click('[data-bview="list"]'); await Tc.waitForTimeout(250);
+  const lr = await Tc.$$eval("#bdList tbody tr", r => r.length).catch(() => 0);
+  check(lr > 0 && !(await Tc.$(".lanes")) && await Tc.evaluate(() => localStorage.getItem("boardView")) === "list", "List: the board as a table instead of the lanes (" + lr + " rows)");
+  await H.tab(Tc, "submit"); await H.tab(Tc, "board"); await Tc.waitForTimeout(300);
+  check(!!(await Tc.$("#bdList")) && await Tc.$eval('[data-bview="list"]', b => b.getAttribute("aria-pressed")) === "true", "List is kept on the device");
+  await Tc.click('.stats.tiles [data-bpick="lab"]'); await Tc.waitForTimeout(250);
+  check((await Tc.$$("#bdPick tbody tr")).length > 0 && !(await Tc.$("#bdList")) && !(await Tc.$(".lanes")), "List with a tile: that tile's samples only");
+  await Tc.click(".pick-chip .pk-x"); await Tc.click('[data-bview="lanes"]'); await Tc.waitForTimeout(250);
+  check(!!(await Tc.$(".lanes")) && !(await Tc.$("#bdList")), "Lanes again");
 
   const errs = errors.filter(e => !/favicon|ERR_|net::/.test(e));
   check(!errs.length, "no console errors: " + JSON.stringify(errs.slice(0, 5)));

@@ -174,7 +174,7 @@ function buildTrack(v, s){
   const hist = (s.history || []).slice().reverse().map(h => `<li>
       <div>${h.redo ? `<span class="pill warn">Re-assay</span> ` : h.reroute ? `<span class="pill info">${h.testTo ? "Test changed" : "Route changed"}</span> ` : h.corr ? `<span class="pill warn">Correction</span> ` : h.skipped ? `<span class="pill warn">Skipped steps</span> ` : ""}<b>${esc(stageName(s, h))}</b>${h.ref ? ` · <span>${esc(h.ref)}</span>` : ""}${h.loc ? ` · <span>${esc(h.loc)}</span>` : ""}</div>
       <time>${fmt(h.at)} · by ${h.tech ? esc(h.tech) : h.name ? `${esc(h.name)} (submitter)` : who(h.by)}${h.wit ? `, witnessed by ${esc(h.wit)}` : ""}</time>
-      ${h.note && !((h.res || h.ev) && !canSeeResults(s)) ? `<div>${esc(h.note)}</div>` : ""}${h.hand || h.badge ? `<div>Handed to <b>${esc(h.hand || "—")}</b>${h.badge ? `, badge <span class="mono">${esc(h.badge)}</span>` : ""}</div>` : ""}</li>`).join("");
+      ${h.note && !((h.res || h.ev || h.redo) && !canSeeResults(s)) ? `<div>${esc(h.note)}</div>` : ""}${h.hand || h.badge ? `<div>Handed to <b>${esc(h.hand || "—")}</b>${h.badge ? `, badge <span class="mono">${esc(h.badge)}</span>` : ""}</div>` : ""}</li>`).join("");
 
   const det = s.details ? Object.entries(s.details).map(([k, val]) => `${esc(k)}: <b>${esc(val)}</b>`).join(" · ") : "";
   const rv = s.recv || null;
@@ -197,7 +197,7 @@ function buildTrack(v, s){
     ...((s.analyses || []).length ? [["Add-on analyses", s.analyses.map(esc).join(", ")]] : []),
     ["Hazards", hazTags(s).length ? hazTags(s).map(h => esc(h.l)).join(", ") : "None declared"],
     ...(twoPerson(s) ? [["Custody", "Two-person custody: every step needs a witness"]] : []),
-    ...(s.reassays ? [["Re-assays", `${s.reassays}${s.lastRedo ? `, last: ${esc(s.lastRedo)}` : ""}`]] : []),
+    ...(s.reassays ? [["Re-assays", `${s.reassays}${s.lastRedo && canSeeResults(s) ? `, last: ${esc(s.lastRedo)}` : ""}`]] : []),   // a re-assay's reason can carry values (as the Azure server's redactSample)
     ["Source location", esc(s.source) || "—"],
     ["Quantity submitted", esc(qtyText(s.containers, s.massKg, "kg")) || "—"],
     ["Seal / custody no.", s.seal ? `<span class="mono">${esc(s.seal)}</span>` : "—"],

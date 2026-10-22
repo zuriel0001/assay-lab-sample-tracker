@@ -153,7 +153,7 @@ function recvManyPanel(cur){
     <td>${esc(s.type || "")}${twoPerson(s) ? ` <span class="haz two" title="Two-person custody">2P</span>` : ""}</td><td>${esc([testOf(s.test)?.name, s.route].filter(Boolean).join(" · "))}</td>
     <td>${esc(fmt(s.createdAt))}${s.handedTo ? `<div class="small muted">Handed to ${esc(s.handedTo)}</div>` : ""}</td></tr>`; };
   return `<div class="panel pick-list stack" id="bdPick">
-    <div class="pick-note"><span>Showing <b>${esc(cur.l)}</b>: ${cur.n}</span><span class="grow"></span><button type="button" class="btn ghost small" data-bpick="${cur.k}">Close</button></div>
+    <div class="pick-note pick-chip"><span>Showing <b>${esc(cur.l)}</b> · ${cur.n}</span><button type="button" class="pk-x" data-bpick="${cur.k}" aria-label="Show everything again" title="Show everything again">×</button></div>
     <div class="tbl-wrap"><table class="cardy"><thead><tr><th><input type="checkbox" id="rmAll" aria-label="Tick all" ${ids.size && n === ids.size ? "checked" : ""}></th><th>Sample</th><th>Type</th><th>Analysis · route</th><th>Submitted</th></tr></thead><tbody>${units.slice(0, 100).map(row).join("")}</tbody></table></div>
     <div class="recv-many stack" id="rmBox">
       <div class="form">${meBox("Received by")}
@@ -161,8 +161,7 @@ function recvManyPanel(cur){
         ${two ? witnessField("rmWit") : ""}
         <label class="recv-toggle full"><input type="checkbox" id="rmOk" ${rmOk ? "checked" : ""}> The ticked bags match their submissions, seals intact, good condition</label></div>
       <div class="row" style="gap:8px"><button type="button" class="btn primary" id="rmBtn" ${n && !rmBusy ? "" : "disabled"}>${rmBusy ? "Receiving…" : `Receive ${n} ticked`}</button><button type="button" class="btn" id="rmScan">Scan bags</button><span class="small muted">Tick the bags in front of you, or scan their labels. A bag with a problem: open it and flag it.</span></div>
-    </div>
-    <div class="small muted">The lanes below show only these samples.</div></div>`;
+    </div></div>`;
 }
 function bindRecvMany(v){
   const box = $("#bdPick", v); if (!box || !$("#rmBox", box)) return;

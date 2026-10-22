@@ -54,14 +54,18 @@ function renderBoard(){
   sums.forEach(x => { if (x.pick){ x.n = unitCount(x.pick); if (!x.rows) x.rows = unitRows(x.pick, s => sRow(s)); } if (!x.rows) x.rows = []; if (x.link && !allowedTabs().includes(x.link[0])) delete x.link; });
   const cur = sums.find(x => x.k === boardPick && x.n);
   if (boardPick && !cur) boardPick = "";
-  const shown = cur && cur.pick ? new Set(cur.pick) : null;
-  const pickHtml = !cur ? "" : cur.k === "await" && canEdit() ? recvManyPanel(cur) : `<div class="panel pick-list stack" id="bdPick">
-      <div class="pick-note"><span>Showing <b>${esc(cur.l)}</b>: ${cur.n}</span>${cur.link ? `<button type="button" class="btn small" data-goto="${cur.link[0]}">${esc(cur.link[1])}</button>` : ""}<span class="grow"></span><button type="button" class="btn ghost small" data-bpick="${cur.k}">Close</button></div>
-      ${cur.rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>${cur.k === "trends" ? "Reference material" : "Sample"}</th>${cur.k === "trends" ? "" : "<th>Type</th>"}<th>${cur.k === "trends" ? "Batch" : "Analysis · route"}</th><th>${cur.k === "trends" ? "Trend" : "Where it is"}</th></tr></thead><tbody>${cur.rows.slice(0, 100).map(r => cur.k === "trends"
+  /* v33 (22 Oct, "the BOARD page looks long, these 2 sections feels like duplicates"): a tile whose samples are on the lanes filters the
+     lanes, with a small chip to clear it, and no list in between; a tile of things not on the lanes (released today, re-assays requested,
+     materials past retention, trends) and the lab's Awaiting receipt (ticks to receive) show their list in place of the lanes. Lanes | List
+     (kept on the device) shows the board as a table instead; never both. The wall screen always shows lanes. */
+  const listMode = !wall && boardView() === "list", laneable = !!(cur && cur.pick && !(cur.k === "await" && canEdit()));
+  const shown = laneable ? new Set(cur.pick) : null, asList = !!cur && (!laneable || listMode);
+  const chip = c => `<div class="pick-note pick-chip"${asList ? "" : ` id="bdPick"`}><span>Showing <b>${esc(c.l)}</b> · ${c.n}</span>${c.link ? `<button type="button" class="linkish small" data-goto="${c.link[0]}">${esc(c.link[1])}</button>` : ""}<button type="button" class="pk-x" data-bpick="${c.k}" aria-label="Show everything again" title="Show everything again">×</button></div>`;
+  const pickTable = (rows, k) => rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>${k === "trends" ? "Reference material" : "Sample"}</th>${k === "trends" ? "" : "<th>Type</th>"}<th>${k === "trends" ? "Batch" : "Analysis · route"}</th><th>${k === "trends" ? "Trend" : "Where it is"}</th></tr></thead><tbody>${rows.slice(0, 100).map(r => k === "trends"
         ? `<tr><td>${esc(r.type)}</td><td class="mono">${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`
-        : `<tr><td>${r.id ? `<button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>` : "—"}</td><td>${esc(r.type)}</td><td>${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="small muted">Nothing to list on this device yet.</div>`}
-      ${cur.rows.length > 100 ? `<div class="small muted">+${cur.rows.length - 100} more: use the filters or look a sample up by ID</div>` : ""}
-      ${shown ? `<div class="small muted">The lanes below show only these samples.</div>` : ""}</div>`;
+        : `<tr><td>${r.id ? `<button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>` : "—"}</td><td>${esc(r.type)}</td><td>${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`).join("")}</tbody></table></div>
+      ${rows.length > 100 ? `<div class="small muted">+${rows.length - 100} more: use the filters or look a sample up by ID</div>` : ""}` : `<div class="small muted">Nothing to list on this device yet.</div>`;
+  const pickHtml = !cur ? "" : !asList ? chip(cur) : cur.k === "await" && canEdit() ? recvManyPanel(cur) : `<div class="panel pick-list stack" id="bdPick">${chip(cur)}${pickTable(cur.rows, cur.k)}</div>`;
   const sumHtml = sums.filter(x => !x.hide).map(x => {
     const act = !x.n ? "" : `data-bpick="${x.k}" aria-pressed="${boardPick === x.k}"`, inner = `<span class="n">${x.n}</span><span class="l">${esc(x.l)}</span>`;
     return act ? `<button type="button" class="stat tile ${x.tone}" ${act}>${inner}</button>` : `<div class="stat tile ${x.tone}${x.n ? "" : " zero"}">${inner}</div>`;
@@ -69,15 +73,16 @@ function renderBoard(){
   // v24d (20 Oct): the tiles fill whole rows: one row of up to 8 on a wide screen, otherwise two even rows (none alone on a row of its own)
   const tN = sums.filter(x => !x.hide).length, tilesOpen = `<div class="stats tiles fit" style="--n1:${tN <= 8 ? tN : Math.ceil(tN / 2)};--n2:${Math.ceil(tN / 2)}">`;
   const filters = `<div class="bd-top bd-tools">
-    <select class="inp" id="bdSec" style="width:auto;max-width:100%" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${boardSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
-    <select class="inp" id="bdRoute" style="width:auto;max-width:100%" aria-label="Test or route"><option value="">All tests and routes</option>${routeOptions(boardRoute, boardRoutes())}</select>
-    <span class="grow"></span>${isStaff() ? `<button type="button" class="btn ghost" id="bdWall">${wall ? "Exit wall screen" : "Wall screen"}</button>` : ""}</div>`;
+    <select class="inp" id="bdSec" style="width:auto;max-width:min(340px,100%)" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${boardSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>
+    <select class="inp" id="bdRoute" style="width:auto;max-width:min(340px,100%)" aria-label="Test or route"><option value="">All tests and routes</option>${routeOptions(boardRoute, boardRoutes())}</select>
+    <span class="grow"></span>${wall ? "" : `<span class="bd-view" role="group" aria-label="Board view"><button type="button" data-bview="lanes" aria-pressed="${!listMode}">Lanes</button><button type="button" data-bview="list" aria-pressed="${listMode}">List</button></span>`}${isStaff() ? `<button type="button" class="btn ghost" id="bdWall">${wall ? "Exit wall screen" : "Wall screen"}</button>` : ""}</div>`;
   const wallHead = `<div class="wall-head"><h2>Assay Lab · Workflow board</h2><span class="clock" id="wallClock"></span><button type="button" class="btn" data-wall-exit>Exit</button></div>`;
   const bind = () => {
     const a = $("#bdSec"), b = $("#bdRoute");
     if (a) a.onchange = e => { boardSec = e.target.value; renderBoard(); };
     if (b) b.onchange = e => { boardRoute = e.target.value; renderBoard(); };
     v.querySelectorAll("[data-bpick]").forEach(x => x.onclick = () => { boardPick = boardPick === x.dataset.bpick ? "" : x.dataset.bpick; renderBoard(); });
+    v.querySelectorAll("[data-bview]").forEach(x => x.onclick = () => { lsSet("boardView", x.dataset.bview); renderBoard(); });
     const w = $("#bdWall"); if (w) w.onclick = () => setWall(!wall);
     v.querySelectorAll("[data-wall-exit]").forEach(x => x.onclick = () => setWall(false));
     wallClock();
@@ -113,19 +118,24 @@ function renderBoard(){
       ${!items.length ? `<div class="small muted">None</div>` : ""}</div>`;
   }).join("");
   const scrolled = laneScroll();
+  // List: the board's samples as one table (a tile's samples when one is chosen), in lane order, late and urgent first
+  const phI = s => { const st = stage(s, s.stageKey); return relSet.has(s) ? PHASES.findIndex(p => p.key === "qc") : st ? PHASES.findIndex(p => p.key === st.phase) : 99; };
+  const listHtml = !listMode || cur ? "" : `<div class="panel pick-list stack" id="bdList"><div class="pick-note"><span>In the lab · ${unitCount(list)}</span></div>${pickTable(unitRows(list.slice().sort((a, b) => phI(a) - phI(b) || (status(b).late - status(a).late) || (b.priority === "Urgent") - (a.priority === "Urgent") || a.stageAt - b.stageAt), s => sRow(s)), "")}</div>`;
   v.innerHTML = `<div class="stack">
     ${wallHead}
     ${filters}
     ${tilesOpen}${sumHtml}</div>
     ${boardReqNote()}
-    ${pickHtml}
+    ${pickHtml}${listHtml}
     ${alerts.length ? `<div class="notice bad" id="bdAlerts"><b>Past a limit:</b> ${alerts.slice(0, 12).map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button> <span class="small">${esc(openAlerts(s).map(h => alertLine(s, h)).join("; "))}</span>`).join("<br>")}${alerts.length > 12 ? `<br>+${alerts.length - 12} more` : ""}<div class="small">Open each sample, act as the limit says and record what was done and who was told. In the production system these also go out by email or SMS.</div></div>` : ""}
     ${trends.length ? `<div class="notice warn" id="bdTrends"><b>Reference material trends:</b> ${esc(trends.map(t => `${t.crm}${t.k ? " " + t.k : ""}: ${t.msg}`).join("; "))}. See the control chart on the <button type="button" class="linkish" data-goto="batches">Lab batches</button> tab.</div>` : ""}
-    <div class="lanes">${lanes}</div></div>`;
+    ${listMode || asList ? "" : `<div class="lanes">${lanes}</div>`}</div>`;
   bind(); bindRecvMany(v);
   fitLanes(scrolled);
 }
 
+/* v33: Lanes or List, kept on the device. */
+const boardView = () => lsGet("boardView") === "list" ? "list" : "lanes";
 /* The board's route filter: routes in use, and any other route a sample in the lab is on. */
 function boardRoutes(){ const on = new Set([...samples.values()].map(s => s.route)); return (cfg.routes || []).filter(r => routeOn(r) || on.has(r.code) || r.code === boardRoute); }
 /* ---------- submit and register ---------- */
@@ -202,7 +212,8 @@ function renderSampleForm(mode){
   v.innerHTML = `<form class="panel stack sub-form" id="regForm" data-mode="${mode}" autocomplete="off" novalidate>
     <div class="form-h sub-head"><h2>${walk ? "Register at lab" : "Submit a sample"}</h2>${kindPicker()}${walk ? `<span class="pill info">Waits for receipt by a lab technician</span>` : ""}
       ${staff ? `<label class="recv-toggle" title="Tick when the sample is in your hands: it is received at once and skips Awaiting receipt"><input type="checkbox" id="rRecvNow"> Received now at the lab, by me</label>` : ""}</div>
-    <div class="sub-step s1"><div class="sub-t"><span class="num">1</span>Sample<span class="typechip" id="rTypeChip"></span></div><div class="form">
+    <div class="sub-step batch-step" id="rBatchStep" hidden><div class="sub-t"><span class="num">1</span>Batch samples</div>${batchBlock()}</div>
+    <div class="sub-step s1"><div class="sub-t"><span class="num">1</span><span id="rS1t">Sample</span><span class="typechip" id="rTypeChip"></span></div><div class="form">
       <label class="f"><span>Sample type <span class="req">*</span></span><select id="rType" required><option value="">Choose…</option>${typeOptions()}</select></label>
       <label class="f"><span>Analysis <span class="req">*</span></span><select id="rTest" required>${testOptions("")}</select></label>
       <div class="full" id="rAnBox"></div>
@@ -218,13 +229,11 @@ function renderSampleForm(mode){
     <div class="sub-step s3"><div class="sub-t"><span class="num">3</span>${walk ? "Who brought it" : "Who sent it"}</div><div class="form">
       <div class="f pair"><label class="f"><span>Submitted by <span class="req">*</span></span><input id="rSubmitter" required placeholder="Name"></label><label class="f badge-f"><span>Badge no.</span><input id="rSubBadge" maxlength="20" autocomplete="off"></label></div>
       <label class="f" data-single>Site sample code<input id="rTag" placeholder="e.g. MILL-A-001" autocomplete="off" spellcheck="false"></label>
-      <label class="f" data-hand><span>Handed to (lab technician)${walk ? req : ""}</span><input id="rHandTo" maxlength="60" list="rTechList" autocomplete="off"></label>
-      <label class="f" data-hand><span>Technician's badge no.${walk ? req : ""}</span><input id="rHandBadge" maxlength="20" autocomplete="off"></label>
+      <div class="f pair" data-hand><label class="f"><span>Handed to (lab technician)${walk ? req : ""}</span><input id="rHandTo" maxlength="60" list="rTechList" autocomplete="off"></label><label class="f badge-f"><span>Badge no.${walk ? req : ""}</span><input id="rHandBadge" maxlength="20" autocomplete="off" aria-label="Technician's badge no."></label></div>
       <datalist id="rTechList">${techs.map(n => `<option value="${esc(n)}">`).join("")}</datalist>
       ${staff ? `<details class="f recv-at" id="rRecvAtBox" data-lab><summary>Received <b id="rRecvAtTxt">now</b> · change</summary><input id="rRecvAt" type="datetime-local" required value="${localInput(now)}" aria-label="Date and time received"></details>
       <div id="rWitBox" data-lab hidden>${witnessField("rWit")}</div>
       <label class="f" id="rTempBox" data-lab hidden><span>Cooler temperature (°C) <span class="req">*</span></span><input id="rTemp" inputmode="decimal" maxlength="6" autocomplete="off"></label>` : ""}
-      ${batchBlock()}
     </div></div>
       <details class="form-more" id="rMore"><summary>More details <span class="muted small">site reference, collection time, priority, hazards, notes</span></summary><div class="form">
         <div class="full" id="rDetails"></div>

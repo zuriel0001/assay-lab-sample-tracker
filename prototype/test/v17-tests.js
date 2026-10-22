@@ -43,7 +43,7 @@ if (fs.existsSync(CORE)){
 
   log("Walk-in: handed to, with badge number");
   await H.tab(P, "register"); await P.waitForSelector("#rHandTo");
-  check(/Handed to \(lab technician\)\s*\*/.test(await P.textContent('label:has(#rHandTo)')) && /badge n(o\.|umber)\s*\*/.test(await P.textContent('label:has(#rHandBadge)')), "both fields are on the walk-in form, marked required");
+  check(/Handed to \(lab technician\)\s*\*/.test(await P.textContent('label:has(#rHandTo)')) && /badge n(o\.|umber)\s*\*/i.test(await P.textContent('label:has(#rHandBadge)')), "both fields are on the walk-in form, marked required");
   check(await P.$$eval("#rTechList option", os => os.map(o => o.value).includes("Lab Technician A")), "the name box suggests the lab staff names it knows");
   await fillForm(P, "register", { section: "GC", type: "rc", purpose: "gc", submitter: "Yaw Boateng", handed: "", badge: "" }); await P.waitForTimeout(300);
   check(/name of the technician you handed it to/.test(await toastText(P)) && !(await P.$("#rResult code")), "the name is required");
