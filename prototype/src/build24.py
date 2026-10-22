@@ -1,7 +1,7 @@
 # base.html: the page's markup, base CSS and the start of its script (SHARE_URL, HOUR): the first 248 lines of the v9 page, all that the
 # build ever used of it (the v9 script that followed is replaced by the chunks below).
 head = open("base.html", encoding="utf-8").read().rstrip("\n")
-css = open("css10.css").read() + open("css11.css").read() + open("css12.css").read() + open("css14.css").read() + open("css15.css").read() + open("css16.css").read() + open("css18.css").read() + open("css19.css").read() + open("css20.css").read() + open("css24.css").read() + open("css31.css").read()
+css = open("css10.css").read() + open("css11.css").read() + open("css12.css").read() + open("css14.css").read() + open("css15.css").read() + open("css16.css").read() + open("css18.css").read() + open("css19.css").read() + open("css20.css").read() + open("css24.css").read() + open("css31.css").read() + open("css36.css").read()
 head = head.replace("</style>", css + "</style>", 1)
 def put(old, new):
     global head
@@ -41,6 +41,8 @@ put("""  <header class="top">
     <div class="row top-meta"><span class="pill" title="Design prototype">Prototype</span><span class="pill warn" id="sync">Connecting…</span><span class="who" id="who"></span><button class="btn" id="signBtn" type="button" hidden>Sign out</button><button class="icon-btn" id="themeBtn" type="button" aria-label="Dark theme" aria-pressed="false"></button></div>
   </header>
 """)
+# v36: text size (Small / Normal / Large) on this device, beside the theme switch.
+put('<button class="icon-btn" id="themeBtn"', '<div class="txt-wrap" id="textWrap"><button class="icon-btn txt-btn" id="textBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="textMenu" aria-label="Text size" title="Text size"></button><div class="txt-menu" id="textMenu" role="group" aria-label="Text size" hidden><button type="button" data-text="small" aria-pressed="false">Small</button><button type="button" data-text="" aria-pressed="true">Normal</button><button type="button" data-text="large" aria-pressed="false">Large</button></div></div><button class="icon-btn" id="themeBtn"')
 import re as _re
 nav = _re.search(r'  <nav class="tabs" role="tablist" id="tabs">\n.*?\n  </nav>\n', head, _re.S)
 assert nav

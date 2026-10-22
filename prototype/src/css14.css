@@ -3,7 +3,7 @@
 .subtabs button{background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:8px 12px;font:inherit;font-weight:600;color:var(--muted);cursor:pointer}
 .subtabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
 .subtabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.daychip{display:inline-flex;align-items:center;gap:6px;background:var(--soft);border-radius:999px;padding:3px 10px;font-size:13px}
+.daychip{display:inline-flex;align-items:center;gap:6px;background:var(--soft);border-radius:999px;padding:3px 10px;}
 .label-sheet{display:flex;flex-wrap:wrap;gap:4mm;justify-content:center;background:var(--soft);padding:16px;border-radius:0 0 var(--r) var(--r)}
 .bag-label{width:100mm;height:50mm;box-sizing:border-box;padding:3mm;display:flex;gap:3mm;align-items:center;background:#fff;color:#000;border:1px dashed #9aa19d;font-family:var(--f-body);overflow:hidden;break-inside:avoid;page-break-inside:avoid}
 .bl-qr{flex:0 0 40mm;height:40mm}

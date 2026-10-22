@@ -1,0 +1,43 @@
+/* v36 (22 Oct, "the text look okay but it seems small. i think we can enhance the page UI/UX"): one type scale, and a Small / Normal /
+   Large text size per device. Every screen size is a step of the scale, in rem, so the choice scales all of them: Small is the size before
+   v36, Normal about 2 px larger, Large 2 px larger again. A phone's root is a step smaller. The certificate keeps fixed sizes: it prints. */
+:root{--ts:1.05;--t-2xs:.875rem;--t-xs:.9375rem;--t-sm:1.0625rem;--t-md:1.125rem;--t-base:1.1875rem;--t-lg:1.3125rem;--t-xl:1.4375rem;--t-2xl:1.75rem;--t-3xl:2rem}
+html{font-size:calc(16px * var(--ts))}
+html[data-text="small"]{--ts:.95}
+html[data-text="large"]{--ts:1.16}
+@media (max-width:760px){html{font-size:calc(15.2px * var(--ts))}}
+.cert{--t-2xs:13px;--t-xs:15px;--t-sm:16px;--t-md:17px;--t-base:18px;--t-lg:18px;--t-xl:21px;--t-2xl:26px;--t-3xl:28px}
+
+/* Hierarchy and rhythm: headings a clear step above the text, secondary lines a little tighter. */
+h1,h2,h3,h4{line-height:1.2}
+.small,.subtle,.st-note,.st-meta,.muted.small,td.note,.hist time{line-height:1.4}
+/* Buttons: one size everywhere, a smaller one for row actions; the header's search button matches Sign out. */
+.btn{font-size:var(--t-md);line-height:1.2}
+.btn.small{font-size:var(--t-sm)}
+@media (pointer:coarse){.btn.small{min-height:40px}}
+/* Board: Lanes | List as tall as the filters beside it; a lane's count is a badge. */
+.bd-view button{min-height:42px;padding:0 14px;display:inline-flex;align-items:center}
+.lane h4{align-items:center}
+.lane h4 span{font-size:var(--t-xs);line-height:1.6;padding:0 8px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--muted)}
+.stat.tile:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* A phone's table cards: with the larger type a long code or reference wraps instead of running off the side. */
+@media (max-width:640px){table.cardy td>.mono:first-child,table.cardy td>a.mono{white-space:normal;overflow-wrap:anywhere}}
+/* A wide screen gives the larger type more room. */
+@media (min-width:1500px){.wrap{max-width:1360px}}
+
+/* Text size: Aa in the header opens Small / Normal / Large. */
+.txt-wrap{position:relative;flex:none;display:inline-flex}
+.txt-btn::before{content:"Aa";width:auto;height:auto;background:none;-webkit-mask:none;mask:none;font-family:var(--f-display);font-weight:700;font-size:18px;line-height:1}
+.txt-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:30;display:flex;gap:4px;padding:6px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--lift)}
+.txt-menu[hidden]{display:none}
+.txt-menu button{min-height:44px;padding:0 14px;border:1px solid transparent;border-radius:var(--r);background:none;color:var(--ink);font-family:var(--f-body);font-weight:600;cursor:pointer;white-space:nowrap}
+.txt-menu button:hover{background:var(--soft)}
+.txt-menu button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.txt-menu [data-text="small"]{font-size:15px}
+.txt-menu [data-text=""]{font-size:17px}
+.txt-menu [data-text="large"]{font-size:20px}
+@media (max-width:760px){
+  .top-meta .txt-wrap{order:1;margin-left:auto}
+  .top-meta #themeBtn{margin-left:0}
+  .top-meta:has(#signBtn[hidden]) .txt-wrap{order:3}
+}

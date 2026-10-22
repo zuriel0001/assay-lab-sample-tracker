@@ -242,9 +242,9 @@ async function typeResults(page, id, vals){
   const [w1] = await ids(Tc);
   check(doc(w1).route === "AUSX" && doc(w1).purpose === "Bottle roll test" && doc(w1).purposeKey === "met_br" && doc(w1).typeKey === "plant_feed", "a bottle roll solution on mill feed goes on the AuSx route, its purpose Bottle roll test");
 
-  log("Font: larger again (v24c)");
-  check(await Tc.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize)) === 18 && await Tc.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".small") || document.body).fontSize)) >= 16
-    && await Tc.evaluate(() => parseFloat(getComputedStyle(document.querySelector("label.f") || document.body).fontSize)) >= 17, "v24c: body text 18 px, labels 17 px, small text 16 px");
+  log("Font: larger again (v24c; v36 a step larger again, on one scale)");
+  check(await Tc.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize)) >= 19.5 && await Tc.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".small") || document.body).fontSize)) >= 17.5
+    && await Tc.evaluate(() => parseFloat(getComputedStyle(document.querySelector("label.f") || document.body).fontSize)) >= 18.5, "v36: body text about 20 px, labels 19 px, small text 18 px");
 
   log("Any file is accepted: a PDF on a sample still in preparation, a CSV that names no samples");
   await fillForm(Tc, "register", { section: "PLT", type: "belt", purpose: "plant", test: "aufx_m", submitter: "Shift boss", count: 1, tags: "BC-0700", details: { point: "Mill feed conveyor" } });

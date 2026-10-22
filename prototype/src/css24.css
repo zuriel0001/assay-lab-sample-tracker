@@ -2,36 +2,32 @@
 /* Type larger again (v24c, asked twice: "the page font looks too small"): 18 px body, labels 17 px, secondary text 16 px, nothing under 13 px;
    the page is wider (1240 px) so the larger type keeps its room. A phone keeps a step smaller so nothing runs off the screen. */
 .wrap{max-width:1240px}
-body{font-size:18px;line-height:1.5}
-.small,.subtle,.st-note,.st-meta,.hist time,.prog-t,.mock,.daychip,td.note,.muted.small,.pick-note,.recon{font-size:16px}
-label,label.f,.legend{font-size:17px}
-dl.facts dt,.stat .l,.stat.tile .l,.today .l,.cat-name{font-size:16px}
-.who,header.top .who{font-size:16px}
-.notice{font-size:16px}
-.pill{font-size:15px;padding:3px 10px;max-width:100%;white-space:normal}
-th{font-size:15px}
-td{font-size:17px}
-.chip .cid{font-size:17px}
-.chip .cmeta{font-size:15px}
-.lane h4{font-size:18px}
-.code{font-size:15px}
-ol.steps li,.tchip{font-size:16px}
-.btn.small{font-size:16px}
-input:not([type=checkbox]):not([type=radio]),.f select,.f textarea,.inp,select{font-size:17px}
-.ph-tag{font-size:13px}
-.haz,.chip .rc,.chip .urg{font-size:13px}
-.numhint,.qa-pick{font-size:15px}
-small{font-size:14px}
-h4{font-size:15px}
+body{font-size:var(--t-base);line-height:1.5}
+.small,.subtle,.st-note,.st-meta,.hist time,.prog-t,.mock,.daychip,td.note,.muted.small,.pick-note,.recon{font-size:var(--t-sm)}
+label,label.f,.legend{font-size:var(--t-md)}
+dl.facts dt,.stat .l,.stat.tile .l,.today .l,.cat-name{font-size:var(--t-sm)}
+.who,header.top .who{font-size:var(--t-sm)}
+.notice{font-size:var(--t-sm)}
+.pill{font-size:var(--t-xs);padding:3px 10px;max-width:100%;white-space:normal}
+th{font-size:var(--t-xs)}
+td{font-size:var(--t-md)}
+.chip .cid{font-size:var(--t-md)}
+.chip .cmeta{font-size:var(--t-sm)}
+.lane h4{font-size:var(--t-lg)}
+.code{font-size:var(--t-xs)}
+ol.steps li,.tchip{font-size:var(--t-sm)}
+.btn.small{font-size:var(--t-sm)}
+input:not([type=checkbox]):not([type=radio]),.f select,.f textarea,.inp,select{font-size:var(--t-md)}
+.ph-tag{font-size:var(--t-2xs)}
+.haz,.chip .rc,.chip .urg{font-size:var(--t-2xs)}
+.numhint,.qa-pick{font-size:var(--t-xs)}
+small{font-size:var(--t-sm)}
+h4{font-size:var(--t-md)}
 @media (max-width:760px){
-  body{font-size:17px}
-  .small,.subtle,.st-note,.st-meta,.muted.small,.pick-note,.notice{font-size:15px}
-  label,label.f,.legend{font-size:16px}
-  .stat.tile .l{font-size:14px}header.top .pill,header.top .who{font-size:14px}.chip .cmeta{font-size:14px}
-  td{font-size:16px}.pill{font-size:14px}
+  .stat.tile .l{font-size:var(--t-xs)}header.top .pill,header.top .who{font-size:var(--t-xs)}
 }
 
-nav.tabs button{padding:10px 12px;font-size:18px}
+nav.tabs button{padding:10px 12px;font-size:var(--t-md)}
 nav.tabs .count.flag{background:var(--bad-soft);color:var(--bad)}
 
 /* Colour, v24c: the Sample tab's way. Panels stay white; meaning is carried by soft tints (as the released box), coloured pills and dots,
@@ -64,18 +60,18 @@ button.stat.tile:hover,.cstats button.stat:hover{border-color:var(--t,var(--mute
 #view-storage tr.st-soon td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
 #view-storage tr.st-noloc td:first-child{box-shadow:inset 4px 0 0 var(--c-violet)}
 #view-storage tr.st-ok td:first-child{box-shadow:inset 4px 0 0 var(--ok)}
-.dirp{display:inline-block;font-family:var(--f-mono);font-size:14px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em}
+.dirp{display:inline-block;font-family:var(--f-mono);font-size:var(--t-xs);font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em}
 .dirp.dir-in{background:var(--ok-soft);color:var(--ok)}.dirp.dir-out{background:var(--warn-soft);color:var(--warn)}.dirp.dir-rev{background:var(--soft);color:var(--muted)}
 
 /* Submit / Register: three short steps on white cards; the step number is solid gold, as the Track button, and the sample type shows its group's colour. */
 .sub-form{gap:14px}
 .sub-head h2{margin:0}
 .sub-step{border:1px solid var(--line);border-radius:10px;padding:12px 14px 14px;background:var(--panel)}
-.sub-t{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;font-size:20px;margin-bottom:10px}
-.sub-t .num{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:15px;flex:none}
+.sub-t{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;font-size:var(--t-lg);margin-bottom:10px}
+.sub-t .num{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:var(--t-xs);flex:none}
 .sub-step .form{margin:0}
 .sub-form select,.sub-form input:not([type=checkbox]):not([type=radio]){min-height:46px}
-.typechip{display:inline-block;font-family:var(--f-body);font-weight:600;font-size:15px;margin-left:auto;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--muted)}
+.typechip{display:inline-block;font-family:var(--f-body);font-weight:600;font-size:var(--t-sm);margin-left:auto;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--muted)}
 .typechip:empty{display:none}
 .typechip.t-ore{background:var(--c-ore-soft);color:var(--c-ore)}
 .typechip.t-plant{background:var(--c-plant-soft);color:var(--c-plant)}
@@ -84,7 +80,7 @@ button.stat.tile:hover,.cstats button.stat:hover{border-color:var(--t,var(--mute
 .typechip.t-qc,.typechip.t-met{background:var(--c-violet-soft);color:var(--c-violet)}
 .f.pair{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:10px}
 .f.pair > label.f{min-width:0}
-details.recv-at{align-self:end;min-height:46px;display:flex;flex-direction:column;justify-content:center;font-size:15px}
+details.recv-at{align-self:end;min-height:46px;display:flex;flex-direction:column;justify-content:center;font-size:var(--t-sm)}
 details.recv-at > summary{cursor:pointer;color:var(--muted);list-style:none;min-height:46px;display:flex;align-items:center;gap:4px}
 details.recv-at > summary::-webkit-details-marker{display:none}
 details.recv-at > summary b{color:var(--ok)}
@@ -107,11 +103,11 @@ details.more-panel > summary h3{margin:0}
 /* Evaluation, re-assay requests and the Results tab */
 .evalbox{border:1px solid transparent;border-radius:10px;padding:12px 14px;background:var(--info-soft);gap:10px}
 ul.flags{margin:0;padding:0;list-style:none;display:grid;gap:4px}
-ul.flags li{font-size:16px;padding:4px 10px;border-radius:6px;background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn)}
+ul.flags li{font-size:var(--t-sm);padding:4px 10px;border-radius:6px;background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn)}
 ul.flags li.bad{background:var(--bad-soft);border-left-color:var(--bad)}
 .seg .ev-ok input:checked+span{color:var(--ok)}.seg .ev-query input:checked+span{color:var(--warn)}.seg .ev-redo input:checked+span{color:var(--bad)}
 ul.evlist{margin:0;padding:0;list-style:none;display:grid;gap:6px}
-ul.evlist li{font-size:17px}
+ul.evlist li{font-size:var(--t-md)}
 .evform{display:grid;gap:8px}
 .evform .seg span{padding:0 14px}
 table.restbl tr.due td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
@@ -119,8 +115,8 @@ table.restbl tr.due td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
 /* Routes: facts in a few lines, the steps as a row of soft chips coloured by phase (as the legend). */
 .rt-facts{display:grid;gap:3px}
 ol.flow{list-style:none;margin:6px 0 2px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
-ol.flow li{position:relative;display:inline-flex;align-items:baseline;gap:6px;font-size:16px;padding:4px 10px;border-radius:6px;background:var(--soft);border-left:4px solid var(--line)}
-ol.flow li i{font-style:normal;color:var(--muted);font-size:15px;font-variant-numeric:tabular-nums}
+ol.flow li{position:relative;display:inline-flex;align-items:baseline;gap:6px;font-size:var(--t-sm);padding:4px 10px;border-radius:6px;background:var(--soft);border-left:4px solid var(--line)}
+ol.flow li i{font-style:normal;color:var(--muted);font-size:var(--t-xs);font-variant-numeric:tabular-nums}
 ol.flow li.ph-intake{background:var(--info-soft)}
 ol.flow li.ph-prep{background:var(--warn-soft)}
 ol.flow li.ph-test{background:var(--accent-soft)}
@@ -164,12 +160,12 @@ header.top .lookup .btn.scan-btn:hover{background:rgba(255,255,255,.16)}
 .scan-view video{width:100%;height:100%;object-fit:cover;display:block}
 .scan-frame{position:absolute;inset:18% 22%;border:3px solid rgba(255,255,255,.85);border-radius:12px;box-shadow:0 0 0 999px rgba(0,0,0,.25)}
 ul.scan-log{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:180px;overflow:auto}
-ul.scan-log li{font-size:15px;padding:4px 10px;border-radius:6px;border-left:3px solid var(--line);background:var(--soft)}
+ul.scan-log li{font-size:var(--t-sm);padding:4px 10px;border-radius:6px;border-left:3px solid var(--line);background:var(--soft)}
 ul.scan-log li.ok{border-left-color:var(--ok);background:var(--ok-soft)}
 ul.scan-log li.warn{border-left-color:var(--warn);background:var(--warn-soft)}
 .recv-many{border-top:1px solid var(--line);padding-top:12px;gap:10px}
 #bdPick td input[type=checkbox],#bdPick th input[type=checkbox]{width:20px;height:20px}
-.signoff{display:grid;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:16px}
+.signoff{display:grid;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:var(--t-sm)}
 .signoff.done{background:var(--ok-soft);border-color:transparent}
 .signoff.changed{background:var(--warn-soft);border-color:transparent}
 .month-sum h4{margin:16px 0 6px}
@@ -187,7 +183,7 @@ ol.rail li.done.stop .dot{background:var(--bad);border-color:var(--bad)}
 .tbl-wrap table.restbl td[data-l="Results"]{white-space:normal;min-width:12em}
 /* v24d: a batch processed as one shows as one card on the board, drawn as a small stack */
 .chip.bchip{box-shadow:3px 3px 0 -1px var(--panel),3px 3px 0 0 var(--line),6px 6px 0 -1px var(--panel),6px 6px 0 0 var(--line);margin-bottom:12px;max-width:calc(100% - 6px)}
-.chip.bchip .bn{font-weight:700;color:var(--accent);font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+.chip.bchip .bn{font-weight:700;color:var(--accent);font-size:var(--t-xs);text-transform:uppercase;letter-spacing:.04em}
 #bwBox .rail{margin-bottom:0}
 #bmBox .tbl-wrap table td{vertical-align:top}
 .cert table{color:inherit}
@@ -195,7 +191,7 @@ ol.rail li.done.stop .dot{background:var(--bad);border-color:var(--bad)}
 .job-step .jrows{width:100%}
 .jrows td{padding:4px 6px;vertical-align:middle}
 .jrows td:first-child,.jrows th:first-child{width:36px;text-align:center}
-.jrows .inp{min-height:38px;padding:6px 9px;font-size:14px;width:100%}
+.jrows .inp{min-height:38px;padding:6px 9px;font-size:var(--t-sm);width:100%}
 .jrows .j-code{font-family:var(--f-mono);text-transform:uppercase;min-width:13em}
 .jrows .j-desc{min-width:16em}
 .jrows .j-test{min-width:12em}
@@ -226,25 +222,25 @@ ol.rail li.done.stop .dot{background:var(--bad);border-color:var(--bad)}
 .vz-svg .vz-cross{stroke:var(--muted);stroke-width:1}
 .vz-svg .vz-hl circle{stroke:var(--panel);stroke-width:2}
 .vz-svg .vz-hit{cursor:crosshair;pointer-events:all}
-.vz-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:14px;color:var(--ink)}
+.vz-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:var(--t-xs);color:var(--ink)}
 .vz-legend span{display:inline-flex;align-items:center;gap:6px}
 .vz-key{display:inline-block;width:16px;height:2px;border-radius:2px;background:var(--c);vertical-align:middle;margin-right:6px;flex:none}
 .vz-legend .vz-key{margin-right:0}
-.vz-tip{position:absolute;z-index:2;pointer-events:none;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 10px;box-shadow:var(--lift,0 6px 20px rgba(0,0,0,.15));font-size:13px;min-width:150px}
-.vz-tip .vz-tt{font-size:12px;color:var(--muted);margin-bottom:4px}
+.vz-tip{position:absolute;z-index:2;pointer-events:none;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 10px;box-shadow:var(--lift,0 6px 20px rgba(0,0,0,.15));font-size:var(--t-xs);min-width:150px}
+.vz-tip .vz-tt{font-size:var(--t-2xs);color:var(--muted);margin-bottom:4px}
 .vz-tip .vz-tr{display:flex;align-items:center;gap:6px;white-space:nowrap}
 .vz-tip .vz-tr b{font-variant-numeric:tabular-nums}
 .vz-tip .vz-tr span{color:var(--muted)}
 .vz-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
 .vz-tile{border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;background:var(--panel)}
-.vz-tile .vz-l{font-size:13px;color:var(--muted)}
-.vz-tile .vz-v{font-size:20px;font-weight:650;color:var(--ink);margin-top:2px}
-.vz-tile .vz-s{font-size:12px;color:var(--muted);margin-top:2px}
-.vz-t{width:100%;border-collapse:collapse;font-size:14px}
+.vz-tile .vz-l{font-size:var(--t-xs);color:var(--muted)}
+.vz-tile .vz-v{font-size:var(--t-lg);font-weight:650;color:var(--ink);margin-top:2px}
+.vz-tile .vz-s{font-size:var(--t-2xs);color:var(--muted);margin-top:2px}
+.vz-t{width:100%;border-collapse:collapse;font-size:var(--t-sm)}
 .vz-t th,.vz-t td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
-.vz-t th{font-size:13px;color:var(--muted);font-weight:600}
+.vz-t th{font-size:var(--t-xs);color:var(--muted);font-weight:600}
 .vz-t td.mono{font-variant-numeric:tabular-nums}
-.vz-more>summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--muted);padding:4px 0}
+.vz-more>summary{cursor:pointer;font-weight:600;font-size:var(--t-sm);color:var(--muted);padding:4px 0}
 .vz-meter{display:inline-block;width:70px;height:8px;border-radius:4px;background:var(--soft);vertical-align:middle;overflow:hidden}
 .vz-meter i{display:block;height:100%;background:var(--vz-1);border-radius:4px}
 .cert .cert-fig{margin-top:16px;display:flex;flex-direction:column;gap:8px;break-inside:avoid}
@@ -272,10 +268,10 @@ ol.rail li.done.stop .dot{background:var(--bad);border-color:var(--bad)}
 .vz-tiles{grid-template-columns:repeat(auto-fit,minmax(132px,1fr))}
 .vz .seg .btn{border:0;background:transparent;color:var(--muted);min-height:34px;border-radius:999px;padding:0 14px;box-shadow:none}
 .vz .seg .btn.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.14)}
-@media (max-width:520px){.vz-tile .vz-v{font-size:17px}.vz-tile{padding:8px 10px}}
+@media (max-width:520px){.vz-tile .vz-v{font-size:var(--t-md)}.vz-tile{padding:8px 10px}}
 /* v24d (20 Oct): tank profile pair, bars (recovery by size, preg-robbing index) */
 .vz-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-.vz-ct-t{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.vz-ct-t{font-size:var(--t-xs);font-weight:600;color:var(--muted);margin-bottom:4px}
 .vz-barbox{min-height:0}
 .vz-svg .vz-bar{fill:var(--vz-1)}
 .vz-svg .vz-val{font-size:12px;fill:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
@@ -301,7 +297,7 @@ ol.rail li.done.stop .dot{background:var(--bad);border-color:var(--bad)}
 @media (min-width:700px){.lanes{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .lane{container-type:inline-size}
 .chip .cid .cref{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%}
-@supports (font-size:1cqi){.chip .cid{font-size:min(17px,calc((100cqi - 34px) / 11.6))}body.wall .chip .cid{font-size:min(18px,calc((100cqi - 34px) / 11.6))}}
+@supports (font-size:1cqi){.chip .cid{font-size:min(var(--t-md),calc((100cqi - 34px) / 11.6))}body.wall .chip .cid{font-size:min(18px,calc((100cqi - 34px) / 11.6))}}
 /* A sample's or batch's ID as the page title: whole on one line on a phone, wrapped only when a code is longer than the screen */
 .sid{min-width:0;max-width:100%;overflow-wrap:anywhere}
 @media (max-width:560px){.sid{font-size:clamp(19px,6.2vw,28px);letter-spacing:.01em}}
@@ -331,4 +327,4 @@ body.wall .stats.tiles.fit{grid-template-columns:repeat(auto-fill,minmax(170px,1
 .lanes{align-items:start}
 .job-step .tbl-wrap{margin-top:10px}
 /* 21 Oct: the MET Lab's working on the batch page is marked as its own (not on the certificate) */
-.vz-own{display:inline-block;margin-top:4px;padding:2px 8px;border-radius:999px;background:var(--c-violet-soft);color:var(--c-violet);font-size:13px}
+.vz-own{display:inline-block;margin-top:4px;padding:2px 8px;border-radius:999px;background:var(--c-violet-soft);color:var(--c-violet);font-size:var(--t-xs)}
