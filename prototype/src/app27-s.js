@@ -67,12 +67,12 @@ function bwMats(st){
         <button type="button" class="btn" data-bmat="${x.k}">Record for ${nS(x.n)}</button></div>` : "";
     return `<tr><td><b>${esc(x.item)}</b><div class="small muted">Then: ${esc(lcFirst(x.then))}</div></td>
       <td style="white-space:nowrap">${x.days ? fmtDate(x.due) : "At release"}${od ? (x.days ? `<div class="small" style="color:var(--bad);font-weight:600">${dur(now - x.due)} past</div>` : `<div class="small" style="color:var(--warn);font-weight:600">Due now</div>`) : ""}</td>
-      <td>${where}<div class="small muted">${nS(x.n)}</div></td></tr>${ctl ? `<tr class="mat-ctl"><td colspan="3" style="border-top:0;padding-top:0">${ctl}</td></tr>` : ""}`;
+      <td>${where}<div class="small muted">${nS(x.n)}</div></td></tr>${ctl ? `<tr class="mat-ctl" data-l="1"><td colspan="3" style="border-top:0;padding-top:0">${ctl}</td></tr>` : ""}`;
   }).join("");
   return `<div class="stack" id="bmBox" style="gap:8px"><b>Retained material of the batch</b>
     ${q ? `<div class="notice small" style="margin:0">Waiting for <b>${esc(q.wit)}</b> to confirm ${q.kind === "store" ? "the storage" : "a movement"}. Nothing else is recorded on the material until then.</div>` : ""}
     ${edit && two ? `<div class="form"><div class="full">${witnessField("bmWit", "Witness (two-person custody: confirms a disposal from their own account)")}</div></div>` : ""}
-    <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="tbl-wrap"><table class="cardy mat-t"><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
     ${edit && !two ? `<div id="bmWitBox" class="mat-wit" hidden>${witnessField("bmWit", "Witness to the disposal (a second person)")}</div>` : ""}</div>`;
 }
 /* The witness request of the batch (storage, or a disposal on a critical batch): the witness confirms it for all the samples at once. */

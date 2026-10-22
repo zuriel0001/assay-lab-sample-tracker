@@ -72,6 +72,27 @@ The tests write screenshots next to themselves. The Chromium path is in `harness
 at a time: scenario R in `review-tests-v11.js` times ID claims, and the results tests wait on several writes per
 step, so they can miss their time budgets when several browsers share the CPU.
 
+## Review of v31 to v38 (2026-10-22, evening)
+
+Zuriel, 22 Oct: "we have done a lot on the site from other sections. take a look". Every prototype suite passes on v38 with no console errors,
+the server's tests pass (280, 51, 33), and a walk through every tab as each role on a computer, a phone and in dark mode (made-up data on a
+local copy) found no broken flow: the MET Lab's final samples still go back to the MET Lab with the results, the batch page still says
+*Workflow complete*, Shift end and the results file's date question work as before. Four things fixed:
+
+- **No plant limit on the MET Lab's testwork.** A limit for one plant sampling point (AuSx above 0.02 mg/L at the CIL tails) applied to any
+  sample naming no point, so every preg-robbing and bottle roll solution was flagged "Soluble gold loss: alert the plant" (9 flags for the
+  Metallurgy viewer in the walk) and the line was printed on the batch certificate. A MET Lab job's final samples now take such a limit only
+  when they name that point (`limitHits`). Other samples with no point given still take it, as v22 set.
+- **Retained material on a phone**: the table (batch page and record) is a card per material with its put-away controls under it; the
+  choice of what to do and the Record button were cut off at the right edge.
+- **Ledger on a phone**: IN / OUT / REV stay on one line (OUT broke to "OU / T").
+- **Ledger on a computer**: the table was 1315 px in its 1206 px box at any screen size, so *Reference · note* sat past the right edge. The
+  time may go under the date and Material may wrap; it now fits.
+- Tests: `v30-tests.js` 22 (one more: no limit on the preg-robbing and bottle roll solutions).
+- Not changed: the MET Lab's working tables (bottle roll fractions, carbon activity) scroll sideways on a phone, as data tables do; the
+  admin's account table scrolls sideways too. `test/walk.js` (the v21 polish walk) stops early on v38 (it picks the analysis `plant_solids`, which a Mill sample
+  no longer offers); it is not one of the suites.
+
 ## What v38 changes: the bigger ideas from the walk-through (2026-10-22)
 
 Zuriel, 2026-10-22 18:06Z: "publish what's done first and let it go live then later give me the 9 bigger ideas. complete everything on

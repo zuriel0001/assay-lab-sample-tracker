@@ -514,7 +514,7 @@ function renderLedger(){
   if (f.q){ const q = f.q.toLowerCase(); rows = rows.filter(r => [r.sid, r.type, r.sub, r.tag, r.tech, r.wit, r.ref, r.note, r.item, r.route].join(" ").toLowerCase().includes(q)); }
   const ownTag = r => r.tag && normKey(r.tag) !== normKey(r.sid), tagCol = rows.some(ownTag);   // v38: no column of dashes
   const body = rows.map(r => `<tr class="${r.reversed ? "reversed" : ""}">
-    <td class="lg-d" style="white-space:nowrap">${fmtFull(r.at)}</td>
+    <td class="lg-d"><span class="nw">${fmtDate(r.at)},</span> <span class="nw">${new Date(r.at).toLocaleTimeString(undefined, fmtOpts({ hour: "2-digit", minute: "2-digit" }))}</span></td>
     <td class="lg-dir"><span class="dirp ${r.dir === "in" ? "dir-in" : r.dir === "rev" ? "dir-rev" : "dir-out"}">${r.dir === "in" ? "IN" : r.dir === "rev" ? "REV" : "OUT"}</span>${r.reversed ? `<div><span class="pill warn">Reversed</span></div>` : ""}</td>
     <td class="lg-id"><button class="linkish" data-open="${esc(r.sid)}">${esc(r.sid)}</button>${!shownQa.has(r.sid) && shownQa.add(r.sid) ? qaOfNote(r.sid) + qaPickBox(r.sid) : ""}${!shownRedo.has(r.sid) && redoFor(r.sid) && shownRedo.add(r.sid) ? `<div><button type="button" class="btn ghost small reassay-btn" data-reassay="${esc(r.sid)}">Re-assay</button></div>` : ""}</td>
     ${tagCol ? `<td class="mono lg-tag${ownTag(r) ? "" : " nil"}">${ownTag(r) ? esc(r.tag) : "—"}</td>` : ""}

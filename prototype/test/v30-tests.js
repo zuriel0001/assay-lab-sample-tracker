@@ -82,6 +82,8 @@ async function certText(P){ await P.click("[data-bcert]"); await P.waitForSelect
   const pg = await submit(Tc); await receive(Tc, pg);
   await release(Tc, pg, "preg.csv", ["Sample,Description,AuSX", ",,mg/L", "MLABPREG0120261025,t,0.5", "MLABPREG0220261025,t,0.6", "MLABPREG0320261025,c,2.0", "MLABPREG0420261025,c,2.2"]);
   check(/Preg-robbing index/.test(await text(Tc, "#vzPreg")) && !/Preg-robbing index|\(spike/.test(await certText(Tc)), "the preg-robbing index on the batch page, not on the certificate");
+  // 22 Oct review: the plant's CIL tails limit (AuSx above 0.02) no longer fires on the MET Lab's testwork, which names no plant point
+  check([...pg.ids, ...br.ids].every(id => !(doc(id).certs.at(-1).alerts || []).length) && !/action limit|permit limit/.test(await certText(Tc)), "no plant limit on the preg-robbing or bottle roll solutions (0.5 to 2.2 mg/L): the MET Lab's own testwork");
 
   log("Carbon activity from the MET Lab: still tested here, its results on the certificate");
   await jobForm(Tc, "met", "cact", "2026-10-25", "D"); await Tc.fill("#jN_n1", "40"); await Tc.fill('#jRows .j-code[data-j="3"]', "VIRGIN-X"); await Tc.waitForTimeout(150);

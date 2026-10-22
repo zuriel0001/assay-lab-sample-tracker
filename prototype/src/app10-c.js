@@ -459,14 +459,14 @@ function materialsPanel(s){
     }
     return `<tr><td><b>${esc(m.item)}</b><div class="small muted">Then: ${esc(lcFirst(m.then))}</div></td>
       <td style="white-space:nowrap">${m.days ? fmtDate(m.dueAt) : "At release"}${od ? (m.days ? `<div class="small" style="color:var(--bad);font-weight:600">${dur(now - m.dueAt)} past</div>` : `<div class="small" style="color:var(--warn);font-weight:600">Due now</div>`) : ""}</td>
-      <td>${state}</td></tr>${ctl ? `<tr class="mat-ctl"><td colspan="3" style="border-top:0;padding-top:0">${ctl}</td></tr>` : ""}`;
+      <td>${state}</td></tr>${ctl ? `<tr class="mat-ctl" data-l="1"><td colspan="3" style="border-top:0;padding-top:0">${ctl}</td></tr>` : ""}`;
   }).join("");
   return `<div class="panel stack" id="matBox"><h3>Retained material</h3>
     ${grouped(s) ? `<p class="small" id="matBatch" style="margin:0">Put away, returned and disposed of with batch <button type="button" class="linkish mono" data-open="${esc(s.batchId)}">${esc(s.batchId)}</button>, on the batch page.</p>` : ""}
     ${q ? `<div class="notice small" style="margin:0">Waiting for <b>${esc(q.wit)}</b> to confirm ${q.kind === "store" ? "the storage" : esc(wqText(s, q))}. Nothing else is recorded on the material until then.</div>` : ""}
     ${edit && !closed && !q && twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div class="form"><div class="full">${witnessField("mtWit", "Witness (two-person custody: confirms a disposal from their own account)")}</div></div>` : ""}
     ${edit && !closed && !q ? storeAllRow(s) : ""}
-    <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="tbl-wrap"><table class="cardy mat-t"><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
     ${edit && !closed && !twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div id="mtWitBox" class="mat-wit" hidden>${witnessField("mtWit", "Witness to the disposal (a second person)")}</div>` : ""}</div>`;
 }
 function bindTrack(v, s){

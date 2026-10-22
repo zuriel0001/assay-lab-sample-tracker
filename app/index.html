@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="d3bcf958cf12" data-at="1792696542811"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 c82ba544c526) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="bdc48263b46d" data-at="1792709311221"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 46361ee021f3) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1198,7 +1198,9 @@ table:has([data-lf="act"]) :is(td,th){padding-left:6px;padding-right:6px}
 .lg-month:has(.signoff.changed){background:var(--warn-soft);border-left-color:var(--warn)}
 .lg-tools #lgSec{max-width:15em}
 .lg-month .signoff{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
-@media (min-width:641px){.lg-t td.lg-l,.lg-t td.lg-m{white-space:nowrap}}
+/* 22 Oct review: the table was 1315 px in its 1206 px box (the page's widest), so the Reference · note column sat past the right edge on
+   every computer. The time may go under the date and Material may wrap; the lab's name stays on one line. */
+@media (min-width:641px){.lg-t td.lg-l{white-space:nowrap}}
 @media (max-width:640px){
   .cstats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
   .cstats .stat{padding:8px 10px}
@@ -1219,6 +1221,15 @@ table:has([data-lf="act"]) :is(td,th){padding-left:6px;padding-right:6px}
   table.cardy.lg-t td:not(.lg-id):not(.lg-dir){font-size:var(--t-sm)}
 }
 #view-results td[data-l="Results"]{white-space:normal}#view-results td[data-l="Type · test"]{min-width:9em}
+/* 22 Oct review: the direction pill keeps its word on one line (it broke to "OU / T" on a phone); the retained material reads as cards on
+   a phone, each material with its own put-away controls joined under it (they were cut off at the right edge). */
+.dirp{white-space:nowrap}
+@media (max-width:640px){
+  table.cardy.lg-t tr{grid-template-columns:max-content minmax(0,1fr) minmax(0,1fr)}
+  table.cardy.mat-t tr:has(+ tr.mat-ctl){border-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0;padding-bottom:4px}
+  table.cardy.mat-t tr.mat-ctl{margin-top:-8px;border-top:0;border-top-left-radius:0;border-top-right-radius:0;padding-top:0}
+  table.cardy.mat-t .mat-row>*{flex:1 1 100%!important}
+}
 </style>
 
 <div class="wrap">
@@ -3635,14 +3646,14 @@ function materialsPanel(s){
     }
     return `<tr><td><b>${esc(m.item)}</b><div class="small muted">Then: ${esc(lcFirst(m.then))}</div></td>
       <td style="white-space:nowrap">${m.days ? fmtDate(m.dueAt) : "At release"}${od ? (m.days ? `<div class="small" style="color:var(--bad);font-weight:600">${dur(now - m.dueAt)} past</div>` : `<div class="small" style="color:var(--warn);font-weight:600">Due now</div>`) : ""}</td>
-      <td>${state}</td></tr>${ctl ? `<tr class="mat-ctl"><td colspan="3" style="border-top:0;padding-top:0">${ctl}</td></tr>` : ""}`;
+      <td>${state}</td></tr>${ctl ? `<tr class="mat-ctl" data-l="1"><td colspan="3" style="border-top:0;padding-top:0">${ctl}</td></tr>` : ""}`;
   }).join("");
   return `<div class="panel stack" id="matBox"><h3>Retained material</h3>
     ${grouped(s) ? `<p class="small" id="matBatch" style="margin:0">Put away, returned and disposed of with batch <button type="button" class="linkish mono" data-open="${esc(s.batchId)}">${esc(s.batchId)}</button>, on the batch page.</p>` : ""}
     ${q ? `<div class="notice small" style="margin:0">Waiting for <b>${esc(q.wit)}</b> to confirm ${q.kind === "store" ? "the storage" : esc(wqText(s, q))}. Nothing else is recorded on the material until then.</div>` : ""}
     ${edit && !closed && !q && twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div class="form"><div class="full">${witnessField("mtWit", "Witness (two-person custody: confirms a disposal from their own account)")}</div></div>` : ""}
     ${edit && !closed && !q ? storeAllRow(s) : ""}
-    <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="tbl-wrap"><table class="cardy mat-t"><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
     ${edit && !closed && !twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div id="mtWitBox" class="mat-wit" hidden>${witnessField("mtWit", "Witness to the disposal (a second person)")}</div>` : ""}</div>`;
 }
 function bindTrack(v, s){
@@ -4524,7 +4535,7 @@ function renderLedger(){
   if (f.q){ const q = f.q.toLowerCase(); rows = rows.filter(r => [r.sid, r.type, r.sub, r.tag, r.tech, r.wit, r.ref, r.note, r.item, r.route].join(" ").toLowerCase().includes(q)); }
   const ownTag = r => r.tag && normKey(r.tag) !== normKey(r.sid), tagCol = rows.some(ownTag);   // v38: no column of dashes
   const body = rows.map(r => `<tr class="${r.reversed ? "reversed" : ""}">
-    <td class="lg-d" style="white-space:nowrap">${fmtFull(r.at)}</td>
+    <td class="lg-d"><span class="nw">${fmtDate(r.at)},</span> <span class="nw">${new Date(r.at).toLocaleTimeString(undefined, fmtOpts({ hour: "2-digit", minute: "2-digit" }))}</span></td>
     <td class="lg-dir"><span class="dirp ${r.dir === "in" ? "dir-in" : r.dir === "rev" ? "dir-rev" : "dir-out"}">${r.dir === "in" ? "IN" : r.dir === "rev" ? "REV" : "OUT"}</span>${r.reversed ? `<div><span class="pill warn">Reversed</span></div>` : ""}</td>
     <td class="lg-id"><button class="linkish" data-open="${esc(r.sid)}">${esc(r.sid)}</button>${!shownQa.has(r.sid) && shownQa.add(r.sid) ? qaOfNote(r.sid) + qaPickBox(r.sid) : ""}${!shownRedo.has(r.sid) && redoFor(r.sid) && shownRedo.add(r.sid) ? `<div><button type="button" class="btn ghost small reassay-btn" data-reassay="${esc(r.sid)}">Re-assay</button></div>` : ""}</td>
     ${tagCol ? `<td class="mono lg-tag${ownTag(r) ? "" : " nil"}">${ownTag(r) ? esc(r.tag) : "—"}</td>` : ""}
@@ -5237,7 +5248,9 @@ function limitHits(s, rows = effRows(s)){
   const out = [], pt = rows.pt?.raw || ptGiven(s);
   for (const l of cfg.limits || []){
     if ((l.route !== s.route && l.route !== s.baseRoute) || !rows[l.k]) continue;   // v24d: a sample of a shift job keeps its own route's limits
-    if (l.when && pt && pt !== l.when) continue;   // no sampling point given: the limit applies
+    // no sampling point given: the limit applies. 22 Oct review: not on a MET Lab job's final samples, the MET Lab's own testwork (a
+    // preg-robbing solution is not the plant's CIL tails); a limit for one plant point applies to them only when they name that point.
+    if (l.when && (pt ? pt !== l.when : isMetJob(s))) continue;
     const x = resNum(rows[l.k]); if (x == null) continue;
     if (l.op === "<" ? x < +l.val : x > +l.val) out.push({ ...l, raw: rows[l.k].raw, v: x, key: `${l.id}|${l.k}|${rows[l.k].raw}` });
   }
@@ -8359,12 +8372,12 @@ function bwMats(st){
         <button type="button" class="btn" data-bmat="${x.k}">Record for ${nS(x.n)}</button></div>` : "";
     return `<tr><td><b>${esc(x.item)}</b><div class="small muted">Then: ${esc(lcFirst(x.then))}</div></td>
       <td style="white-space:nowrap">${x.days ? fmtDate(x.due) : "At release"}${od ? (x.days ? `<div class="small" style="color:var(--bad);font-weight:600">${dur(now - x.due)} past</div>` : `<div class="small" style="color:var(--warn);font-weight:600">Due now</div>`) : ""}</td>
-      <td>${where}<div class="small muted">${nS(x.n)}</div></td></tr>${ctl ? `<tr class="mat-ctl"><td colspan="3" style="border-top:0;padding-top:0">${ctl}</td></tr>` : ""}`;
+      <td>${where}<div class="small muted">${nS(x.n)}</div></td></tr>${ctl ? `<tr class="mat-ctl" data-l="1"><td colspan="3" style="border-top:0;padding-top:0">${ctl}</td></tr>` : ""}`;
   }).join("");
   return `<div class="stack" id="bmBox" style="gap:8px"><b>Retained material of the batch</b>
     ${q ? `<div class="notice small" style="margin:0">Waiting for <b>${esc(q.wit)}</b> to confirm ${q.kind === "store" ? "the storage" : "a movement"}. Nothing else is recorded on the material until then.</div>` : ""}
     ${edit && two ? `<div class="form"><div class="full">${witnessField("bmWit", "Witness (two-person custody: confirms a disposal from their own account)")}</div></div>` : ""}
-    <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="tbl-wrap"><table class="cardy mat-t"><thead><tr><th>Material</th><th>Kept until</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
     ${edit && !two ? `<div id="bmWitBox" class="mat-wit" hidden>${witnessField("bmWit", "Witness to the disposal (a second person)")}</div>` : ""}</div>`;
 }
 /* The witness request of the batch (storage, or a disposal on a critical batch): the witness confirms it for all the samples at once. */

@@ -60,7 +60,9 @@
 .lg-month:has(.signoff.changed){background:var(--warn-soft);border-left-color:var(--warn)}
 .lg-tools #lgSec{max-width:15em}
 .lg-month .signoff{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
-@media (min-width:641px){.lg-t td.lg-l,.lg-t td.lg-m{white-space:nowrap}}
+/* 22 Oct review: the table was 1315 px in its 1206 px box (the page's widest), so the Reference · note column sat past the right edge on
+   every computer. The time may go under the date and Material may wrap; the lab's name stays on one line. */
+@media (min-width:641px){.lg-t td.lg-l{white-space:nowrap}}
 @media (max-width:640px){
   .cstats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
   .cstats .stat{padding:8px 10px}
@@ -81,3 +83,12 @@
   table.cardy.lg-t td:not(.lg-id):not(.lg-dir){font-size:var(--t-sm)}
 }
 #view-results td[data-l="Results"]{white-space:normal}#view-results td[data-l="Type · test"]{min-width:9em}
+/* 22 Oct review: the direction pill keeps its word on one line (it broke to "OU / T" on a phone); the retained material reads as cards on
+   a phone, each material with its own put-away controls joined under it (they were cut off at the right edge). */
+.dirp{white-space:nowrap}
+@media (max-width:640px){
+  table.cardy.lg-t tr{grid-template-columns:max-content minmax(0,1fr) minmax(0,1fr)}
+  table.cardy.mat-t tr:has(+ tr.mat-ctl){border-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0;padding-bottom:4px}
+  table.cardy.mat-t tr.mat-ctl{margin-top:-8px;border-top:0;border-top-left-radius:0;border-top-right-radius:0;padding-top:0}
+  table.cardy.mat-t .mat-row>*{flex:1 1 100%!important}
+}
