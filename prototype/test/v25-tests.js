@@ -103,7 +103,7 @@ const JSQR = [path.join(__dirname, "..", "..", "app", "jsqr.js"), process.env.AZ
   const dm = ledger().find(m => m.sid === m1 && m.dir === "out");
   check(doc(m1).materials.find(m => m.k === mk).status === "disposed" && doc(m1).history.at(-1).wit === "Lab Supervisor" && dm?.kind === "disposed" && dm?.wit === "Lab Supervisor", "with a witness it is disposed; the witness is on the custody line and the ledger");
   await fillForm(Tc, "submit", { section: "EXP", type: "rc", purpose: "exp", submitter: "Geo", count: 1, tags: "RJ-1" }); const [r1] = await ids(Tc);
-  await open(Tc, r1); await Tc.fill("#mvNote", "Bag torn, sample spilt"); await Tc.click("#rejBox summary"); await Tc.selectOption("#rcDisp", "disposed"); await Tc.click('[data-receipt="reject"]'); await Tc.waitForTimeout(300);
+  await open(Tc, r1); await Tc.click("#rejOpen"); await Tc.fill("#rcWhy", "Bag torn, sample spilt"); await Tc.selectOption("#rcDisp", "disposed"); await Tc.click('[data-receipt="reject"]'); await Tc.waitForTimeout(300);
   check(/second person/.test(await H.toastText(Tc)) && doc(r1).stageKey === "submitted", "rejecting a sample to be disposed of needs the witness too");
   await Tc.selectOption("#rcDispWit", { label: "Lab Supervisor" }); await Tc.click('[data-receipt="reject"]'); await waitFor(() => doc(r1).stageKey === "rejected", 6000);
   await waitFor(() => ledger().some(m => m.sid === r1 && m.dir === "out"), 5000);

@@ -160,7 +160,7 @@ function recvManyPanel(cur){
         <label class="f"><span>Date &amp; time received</span><input id="rmAt" type="datetime-local" value="${esc(rmAt || localInput(Date.now()))}"></label>
         ${two ? witnessField("rmWit") : ""}
         <label class="recv-toggle full"><input type="checkbox" id="rmOk" ${rmOk ? "checked" : ""}> The ticked bags match their submissions, seals intact, good condition</label></div>
-      <div class="row" style="gap:8px"><button type="button" class="btn primary" id="rmBtn" ${n && !rmBusy ? "" : "disabled"}>${rmBusy ? "Receiving…" : `Receive ${n} ticked`}</button><button type="button" class="btn" id="rmScan">Scan bags</button><span class="small muted">Tick the bags in front of you, or scan their labels. A bag with a problem: open it and flag it.</span></div>
+      <div class="row" style="gap:8px"><button type="button" class="btn primary" id="rmBtn" ${n && !rmBusy ? "" : "disabled"}>${rmBusy ? "Receiving…" : `Receive ${n} ticked`}</button><button type="button" class="btn" id="rmScan">Scan bags</button><span class="small muted">A bag with a problem: open it to reject or flag it.</span></div>
     </div></div>`;
 }
 function bindRecvMany(v){

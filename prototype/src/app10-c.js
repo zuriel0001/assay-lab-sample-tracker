@@ -240,13 +240,15 @@ function buildTrack(v, s){
         <div class="eta${st.late && !st.post && !st.closed ? " late" : !proj.eta && !st.closed ? " done" : ""}">${etaHtml}</div>
       </div>
     </div>
+    ${rejNotice(s)}
     ${grouped(s) ? batchNote(s) : ""}
     ${s.flag && awaiting(s) ? `<div class="notice warn"><b>Flagged at receipt:</b> ${esc(s.flag)}</div>` : ""}
     ${(s.ledgerPending || []).length ? `<div class="notice warn">A ledger entry for this sample is still being saved. It is retried automatically.</div>` : ""}
     <div class="grid2">
-      <div class="panel stack"><h3>Workflow${s.routeName ? `: ${esc(routeLabel(s))}` : ""}${grouped(s) ? ` <span class="pill">with batch ${esc(s.batchId)}</span>` : ""}</h3><ol class="rail">${rail}</ol>
-        ${qcBlock}
-        <div class="actions" id="actBox">${actions}</div></div>
+      <div class="panel stack"><h3>Workflow${s.routeName ? `: ${esc(routeLabel(s))}` : ""}${grouped(s) ? ` <span class="pill">with batch ${esc(s.batchId)}</span>` : ""}</h3>
+        <div class="actions" id="actBox">${actions}</div>
+        <ol class="rail">${rail}</ol>
+        ${qcBlock}</div>
       <div class="stack">
         ${resultsPanel(s)}
         ${qaPanel(s)}
@@ -286,7 +288,17 @@ function syncRoutes(testSel, routeSel, s, infoEl){
 }
 function receiptForm(s){
   const t = typeOf(s.typeKey), unit = massUnit(s);
+  /* v37: Accept and Reject at the top (Zuriel: "the Technician should be able to Accept or Reject the sample"); Reject opens its panel,
+     where a justification is always typed, and the receipt fields step aside while it is open. */
   return `<div class="stack" id="moveForm" style="gap:10px">
+    <div class="row step-row" id="rcActs">
+      <button type="button" class="btn primary" data-receipt="confirm">Accept</button>
+      <button type="button" class="btn danger" id="rejOpen" aria-expanded="false" aria-controls="rcBox">Reject</button>
+      <button type="button" class="btn" data-receipt="flag">Flag a problem</button>
+      ${s.batchId && s.batchSize > 1 ? `<button type="button" class="btn ghost" data-open="${esc(s.batchId)}">Receive the whole batch (${esc(s.batchSize)})</button>` : ""}
+    </div>
+    ${rejectPanel("rc", { go: 'data-receipt="reject"', cancel: true })}
+    <div class="stack" id="rcFields" style="gap:10px">
     <p class="small" style="margin:0">Check the bag against the submission: ${tagText(s) ? `site sample code <b class="mono">${esc(tagText(s))}</b>, ` : ""}${esc(s.type)}, ${esc(bagsText(s.containers || 1))}${s.massKg ? `, ${esc(s.massKg)} kg` : ""}${s.seal ? `, seal <span class="mono">${esc(s.seal)}</span>` : ""}.</p>
     ${t?.check ? `<p class="small" style="margin:0"><b>Also check:</b> ${esc(t.check)}</p>` : ""}
     ${s.handedTo || s.handedBadge ? `<div class="small"><b>Handed to:</b> ${esc(s.handedTo || "—")}${s.handedBadge ? `, badge <span class="mono">${esc(s.handedBadge)}</span>` : ""}</div>` : ""}
@@ -303,19 +315,8 @@ function receiptForm(s){
       <label class="f"><span>Test requested</span><select id="rcTest">${testOptions(s.typeKey, s.test)}</select></label>
       <label class="f"><span>Workflow route</span><select id="rcRoute"></select></label>
       <div class="full small" id="rcInfo"></div>
-      <label class="f full"><span>Note <span style="font-weight:400">(needed to flag or reject, when the test changes, or when a receipt check fails)</span></span><input id="mvNote" data-clear placeholder="e.g. Bag code reads T-10422, not T-10421; bag torn"></label>
-    </div>
-    <div class="row">
-      <button type="button" class="btn primary" data-receipt="confirm">Confirm receipt</button>
-      <button type="button" class="btn" data-receipt="flag">Flag a problem</button>
-      ${s.batchId && s.batchSize > 1 ? `<button type="button" class="btn ghost" data-open="${esc(s.batchId)}">Receive the whole batch (${esc(s.batchSize)})</button>` : ""}
-    </div>
-    <details class="more" id="rejBox"><summary>Reject the sample</summary>
-      <div class="stack" style="gap:8px;margin-top:8px">
-        <label class="f">What happens to it<select class="inp" id="rcDisp"><option value="returned">Returned to the submitter</option><option value="disposed">Disposed at the lab</option><option value="cancel">Nothing arrived: cancel the submission</option></select></label>
-        <div class="form" id="rcDispWitBox">${witnessField("rcDispWit", "Witness, if disposed (a second person)", false)}</div>
-        <p class="small muted" style="margin:0">Returned or disposed material goes in the ledger as received, then sent out, so the counts balance. Put the reason in the note above.</p>
-        <div class="row"><button type="button" class="btn danger" data-receipt="reject">Reject sample</button></div></div></details>
+      <label class="f full"><span>Note <span style="font-weight:400">(needed to flag a problem, when the test changes, or when a receipt check fails)</span></span><input id="mvNote" data-clear placeholder="e.g. Bag code reads T-10422, not T-10421; bag torn"></label>
+    </div></div>
   </div>`;
 }
 function receiptChecks(s){
@@ -397,8 +398,14 @@ function moveForm(s){
      file or typed results (released when they are saved, or by a supervisor in the sign-off mode). */
   const hold = release ? (noRes ? "" : releaseBlock(s) || (self === "blocked" ? SELF_MSG : "")) : next && next.phase === "qc" && p[ci].phase !== "qc" ? qcEntryBlock(s) : "";
   return `<div id="moveForm" class="stack" style="gap:10px">
-    ${waitRes && noRes ? `<div class="notice" id="waitNote"><b>Waiting for the results${missingRes(s).length ? `: ${esc(missingRes(s).map(a => a.s || a.n).join(", "))}` : ""}.</b> Attach the results file, or type the results, under <b>Results</b>. ${relNow() ? `They are released when you save them${twoPerson(s) ? " (with the witness chosen there)" : ""}.` : "A lab supervisor then releases them."}</div>` : ""}
+    ${waitRes && noRes ? `<div class="notice" id="waitNote"><b>Waiting for the results${missingRes(s).length ? `: ${esc(missingRes(s).map(a => a.s || a.n).join(", "))}` : ""}.</b> ${relNow() ? `They are released when you save them${twoPerson(s) ? " (with the witness chosen there)" : ""}.` : "A lab supervisor then releases them."}</div>` : ""}
     ${hold ? `<div class="notice warn" id="holdNote"><b>${release ? "Release on hold" : "Before QA/QC review"}:</b> ${esc(hold)}</div>` : ""}
+    <div class="row step-row">
+      ${release && noRes ? (waitRes ? (canTakeFile(s) ? `<button type="button" class="btn primary" data-attach="sample:${esc(s.id)}">Attach results file</button>` : "") + (anOf(s).some(a => !a.calc) ? `<button type="button" class="btn" id="resJump">Type results</button>` : "") : `<button type="button" class="btn primary" data-step="wait">Move to: Results released</button>`)
+        : release ? (canRelease() ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Release results and issue certificate</button>` : `<span class="small muted">A lab supervisor releases the results${qcStepOn() ? " after the QA/QC review" : ""}.</span>`)
+        : next ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Move to: ${esc(next.name)}</button>` : ""}
+      <button type="button" class="btn" data-step="note">Save note only</button>
+    </div>
     <div class="form">
       ${meBox("Recorded by")}
       ${twoPerson(s) ? witnessField("mvWit") : ""}
@@ -406,12 +413,6 @@ function moveForm(s){
       <label class="f">Reference<input id="mvRef" data-clear placeholder="e.g. drying tray 12"></label>
       <label class="f full">Note<input id="mvNote" data-clear placeholder="Optional"></label>
       ${self === "admin" && !hold ? `<label class="f full"><span>You entered results on this sample: reason for releasing them yourself (printed on the certificate) <span class="req">*</span></span><input id="selfWhy" data-clear></label>` : ""}
-    </div>
-    <div class="row">
-      ${release && noRes ? (waitRes ? "" : `<button type="button" class="btn primary" data-step="wait">Move to: Results released</button>`)
-        : release ? (canRelease() ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Release results and issue certificate</button>` : `<span class="small muted">A lab supervisor releases the results${qcStepOn() ? " after the QA/QC review" : ""}.</span>`)
-        : next ? `<button type="button" class="btn primary" data-step="next" ${hold ? "disabled data-hold" : ""}>Move to: ${esc(next.name)}</button>` : ""}
-      <button type="button" class="btn" data-step="note">Save note only</button>
     </div>
     ${back.length || ahead.length ? `<details class="more" id="corrBox"><summary>Correct the stage or skip a step</summary>
       <div class="stack" style="gap:8px;margin-top:8px">
@@ -461,7 +462,6 @@ function materialsPanel(s){
       <td>${state}</td></tr>${ctl ? `<tr class="mat-ctl"><td colspan="3" style="border-top:0;padding-top:0">${ctl}</td></tr>` : ""}`;
   }).join("");
   return `<div class="panel stack" id="matBox"><h3>Retained material</h3>
-    <p class="small muted" style="margin:0">Each material is kept for its own period from the release of results, then returned or disposed. Every return, disposal or send-out is written to the ledger.</p>
     ${grouped(s) ? `<p class="small" id="matBatch" style="margin:0">Put away, returned and disposed of with batch <button type="button" class="linkish mono" data-open="${esc(s.batchId)}">${esc(s.batchId)}</button>, on the batch page.</p>` : ""}
     ${q ? `<div class="notice small" style="margin:0">Waiting for <b>${esc(q.wit)}</b> to confirm ${q.kind === "store" ? "the storage" : esc(wqText(s, q))}. Nothing else is recorded on the material until then.</div>` : ""}
     ${edit && !closed && !q && twoPerson(s) && (s.materials || []).some(m => m.status === "kept") ? `<div class="form"><div class="full">${witnessField("mtWit", "Witness (two-person custody: confirms a disposal from their own account)")}</div></div>` : ""}
@@ -488,6 +488,7 @@ function bindTrack(v, s){
   if (moving) setMoveBusy(true);
   v.querySelectorAll("[data-step]").forEach(b => b.addEventListener("click", () => doStep(b.dataset.step)));
   v.querySelectorAll("[data-receipt]").forEach(b => b.addEventListener("click", () => doReceipt(b.dataset.receipt)));
+  bindReject(v, "rc", $("#rejOpen", v), $("#rcFields", v));
   v.querySelectorAll("[data-mat]").forEach(b => b.addEventListener("click", () => doMaterial(b.dataset.mat)));
   bindWq(v);
   // v24d: the witness to a disposal is asked for on the material being disposed, only when Dispose is chosen.
@@ -499,6 +500,7 @@ function bindTrack(v, s){
   }
   v.querySelectorAll("[data-undo]").forEach(b => b.addEventListener("click", () => doUndo(b.dataset.undo)));
   $("#corrBtn", v)?.addEventListener("click", doCorrection);
+  $("#resJump", v)?.addEventListener("click", () => { const b = $("#resBox", v); if (!b) return; b.open = true; b.scrollIntoView({ block: "start", behavior: "smooth" }); b.querySelector("input[id^=rs_],select[id^=rs_],textarea[id^=rs_]")?.focus({ preventScroll: true }); });   // v37: waiting for results, the boxes are a tap away
   $("#redoBtn", v)?.addEventListener("click", doRedo);
   $("#soloBtn", v)?.addEventListener("click", doSolo);
   $("#rerouteBtn", v)?.addEventListener("click", doReroute);
@@ -563,7 +565,8 @@ function needWitness(s, id){
 async function doReceipt(kind){
   const s0 = current?.body; if (!s0 || !canEdit()) return;
   const note = val("#mvNote");
-  if (kind !== "confirm" && !note){ toast(kind === "flag" ? "Describe the problem in the note first." : "Give the reason for rejecting in the note first."); $("#mvNote")?.focus(); return; }
+  if (kind === "flag" && !note){ toast("Describe the problem in the note first."); $("#mvNote")?.focus(); return; }
+  const rj = kind === "reject" ? rejectRead("rc") : null; if (kind === "reject" && !rj) return;
   let c = null, test = s0.test, r = null, wit = "";
   if (kind === "confirm"){
     c = receiptChecks(s0);
@@ -575,8 +578,6 @@ async function doReceipt(kind){
     if (test !== s0.test && !note){ toast("Give the reason for changing the test in the note."); $("#mvNote")?.focus(); return; }
     if (c.warn.length && !note){ toast("A receipt check failed. Describe it in the note, then confirm."); $("#mvNote")?.focus(); return; }
   }
-  const disp = kind === "reject" ? val("#rcDisp") : "";
-  const dWit = disp === "disposed" ? disposalWitness("#rcDispWit") : ""; if (dWit === null) return;
   await act(s => {
     if (!awaiting(s)){ toast(`${s.id} was already handled by ${lastTech(s)}.`); return null; }
     const base = { by: session.u, tech: session.name, ref: "" }, h = s.history || [];
@@ -594,11 +595,7 @@ async function doReceipt(kind){
     }
     const now = nowAfter(s);
     if (kind === "flag") return { upd: { flag: note, history: [...h, { ...base, key: s.stageKey, sn: stage(s, s.stageKey)?.name, at: now, note: "Flagged: " + note }] }, msg: `${s.id} flagged` };
-    if (disp === "cancel") return { upd: { stageKey: "cancelled", stageAt: now, flag: "", open: false, onHand: false, closedAt: now, history: [...h, { ...base, key: "cancelled", sn: "Submission cancelled", at: now, note: "Cancelled, nothing received: " + note }] }, msg: `${s.id} cancelled` };
-    const outAt = now + 1000;
-    return { upd: { stageKey: "rejected", stageAt: outAt, flag: "", open: false, onHand: false, closedAt: outAt, recvAt: now, receivedBy: session.name, receivedAt: now, inMid: `${s.id}~in`,
-        history: [...h, { ...base, key: "received", sn: HEAD[1].name, at: now, note: "Received for inspection" }, { ...base, key: "rejected", sn: "Rejected at receipt", at: outAt, ...(dWit ? { wit: dWit } : {}), note: `Rejected and ${DISPO[disp].toLowerCase()}: ${note}` }] },
-      moves: [inMove(s, now, null, "Received for inspection", ""), outMove(s, outAt, disp, "Whole sample (rejected)", "", note, `${s.id}~out~all~1`, dWit)], msg: `${s.id} rejected` };
+    return rejectUpd(s, rj, now);
   });
 }
 async function doStep(kind){

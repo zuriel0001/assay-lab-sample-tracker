@@ -168,7 +168,7 @@ function renderStages(){
 
     <h2 style="margin-top:12px">Action and permit limits</h2>
     <div class="mock"><b>Example values.</b><span>The permit and guideline limits (marked Permit) are placeholders. Replace them with the limits in the site's environmental permit before go-live.</span></div>
-    <p class="small muted" style="margin:0">A result past a limit raises an alert on the sample and on the board. The release waits until someone records what was done and who was told; the record is printed on the certificate. "Only when" limits a row to one sampling point.</p>
+    <p class="small muted" style="margin:0">${relNow() ? "A result past a limit is flagged to the people who evaluate results (Results tab); the release does not wait." : "A result past a limit holds the release until someone records what was done and who was told (printed on the certificate)."} "Only when" limits a row to one sampling point.</p>
     ${limitTable(limitRows(true))}
     ${limitsOff() ? `<details class="more" id="limOff" ${limOffOpen ? "open" : ""}><summary>Limits on routes not in use (${limitsOff()})</summary><div id="limOffBox">${limOffOpen ? limitTable(limitRows(false)) : ""}</div></details>` : ""}
     <div class="row"><button class="btn" id="limAdd">Add limit</button></div>

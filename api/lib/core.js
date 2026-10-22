@@ -357,7 +357,7 @@ function createCore({ store, adminEmails = [], devUsers = null, log = () => {} }
     if (typeof d.id !== "string" || skey(d.id) !== id || !(SAMPLE_ID.test(d.id) || job)) return "id";
     if (d.createdBy !== "public" || d.stageKey !== "submitted" || d.open !== true || d.onHand || d.lab !== true || d.sx != null) return "state";
     if (d.recvAt || d.receivedAt || d.recv || d.inMid) return "received";
-    for (const k of ["results", "certs", "labs", "lbs", "labBatch", "materials", "ledgerPending", "amend", "acks", "relAt", "closedAt"]) if (d[k] != null && !(Array.isArray(d[k]) && !d[k].length)) return k;
+    for (const k of ["results", "certs", "labs", "lbs", "labBatch", "materials", "ledgerPending", "amend", "acks", "relAt", "closedAt", "rej"]) if (d[k] != null && !(Array.isArray(d[k]) && !d[k].length)) return k;
     if (!Array.isArray(d.history) || d.history.length !== 1 || d.history[0].by !== "public") return "history";
     if (!(Math.abs((+d.createdAt || 0) - now) < 15 * 60000)) return "time";
     if (!job){ const ds = id.split("-")[1], day = Date.UTC(+ds.slice(0, 4), +ds.slice(4, 6) - 1, +ds.slice(6, 8)) + 12 * 3600000;

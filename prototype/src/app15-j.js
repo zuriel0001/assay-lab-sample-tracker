@@ -127,6 +127,7 @@ function setWall(on){
   document.body.classList.toggle("wall", on);
   clearInterval(wallTimer);
   if (on){
+    boardPick = "";   // v37: the wall screen shows the whole board, not the last tile clicked
     document.documentElement.requestFullscreen?.().catch(() => {});
     wallTimer = setInterval(() => { if (tab === "board") renderBoard(); else setWall(false); }, 30000);
   } else {

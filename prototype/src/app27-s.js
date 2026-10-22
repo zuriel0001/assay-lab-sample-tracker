@@ -128,26 +128,27 @@ function bwPanel(c){
         <label class="f full">Note<input id="bwNote" data-clear placeholder="Optional"></label></div>`;
     if (!toRel){
       if (next?.phase === "qc" && plan[bi].phase !== "qc") at.forEach(s => { const h = qcEntryBlock(s); if (h) holds.push(`${s.id}: ${h}`); });
-      act = `${holds.length ? `<div class="notice warn" id="bwHold"><b>Before ${esc(next?.name || "the next step")}:</b> ${esc(holds.slice(0, 4).join(" "))}${holds.length > 4 ? ` +${holds.length - 4} more` : ""}</div>` : ""}${form}
-        <div class="row"><button type="button" class="btn primary" id="bwNext" ${holds.length ? "disabled data-hold" : ""}>Move ${nS(n)} to: ${esc(next?.name || "")}</button></div>
-        ${relNow() ? `<div class="row" style="gap:8px"><span class="pill" id="bwCount">Results in: ${n - missing.length} of ${n}</span><button type="button" class="btn" data-attach="sub:${esc(ref)}">Attach results file for the batch</button><span class="small muted">The report can come at any step: the batch is moved on and released with it.</span></div>` : ""}`;
+      act = `${holds.length ? `<div class="notice warn" id="bwHold"><b>Before ${esc(next?.name || "the next step")}:</b> ${esc(holds.slice(0, 4).join(" "))}${holds.length > 4 ? ` +${holds.length - 4} more` : ""}</div>` : ""}
+        <div class="row step-row"><button type="button" class="btn primary" id="bwNext" ${holds.length ? "disabled data-hold" : ""}>Move ${nS(n)} to: ${esc(next?.name || "")}</button></div>${form}
+        ${relNow() ? `<div class="row" style="gap:8px"><span class="pill" id="bwCount">Results in: ${n - missing.length} of ${n}</span><button type="button" class="btn" data-attach="sub:${esc(ref)}">Attach results file for the batch</button></div>` : ""}`;
     } else if (missing.length && !waiting){
-      act = `${form}<div class="row"><button type="button" class="btn primary" id="bwWaitBtn">Move ${nS(n)} to: Results released</button></div>`;
+      act = `<div class="row step-row"><button type="button" class="btn primary" id="bwWaitBtn">Move ${nS(n)} to: Results released</button></div>${form}`;
     } else {
       if (!missing.length && !relNow()) at.forEach(s => { const h = releaseBlock(s) || (relSelf(s) ? SELF_MSG : ""); if (h) holds.push(`${s.id}: ${h}`); });
-      act = `${missing.length ? `<div class="notice" id="bwWait"><b>Waiting for the results of ${nS(missing.length)}${missing.length < n ? ` (${missing.slice(0, 6).map(s => s.id).join(", ")}${missing.length > 6 ? "…" : ""})` : ""}.</b> Attach the results file for the batch: each sample's values are read from it by its ID or site sample code, and a file the site can't read is kept as the results of them all.${relNow() ? " The batch is released with one certificate when you save it." : ""} Results typed on a sample's own record count too.</div>` : ""}
-        <div class="row" style="gap:8px"><span class="pill ${missing.length ? "" : "ok"}" id="bwCount">Results in: ${n - missing.length} of ${n}</span><button type="button" class="btn${missing.length ? " primary" : ""}" data-attach="sub:${esc(ref)}">Attach results file for the batch</button></div>
-        ${holds.length ? `<div class="notice warn" id="bwHold"><b>Release on hold:</b> ${esc(holds.slice(0, 4).join(" "))}${holds.length > 4 ? ` +${holds.length - 4} more` : ""}</div>` : ""}
-        ${!missing.length ? (canRelease() ? `${two ? `<div class="form">${witnessField("bwRelWit", "Witness to the release (two-person custody)")}</div>` : ""}<div class="row"><button type="button" class="btn primary" id="bwRelease" ${holds.length ? "disabled data-hold" : ""}>Release results and issue the batch certificate</button></div>`
-          : `<span class="small muted">A lab supervisor releases the results${qcStepOn() ? " after the QA/QC review" : ""}.</span>`) : ""}`;
+      /* v37: the release (or, still waiting, attaching the file) first */
+      const count = `<div class="row step-row"><span class="pill ${missing.length ? "" : "ok"}" id="bwCount">Results in: ${n - missing.length} of ${n}</span><button type="button" class="btn${missing.length ? " primary" : ""}" data-attach="sub:${esc(ref)}">Attach results file for the batch</button></div>`;
+      act = missing.length ? `${count}<div class="notice" id="bwWait"><b>Waiting for the results of ${nS(missing.length)}${missing.length < n ? ` (${missing.slice(0, 6).map(s => s.id).join(", ")}${missing.length > 6 ? "…" : ""})` : ""}.</b> Values are read from the file by ID or site sample code; results typed on a sample's own record count too.${relNow() ? " The batch is released with one certificate when you save it." : ""}</div>`
+        : `${holds.length ? `<div class="notice warn" id="bwHold"><b>Release on hold:</b> ${esc(holds.slice(0, 4).join(" "))}${holds.length > 4 ? ` +${holds.length - 4} more` : ""}</div>` : ""}
+        ${canRelease() ? `<div class="row step-row"><button type="button" class="btn primary" id="bwRelease" ${holds.length ? "disabled data-hold" : ""}>Release results and issue the batch certificate</button></div>${two ? `<div class="form">${witnessField("bwRelWit", "Witness to the release (two-person custody)")}</div>` : ""}`
+          : `<span class="small muted">A lab supervisor releases the results${qcStepOn() ? " after the QA/QC review" : ""}.</span>`}${count}`;
     }
   } else if (bi >= ti){
     act = `${certLine}${bi > ti ? `<div class="row" style="gap:8px"><span class="pill ok">Workflow complete</span><span class="small muted">All ${nS(n)} on the shelf. Each material is returned or disposed of below when its retention period ends.</span></div>` : ""}${bwWq(st)}${bwMats(st)}`;
   }
   return `<div class="panel stack" id="bwBox">${head(st.mem.length)}
+    <div class="actions stack" id="bwAct" style="gap:10px">${act}</div>
     ${bwRail(st, ref)}
-    ${asides.length ? `<div class="small muted">${asides.join("<br>")}</div>` : ""}
-    <div class="actions stack" id="bwAct" style="gap:10px">${act}</div></div>`;
+    ${asides.length ? `<div class="small muted">${asides.join("<br>")}</div>` : ""}</div>`;   // v37: the step's action on top, then the steps
 }
 let bwBusy = false;
 function bindBw(v){
@@ -282,9 +283,10 @@ async function bwAnswer(kind){
 }
 /* On a member's own record: it moves with its batch; it can be taken out to go its own way. */
 function batchNote(s){
-  const ref = s.batchId, q = wqOf(s);
+  const ref = s.batchId, q = wqOf(s), rej = awaiting(s) && canEdit() && !q;
   return `<div class="notice stack" id="inBatch" style="gap:8px"><div>${esc(s.id)} is processed with batch <button type="button" class="linkish mono" data-open="${esc(ref)}">${esc(ref)}</button> (${esc(s.batchSize)} samples): it is received, moved through its steps, released and stored with the whole batch, on the batch page.${q ? ` <b>Waiting for ${esc(q.wit)} to confirm ${q.kind === "store" ? "the storage" : esc(wqText(s, q))}</b>${myConf(s) ? ": confirm it on the batch page" : ""}.` : ""}</div>
-    <div class="row" style="gap:8px"><button type="button" class="btn primary" data-open="${esc(ref)}">${awaiting(s) && canEdit() ? "Receive the batch" : "Open the batch"}</button>${canEdit() && !q ? `<button type="button" class="btn ghost" id="soloBtn">Take it out of the batch</button>` : ""}</div></div>`;
+    <div class="row" style="gap:8px"><button type="button" class="btn primary" data-open="${esc(ref)}">${awaiting(s) && canEdit() ? "Receive the batch" : "Open the batch"}</button>${rej ? `<button type="button" class="btn danger" id="rejOpen" aria-expanded="false" aria-controls="rcBox">Reject this sample</button>` : ""}${canEdit() && !q ? `<button type="button" class="btn ghost" id="soloBtn">Take it out of the batch</button>` : ""}</div></div>
+    ${rej ? rejectPanel("rc", { go: 'data-receipt="reject"', what: "this sample (it leaves the batch)" }) : ""}`;   // v37: one bag of a batch can be rejected at receipt
 }
 async function doSolo(){
   const s0 = current?.body; if (!s0 || !batchOf(s0)) return;

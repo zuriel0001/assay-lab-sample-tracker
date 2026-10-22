@@ -1,0 +1,50 @@
+/* v37 (22 Oct): the step's action at the top of the Workflow panel ("the button ... should be at the top and not the bottom"), in a tinted
+   box like the ID groups; Accept and Reject at receipt, Reject in its own red panel with a typed justification. */
+:root{--bad-ink:#ffffff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bad-ink:#1d0d0c}}
+:root[data-theme="dark"]{--bad-ink:#1d0d0c}
+#actBox,#bwAct{margin:0;padding:10px 12px;border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--accent-soft) 38%,var(--panel))}
+#actBox:has(>p:only-child),#bwAct:has(>p:only-child){padding:8px 12px;background:none;border-style:dashed}
+#actBox+.rail,#bwAct+.rail{margin-top:2px}
+.step-row{gap:8px}
+.btn.danger{border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}
+.btn.danger.on{background:var(--bad-soft);border-color:var(--bad)}
+.btn.danger-fill{background:var(--bad);border-color:var(--bad);color:var(--bad-ink)}
+.rej-box{gap:10px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--bad) 40%,var(--line));border-left:4px solid var(--bad);border-radius:10px;background:color-mix(in srgb,var(--bad-soft) 55%,var(--panel))}
+.rej-box[hidden]{display:none}
+.rej-box h4{margin:0;font-family:var(--f-display);font-size:var(--t-md)}
+.rej-box .form{margin:0}
+.rej-ids{max-height:10.5rem;overflow:auto;padding:2px 0}
+.rej-ids .rej-all{font-weight:600}
+.rej-note b{margin-right:6px}
+.rej-note>div{margin-top:2px}
+#bvRecv .recv-toggle{min-height:36px}
+.rej-f{display:flex;flex-direction:column;gap:5px;font-weight:600;color:var(--muted)}
+/* The reasons (and the batch page's samples) as chips: compact, several at once */
+.rej-box .checks{gap:6px}
+.rej-box .checks label{min-height:36px;padding:2px 12px 2px 9px;border:1px solid var(--line);border-radius:18px;line-height:1.25;background:var(--panel);font-size:var(--t-sm);font-weight:500;cursor:pointer}
+.rej-box .checks label:has(input:checked){border-color:var(--bad);background:var(--bad-soft)}
+.rej-box .checks input{flex:none;min-height:0;width:18px;height:18px;margin:0;accent-color:var(--bad)}
+@media (pointer:coarse){.rej-box .checks label{min-height:40px}}
+/* A phone's record: the estimate in two lines, so the step's action comes up on the first screen */
+@media (max-width:760px){
+  .card-head .eta{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;align-items:center;padding:8px 12px;min-width:0}
+  .card-head .eta .lbl{grid-column:1/-1}
+  .card-head .eta .cd{grid-row:span 2;font-size:var(--t-2xl)}
+  .card-head .eta:not(:has(.cd)) .val{grid-column:1/-1}
+  .card-head .eta:not(:has(.cd)) .small{grid-column:1/-1}
+}
+
+/* Review fixes (22 Oct walk-through) */
+/* Settings › Limits: the table fits a 1280 px screen (the Action box wraps narrower; the result list is shorter) */
+td>input[data-lf="act"]{min-width:140px!important;width:100%}
+td>select[data-lf="k"],td>select[data-lf="when"]{max-width:160px!important}
+table:has([data-lf="act"]) :is(td,th){padding-left:6px;padding-right:6px}
+/* Touch screens: checkboxes keep their size, folded sections are easy to tap */
+.recv-toggle input{flex:none}
+@media (pointer:coarse){details.more>summary,details.facts-more>summary{padding:9px 0}}
+/* A phone: empty Board tiles step aside (the tiles with a number stay, in order); signed out, the header keeps one row */
+@media (max-width:640px){.stat.tile.zero{display:none}}
+@media (max-width:760px){.top-meta:has(#signBtn[hidden]) .who{display:none}}
+/* A hazard mark reads ⚠ CN, so it is not taken for the CN analysis beside the route code */
+.haz:not(.two)::before{content:"\26A0\FE0E";margin-right:3px}

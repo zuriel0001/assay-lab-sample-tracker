@@ -14,8 +14,9 @@ const moves = id => ledger().filter(m => m.sid === id);
 const ledgerRows = async (page, id) => { await page.click('[data-tab="ledger"]'); await page.waitForTimeout(400);
   return page.$$eval("#view-ledger tbody tr", (trs, id) => trs.filter(t => t.children[2].textContent.includes(id)).map(t => t.children[1].textContent.trim().replace(/\s+/g, " ") + " " + t.children[2].textContent.trim()), id); };
 async function receipt(page, id, kind = "confirm", note = "", disp = ""){
-  await open(page, id); if (note) await page.fill("#mvNote", note);
-  if (kind === "reject"){ await page.click("#rejBox summary"); await page.selectOption("#rcDisp", disp || "returned"); }
+  await open(page, id);
+  if (kind === "reject"){ await page.click("#rejOpen"); if (note) await page.fill("#rcWhy", note); await page.selectOption("#rcDisp", disp || "returned"); }   // v37: Reject opens its own panel
+  else if (note) await page.fill("#mvNote", note);
   await page.click(`[data-receipt="${kind}"]`); await page.waitForTimeout(1200);
 }
 const next = async (page, n = 1) => { for (let i = 0; i < n; i++){ await page.click('[data-step="next"]'); await page.waitForTimeout(500); } };

@@ -211,10 +211,10 @@ const moves = id => ledger().filter(m => m.sid === id);
 
   log("Reject and cancel at receipt");
   await fillForm(P, "submit", { section: "EXP", submitter: "Esi" }); const rj = (await ids(P))[0];
-  await open(A, rj); await A.fill("#mvNote", "Bag torn, sample spilt"); await A.click("#rejBox summary"); await A.selectOption("#rcDisp", "returned"); await A.click('[data-receipt="reject"]'); await A.waitForTimeout(1200);
+  await open(A, rj); await A.click("#rejOpen"); await A.fill("#rcWhy", "Bag torn, sample spilt"); await A.selectOption("#rcDisp", "returned"); await A.click('[data-receipt="reject"]'); await A.waitForTimeout(1200);
   check(doc(rj).stageKey === "rejected" && doc(rj).open === false && moves(rj).map(m => m.dir).sort().join() === "in,out", "rejected after a physical check: IN then OUT (returned)");
   await fillForm(P, "submit", { section: "EXP", submitter: "Esi" }); const cx = (await ids(P))[0];
-  await open(A, cx); await A.fill("#mvNote", "Submitted twice by mistake"); await A.click("#rejBox summary"); await A.selectOption("#rcDisp", "cancel"); await A.click('[data-receipt="reject"]'); await A.waitForTimeout(1300);
+  await open(A, cx); await A.click("#rejOpen"); await A.fill("#rcWhy", "Submitted twice by mistake"); await A.selectOption("#rcDisp", "cancel"); await A.click('[data-receipt="reject"]'); await A.waitForTimeout(1300);
   check(doc(cx).stageKey === "cancelled" && moves(cx).length === 0, "cancelled submission (nothing arrived) writes no ledger movement");
 
   log("Stop testing after receipt");

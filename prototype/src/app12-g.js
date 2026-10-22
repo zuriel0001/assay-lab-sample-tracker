@@ -88,7 +88,9 @@ function resText(r, a){
   if (!r) return "—";
   if (a.t === "text" || a.t === "pick") return r.raw;
   if (r.f === "ldl") return "<" + (a.dl != null ? fmtNum(a.dl) : "DL");
-  return a.dp != null ? (+r.v).toFixed(a.dp) : fmtNum(r.v);
+  if (a.dp == null) return fmtNum(r.v);
+  const t = (+r.v).toFixed(a.dp);
+  return +t === 0 && +r.v !== 0 ? fmtNum(r.v) : t;   // v37: a result is never printed as 0 when it is not (NaCN 0.45 read "0")
 }
 function resCell(r, a){
   const t = esc(resText(r, a));

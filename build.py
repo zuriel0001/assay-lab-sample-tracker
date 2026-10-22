@@ -301,13 +301,11 @@ drop('''<p class="small muted" style="margin:0">The site sample code or site ref
 put('''${session ? "You can view this sample. Only lab staff can update it." : "Only lab staff update samples. <button class='btn ghost small' data-goto='login'>Staff sign in</button>"}''',
     '''${session ? "View only." : "<button class='btn ghost small' data-goto='login'>Staff sign in</button>"}''')
 put('''.${(s.materials || []).length ? " A lab supervisor can reverse a material movement recorded by mistake, under Retained material." : ""}</p>''', '''.</p>''')
-drop('''<p class="small muted" style="margin:0">Returned or disposed material goes in the ledger as received, then sent out, so the counts balance. Put the reason in the note above.</p>''')
 put('''Sends the sample back to <b>${esc(p[ri].name)}</b> and moves the expected finish out. The note is saved with it.${curIdx(s) >= targetIdx(s) ? " Results already released stay on record; the repeat is reported as an amendment." : ""}''',
     '''Back to <b>${esc(p[ri].name)}</b>.${curIdx(s) >= targetIdx(s) ? " The repeat is reported as an amendment." : ""}''')
 drop('''<p class="small muted" style="margin:0">A correction never adds a ledger movement. ${canApprove() ? "Skipped steps stay on the record as skipped, with the reason. A skip can't reach or pass QA/QC or the release of results." : "Only a lab supervisor can skip steps."}</p>''')
 drop('''<p class="small muted" style="margin:0">Only routes that perform the chosen test are listed. Steps already done stay in the chain of custody; the sample carries on from the same step in the new route if it has one.</p>''')
 drop('''<p class="small muted" style="margin:0">Writes an outbound ledger movement and closes the sample.</p>''')
-drop('''<p class="small muted" style="margin:0">Each material is kept for its own period from the release of results, then returned or disposed. Every return, disposal or send-out is written to the ledger.</p>''')
 put('''Describe it in the note; it is printed on the record.</div>''', '''Describe it in the note.</div>''')
 put('''. The lab sends them to the submitting section; ask the Assay Lab for the certificate. A copy you hold is genuine if its number and check code match these.</p>''', '''.</p>''')
 put('''.join(", ")}. They stay on record.</div>''', '''.join(", ")}.</div>''')
@@ -348,7 +346,7 @@ drop('''<p class="small muted" style="margin:0">Sample IDs are the section code,
 drop('''<p class="small muted" style="margin:0">Sample ID dates, ledger months and every time on screen use the site's time zone, whatever each phone or PC is set to. Use a name from the IANA list, such as Africa/Accra or Africa/Johannesburg.</p>''')
 put('''<span>The permit and guideline limits (marked Permit) are placeholders. Replace them with the limits in the site's environmental permit before go-live.</span>''',
     '''<span>Replace them with the limits in the site's permit.</span>''')
-drop('''<p class="small muted" style="margin:0">A result past a limit raises an alert on the sample and on the board. The release waits until someone records what was done and who was told; the record is printed on the certificate. "Only when" limits a row to one sampling point.</p>''')
+drop('''<p class="small muted" style="margin:0">${relNow() ? "A result past a limit is flagged to the people who evaluate results (Results tab); the release does not wait." : "A result past a limit holds the release until someone records what was done and who was told (printed on the certificate)."} "Only when" limits a row to one sampling point.</p>''')
 drop('''<p class="small muted" style="margin:0">A sample's route is chosen from its sample type, test and purpose when it is submitted. Changes apply to samples submitted after you save; samples already in the lab keep the steps they started with. Steps 1 and 2 (Submitted, Received &amp; logged) and the closing steps (Results released, storage, return or disposal) are shared by every route.</p>''')
 drop('''${inUse ? `<p class="small muted" style="margin:0">${inUse} open sample(s) are on this route. They keep the steps, QA/QC rule and retention they started with.</p>` : ""}''')
 

@@ -12,7 +12,8 @@ function renderBoard(){
   const inProc = list.filter(s => { const i = curIdx(s); return i > 0 && i < targetIdx(s); });
   const late = inProc.filter(s => status(s).late);
   const redo = inProc.filter(s => s.reassays > 0);
-  const relReady = qcStepOn() ? [] : inProc.filter(readyRel);
+  /* v37: releasing at once, nothing waits for a release: the tile and lane hold the samples waiting for their results instead */
+  const relReady = qcStepOn() ? [] : relNow() ? inProc.filter(s => waitingRes(s) || readyRel(s)) : inProc.filter(readyRel);
   // Release at once: limits are for the people who evaluate (Results tab); the lab's board shows only the lab's work.
   const alerts = isStaff() && !relNow() ? list.filter(s => (s.results || s.amend) && openAlerts(s).length) : [];
   // v24d: every released sample whose material is not yet on the shelf (or not yet confirmed there), those over the day allowed marked
@@ -36,7 +37,7 @@ function renderBoard(){
     { k: "lab", n: inProc.length, l: "In the lab, before results", tone: "gold", pick: inProc },
     { k: "late", n: late.length, l: "Running late", tone: "bad", pick: late },
     { k: "redo", n: redo.length, l: "Being re-assayed", tone: "warn", pick: redo },
-    ...(canEdit() ? [{ k: "relready", n: relReady.length, l: "Ready for release", tone: "ok", pick: relReady }] : []),
+    ...(canEdit() ? [{ k: "relready", n: relReady.length, l: relNow() ? "Waiting for results" : "Ready for release", tone: relNow() ? "gold" : "ok", pick: relReady }] : []),
     ...(isStaff() && !relNow() ? [{ k: "alerts", n: alerts.length, l: "Results past an action or permit limit, not yet recorded", tone: "bad", pick: alerts }] : []),
     ...(isStaff() ? [{ k: "req", n: unitCount(reqL), l: "Re-assay requested", tone: "bad", rows: unitRows(reqL, s => { const e = lastRedo(s); return sRow(s, "Requested" + (e ? ` by ${e.tech}${e.note ? ": " + e.note : ""}` : "")); }) }] : []),
     { k: "rel", n: unitCount(relL), l: "Results released today", tone: "ok", rows: unitRows(relL, s => sRow(s, "Released " + fmt(s.relAt))) },
@@ -89,7 +90,7 @@ function renderBoard(){
     bind(); return;
   }
   // With no QA/QC review step, its lane holds the samples ready for release (and any still at a QA/QC review step).
-  const laneDefs = PHASES.filter(x => x.key !== "store").map(x => x.key === "qc" && !qcStepOn() ? { ...x, name: "Ready for release" } : x);
+  const laneDefs = PHASES.filter(x => x.key !== "store").map(x => x.key === "qc" && !qcStepOn() ? { ...x, name: relNow() ? "Waiting for results" : "Ready for release" } : x);
   const relSet = new Set(relReady);
   if (list.some(s => !stage(s, s.stageKey))) laneDefs.push({ key: "__unknown", name: "Stage removed (move these)" });
   const showStep = { intake: 1, prep: 1, test: 1, qc: 1 };

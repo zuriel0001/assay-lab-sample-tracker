@@ -32,6 +32,7 @@ const P = who => who ? { identityProvider: "aad", userId: "id-" + who, userDetai
   check(!(await one(null, { op: "set", path: `EXP-${day}-0002`.replace(/^/, "samples/"), data: sub(`EXP-${day}-0002`, { stageKey: "received", recvAt: now }) })).ok, "public can't submit an already received sample");
   check(!(await one(null, { op: "set", path: "samples/EXP-1", data: sub("EXP-1") })).ok, "public can't use a malformed ID");
   check(!(await one(null, { op: "set", path: `samples/EXP-${day}-0003`, data: sub(`EXP-${day}-0003`, { results: { rows: {} } }) })).ok, "public can't submit results");
+  check(!(await one(null, { op: "set", path: `samples/EXP-${day}-0003`, data: sub(`EXP-${day}-0003`, { rej: { by: "x", at: now, why: "Leaking bag", disp: "returned" } }) })).ok, "v37: public can't submit a sample marked rejected at receipt");
   check(!(await one(null, { op: "set", path: `samples/EXP-${day}-0004`, data: sub(`EXP-${day}-0004`, { createdAt: now - 3600e3 }) })).ok, "public can't backdate a submission");
   check((await one(null, { op: "set", path: "tagidx/T-1", data: { sid: id, tag: "T-1", at: now } })).ok, "public may index the tag of its new sample");
   check(!(await one(null, { op: "set", path: "tagidx/T-2", data: { sid: id, tag: "T-2", at: now } })).ok, "public can't index a tag the sample doesn't carry");

@@ -470,13 +470,14 @@ function renderBatchView(v){
       <div class="row" style="gap:6px">${Object.entries(tally).map(([l, n]) => `<span class="pill">${n} ${esc(l)}</span>`).join("")}</div>
       <div class="row"><button type="button" class="btn primary" id="bvLabels">Print ${docs.length} labels</button><button type="button" class="btn" id="bvCopy">Copy IDs</button></div>
     </div>
-    ${canEdit() && quick.length ? `<div class="panel stack" id="bvRecv"><h3>Receive the batch</h3>
-      <div class="form">${meBox("Received by")}
+    ${canEdit() && waiting.length ? `<div class="panel stack" id="bvRecv"><h3>Receive the batch</h3>
+      ${quick.length ? `<label class="recv-toggle"><input type="checkbox" id="bvOk" ${keepOk ? "checked" : ""}> All ${quick.length} bags match, seals intact, good condition</label>` : ""}
+      <div class="row step-row">${quick.length ? `<button type="button" class="btn primary" id="bvRecvBtn" ${batchRecvBusy ? "disabled" : ""}>Confirm receipt of ${quick.length}</button>` : ""}<button type="button" class="btn danger" id="bvRejOpen" aria-expanded="false" aria-controls="bvrBox" ${batchRecvBusy ? "disabled" : ""}>Reject samples</button>${cool.length ? `<span class="small">One by one (cooler temperature): ${cool.map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>`).join(", ")}</span>` : ""}</div>
+      ${rejectPanel("bvr", { ids: waiting.map(s => s.id), key: "bv:" + c.batch, what: "samples of the batch", cancel: true })}
+      ${quick.length ? `<div class="form" id="bvFields">${meBox("Received by")}
         <label class="f"><span>Date &amp; time received</span><input id="bvAt" type="datetime-local" value="${esc(keepAt || localInput(Date.now()))}"></label>
         ${two ? witnessField("bvWit") : ""}
-        ${gcool.length ? `<label class="f"><span>Cooler temperature on arrival (°C) <span class="req">*</span></span><input id="bvTemp" type="number" step="0.1" placeholder="Limit ${lim} °C"></label>` : ""}
-        <label class="recv-toggle full"><input type="checkbox" id="bvOk" ${keepOk ? "checked" : ""}> All ${quick.length} bags match, seals intact, good condition</label></div>
-      <div class="row"><button type="button" class="btn primary" id="bvRecvBtn" ${batchRecvBusy ? "disabled" : ""}>Confirm receipt of ${quick.length}</button>${cool.length ? `<span class="small">One by one (cooler temperature): ${cool.map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button>`).join(", ")}</span>` : ""}</div>
+        ${gcool.length ? `<label class="f"><span>Cooler temperature on arrival (°C) <span class="req">*</span></span><input id="bvTemp" type="number" step="0.1" placeholder="Limit ${lim} °C"></label>` : ""}</div>` : ""}
     </div>` : ""}
     ${bwPanel(c)}
     ${plantViews(docs)}
@@ -487,6 +488,8 @@ function renderBatchView(v){
   $("#bvLabels", v).onclick = () => showLabels(docs.map(labelOf));
   $("#bvCopy", v).onclick = () => navigator.clipboard.writeText(docs.map(s => s.id).join("\n")).then(() => toast("IDs copied"), () => toast("Copy blocked here. Select the IDs and copy them."));
   $("#bvRecvBtn", v)?.addEventListener("click", () => receiveBatch(quick.map(s => s.id)));
+  bindReject(v, "bvr", $("#bvRejOpen", v), $("#bvFields", v), "bv:" + c.batch);
+  $("#bvrGo", v)?.addEventListener("click", rejectBatch);
   bindBw(v);
   bindViz(v);
   });
