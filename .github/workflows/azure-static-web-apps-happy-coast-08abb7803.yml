@@ -32,6 +32,22 @@ jobs:
           api_location: "/api" # Api source code path - optional
           output_location: "" # Built app content directory - optional
           ###### End of Repository/Build Configurations ######
+      # Proof the deploy is live: the site's version.json names this commit's build (build.py writes it with the page). Reads only.
+      - name: Check the live site serves this build
+        if: github.event_name == 'push'
+        run: |
+          want=$(python3 -c "import json; print(json.load(open('app/version.json'))['build'])")
+          for i in $(seq 1 30); do
+            got=$(curl -fsS -m 20 "https://happy-coast-08abb7803.5.azurestaticapps.net/version.json?t=$(date +%s)" | python3 -c "import sys, json; print(json.load(sys.stdin).get('build', ''))" 2>/dev/null || true)
+            echo "live build: ${got:-none}; this build: $want"
+            if [ "$got" = "$want" ]; then
+              curl -fsS -m 20 -o /dev/null -w "page: HTTP %{http_code}\n" "https://happy-coast-08abb7803.5.azurestaticapps.net/?t=$(date +%s)"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::the live site does not serve this build after 5 minutes"
+          exit 1
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'

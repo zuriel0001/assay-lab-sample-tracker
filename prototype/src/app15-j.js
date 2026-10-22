@@ -57,18 +57,9 @@ $("#themeBtn").addEventListener("click", () => { const dark = !isDark(); lsSet("
 DARK.addEventListener?.("change", applyTheme);
 applyTheme();
 
-/* Text size (v36): Small, Normal or Large on this device; Small is the size before v36. */
-function applyText(){
-  const t = lsGet("textSize"), root = document.documentElement;
-  if (t === "small" || t === "large") root.dataset.text = t; else delete root.dataset.text;
-  for (const b of document.querySelectorAll("#textMenu [data-text]")) b.setAttribute("aria-pressed", String(b.dataset.text === (root.dataset.text || "")));
-}
-const closeText = () => { $("#textMenu").hidden = true; $("#textBtn").setAttribute("aria-expanded", "false"); };
-$("#textBtn").addEventListener("click", () => { const m = $("#textMenu"); m.hidden = !m.hidden; $("#textBtn").setAttribute("aria-expanded", String(!m.hidden)); });
-$("#textMenu").addEventListener("click", e => { const b = e.target.closest("[data-text]"); if (b){ lsSet("textSize", b.dataset.text); applyText(); } });
-document.addEventListener("click", e => { if (!e.target.closest("#textWrap")) closeText(); });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#textMenu").hidden){ closeText(); $("#textBtn").focus(); } });
-applyText();
+/* Text size: v36's Small / Normal / Large chooser was removed on 22 Oct ("the small font is better ... that tab to select font fully
+   removed"); Small is now the one size, so a choice kept on a device is cleared. */
+try { localStorage.removeItem("textSize"); } catch {}
 
 /* Company logo: a small picture kept in Settings, shown in the header (and on nothing that prints). */
 const LOGO_MAX = 90000;

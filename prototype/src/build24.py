@@ -41,8 +41,7 @@ put("""  <header class="top">
     <div class="row top-meta"><span class="pill" title="Design prototype">Prototype</span><span class="pill warn" id="sync">Connecting…</span><span class="who" id="who"></span><button class="btn" id="signBtn" type="button" hidden>Sign out</button><button class="icon-btn" id="themeBtn" type="button" aria-label="Dark theme" aria-pressed="false"></button></div>
   </header>
 """)
-# v36: text size (Small / Normal / Large) on this device, beside the theme switch.
-put('<button class="icon-btn" id="themeBtn"', '<div class="txt-wrap" id="textWrap"><button class="icon-btn txt-btn" id="textBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="textMenu" aria-label="Text size" title="Text size"></button><div class="txt-menu" id="textMenu" role="group" aria-label="Text size" hidden><button type="button" data-text="small" aria-pressed="false">Small</button><button type="button" data-text="" aria-pressed="true">Normal</button><button type="button" data-text="large" aria-pressed="false">Large</button></div></div><button class="icon-btn" id="themeBtn"')
+# v36 added a text size chooser (Aa) here; removed 22 Oct at Zuriel's request (Small is the one size).
 import re as _re
 nav = _re.search(r'  <nav class="tabs" role="tablist" id="tabs">\n.*?\n  </nav>\n', head, _re.S)
 assert nav

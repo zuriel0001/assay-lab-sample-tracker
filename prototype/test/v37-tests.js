@@ -147,8 +147,9 @@ async function toLast(page, id){
   await H.tab(Ph, "board"); await Ph.waitForTimeout(300);
   check(await Ph.$$eval(".stat.tile.zero", ts => ts.every(t => !t.offsetParent)) && await Ph.$$eval(".stat.tile:not(.zero)", ts => ts.some(t => !!t.offsetParent)), "on a phone the Board's empty tiles step aside; tiles with a number stay");
   const Pp = await newUser(browser, { uid: "u_pp", name: "Public", canEdit: true, names }, { width: 390, height: 844 }, "dark");
-  const hd = await Pp.evaluate(() => { const a = document.getElementById("textBtn").getBoundingClientRect(), b = document.getElementById("themeBtn").getBoundingClientRect(); return Math.abs(a.top - b.top); });
-  check(hd < 4, "signed out on a phone, Aa and the theme button share one row (" + hd + ")");
+  // 22 Oct: the Aa text size chooser is gone (Small is the one size); the theme button keeps the row of the sync pill
+  const hd = await Pp.evaluate(() => { const c = id => { const r = document.getElementById(id).getBoundingClientRect(); return (r.top + r.bottom) / 2; }; return Math.round(Math.abs(c("sync") - c("themeBtn"))); });
+  check(hd < 12 && !(await Pp.$("#textBtn")), "signed out on a phone, the theme button shares the sync pill's row; no Aa (" + hd + ")");
 
   console.log("Console errors:", JSON.stringify(errors));
   if (errors.length) process.exitCode = 1;
