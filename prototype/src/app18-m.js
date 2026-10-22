@@ -51,27 +51,24 @@ function splitHead(h){
   m = h.match(/^([A-Z][a-z]?)_(ppm|ppb|gpt|pct)$/); if (m) return { name: m[1], unit: { gpt: "g/t", pct: "%" }[m[2]] || m[2] };
   return { name: h.trim(), unit: "" };
 }
-/* The register's current ID for a reference material named in a report (an old ID still counts). */
-const crmFromFile = id => { const k = normKey(id); const c = (cfg.crms || []).find(x => normKey(x.id) === k || (x.was || []).some(w => normKey(w) === k)); return c ? c.id : ""; };
 /* Known samples by every name a report may use: the tracker ID, each site sample code (tags) and the site reference. */
 /* v24d: a file attached to a sample or a batch reads a code as that sample's, or that batch's, first (one code can be on two open samples,
    for two analyses). */
 function sampleIndex(scope){
   const idx = new Map(), add = s => { if (!s || !s.id) return; [s.id, ...(s.tags || []), s.siteRef].filter(Boolean).forEach(k => { const n = normKey(k); if (n && !idx.has(n)) idx.set(n, s.id); }); };
   const own = s => !!s && !!scope && ((scope.sample && s.id === scope.sample) || (scope.sub && s.batchId === scope.sub));
-  if (scope && (scope.sample || scope.sub)) [...samples.values(), ...batchSamps.values(), ...(current?.docs || []), current?.body].forEach(s => { if (own(s)) add(s); });
-  samples.forEach(add); batchSamps.forEach(add); if (current?.body) add(current.body);
+  if (scope && (scope.sample || scope.sub)) [...samples.values(), ...(current?.docs || []), current?.body].forEach(s => { if (own(s)) add(s); });
+  samples.forEach(add); if (current?.body) add(current.body);
   return idx;
 }
 const rightFill = row => { const out = []; let carry = ""; for (let j = row.length - 1; j >= 0; j--){ if (row[j]) carry = row[j]; out[j] = carry; } return out; };
 /* Reads a report laid out as a table: a sample column, one column per result (with units and method codes in rows above it, as the lab's
-   LIMS prints them, or in the heading as "Au (g/t)"), repeat readings in a second column of the same result (Rep 2), and reference material
-   readings in a table of expected and reported values at the foot, or as rows named after the material. */
+   LIMS prints them, or in the heading as "Au (g/t)"). The lab's own repeats, blanks and standards are told apart from samples and left in
+   the file (v35). */
 let knownMemo = null;
 const knownNames = () => knownMemo || (knownMemo = new Set(Object.values(RESULTS).flatMap(r => r.an).filter(a => !a.t && !a.calc).flatMap(a => [a.s, ...(a.alt || [])]).filter(Boolean).map(normCol)));
 function parseReport(grid, idx){
   const nc = Math.max(0, ...grid.map(r => r.length)), cell = (i, j) => (grid[i] || [])[j] || "";
-  const crmIds = new Map((cfg.crms || []).flatMap(c => [c.id, ...(c.was || [])].map(x => [normKey(x), c.id])));
   const rowHasRead = (i, skip) => (grid[i] || []).some((t, j) => j !== skip && t && isRead(t));
   let idCol = -1, best = 0;
   for (let j = 0; j < nc; j++){ let n = 0; for (let i = 0; i < grid.length; i++) if (idx.has(normKey(cell(i, j)))) n++; if (n > best){ best = n; idCol = j; } }
@@ -85,7 +82,7 @@ function parseReport(grid, idx){
     if (idx.has(k)) return { kind: "s", sid: idx.get(k) };
     const d = k.match(/^(.*?)[-_]?(DUP|DUPLICATE|REP|D|R)$/); if (d && idx.has(d[1])) return { kind: "d", sid: idx.get(d[1]) };
     if (/^(BLANK|BLK|BL|METHODBLANK|REAGENTBLANK|PREPBLANK)\d*$/.test(k)) return { kind: "bl" };
-    if (crmIds.has(k)) return { kind: "crm", crm: crmIds.get(k) };
+    if (/^(STD|STANDARD|CRM|SRM|OREAS|CDN|GBM|AMIS)/.test(k)) return { kind: "std" };
     return { kind: "x" };
   };
   let first = -1;
@@ -133,21 +130,9 @@ function parseReport(grid, idx){
     rows.push({ line: i + 1, key: t, cells: grid[i], ...kindOf(t) });
     end = i;
   }
-  /* A foot table of reference materials: "Expected Value" and "Reported Value" columns, one material per row, "… for METHOD" in its name. */
-  const crms = [];
-  for (let i = end + 1; i < grid.length; i++){
-    const r = grid[i] || [], ec = r.findIndex(t => /^expected/i.test(t)), rc = r.findIndex(t => /^(reported|found|measured|result)/i.test(t));
-    if (ec < 0 || rc < 0) continue;
-    for (let k = i + 1; k < grid.length; k++){
-      const q = grid[k] || [], rep = q[rc] || ""; if (!isRead(rep)) continue;
-      const label = q.slice(0, Math.min(ec, rc)).find(t => /[A-Za-z]/.test(t)) || ""; if (!label) continue;
-      crms.push({ line: k + 1, id: (label.match(/^[A-Za-z0-9][A-Za-z0-9._\/-]*/) || [""])[0], label, method: (label.match(/\bfor\s+([A-Za-z0-9_-]+)/i) || [])[1] || "", expected: q[ec] || "", reported: rep });
-    }
-    break;
-  }
   const after = (re) => { for (const r of grid.slice(0, head)) { const j = r.findIndex(t => re.test(t)); if (j >= 0){ const v = r.slice(j + 1).find(Boolean); if (v && !/:$/.test(v)) return v; } } return ""; };
   const meta = { ref: after(/^lab ref:?$/i), project: after(/^project:?$/i), received: after(/^received:?$/i), lab: /SGS/i.test((grid[0] || []).join(" ")) ? "SGS" : "" };
-  return { idCol, head, cols, rows, crms, meta };
+  return { idCol, head, cols, rows, meta };
 }
 /* The values one report row gives for a list of results: each column goes to the one result it fits best (an exact name first, then the
    measurement and unit). r: 1 for the reading, 2 and up for repeat readings of the same sample. */
@@ -170,119 +155,32 @@ function rowValues(rep, cells, defs, r = 1, clash){
   return got;
 }
 
-/* ---------- the plan: which lab batches and sample records the file fills, and what it can't ---------- */
+/* ---------- the plan: which sample records the file fills, and what it can't ---------- */
 const readyForResults = s => { const ph = stage(s, s.stageKey)?.phase; return curIdx(s) < targetIdx(s) && (ph === "test" || ph === "qc"); };
 function planUpload(rep, scope){
-  const P = { batches: [], fresh: [], samples: [], notFound: [], notReady: [], awaiting: [], done: [], already: [], unknownCrm: [], bad: [], clash: [], unread: [], viaBatch: [], twice: [], n: 0 };
-  const bySid = new Map(), extra = new Map(), blanks = [], crmRows = [];
+  const P = { samples: [], notFound: [], notReady: [], awaiting: [], done: [], already: [], bad: [], clash: [], unread: [], twice: [], qcRows: 0, n: 0 };
+  const bySid = new Map();
   for (const r of rep.rows){
-    if (r.kind === "s"){ if (!bySid.has(r.sid)) bySid.set(r.sid, r); else { (extra.get(r.sid) || extra.set(r.sid, []).get(r.sid)).push(r); if (!P.twice.includes(r.sid)) P.twice.push(r.sid); } }
-    else if (r.kind === "d") (extra.get(r.sid) || extra.set(r.sid, []).get(r.sid)).push(r);
-    else if (r.kind === "bl") blanks.push(r);
-    else if (r.kind === "crm") crmRows.push(r);
-    else P.notFound.push(r.key);
+    if (r.kind === "s"){ if (!bySid.has(r.sid)) bySid.set(r.sid, r); else if (!P.twice.includes(r.sid)) P.twice.push(r.sid); }
+    else if (r.kind === "x") P.notFound.push(r.key);
+    else P.qcRows++;   // v35: the lab's own repeats, blanks and standards stay in the file
   }
-  const fileCrms = [...rep.crms.map(f => ({ ...f, reg: crmFromFile(f.id) })), ...crmRows.map(r => ({ id: r.key, reg: r.crm, row: r }))];
-  P.unknownCrm = [...new Set(fileCrms.filter(f => !f.reg).map(f => f.id))];
-  /* The lab methods a batch's sample readings came from (AuFA under FAA505, carbon Au under ARS12D). */
-  const methodsOf = (sids, ans) => { const m = new Set(); for (const sid of sids){ const row = bySid.get(sid); if (row) Object.values(rowValues(rep, row.cells, ans, 1)).forEach(v => { if (v.col.method) m.add(normCol(v.col.method)); }); } return m; };
-  /* Reference material readings that fit a batch's results: the foot table by its method's columns (only a method the batch's samples were
-     read by), rows by their own columns. */
-  const crmReads = (ans, methods) => fileCrms.filter(f => f.reg).map(f => {
-    if (f.row) return { id: f.reg, got: rowValues(rep, f.row.cells, ans, 1), line: f.row.line };
-    if (f.method && methods && methods.size && !methods.has(normCol(f.method))) return null;
-    const cs = f.method ? rep.cols.filter(c => normCol(c.method) === normCol(f.method)) : rep.cols;
-    const fits = ans.filter(a => cs.some(c => c.concept === conceptOf(a) && unitScore(c.unit, a.u) > 0));
-    return fits.length === 1 ? { id: f.reg, got: { [fits[0].k]: { raw: f.reported, col: { name: f.method || "reference material", i: -1 } } }, line: f.line } : null;
-  }).filter(x => x && Object.keys(x.got).length && Object.keys(x.got).some(k => crmRow(x.id, ans.find(a => a.k === k))));
-  /* Repeat readings of a sample: its Rep 2, Rep 3… columns, then further rows with its ID (or its ID and DUP). */
-  const dupSources = (sid, ans) => {
-    const row = bySid.get(sid), out = [];
-    for (let k = 2; row && k < 6; k++){ const g = rowValues(rep, row.cells, ans, k); if (Object.keys(g).length) out.push(g); }
-    for (const r of extra.get(sid) || []){ const g = rowValues(rep, r.cells, ans, 1); if (Object.keys(g).length) out.push(g); }
-    return out;
-  };
-  const fill = (b, isNew) => {
-    const ans = bAns(b), vals = {}, crms = {}, miss = [], used = new Set(), dupN = new Map(), reads = crmReads(ans, methodsOf(b.pos.filter(x => x.t === "s").map(x => x.sid), ans)), p = QC_PROFILES[b.qcp] || { names: {} };
-    let bl = 0, n = 0;
-    const left = new Set((b.pos || []).filter(x => !isNew && goneFrom(b, x)).map(x => x.sid));
-    for (const x of b.pos){
-      let got = {};
-      if (x.t === "s"){ const row = bySid.get(x.sid); if (row) got = rowValues(rep, row.cells, ans, 1, P.clash); }
-      else if (x.t === "pd" || x.t === "cd"){ const k = dupN.get(x.of) || 0; dupN.set(x.of, k + 1); got = dupSources(x.of, ans)[k] || {}; } else if (x.t === "bl" || x.t === "pb"){ const r = blanks[bl++]; if (r) got = rowValues(rep, r.cells, ans, 1); }
-      else if (x.t === "crm"){
-        const pick = reads.find(c => !used.has(c) && crmAka(c.id).includes(x.crm)) || reads.find(c => !used.has(c));
-        if (pick){ used.add(pick); crms[x.p] = pick.id; got = pick.got; }
-      }
-      vals[x.p] = {};
-      for (const ch of ans){
-        // QC positions the file has no reading for are not judged (the lab's QA/QC is a sample set of its own), so they are never missing.
-        const v = got[ch.k], optional = x.t !== "s" || left.has(x.sid);
-        if (v){
-          const r = parseRes(v.raw, ch);
-          if (r && !r.bad && !r.amb){ vals[x.p][ch.k] = v.raw; n++; continue; }
-          P.bad.push(`${x.t === "s" ? x.sid : posLabel(p, x) + " #" + x.p}: ${v.col.name} “${v.raw}”`);
-        }
-        if (!optional) miss.push(`${posLabel(p, x)} #${x.p}${x.t === "s" ? ` ${x.sid}` : x.of ? ` of ${x.of}` : ""}${ans.length > 1 ? ` ${anShort(ch)}` : ""}`);
-      }
-    }
-    P.n += n;
-    return { vals, crms, miss, n };
-  };
   const want = s => (!scope.sample || s.id === scope.sample) && (!scope.sub || s.batchId === scope.sub);
-  const touched = new Map(), fresh = new Map();
   for (const [sid, row] of bySid){
     const s = bs(sid); if (!s || !want(s)) continue;
     if (released(s) || stage(s, s.stageKey)?.final || s.open === false){ P.done.push(sid); continue; }
     if (awaiting(s)){ P.awaiting.push(sid); continue; }
-    const ready = readyForResults(s);
-    let needs = false;
-    const viaB = new Set();   // readings going into a new lab batch made from this file, so not onto the record as well
-    for (const g of groupsOf(s)){
-      const ans = batchAns(g.p, s); if (!ans.length || !Object.keys(rowValues(rep, row.cells, ans, 1)).length) continue;
-      const l = labsOf(s)[g.p], ob = l ? openBatches.get(l.b) || (batchLive && batchLive.id === l.b ? batchLive : null) : null;
-      if (scope.batch && (!l || l.b !== scope.batch)) continue;
-      if (scope.sample){ if (l || batchesRequired()) ans.forEach(a => { if (!P.viaBatch.includes(anShort(a))) P.viaBatch.push(anShort(a)); }); continue; }
-      if (ob && !ob.qc && ob.status !== "creating"){ touched.set(ob.id, ob); if (!ready) needs = true; }
-      else if (l) P.already.push(`${sid} (${l.b})`);
-      else if (!ready) needs = true;
-      else { const key = g.p + "|" + sigOf(ans); (fresh.get(key) || fresh.set(key, { p: g.p, ans, sids: [] }).get(key)).sids.push(sid); g.k.forEach(k => viaB.add(k)); }
+    const ans = anOf(s).filter(a => !a.calc && a.t !== "pick"), got = rowValues(rep, row.cells, ans, 1, P.clash);
+    if (!Object.keys(got).length) continue;
+    const rows = {}, bad = [], have = rowsOf(s), ready = readyForResults(s); let same = 0;
+    for (const [k, v] of Object.entries(got)){
+      if (ready && have[k]?.raw === v.raw){ same++; continue; }   // already on the record
+      const r = parseRes(v.raw, ans.find(x => x.k === k)); if (r && !r.bad && !r.amb) rows[k] = v; else bad.push(`${sid}: ${v.col.name} “${v.raw}”`);
     }
-    if (!scope.batch){
-      const bk = batchKeys(s), others = anOf(s).filter(a => !bk.has(a.k) && !viaB.has(a.k) && !a.calc && a.t !== "pick");
-      const got = rowValues(rep, row.cells, others, 1, P.clash);
-      if (Object.keys(got).length){
-        if (!ready){ needs = true; for (const [k, v] of Object.entries(got)){ const r = parseRes(v.raw, others.find(x => x.k === k)); if (!(r && !r.bad && !r.amb)) P.bad.push(`${sid}: ${v.col.name} “${v.raw}”`); } }
-        else {
-          const rows = {}, bad = [], have = rowsOf(s); let same = 0;
-          for (const [k, v] of Object.entries(got)){
-            if (have[k]?.raw === v.raw){ same++; continue; }   // already on the record
-            const a = others.find(x => x.k === k), r = parseRes(v.raw, a); if (r && !r.bad && !r.amb) rows[k] = v; else bad.push(`${sid}: ${v.col.name} “${v.raw}”`);
-          }
-          P.bad.push(...bad);
-          if (Object.keys(rows).length){ P.samples.push({ sid, rows }); P.n += Object.keys(rows).length; }
-          else if (same && !bad.length) P.already.push(`${sid} (record)`);
-        }
-      }
-    }
-    if (needs) P.notReady.push(sid);
-  }
-  if (scope.batch && !touched.has(scope.batch) && batchLive && batchLive.id === scope.batch && !batchLive.qc) touched.set(scope.batch, batchLive);
-  for (const b of touched.values()){ const t = { b, ...fill(b, false) }; if (t.n) P.batches.push(t); }
-  /* Samples in no batch of the kind yet: the report becomes the batch, its repeats and reference material readings becoming the QC positions. */
-  for (const g of fresh.values()){
-    const p = QC_PROFILES[g.p]; if (!p) continue;
-    for (let i = 0; i < g.sids.length; i += p.size){
-      const sids = g.sids.slice(i, i + p.size), pos = [], push = (t, x) => pos.push({ p: pos.length + 1, t, ...x });
-      for (const sid of sids){
-        push("s", { sid });
-        dupSources(sid, g.ans).forEach(() => push("pd", { of: sid }));
-      }
-      for (const c of crmReads(g.ans, methodsOf(sids, g.ans))) push("crm", { crm: c.id });
-      for (const r of blanks) if (Object.keys(rowValues(rep, r.cells, g.ans, 1)).length) push("bl");
-      const b = { id: "", qcp: g.p, ans: g.ans, pos, sids };
-      P.fresh.push({ b, ...fill(b, true) });
-    }
+    P.bad.push(...bad);
+    if (!ready) P.notReady.push(sid);
+    else if (Object.keys(rows).length){ P.samples.push({ sid, rows }); P.n += Object.keys(rows).length; }
+    else if (same && !bad.length) P.already.push(sid);
   }
   P.notFound = [...new Set(P.notFound)];
   // Columns the plan read nothing from (after the plan: a column read by its exact name has no measurement of its own to go by)
@@ -304,15 +202,14 @@ function attachInput(){
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-attach]"); if (!b || !canEdit()) return;
   const [k, id] = b.dataset.attach.split(":");
-  upScope = k === "batch" ? { batch: id } : k === "sample" ? { sample: id } : k === "sub" ? { sub: id } : {};   // sub: a submission batch, processed as one (v24d)
+  upScope = k === "sample" ? { sample: id } : k === "sub" ? { sub: id } : {};   // sub: a submission batch, processed as one (v24d)
   attachInput().click();
 });
-/* v24d (21 Oct): the samples a file is attached to (a sample, a batch processed as one, a lab batch). */
+/* v24d (21 Oct): the samples a file is attached to (a sample, or a batch processed as one). */
 function scopeSamples(sc){
   if (!sc) return [];
   if (sc.sample) return [bs(sc.sample)].filter(Boolean);
   if (sc.sub) return ((current?.batch === sc.sub ? current.docs : null) || [...samples.values()].filter(s => s.batchId === sc.sub)).filter(Boolean);
-  if (sc.batch){ const b = openBatches.get(sc.batch) || (batchLive && batchLive.id === sc.batch ? batchLive : null); return (b?.sids || []).map(bs).filter(Boolean); }
   return [];
 }
 /* A report whose codes are this batch's codes with another date in them (MLSPTK0120261019 in the file, MLSPTK0120261020 here): the date on
@@ -356,7 +253,7 @@ async function openUpload(file, scope){
     got = { kind: extOf(file.name), grid: null, bytes: new Uint8Array(await file.arrayBuffer()) };
   }
   if (got.kind === "csv" && !["csv", "txt", "tsv"].includes(extOf(file.name)) && relNow()) got = { ...got, kind: extOf(file.name), grid: null };   // a PDF, a picture…: kept, not read
-  const rep = got.grid ? parseReport(got.grid, sampleIndex(scope)) : { error: "This file's values can't be read here.", rows: [], cols: [], crms: [] };
+  const rep = got.grid ? parseReport(got.grid, sampleIndex(scope)) : { error: "This file's values can't be read here.", rows: [], cols: [] };
   const sha = await sha256(got.bytes);
   upState = { file: { name: file.name.slice(0, 120), size: file.size, kind: got.kind, sha }, bytes: got.bytes, grid: got.grid, rep, scope, plan: rep.error ? null : planUpload(rep, scope), prior: [], pick: new Set(), q: "", alias: dateAlias(rep, scope), useAlias: false, anyway: false };
   renderUpload();
@@ -372,28 +269,24 @@ function renderUpload(){
   const ids = (xs, n = 6) => `${xs.slice(0, n).map(x => `<span class="mono">${esc(x)}</span>`).join(", ")}${xs.length > n ? ` +${xs.length - n} more` : ""}`;
   const save = [], check = [], unused = [];
   if (P){
-    for (const t of P.batches) save.push(li(t.miss.length ? "warn" : "ok", `Lab batch <b class="mono">${esc(t.b.id)}</b>: ${t.n} value${t.n === 1 ? "" : "s"}${t.miss.length ? ` · <b>${t.miss.length} missing</b> (${esc(t.miss.slice(0, 3).join("; "))}${t.miss.length > 3 ? "…" : ""}): saved as a draft` : " · QC checked on save"}`));
-    for (const t of P.fresh) save.push(li(t.miss.length ? "warn" : "ok", `New lab batch, ${esc(lcName(QC_PROFILES[t.b.qcp]?.name || t.b.qcp))}: ${t.b.sids.length} sample${t.b.sids.length === 1 ? "" : "s"}${t.b.pos.length > t.b.sids.length ? `, ${t.b.pos.length - t.b.sids.length} QC` : ""}${t.miss.length ? ` · <b>${t.miss.length} missing</b> (${esc(t.miss.slice(0, 3).join("; "))}${t.miss.length > 3 ? "…" : ""}): saved as a draft` : " · QC checked on save"}`));
     if (P.samples.length) save.push(li("ok", `Results on ${P.samples.length} sample record${P.samples.length === 1 ? "" : "s"}: ${esc(listAnd([...new Set(P.samples.flatMap(x => Object.values(x.rows).map(v => v.col.name)))].slice(0, 8)))}`));
-    if (P.viaBatch.length) check.push(li("warn", `Saved with the lab batch: ${esc(listAnd(P.viaBatch))} <button type="button" class="btn small" id="upBatches">Lab batches</button>`));
     if (P.notReady.length) check.push(relNow() ? li("", `Moved on to analysis when saved: ${ids(P.notReady)}`) : li("warn", `Not at analysis yet: ${ids(P.notReady)} <button type="button" class="btn small" id="upMove">Move ${P.notReady.length === 1 ? "it" : "them"} to analysis</button>`));
     if (P.awaiting.length) check.push(li("warn", `Waiting for receipt: ${ids(P.awaiting)}`));
     if (P.done.length) check.push(li("warn", `Results already released: ${ids(P.done)}`));
-    if (P.already.length) check.push(li("warn", `Batch results already saved: ${ids(P.already, 4)}`));
+    if (P.already.length) check.push(li("warn", `Already on the record: ${ids(P.already, 4)}`));
     if (P.bad.length) check.push(li("bad", `Not a result: ${esc(P.bad.slice(0, 4).join("; "))}${P.bad.length > 4 ? ` +${P.bad.length - 4} more` : ""}`));
     if (P.twice.length) check.push(li("warn", `On two rows: ${ids(P.twice)} · first row used`));
     if (P.clash.length) check.push(li("bad", `Two columns for one result: ${esc(P.clash.slice(0, 3).join("; "))}`));
     if (P.notFound.length) unused.push(li("", `Not in the lab (no sample with this ID, site sample code or site reference): ${ids(P.notFound)}`));
+    if (P.qcRows) unused.push(li("", `Lab QC rows (repeats, blanks, standards): ${P.qcRows}`));
     if (P.unread.length) unused.push(li("", `Columns not read: ${esc(P.unread.slice(0, 10).join(", "))}${P.unread.length > 10 ? "…" : ""}${isAdmin() ? ` <button type="button" class="btn ghost small" id="upCols">Settings › Results files</button>` : ""}`));
-    if (P.unknownCrm.length) unused.push(li("", `Reference materials not in the register: ${ids(P.unknownCrm)}${isAdmin() ? ` <button type="button" class="btn ghost small" id="upCrms">Settings › Reference materials</button>` : ""}`));
   }
   const rowsRead = P ? [
-    ...P.batches.concat(P.fresh).flatMap(t => t.b.pos.filter(x => Object.keys(t.vals[x.p] || {}).length).map(x => [x.t === "s" ? x.sid : x.t === "crm" ? t.crms[x.p] || x.crm : `${posLabel(QC_PROFILES[t.b.qcp] || {}, x)}${x.of ? " of " + x.of : ""}`, t.b.id || "New batch", Object.entries(t.vals[x.p]).map(([k, v]) => `${anShort(bAns(t.b).find(a => a.k === k) || { k, n: k })} ${v}`).join(", ")])),
-    ...P.samples.map(x => [x.sid, "Sample record", Object.entries(x.rows).map(([k, v]) => `${anShort(anOf(bs(x.sid)).find(a => a.k === k) || { k, n: k })} ${v.raw}`).join(", ")])] : [];
+    ...P.samples.map(x => [x.sid, Object.entries(x.rows).map(([k, v]) => `${anShort(anOf(bs(x.sid)).find(a => a.k === k) || { k, n: k })} ${v.raw}`).join(", ")])] : [];
   const loose = relNow(), tg = loose ? uploadTargets(u) : [], none = readsNone(u);
   // a file naming none of these samples, or some of them under another date, is saved (and the samples released) only once the technician chooses
   const hold = loose && (none || !!u.alias) && !u.useAlias && !u.anyway;
-  const any = (loose ? tg.length > 0 : P && (P.batches.length || P.fresh.length || P.samples.length)) && (!none || u.anyway || loose === false) && !hold;
+  const any = (loose ? tg.length > 0 : P && P.samples.length) && (!none || u.anyway || loose === false) && !hold;
   box.innerHTML = `<div class="modal-card stack" style="gap:12px">
     <div class="row" style="gap:8px"><h3 id="upTitle" style="margin:0">Results file</h3><span class="pill">${esc(KIND[u.file.kind] || u.file.kind)}</span><span style="flex:1"></span><button type="button" class="btn ghost small" id="upClose" aria-label="Close">✕</button></div>
     <div class="small"><b class="mono">${esc(u.file.name)}</b> · ${kb(u.file.size)}${m.ref ? ` · Lab ref <b class="mono">${esc(m.ref)}</b>` : ""}${m.project ? ` · ${esc(m.project)}` : ""}${r.rows ? ` · ${r.rows.length} row${r.rows.length === 1 ? "" : "s"} read` : ""}</div>
@@ -405,7 +298,7 @@ function renderUpload(){
     ${loose && tg.some(id => twoPerson(bs(id))) ? `<div class="form" id="upWitBox"><div class="full">${witnessField("upWit", `Witness to the release (two-person custody: ${esc(listAnd(tg.filter(id => twoPerson(bs(id)))))})`)}</div></div>` : ""}
     ${check.length ? `<div class="up-sec"><h4>Check</h4><ul class="up-list">${check.join("")}</ul></div>` : ""}
     ${unused.length ? `<div class="up-sec"><h4>Not used</h4><ul class="up-list">${unused.join("")}</ul></div>` : ""}
-    ${rowsRead.length ? `<details class="more" id="upRead"><summary>Values read (${rowsRead.length})</summary><div class="tbl-wrap"><table><thead><tr><th>Sample or QC</th><th>Goes to</th><th>Results</th></tr></thead><tbody>${rowsRead.slice(0, 400).map(x => `<tr><td class="mono">${esc(x[0])}</td><td class="mono">${esc(x[1])}</td><td>${esc(x[2])}</td></tr>`).join("")}</tbody></table></div></details>` : ""}
+    ${rowsRead.length ? `<details class="more" id="upRead"><summary>Values read (${rowsRead.length})</summary><div class="tbl-wrap"><table><thead><tr><th>Sample</th><th>Results</th></tr></thead><tbody>${rowsRead.slice(0, 400).map(x => `<tr><td class="mono">${esc(x[0])}</td><td>${esc(x[1])}</td></tr>`).join("")}</tbody></table></div></details>` : ""}
     <div class="row"><button type="button" class="btn primary" id="upSave" ${any ? "" : "disabled data-hold"}>${loose ? `Save and release${tg.length ? ` (${tg.length})` : ""}` : "Save results"}</button><button type="button" class="btn ghost" id="upCancel">Cancel</button><span class="small muted" id="upMsg"></span></div>
   </div>`;
   $("#upClose", box).onclick = closeUpload; $("#upCancel", box).onclick = closeUpload;
@@ -416,20 +309,18 @@ function renderUpload(){
   $("#upAliasOff", box)?.addEventListener("click", () => useAlias(u, false));
   const an = $("#upAnyway", box); if (an) an.onchange = () => { u.anyway = an.checked; renderUpload(); };
   bindUploadTargets(box);
-  $("#upBatches", box)?.addEventListener("click", () => { closeUpload(); setTab("batches"); });
   $("#upCols", box)?.addEventListener("click", () => { closeUpload(); cfgTab = "files"; setTab("stages"); });
-  $("#upCrms", box)?.addEventListener("click", () => { closeUpload(); cfgTab = "crms"; setTab("stages"); });
   box.onclick = e => { if (e.target === box) closeUpload(); };
 }
 /* v24d (21 Oct): a file attached to a sample or batch that names samples, none of them this one's: said plainly (a wrong file, or the
    codes' date), and released with it only when the technician says so. */
 function readsNone(u){
-  const sc = u.scope || {}; if (!(sc.sub || sc.sample || sc.batch) || !u.rep || u.rep.error || !(u.rep.rows || []).length) return false;
+  const sc = u.scope || {}; if (!(sc.sub || sc.sample) || !u.rep || u.rep.error || !(u.rep.rows || []).length) return false;
   const own = new Set(scopeSamples(sc).map(s => s.id));
   return own.size > 0 && !u.rep.rows.some(r => r.sid && own.has(r.sid));
 }
 function noneNote(u, loose, none){
-  const sc = u.scope || {}, what = sc.sample ? "sample" : sc.batch ? "lab batch" : "batch", a = u.alias, codes = [...new Set(u.rep.rows.map(r => r.key))];
+  const sc = u.scope || {}, what = sc.sample ? "sample" : "batch", a = u.alias, codes = [...new Set(u.rep.rows.map(r => r.key))];
   const list = xs => `${xs.slice(0, 4).map(x => `<span class="mono">${esc(x)}</span>`).join(", ")}${xs.length > 4 ? ` +${xs.length - 4} more` : ""}`;
   const mine = sc.sample ? "this sample's code" : `this ${what}'s codes`, dates = a ? `<b>${esc(a.from.map(date8Text).join(", "))}</b> in the file, <b>${esc(a.to.map(date8Text).join(", "))}</b> here` : "";
   const why = "The date on the codes may have been chosen wrongly at submission, or the report is another day's.";
@@ -449,16 +340,15 @@ function uploadTargets(u){
   const sc = u.scope || {}, P = u.plan;
   if (sc.sample) return canTakeFile(bs(sc.sample)) ? [sc.sample] : [];
   if (sc.sub) return (current?.batch === sc.sub ? current.docs : [...samples.values()].filter(s => s.batchId === sc.sub)).filter(s => grouped(s) && canTakeFile(s)).map(s => s.id);
-  if (sc.batch){ const b = openBatches.get(sc.batch) || (batchLive && batchLive.id === sc.batch ? batchLive : null); return (b?.sids || []).filter(id => { const s = bs(id); return canTakeFile(s) && inBatch(s, sc.batch); }); }
-  const named = P ? [...new Set([...P.batches.flatMap(t => t.b.pos.filter(x => x.t === "s" && Object.keys(t.vals[x.p] || {}).length).map(x => x.sid)), ...P.fresh.flatMap(t => t.b.sids), ...P.samples.map(x => x.sid), ...P.notReady])] : [];
+  const named = P ? [...new Set([...P.samples.map(x => x.sid), ...P.notReady])] : [];
   return named.length ? named : [...u.pick].filter(id => canTakeFile(bs(id)));
 }
 const unreadNote = u => u.rep.error ? `<div class="notice">${u.grid ? "This file doesn't name its samples in a way the site can read." : "This file's values can't be read here."} It is kept as the results of the samples below, and they are released with it.</div>` : "";
 function uploadTargetsHtml(u, tg){
-  const sc = u.scope || {}, P = u.plan, named = P && !sc.sample && !sc.batch && !sc.sub && (P.batches.length || P.fresh.length || P.samples.length || P.notReady.length);
+  const sc = u.scope || {}, P = u.plan, named = P && !sc.sample && !sc.sub && (P.samples.length || P.notReady.length);
   if (sc.sub) return `${unreadNote(u)}<div class="up-sec"><h4>Released together with this file: batch <span class="mono">${esc(sc.sub)}</span></h4><div class="small">${tg.length ? `${nS(tg.length)}, on one batch certificate${relNow() ? "" : " (a lab supervisor releases it)"}: ${tg.map(id => `<span class="mono">${esc(id)}</span>`).join(", ")}` : "No sample of the batch can take results (not received yet, or already released)."}</div></div>`;
   const unread = unreadNote(u);
-  if (sc.sample || sc.batch || named) return `${unread}<div class="up-sec"><h4>Released with this file</h4><div class="small">${tg.length ? tg.map(id => `<span class="mono">${esc(id)}</span>`).join(", ") : "No sample here can take results (not received yet, or already released)."}</div></div>`;
+  if (sc.sample || named) return `${unread}<div class="up-sec"><h4>Released with this file</h4><div class="small">${tg.length ? tg.map(id => `<span class="mono">${esc(id)}</span>`).join(", ") : "No sample here can take results (not received yet, or already released)."}</div></div>`;
   const q = u.q.trim().toUpperCase().replace(/\s+/g, "");
   const list = [...samples.values()].filter(canTakeFile).filter(s => !q || [s.id, tagText(s)].some(x => String(x).toUpperCase().replace(/\s+/g, "").includes(q))).sort((a, b) => a.id < b.id ? 1 : -1).slice(0, 150);
   return `${unread}<div class="up-sec"><h4>Which samples are these results for?</h4>
@@ -494,7 +384,7 @@ async function moveToAnalysis(){
   await movedIn(u.plan.notReady);
   if (upState === u){ reread(u); renderUpload(); }
 }
-/* The original file, kept once however many batches it fills: files/<ID> describes it, files/<ID>~1, ~2… hold it. */
+/* The original file, kept once however many samples it fills: files/<ID> describes it, files/<ID>~1, ~2… hold it. */
 async function keepFile(u){
   const id = "RF-" + (u.file.sha ? u.file.sha.slice(0, 16).toUpperCase() : dayStamp(Date.now()) + "-" + Math.random().toString(36).slice(2, 8).toUpperCase());
   const ref = db.doc("files/" + id), have = await ref.get().catch(() => null);
@@ -536,35 +426,19 @@ async function saveUpload(){
     await movedIn(u.plan.notReady);
     reread(u);
   }
-  const P = u.plan || { batches: [], fresh: [], samples: [] };
+  const P = u.plan || { samples: [] };
   const done = [];
-  // The file's values replace what was typed, unsaved, in the same boxes of the batch on screen.
-  const shown = P.batches.find(t => t.b.id === batchSel);
-  if (shown){
-    const ans = bAns(shown.b), clear = id => { const el = document.getElementById(id); if (el) delete el.dataset.typed; };
-    shown.b.pos.forEach(x => { if (shown.crms[x.p]) clear("bc_" + x.p); ans.forEach((ch, i) => { if (shown.vals[x.p]?.[ch.k] != null) clear(posInput(x, i, ch)); }); });
-  }
   try {
     msg("Keeping the file…");
     const f = await keepFile(u), inst = f.labRef || f.name;
-    for (const t of P.batches){
-      msg(`Saving ${t.b.id}…`);
-      const fresh = (await db.doc("batches/" + t.b.id).get()).data(); if (!fresh || fresh.qc){ done.push(`${t.b.id} already had results`); continue; }
-      done.push(await fileIntoBatch(fresh, t, f, inst));
-    }
-    for (const t of P.fresh){
-      msg("Creating a lab batch…");
-      const b = await batchFromFile(t, f); if (!b){ done.push("a batch could not be created"); continue; }
-      done.push(await fileIntoBatch(b.doc, b.t, f, inst));
-    }
     if (P.samples.length){
       msg("Saving sample results…");
       const al = sid => { const a = u.useAlias && u.alias?.bySid.get(sid); return a ? ` (the file names it ${a.file}, its code dated ${date8Text(date8Of(a.file))})` : ""; };
       const relS = [];   // v32: release on save may release them; the toast says so
       const n = await pool(P.samples, 8, x => sampleWrite(x.sid, s => {
         if (!readyForResults(s)) return null;
-        const bk = batchKeys(s), defs = anOf(s), rows = { ...rowsOf(s) };
-        for (const [k, v] of Object.entries(x.rows)){ const a = defs.find(y => y.k === k); if (!a || bk.has(k)) continue; const r = parseRes(v.raw, a); if (r && !r.bad && !r.amb) rows[k] = { ...r, by: session.u, src: "file" }; }
+        const defs = anOf(s), rows = { ...rowsOf(s) };
+        for (const [k, v] of Object.entries(x.rows)){ const a = defs.find(y => y.k === k); if (!a) continue; const r = parseRes(v.raw, a); if (r && !r.bad && !r.amb) rows[k] = { ...r, by: session.u, src: "file" }; }
         const all = withCalc(s, rows), at = nowAfter(s);
         return { results: { v: (s.results?.v || 0) + 1, at, by: session.u, tech: session.name, rows: patch(s.results?.rows, all), batch: s.results?.batch || "", inst, file: fileTag(f) }, fids: [...new Set([...(s.fids || []), f.id])],
           resHist: [...(s.resHist || []), ...(s.results ? [s.results] : [])].slice(-30), resAcc: null,
@@ -586,47 +460,9 @@ async function saveUpload(){
         const r = await releaseGroup(ref, wit, true, (d, t) => msg(`Releasing batch ${ref}… ${d} of ${t}`));
         done.push(r.n ? `batch ${ref}: ${nS(r.n)} released on certificate ${r.no}` : `batch ${ref}: results kept, not released yet${r.why ? ` (${r.why.replace(/\.$/, "")})` : ""}`);
       }
-      for (const b of new Set(targets.flatMap(id => Object.values(labsOf(bs(id) || {})).map(l => l.b)))) await closeBatchIfDone(b);
     }
     toast(`Saved: ${done.join("; ") || "the file is kept"}.`);
     closeUpload();
   } catch (e) { writeFailed(e); u.busy = false; renderUpload(); return; }
-  if (tab === "batches") renderBatches(); else if (tab === "track") renderTrack();
-}
-/* A complete set of values is saved and the QC checked at once; an incomplete one waits on the batch as a draft for the missing values. */
-async function fileIntoBatch(b, t, f, inst){
-  const notYet = b.sids.filter(id => { const s = bs(id); return s && inBatch(s, b.id) && !released(s) && !readyForResults(s); });
-  const files = [...(b.files || []).filter(x => x.id !== f.id), { id: f.id, name: f.name, at: Date.now(), tech: session.name }];
-  if (!relNow() && (t.miss.length || notYet.length)){   // release at once: what the file holds is saved; the rest of each sample's results is the file
-    const ref = db.doc("batches/" + b.id);
-    await ref.update({ draft: { at: Date.now(), by: session.u, tech: session.name, file: fileTag(f), vals: t.vals, crms: t.crms }, files, status: "results",
-      log: batchLog(b, `Results file ${f.name} attached; ${t.miss.length ? `${t.miss.length} value(s) still to enter` : `${notYet.length} sample(s) not at analysis yet`}`) });
-    return `${b.id} draft (${t.miss.length ? `${t.miss.length} missing` : "samples not at analysis"})`;
-  }
-  const ans = bAns(b), vals = {};
-  for (const [p, o] of Object.entries(t.vals)){ const rs = {}; for (const [k, raw] of Object.entries(o)){ const ch = ans.find(a => a.k === k), r = ch && parseRes(raw, ch); if (r && !r.bad && !r.amb) rs[k] = { ...r, by: session.u, src: "file" }; } if (Object.keys(rs).length) vals[p] = rs; }
-  const crms = {}; for (const x of b.pos) if (x.t === "crm") crms[x.p] = t.crms[x.p] || x.crm || "";
-  const ok = await storeBatchResults({ ...b, files }, { vals, crms }, inst, f, 0);
-  return ok ? `${b.id} ${qcLabel(ok).toLowerCase()}` : `${b.id} not saved`;
-}
-/* A lab batch made from the report for samples in no batch of its kind yet. */
-async function batchFromFile(t, f){
-  const p = QC_PROFILES[t.b.qcp], at = Date.now();
-  const id = await claimBatchId(p.prefix, { qcp: t.b.qcp, ans: t.b.ans, at, day: dayKey(at), month: monthKey(at), by: session.u, tech: session.name, open: true, status: "creating", sids: [], pos: [], crms: [], qc: null, log: [], fromFile: fileTag(f) });
-  const joined = [];
-  await pool(t.b.sids, 5, sid => sampleWrite(sid, s => {
-    const l = labsOf(s)[t.b.qcp]; if (l && l.b && l.b !== id) return null;
-    if (sigOf(batchAns(t.b.qcp, s)) !== sigOf(t.b.ans)) return null;
-    joined.push(sid);
-    const tt = nowAfter(s);
-    return { ...labsUpd(s, { ...labsOf(s), [t.b.qcp]: { b: id, q: "pending", n: "" } }), history: [...(s.history || []), { key: s.stageKey, sn: stage(s, s.stageKey)?.name, at: tt, by: session.u, tech: session.name, ref: id, note: `Added to lab batch ${id} from results file ${f.name}` }] };
-  }));
-  if (!joined.length){ await db.doc("batches/" + id).delete(); return null; }
-  // Positions of samples that could not join are dropped; the others keep their values under their new numbers.
-  const keep = t.b.pos.filter(x => x.t === "s" ? joined.includes(x.sid) : x.of ? joined.includes(x.of) : true), vals = {}, crms = {};
-  const pos = keep.map((x, i) => { const y = { ...x, p: i + 1 }; vals[y.p] = t.vals[x.p] || {}; if (t.crms[x.p]) crms[y.p] = t.crms[x.p]; return y; });
-  const order = t.b.sids.filter(x => joined.includes(x));
-  await db.doc("batches/" + id).update({ status: "prep", sids: order, pos, crms: [...new Set(pos.filter(x => x.crm).map(x => x.crm))], log: [{ at: Date.now(), by: session.u, tech: session.name, note: `Batch made from results file ${f.name} with ${order.length} samples and ${pos.length - order.length} QC positions` }] });
-  const doc = (await db.doc("batches/" + id).get()).data();
-  return { doc, t: { ...t, vals, crms, b: { ...t.b, id, pos } } };
+  if (tab === "track") renderTrack();
 }

@@ -8,9 +8,9 @@ def put(old, new):
     assert head.count(old) == 1, old
     head = head.replace(old, new)
 put('<button role="tab" data-tab="register" aria-selected="false">Register at lab</button>',
-    '<button role="tab" data-tab="register" aria-selected="false">Register at lab</button>\n    <button role="tab" data-tab="batches" aria-selected="false">Lab batches</button>\n    <button role="tab" data-tab="storage" aria-selected="false">Storage</button>\n    <button role="tab" data-tab="results" aria-selected="false">Results</button>')
+    '<button role="tab" data-tab="register" aria-selected="false">Register at lab</button>\n    <button role="tab" data-tab="storage" aria-selected="false">Storage</button>\n    <button role="tab" data-tab="results" aria-selected="false">Results</button>')
 put('<section class="view" id="view-register" hidden></section>',
-    '<section class="view" id="view-register" hidden></section>\n  <section class="view" id="view-batches" hidden></section>\n  <section class="view" id="view-storage" hidden></section>\n  <section class="view" id="view-results" hidden></section>')
+    '<section class="view" id="view-register" hidden></section>\n  <section class="view" id="view-storage" hidden></section>\n  <section class="view" id="view-results" hidden></section>')
 put('<div class="toast" id="toast" hidden></div>',
     '<div class="toast" id="toast" hidden></div>\n<div class="cert-overlay" id="certBox" role="dialog" aria-modal="true" aria-label="Certificate of analysis" hidden></div>\n<div class="cert-overlay" id="labelBox" role="dialog" aria-modal="true" aria-label="Bag labels" hidden></div>')
 put("<title>MET Lab Sample Tracker</title>", "<title>Assay Lab Sample Tracker</title>")
@@ -50,7 +50,6 @@ head = head.replace(nav.group(0), """  <nav class="tabs" role="tablist" id="tabs
     <button role="tab" data-tab="submit" aria-selected="false">Submit</button>
     <button role="tab" data-tab="register" aria-selected="false">Register</button>
     <button role="tab" data-tab="results" aria-selected="false">Results</button>
-    <button role="tab" data-tab="batches" aria-selected="false">Batches</button>
     <button role="tab" data-tab="storage" aria-selected="false">Storage</button>
     <button role="tab" data-tab="ledger" aria-selected="false">Ledger</button>
     <button role="tab" data-tab="routes" aria-selected="false">Routes</button>
@@ -62,6 +61,6 @@ head = head.replace(nav.group(0), """  <nav class="tabs" role="tablist" id="tabs
 import os
 data = open("routes-data.js" if os.path.exists("routes-data.js") else "../routes-data.js", encoding="utf-8").read().rstrip("\n")
 app = "".join(open(f, encoding="utf-8").read() for f in ["app10-a.js", "app10-b.js", "app10-c.js", "app10-d.js", "app10-e.js", "app12-g.js", "app13-h.js", "app14-i.js", "app15-j.js", "app16-k.js", "app18-l.js", "app18-m.js", "app19-n.js", "app20-o.js", "app24-p.js", "app25-q.js", "app26-r.js", "app27-s.js", "app28-t.js", "app29-u.js", "app31-v.js", "app32-w.js", "app10-f.js"])
-page = head + "\n" + "/* Default settings. Admins change accounts, sections, the site time zone, reference materials, action limits and workflow routes on the \"Settings\" tab; edited routes are saved to settings/stages. */\n" + data + "\n" + app + "})();\n</script>\n"
+page = head + "\n" + "/* Default settings. Admins change accounts, sections, the site time zone, action limits and workflow routes on the \"Settings\" tab; edited routes are saved to settings/stages. */\n" + data + "\n" + app + "})();\n</script>\n"
 open("assay-lab-sample-tracker.html", "w", encoding="utf-8").write(page)
 print(len(page), "bytes,", page.count("\n"), "lines")

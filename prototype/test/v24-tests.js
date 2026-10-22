@@ -45,9 +45,9 @@ async function typeResults(page, id, vals){
   log("Tabs follow the role and department");
   const tabsOf = p => p.$$eval("#tabs button[data-tab]", bs => bs.filter(b => !b.hidden).map(b => b.dataset.tab));
   const tT = await tabsOf(Tc), tM = await tabsOf(Mt), tV = await tabsOf(Vw);
-  check(!tT.includes("results") && tT.includes("batches"), "a technician has Batches and no Results tab: " + tT.join(","));
-  check(tM.includes("results") && tM.includes("batches"), "a metallurgist has Results and Batches: " + tM.join(","));
-  check(tV.includes("results") && !tV.includes("batches"), "a viewer outside an evaluating department has Results but not Batches (QC): " + tV.join(","));
+  check(tT.includes("results") && !tT.includes("batches"), "v35: a technician has Results (to attach results files) and no Batches tab: " + tT.join(","));
+  check(tM.includes("results") && !tM.includes("batches"), "a metallurgist has Results and no Batches tab: " + tM.join(","));
+  check(tV.includes("results") && !tV.includes("batches"), "a viewer outside an evaluating department has Results and no Batches tab: " + tV.join(","));
 
   log("Submit: three short steps; a Belt cut sample fills in its analysis, purpose and section");
   await H.tab(Tc, "submit"); await Tc.waitForSelector("#rType");
@@ -156,8 +156,8 @@ async function typeResults(page, id, vals){
   await fillForm(Tc, "register", { section: "PLT", type: "plant_feed", purpose: "plant", test: "ausx", submitter: "Shift boss", count: 2, tags: "SOL-A1, SOL-A2", details: { point: "CIL feed" } });
   const sol = await ids(Tc);
   for (const id of sol) await toLast(Tc, id);
-  await H.tab(Tc, "batches"); await Tc.waitForSelector('[data-attach="all"]');
-  check(!(await Tc.$(".batch-hero")) && !/one run of samples/.test(await text(Tc, "#view-batches")) && !!(await Tc.$('#view-batches [data-attach="all"]')) && /\d+ waiting for results/.test(await text(Tc, ".batch-bar")) && /\d+ closed this month/.test(await text(Tc, ".batch-bar")) && await Tc.$eval("#nbBox", d => !d.open) && !(await Tc.$("#chPanel")), "Batches: no heading text, the counts (waiting, open, closed this month) and Attach results file (v24c); making one by hand is folded away; no QC chart for a technician");
+  await H.tab(Tc, "results"); await Tc.waitForSelector('[data-attach="all"]');
+  check(!!(await Tc.$('#view-results [data-attach="all"]')) && !(await Tc.$("#view-batches")) && !(await Tc.$("#chPanel")), "v35: the Results tab carries Attach results file (v24c); there is no Batches view or QC chart");
   let ub = await H.attachFile(Tc, "all", "aas-run.csv", `Sample ID,AuSX (mg/L)\n${sol[0]},0.150\n${sol[1]},0.152\nBLANK,0.090\n`);
   await H.saveAttach(Tc); await waitFor(() => sol.every(id => doc(id).certs?.length), 8000);
   check(sol.every(id => (doc(id).certs || []).length === 1 && doc(id).certs[0].by === "tech1"), "both samples are released from the file at once: " + sol.map(id => doc(id).stageKey).join(","));
@@ -265,7 +265,7 @@ async function typeResults(page, id, vals){
   await Tc.evaluate(() => { const b = document.querySelector("#certBox"); if (b){ b.hidden = true; b.innerHTML = ""; } });
   await fillForm(Tc, "register", { section: "PLT", type: "plant_feed", purpose: "plant", test: "ausx", submitter: "Shift boss", count: 2, tags: "NOID-1, NOID-2", details: { point: "CIL feed" } });
   const nid = await ids(Tc);
-  await H.tab(Tc, "batches"); await Tc.waitForSelector('[data-attach="all"]');
+  await H.tab(Tc, "results"); await Tc.waitForSelector('[data-attach="all"]');
   up = await H.attachFile(Tc, "all", "run-sheet.csv", "Lab no,AuSX (mg/L)\n1,0.150\n2,0.152\n");
   check(/Which samples are these results for/.test(up) && await Tc.$eval("#upSave", b => b.disabled), "a file that names no sample asks which samples it is for; nothing is saved until one is ticked");
   for (const id of nid) await Tc.check(`[data-uppick="${id}"]`);

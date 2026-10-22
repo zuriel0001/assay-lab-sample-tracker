@@ -12,11 +12,9 @@ function renderBoard(){
   const inProc = list.filter(s => { const i = curIdx(s); return i > 0 && i < targetIdx(s); });
   const late = inProc.filter(s => status(s).late);
   const redo = inProc.filter(s => s.reassays > 0);
-  const noBatch = inProc.filter(s => { const labs = labsOf(s); return groupsOf(s).some(g => !labs[g.p]); });
   const relReady = qcStepOn() ? [] : inProc.filter(readyRel);
-  const qcAct = inProc.filter(s => Object.values(labsOf(s)).some(l => l.q === "fail" || l.q === "warn"));
-  // Release at once: limits and QC are for the people who evaluate (Results tab); the lab's board shows only the lab's work.
-  const alerts = isStaff() && !relNow() ? list.filter(s => (s.results || s.amend) && openAlerts(s).length) : [], trends = isStaff() && (!relNow() || canEval()) ? crmTrendFlags() : [];
+  // Release at once: limits are for the people who evaluate (Results tab); the lab's board shows only the lab's work.
+  const alerts = isStaff() && !relNow() ? list.filter(s => (s.results || s.amend) && openAlerts(s).length) : [];
   // v24d: every released sample whose material is not yet on the shelf (or not yet confirmed there), those over the day allowed marked
   const unstored = list.filter(s => s.stageKey === "released"), notStored = unitCount(unstored), unstoredLate = unitCount(unstored.filter(s => stageDue(s) && Date.now() > stageDue(s)));
   const dueNow = Date.now(), dueL = [...list.filter(s => overdueMaterials(s).length).map(s => ({ id: s.id, s, sec: s.section, route: s.route || "", items: overdueMaterials(s).map(m => m.item), n: overdueMaterials(s).length })),
@@ -38,11 +36,8 @@ function renderBoard(){
     { k: "lab", n: inProc.length, l: "In the lab, before results", tone: "gold", pick: inProc },
     { k: "late", n: late.length, l: "Running late", tone: "bad", pick: late },
     { k: "redo", n: redo.length, l: "Being re-assayed", tone: "warn", pick: redo },
-    ...(canEdit() ? [batchesRequired() ? { k: "nobatch", n: noBatch.length, l: "Waiting for a lab batch", tone: "info", pick: noBatch } : { k: "relready", n: relReady.length, l: "Ready for release", tone: "ok", pick: relReady },
-      ...(!relNow() ? [{ k: "qc", n: qcAct.length, l: "In a batch with QC to act on", tone: "warn", pick: qcAct }] : [])] : []),
+    ...(canEdit() ? [{ k: "relready", n: relReady.length, l: "Ready for release", tone: "ok", pick: relReady }] : []),
     ...(isStaff() && !relNow() ? [{ k: "alerts", n: alerts.length, l: "Results past an action or permit limit, not yet recorded", tone: "bad", pick: alerts }] : []),
-    ...(isStaff() && (!relNow() || canEval()) ? [{ k: "trends", n: trends.length, l: "Reference material trends", tone: "warn", link: ["batches", "Open Lab batches"],
-      rows: trends.map(t => ({ id: "", type: t.crm + (t.k ? " " + t.k : ""), what: t.b ? "Batch " + t.b : "", where: t.msg })) }] : []),
     ...(isStaff() ? [{ k: "req", n: unitCount(reqL), l: "Re-assay requested", tone: "bad", rows: unitRows(reqL, s => { const e = lastRedo(s); return sRow(s, "Requested" + (e ? ` by ${e.tech}${e.note ? ": " + e.note : ""}` : "")); }) }] : []),
     { k: "rel", n: unitCount(relL), l: "Results released today", tone: "ok", rows: unitRows(relL, s => sRow(s, "Released " + fmt(s.relAt))) },
     { k: "unstored", n: notStored, l: `Released, not yet put in storage${unstoredLate ? `, ${unstoredLate} over a day` : ""}`, tone: unstoredLate ? "warn" : "info", pick: unstored },
@@ -58,14 +53,12 @@ function renderBoard(){
   if (boardPick && !cur) boardPick = "";
   /* v33 (22 Oct, "the BOARD page looks long, these 2 sections feels like duplicates"): a tile whose samples are on the lanes filters the
      lanes, with a small chip to clear it, and no list in between; a tile of things not on the lanes (released today, re-assays requested,
-     materials past retention, trends) and the lab's Awaiting receipt (ticks to receive) show their list in place of the lanes. Lanes | List
+     materials past retention) and the lab's Awaiting receipt (ticks to receive) show their list in place of the lanes. Lanes | List
      (kept on the device) shows the board as a table instead; never both. The wall screen always shows lanes. */
   const listMode = !wall && boardView() === "list", laneable = !!(cur && cur.pick && !(cur.k === "await" && canEdit()) && !(todo && TODO_K.includes(cur.k)));
   const shown = laneable ? new Set(cur.pick) : null, asList = !!cur && (!laneable || listMode);
   const chip = c => `<div class="pick-note pick-chip"${asList ? "" : ` id="bdPick"`}><span>Showing <b>${esc(c.l)}</b> · ${c.n}</span>${c.link ? `<button type="button" class="linkish small" data-goto="${c.link[0]}">${esc(c.link[1])}</button>` : ""}<button type="button" class="pk-x" data-bpick="${c.k}" aria-label="Show everything again" title="Show everything again">×</button></div>`;
-  const pickTable = (rows, k) => rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>${k === "trends" ? "Reference material" : "Sample"}</th>${k === "trends" ? "" : "<th>Type</th>"}<th>${k === "trends" ? "Batch" : "Analysis · route"}</th><th>${k === "trends" ? "Trend" : "Where it is"}</th></tr></thead><tbody>${rows.slice(0, 100).map(r => k === "trends"
-        ? `<tr><td>${esc(r.type)}</td><td class="mono">${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`
-        : `<tr><td>${r.id ? `<button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>` : "—"}</td><td>${esc(r.type)}</td><td>${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`).join("")}</tbody></table></div>
+  const pickTable = (rows, k) => rows.length ? `<div class="tbl-wrap"><table class="cardy"><thead><tr><th>Sample</th><th>Type</th><th>Analysis · route</th><th>Where it is</th></tr></thead><tbody>${rows.slice(0, 100).map(r => `<tr><td>${r.id ? `<button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>` : "—"}</td><td>${esc(r.type)}</td><td>${esc(r.what)}</td><td>${esc(r.where)}</td></tr>`).join("")}</tbody></table></div>
       ${rows.length > 100 ? `<div class="small muted">+${rows.length - 100} more: use the filters or look a sample up by ID</div>` : ""}` : `<div class="small muted">Nothing to list on this device yet.</div>`;
   const pickHtml = !cur ? "" : !asList ? chip(cur) : cur.k === "await" && canEdit() ? recvManyPanel(cur) : todo && TODO_K.includes(cur.k) ? todoPanel(cur, todo, chip) : `<div class="panel pick-list stack" id="bdPick">${chip(cur)}${pickTable(cur.rows, cur.k)}</div>`;
   const sumHtml = sums.filter(x => !x.hide).map(x => {
@@ -114,7 +107,6 @@ function renderBoard(){
           <div class="ctop"><span class="cid"><span class="cref">${esc(s.id)}</span>${s.route ? ` <span class="rc">${esc(s.route)}</span>` : ""}</span></div>
           ${showStep[x.key] && stp ? `<div class="cmeta"><b style="color:var(--ink)">${esc(waitingRes(s) ? "Waiting for results" : stp.name)}</b>${s.reassays ? ` · <b style="color:var(--warn)">re-assay</b>` : ""}</div>` : ""}
           ${s.wq && s.wq.wit ? `<div class="cmeta"><b style="color:var(--info)">Waiting for ${esc(s.wq.wit)} to confirm</b></div>` : ""}
-          ${curIdx(s) < targetIdx(s) ? Object.values(labsOf(s)).map(l => `<div class="cmeta">Batch <span class="mono">${esc(l.b)}</span>${l.q && l.q !== "pending" ? ` · <b style="color:var(--${{ ok: "ok", bad: "bad" }[qcCls(l.q)] || "warn"})">${esc(qcLabel(l.q))}</b>` : ""}</div>`).join("") : ""}
           ${alerts.includes(s) ? `<div class="cmeta"><b style="color:var(--bad)">Result past a limit</b></div>` : ""}
           ${awaiting(s) && s.handedTo ? `<div class="cmeta">Handed to ${esc(s.handedTo)}</div>` : ""}
           <div class="cmeta">${esc(s.type)}${ownCode(s) ? ` · <span class="mono">${esc(ownCode(s))}</span>` : ""}${s.priority === "Urgent" ? ` · <span class="urg">Urgent</span>` : ""}${s.flag && awaiting(s) ? ` · <b style="color:var(--warn)">Flagged</b>` : ""}</div>
@@ -136,7 +128,6 @@ function renderBoard(){
     ${boardReqNote()}
     ${pickHtml}${listHtml}
     ${alerts.length ? `<div class="notice bad" id="bdAlerts"><b>Past a limit:</b> ${alerts.slice(0, 12).map(s => `<button type="button" class="linkish mono" data-open="${esc(s.id)}">${esc(s.id)}</button> <span class="small">${esc(openAlerts(s).map(h => alertLine(s, h)).join("; "))}</span>`).join("<br>")}${alerts.length > 12 ? `<br>+${alerts.length - 12} more` : ""}<div class="small">Open each sample, act as the limit says and record what was done and who was told. In the production system these also go out by email or SMS.</div></div>` : ""}
-    ${trends.length ? `<div class="notice warn" id="bdTrends"><b>Reference material trends:</b> ${esc(trends.map(t => `${t.crm}${t.k ? " " + t.k : ""}: ${t.msg}`).join("; "))}. See the control chart on the <button type="button" class="linkish" data-goto="batches">Lab batches</button> tab.</div>` : ""}
     ${listMode || asList ? "" : `<div class="lanes">${lanes}</div>`}</div>`;
   bind(); bindRecvMany(v);
   fitLanes(scrolled);

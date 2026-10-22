@@ -8,7 +8,6 @@ const names = {};
 const log = (...a) => console.log("•", ...a);
 const check = (cond, msg) => { console.log(cond ? "  PASS" : "  FAIL", msg); if (!cond) process.exitCode = 1; };
 const text = async (page, sel) => ((await page.textContent(sel).catch(() => "")) || "").replace(/\s+/g, " ").trim();
-const showBatch = async (page, id) => { await H.tab(page, "batches"); await page.waitForSelector(`[data-bsel="${id}"]`, { timeout: 5000 }); await page.click(`[data-bsel="${id}"]`); await page.waitForSelector("#batchBox", { timeout: 5000 }); await page.waitForTimeout(250); };
 /* Clicks "Move to" until the next step is the release (or a held step). */
 async function toLast(page, id){
   for (let g = 0; g < 25; g++){
@@ -43,7 +42,7 @@ async function setQcStep(Ad, on){
   log("Settings: the QA/QC review step is not used by default");
   await H.tab(Ad, "stages"); await Ad.waitForSelector("#cfgQcStep");
   check(await Ad.$eval("#cfgQcStep", e => e.value) === "0" && await Ad.$eval("#cfgQcStep", e => e.selectedOptions[0].textContent) === "Not used", "Settings: QA/QC review step is Not used");
-  check(/Lab batch before release/.test(await text(Ad, "#view-stages")), "the lab batch switch reads Lab batch before release");
+  check(!/Lab batch/.test(await text(Ad, "#view-stages")) && !(await Ad.$("#cfgBatchReq")), "v35: there is no lab batch setting");
 
   log("A CCD sample goes from its last analysis step to the release");
   await H.tab(Tc, "submit"); await Tc.waitForSelector("#rSubmit");
@@ -93,19 +92,13 @@ async function setQcStep(Ad, on){
   await open(Sv, c2);
   check(/action limit/.test(await text(Sv, "#holdNote")), "choosing Final underflow keeps it");
 
-  log("A lab batch releases its samples from their last step");
+  log("Samples are released from their last step (v35: typed on each record, no lab batch)");
   await fillForm(Tc, "register", { section: "EXP", submitter: "Ama Mensah", count: 2, tags: "DH-301" }); const ex = await ids(Tc);
-  const b1 = await H.createBatch(Tc, "fa50", ex); await showBatch(Tc, b1);
-  for (let g = 0; g < 15; g++){
-    const k = doc(ex[0]).stageKey, btn = await Tc.$(`[data-bmove="${k}"]`); if (!btn) break;
-    if (doc(ex[0]).plan.find(x => x.key === k)?.phase === "test" && !H.batchDoc(b1).qc){ await H.fillBatch(Tc, b1, () => "1.50"); await H.saveBatch(Tc, b1); await showBatch(Tc, b1); continue; }
-    await btn.click(); await waitFor(() => ex.every(id => doc(id).stageKey !== k), 6000); await showBatch(Tc, b1);
-  }
-  if (!H.batchDoc(b1).qc){ await H.fillBatch(Tc, b1, () => "1.50"); await H.saveBatch(Tc, b1); }
-  await showBatch(Sv, b1);
-  const rel = await text(Sv, "#bRelease");
-  check(rel === "Release results for 2 samples" && !(await Sv.$eval("#bRelease", b => b.disabled)), "the batch offers: Release results for 2 samples (" + rel + "; at " + ex.map(id => doc(id).stageKey).join(", ") + ")");
-  await Sv.click("#bRelease"); await waitFor(() => ex.every(id => doc(id).stageKey === "released"), 8000);
+  for (const id of ex){ await toLast(Tc, id); await typeResults(Tc, id, { Au: "1.50" }); }
+  await open(Sv, ex[0]);
+  const rel = await text(Sv, '[data-step="next"]');
+  check(/^Release/.test(rel) && !(await Sv.$eval('[data-step="next"]', b => b.disabled)), "the record offers the release from the last step (" + rel + "; at " + ex.map(id => doc(id).stageKey).join(", ") + ")");
+  for (const id of ex){ await open(Sv, id); await Sv.click('[data-step="next"]'); await waitFor(() => doc(id).stageKey === "released", 8000); }
   check(ex.every(id => doc(id).stageKey === "released" && (doc(id).certs || []).length === 1), "both released with a certificate each");
 
   log("Settings can bring the QA/QC review step back");

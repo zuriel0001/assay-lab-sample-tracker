@@ -21,7 +21,7 @@ const noScroll = page => page.evaluate(() => document.documentElement.scrollWidt
   await P.waitForTimeout(800);
 
   log("Navigation");
-  check((await barTabs(A)).join() === "board,track,submit,results,batches,storage,ledger,routes,stages" && await A.$eval("#tabMoreWrap", w => w.hidden), "computer: all nine admin tabs fit in the row, no More menu (v17: no separate Register when signed in; v24: Results for staff)");
+  check((await barTabs(A)).join() === "board,track,submit,results,storage,ledger,routes,stages" && await A.$eval("#tabMoreWrap", w => w.hidden), "computer: all eight admin tabs fit in the row, no More menu (v17: no separate Register when signed in; v24: Results for staff; v35: no Batches)");
   check(await A.$$eval("#tabs > button[data-tab]:not([hidden])", bs => bs.every(b => getComputedStyle(b, "::before").maskImage.startsWith("url(") || getComputedStyle(b, "::before").webkitMaskImage.startsWith("url("))), "every tab has an icon");
   const Tb = await newUser(browser, { uid: "u_tb", name: "Tablet", canEdit: true, names }, { width: 820, height: 1000 }); await signIn(Tb, "admin");
   const tbMenu = await menuTabs(Tb);
@@ -40,7 +40,7 @@ const noScroll = page => page.evaluate(() => document.documentElement.scrollWidt
 
   const M = await newUser(browser, { uid: "u_m", name: "Phone", canEdit: true, names }, { width: 390, height: 844 }); await signIn(M, "tech1");
   const bar = await M.evaluate(() => { const n = document.querySelector("#tabs"), r = n.getBoundingClientRect(); return { fixed: getComputedStyle(n).position === "fixed", bottom: Math.round(innerHeight - r.bottom), h: Math.round(r.height) }; });
-  check(bar.fixed && bar.bottom === 0 && bar.h >= 60 && (await barTabs(M)).join() === "board,track,submit,batches" && (await menuTabs(M)).join() === "storage,ledger,routes", "phone: bottom bar with Board, Sample, Submit, Batches; the rest under More");
+  check(bar.fixed && bar.bottom === 0 && bar.h >= 60 && (await barTabs(M)).join() === "board,track,submit,results" && (await menuTabs(M)).join() === "storage,ledger,routes", "phone: bottom bar with Board, Sample, Submit, Results (v35); the rest under More: " + (await barTabs(M)).join() + " / " + (await menuTabs(M)).join());
   check(await M.$$eval("#tabs > button[data-tab]:not([hidden]), #tabMore", bs => bs.every(b => b.getBoundingClientRect().height >= 48)), "phone bar buttons are at least 48 px tall");
   await H.tab(M, "ledger"); await M.waitForTimeout(250);
   check(await M.$eval("#view-ledger", v => !v.hidden) && await noScroll(M), "a tab under More opens on the phone, with no sideways scroll");
@@ -66,7 +66,7 @@ const noScroll = page => page.evaluate(() => document.documentElement.scrollWidt
   await H.tab(A, "board"); await A.waitForTimeout(400);
   // v16: the tiles of the earlier board, zeros included; a tile with samples is a button that filters the board.
   const sums = await A.$$eval(".stats .stat", bs => bs.map(b => [b.querySelector(".l").textContent, b.querySelector(".n").textContent, b.className, b.tagName, b.dataset.bpick || ""]));
-  check(sums.length >= 11 && sums.some(s => s[1] === "0") && sums.filter(s => s[1] === "0").every(s => s[3] === "DIV") && sums.some(s => /Running late/.test(s[0]) && s[1] === "1" && /\bbad\b/.test(s[2]) && s[3] === "BUTTON" && s[4] === "late") && sums.some(s => /Awaiting receipt/.test(s[0]) && s[1] === "1"), "summary tiles show every count, zeros too; Running late is red and clickable: " + sums.map(s => s[1] + " " + s[0]).join(" | "));
+  check(sums.length >= 10 && sums.some(s => s[1] === "0") && sums.filter(s => s[1] === "0").every(s => s[3] === "DIV") && sums.some(s => /Running late/.test(s[0]) && s[1] === "1" && /\bbad\b/.test(s[2]) && s[3] === "BUTTON" && s[4] === "late") && sums.some(s => /Awaiting receipt/.test(s[0]) && s[1] === "1"), "summary tiles show every count, zeros too; Running late is red and clickable: " + sums.map(s => s[1] + " " + s[0]).join(" | "));
   const card = id => A.$eval(`.chip[data-open="${id}"]`, c => ({ cls: c.className, left: c.querySelector(".left")?.textContent || "" })).catch(() => null);
   const cl = await card(late), co = await card(ex[0]);
   check(cl && /\bt-late\b/.test(cl.cls) && /late$/.test(cl.left) && co && /\bt-(ok|soon)\b/.test(co.cls) && /left$/.test(co.left), `cards show time left or late with a coloured edge (${cl?.left}; ${co?.left})`);
@@ -79,7 +79,7 @@ const noScroll = page => page.evaluate(() => document.documentElement.scrollWidt
   await A.click("#bdWall"); await A.waitForTimeout(200);
   check(await A.evaluate(() => document.body.classList.contains("wall")) && !(await shown(A, "header.top")) && !(await shown(A, "#tabs")) && await shown(A, ".wall-head") && /^\d\d:\d\d$/.test(await A.textContent("#wallClock")), "Wall screen shows the board alone with a clock");
   await A.click("[data-wall-exit]"); await A.waitForTimeout(200);
-  check(!(await A.evaluate(() => document.body.classList.contains("wall"))) && await shown(A, "header.top") && (await barTabs(A)).length === 9, "Exit brings the page back");
+  check(!(await A.evaluate(() => document.body.classList.contains("wall"))) && await shown(A, "header.top") && (await barTabs(A)).length === 8, "Exit brings the page back");
 
   log("Sample record");
   await open(A, ex[0]);

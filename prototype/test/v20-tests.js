@@ -3,17 +3,26 @@
 // the blind results beside the original's on both records and record the comparison.
 // Run: NODE_PATH=$(npm root -g) timeout 590 node v20-tests.js
 const H = require("./harness");
-const { store, errors, newUser, launch, signIn, fillForm, ids, open, doc, waitFor, toastText, createBatch, fillBatch, saveBatch } = H;
+const { store, errors, newUser, launch, signIn, fillForm, ids, open, doc, waitFor, toastText } = H;
 const names = {}, OUT = __dirname;
 const log = (...a) => console.log("•", ...a);
 const check = (cond, msg) => { console.log(cond ? "  PASS" : "  FAIL", msg); if (!cond) process.exitCode = 1; };
 const stock = id => store["stock/" + id];
 const link = id => store["blind/" + id];
 const text = async (page, sel) => ((await page.textContent(sel).catch(() => "")) || "").replace(/\s+/g, " ");
-const showBatch = async (page, id) => { await H.tab(page, "batches"); await page.waitForSelector(`[data-bsel="${id}"]`, { timeout: 5000 }); await page.click(`[data-bsel="${id}"]`); await page.waitForSelector("#batchBox", { timeout: 5000 }); await page.waitForTimeout(250); };
-async function groupMove(page, sids, toKey){
-  for (let g = 0; g < 15; g++){ const k = doc(sids[0]).stageKey; if (k === toKey) return true; await page.click(`[data-bmove="${k}"]`); await waitFor(() => sids.every(id => doc(id).stageKey !== k), 6000); await page.waitForTimeout(300); }
-  return doc(sids[0]).stageKey === toKey;
+/* Walks one sample on its record until it reaches the step. */
+async function walkTo(page, id, key){
+  await open(page, id);
+  for (let g = 0; g < 16 && doc(id).stageKey !== key; g++){ const k = doc(id).stageKey; await page.click('[data-step="next"]'); await waitFor(() => doc(id).stageKey !== k, 4000); await page.waitForTimeout(300); }
+  return doc(id).stageKey === key;
+}
+/* Types results on the sample's record and saves them. */
+async function typeRes(page, id, vals){
+  await open(page, id);
+  if (!(await page.$eval("#resBox", d => d.open))) await page.click("#resBox summary");
+  for (const [k, v] of Object.entries(vals)) await page.fill("#rs_" + k, v);
+  const v0 = doc(id).results?.v || 0;
+  await page.click("#rsSave"); await waitFor(() => (doc(id).results?.v || 0) > v0, 4000); await page.waitForTimeout(300);
 }
 async function receipt(page, id){ await open(page, id); await page.click('[data-receipt="confirm"]'); await waitFor(() => doc(id).stageKey === "received"); await page.waitForTimeout(400); }
 async function release(page, id){ await open(page, id); await page.click('[data-step="next"]'); await waitFor(() => doc(id).stageKey === "released", 5000); await page.waitForTimeout(300); }
@@ -38,12 +47,11 @@ async function material(page, id, k, what, ref){
   log("Three exploration samples assayed, released and stored");
   await fillForm(P, "submit", { section: "EXP", submitter: "Ama", count: 3, tags: "DH-101" }); const ex = await ids(P);
   for (const id of ex) await receipt(Tc, id);
-  const b0 = await createBatch(Tc, "fa50", ex);
-  check(await groupMove(Tc, ex, "weigh"), "batch at weighing");
   const AU = { [ex[0]]: "1.20", [ex[1]]: "2.50", [ex[2]]: "0.80" };
-  await showBatch(Tc, b0); await fillBatch(Tc, b0, sid => AU[sid] || "1.00"); const q0 = await saveBatch(Tc, b0);
-  check(q0.status === "pass", "batch QC passed: " + q0.status);
-  check(await groupMove(Tc, ex, "qc"), "samples at QA/QC");
+  for (const id of ex){ await walkTo(Tc, id, "weigh"); await typeRes(Tc, id, { Au: AU[id] }); }
+  check(ex.every(id => doc(id).results?.rows.Au), "results typed on each record");
+  for (const id of ex) await walkTo(Tc, id, "qc");
+  check(ex.every(id => doc(id).stageKey === "qc"), "samples at QA/QC");
   for (const id of ex) await release(Sv, id);
   for (const id of ex) for (const [i, m] of doc(id).materials.entries()) await material(Tc, id, m.k, "store", `Rack 3-${i + 1}`);
   check(ex.every(id => doc(id).stageKey === "storage" && stock(id)?.st === "store"), "all three in storage");
@@ -110,16 +118,14 @@ async function material(page, id, k, what, ref){
   await H.tab(Tc, "storage"); await Tc.waitForTimeout(400);
   check(!(await Tc.$(".qa-of")), "Storage shows no Blind of note to a technician");
 
-  log("The technician receives, batches and assays the blind samples");
+  log("The technician receives and assays the blind samples");
   for (const id of qc) await receipt(Tc, id);
   check(qc.every(id => doc(id).stageKey === "received" && doc(id).route === "EXP-FA" && stock(id)?.st === "lab"), "blind samples received on their route, with stock records");
   const inRows = H.ledger().filter(r => qc.includes(r.sid) && r.dir === "in");
   check(inRows.length === 2 && inRows.every(r => !ex.some(id => JSON.stringify(r).includes(id))), "the Ledger has an IN line for each blind ID, with nothing of the original in it");
-  const b1 = await createBatch(Tc, "fa50", qc);
-  check(await groupMove(Tc, qc, "weigh"), "blind batch at weighing");
   const BV = { [blindFor[ex[0]]]: "1.26", [blindFor[ex[2]]]: "1.30" };
-  await showBatch(Tc, b1); await fillBatch(Tc, b1, sid => BV[sid] || "1.00"); const q1 = await saveBatch(Tc, b1);
-  check(q1.status === "pass" && qc.every(id => doc(id).results?.rows?.Au), "blind batch QC passed and the results are on the blind samples");
+  for (const id of qc){ await walkTo(Tc, id, "weigh"); await typeRes(Tc, id, { Au: BV[id] || "1.00" }); }
+  check(qc.every(id => doc(id).results?.rows?.Au), "the results are on the blind samples");
 
   log("The supervisor compares blind with original");
   const bA = blindFor[ex[0]], bC = blindFor[ex[2]];
@@ -156,8 +162,8 @@ async function material(page, id, k, what, ref){
   check(!(await text(Tc, "#view-ledger")).includes("Blind of"), "the technician's Ledger does not");
 
   log("Release of the blind results");
-  await showBatch(Tc, b1);
-  check(await groupMove(Tc, qc, "qc"), "blind samples at QA/QC");
+  for (const id of qc) await walkTo(Tc, id, "qc");
+  check(qc.every(id => doc(id).stageKey === "qc"), "blind samples at QA/QC");
   await release(Sv, bA);
   await open(Sv, bA); await Sv.waitForSelector("#qaPanel"); await Sv.waitForTimeout(400);
   check(/Blind results released/.test(await text(Sv, "#qaPanel")), "once released the comparison uses the blind certificate");

@@ -4,8 +4,7 @@ function lsGet(k){ try { return localStorage.getItem(k) || ""; } catch { return 
 function lsSet(k, v){ try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch {} }
 function allowedTabs(){
   if (!session) return ["register", "track", "routes", "login"];
-  const t = ROLE_TABS[session.role] || ["track"];
-  return session.role === "viewer" && relNow() && !canEval() ? t.filter(x => x !== "batches") : t;   // QC lives on Lab batches: evaluators only, among viewers
+  return ROLE_TABS[session.role] || ["track"];
 }
 /* Where a person lands: the board for lab staff, their results for a section account, the submission form when signed out. */
 const homeTab = () => !session ? "register" : allowedTabs().includes("board") ? "board" : allowedTabs().includes("results") ? "results" : "track";
@@ -46,7 +45,7 @@ function setTab(t){
 }
 $("#tabs").addEventListener("click", e => { const b = e.target.closest("button[data-tab]"); if (b) setTab(b.dataset.tab); });
 function renderTab(){
-  ({ login: renderLogin, track: renderTrack, board: renderBoard, submit: renderSubmit, register: renderRegister, batches: renderBatches, storage: renderStorage, results: renderResultsTab, ledger: renderLedger, routes: renderRoutes, stages: renderStages })[tab]();
+  ({ login: renderLogin, track: renderTrack, board: renderBoard, submit: renderSubmit, register: renderRegister, storage: renderStorage, results: renderResultsTab, ledger: renderLedger, routes: renderRoutes, stages: renderStages })[tab]();
   updateCount();
 }
 const updateCount = () => { $("#cntActive").textContent = unitCount([...samples.values()]); };   // v24d: a batch counts once
@@ -58,7 +57,7 @@ function renderLogin(){
   const keepU = $("#lgUser", v)?.value || "";
   v.innerHTML = `<div class="login-grid">
     <form class="panel stack" id="loginForm" autocomplete="off">
-      <div><h2>Staff sign in</h2><p class="small muted" style="margin:4px 0 0">Lab technicians sign in to confirm receipt of samples, record each stage, run lab batches and enter results. Lab supervisors also review batch QC, release results with a certificate and approve corrections. Admins manage workflow routes, sections and accounts. A section account (for example Exploration) sees the certificates for its own section's samples.</p></div>
+      <div><h2>Staff sign in</h2><p class="small muted" style="margin:4px 0 0">Lab technicians sign in to confirm receipt of samples, record each stage and enter results. Lab supervisors also release results with a certificate and approve corrections. Admins manage workflow routes, sections and accounts. A section account (for example Exploration) sees the certificates for its own section's samples.</p></div>
       <label class="f"><span>Username</span><input id="lgUser" autocomplete="username" autocapitalize="none" spellcheck="false"></label>
       <label class="f"><span>Password</span><input id="lgPass" type="password" autocomplete="current-password"></label>
       <div class="row"><button class="btn primary big" type="submit">Sign in</button><span class="small" id="lgErr" style="color:var(--bad)"></span></div>

@@ -97,7 +97,7 @@ function blindFields(o){
   const r = routeByCode(o.route);
   const rf = r && (r.tests || []).includes(o.test) ? routeFields(r, o.test)
     : { route: o.route || "", routeName: o.routeName || "", test: o.test || "", testName: o.testName || testOf(o.test)?.name || "", plan: clone(planOf(o)), retention: clone(o.retention || []),
-        qc: o.qc || "", qcp: o.qcp || "", qcg: clone(groupsOf(o)), triggers: clone(o.triggers || []), two: !!o.two, grav: "", dil: [] };
+        qc: o.qc || "", triggers: clone(o.triggers || []), two: !!o.two, grav: "", dil: [] };
   const p = rf.plan, first = p.findIndex((x, i) => i > 1 && x.phase !== "intake" && x.phase !== "prep");
   if (first > 2) rf.plan = [{ ...p[0], hours: 1 }, p[1], ...p.slice(first)];
   return rf;
@@ -213,13 +213,13 @@ function qaCompare(o, b){
   }
   return { rows, state: draft ? "draft" : bc ? "released" : "none" };
 }
-/* Judged like a pulp duplicate in the original's lab batch: the same tolerance, and values near the detection limit only reported. */
+/* Judged as the lab judges its duplicates (DUP_TOL, by the original's route): values near the detection limit are only reported. */
 function qaJudge(o, a, va, vb){
-  const g = groupsOf(o).find(x => x.k.includes(a.k)), p = QC_PROFILES[g?.p] || profOf(o) || {};
+  const p = dupRule(DUP_TOL[o.route] ? o.route : o.baseRoute, a.k);
   const diff = Math.abs(vb - va), m = (va + vb) / 2;
-  if (p.dupAbs) return diff <= p.dupAbs + 1e-9 ? { c: "ok", t: `within ${fmtNum(p.dupAbs)} ${a.u}` } : { c: "bad", t: `outside ${fmtNum(p.dupAbs)} ${a.u}` };
-  if (p.dupMin && a.dl && m < p.dupMin * a.dl) return { c: "info", t: "near detection limit" };
-  const tol = p.pd || 20, rel = m ? diff / m * 100 : 0;
+  if (p.abs) return diff <= p.abs + 1e-9 ? { c: "ok", t: `within ${fmtNum(p.abs)} ${a.u}` } : { c: "bad", t: `outside ${fmtNum(p.abs)} ${a.u}` };
+  if (p.min && a.dl && m < p.min * a.dl) return { c: "info", t: "near detection limit" };
+  const tol = p.pd, rel = m ? diff / m * 100 : 0;
   return rel <= tol + 1e-9 ? { c: "ok", t: `within ${tol}%` } : { c: "bad", t: `outside ${tol}%` };
 }
 const signed = (d, dp) => `${d >= 0 ? "+" : "−"}${dp != null ? Math.abs(d).toFixed(dp) : fmtNum(+Math.abs(d).toFixed(4))}`;

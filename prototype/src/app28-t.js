@@ -403,7 +403,7 @@ async function registerJob(){
       const t = typeOf(r.t), nat = routeFor(r.t, r.test, puK), route = JR || nat || (r.test === "x" ? OTHER_ROUTE : null);
       if (!route) throw { code: "noroute", test: r.test };
       const rf = routeFields(route, r.test);
-      if (JR) Object.assign(rf, { retention: MR ? clone(rf.retention) : clone(nat?.retention || rf.retention), triggers: clone(nat?.triggers || []), qcg: [], qcp: "", qc: "", baseRoute: nat?.code || "" });
+      if (JR) Object.assign(rf, { retention: MR ? clone(rf.retention) : clone(nat?.retention || rf.retention), triggers: clone(nat?.triggers || []), qc: "", baseRoute: nat?.code || "" });
       Object.assign(rf, anFields(r.test, r.t2, r.xa));   // v31: its other analyses (the job's one step covers them)
       return { r, t, rf };
     });

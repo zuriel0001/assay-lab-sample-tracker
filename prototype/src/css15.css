@@ -4,7 +4,6 @@
   --ic-track:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Ccircle cx=%2211%22 cy=%2211%22 r=%226.5%22/%3E%3Cpath d=%22m20.5 20.5-4.8-4.8%22/%3E%3C/svg%3E");
   --ic-submit:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M12 15V4M7.5 8.5 12 4l4.5 4.5%22/%3E%3Cpath d=%22M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5%22/%3E%3C/svg%3E");
   --ic-register:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Crect x=%225%22 y=%224%22 width=%2214%22 height=%2217%22 rx=%222%22/%3E%3Cpath d=%22M9 4V3h6v1%22/%3E%3Cpath d=%22m9 13 2 2 4-4%22/%3E%3C/svg%3E");
-  --ic-batches:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M6 4v12a2 2 0 0 0 4 0V4M14 4v12a2 2 0 0 0 4 0V4%22/%3E%3Cpath d=%22M4 4h16%22/%3E%3Cpath d=%22M6 11h4M14 13h4%22/%3E%3C/svg%3E");
   --ic-storage:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Crect x=%223%22 y=%224%22 width=%2218%22 height=%225%22 rx=%221%22/%3E%3Cpath d=%22M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9%22/%3E%3Cpath d=%22M10 13h4%22/%3E%3C/svg%3E");
   --ic-results:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z%22/%3E%3Cpath d=%22M14 3v5h5%22/%3E%3Cpath d=%22m9 15 2 2 4-4%22/%3E%3C/svg%3E");
   --ic-ledger:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M4 8h14l-4-4%22/%3E%3Cpath d=%22M20 16H6l4 4%22/%3E%3C/svg%3E");
@@ -63,7 +62,7 @@ header.top .lookup .btn.primary{background:var(--accent);border-color:var(--acce
 #tabs>button[aria-selected="true"],#tabMore.on{color:var(--ink);border-bottom-color:var(--accent)}
 #tabs .count{margin-left:0}
 [data-tab="board"]{--ic:var(--ic-board)} [data-tab="track"]{--ic:var(--ic-track)} [data-tab="submit"]{--ic:var(--ic-submit)} [data-tab="register"]{--ic:var(--ic-register)}
-[data-tab="batches"]{--ic:var(--ic-batches)} [data-tab="storage"]{--ic:var(--ic-storage)} [data-tab="results"]{--ic:var(--ic-results)} [data-tab="ledger"]{--ic:var(--ic-ledger)}
+[data-tab="storage"]{--ic:var(--ic-storage)} [data-tab="results"]{--ic:var(--ic-results)} [data-tab="ledger"]{--ic:var(--ic-ledger)}
 [data-tab="routes"]{--ic:var(--ic-routes)} [data-tab="stages"]{--ic:var(--ic-stages)} [data-tab="login"]{--ic:var(--ic-login)} #tabMore{--ic:var(--ic-more)}
 .tab-more{position:relative;display:flex}
 #tabMore.dot::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--bad)}
@@ -118,7 +117,6 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 @media (min-width:761px){
   .tbl-wrap{max-height:min(74vh,900px);overflow:auto}
   .tbl-wrap thead th{position:sticky;top:0;z-index:2}
-  table.bpos.multi thead th:first-child{z-index:3}
 }
 .cert .tbl-wrap,.label-sheet .tbl-wrap{max-height:none;overflow:visible}
 #view-stages .tbl-wrap{max-height:none;overflow-y:visible}

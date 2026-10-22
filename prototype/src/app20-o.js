@@ -176,7 +176,7 @@ function lastChip(v){
   $("#rLast", v).onclick = () => applySnap(o);
 }
 
-/* On a phone, wide tables (ledger, storage, batches, a batch's samples, blind checks, section results) read as cards: each
+/* On a phone, wide tables (ledger, storage, a batch's samples, blind checks, section results) read as cards: each
    cell carries its column name, and empty cells are left out. The markup stays a table everywhere else. */
 function cardify(){
   document.querySelectorAll("table.cardy").forEach(t => {

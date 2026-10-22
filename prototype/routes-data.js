@@ -984,10 +984,9 @@ const DEFAULT_ROUTES = [
 ];
 /* Results each test reports. k: analyte code, n: name, u: unit, dl: detection limit (lower values report as "<DL"), ul: upper limit of the
    method (higher values are over-range and need the re-assay route in `over`, else a dilution and re-assay), dp: decimals, t: "text" for a
-   written result or "pick" for one of `opts`, opt: optional, calc: worked out from the results in `from` (never typed; "<DL" counts as 0),
-   exact: a reference material must be certified for this exact result (not just the element). chk: acceptance checks on one sample's results;
-   a failed check holds the release until the sample is re-assayed or a supervisor accepts it with a reason. qc: the analyte a lab batch checks
-   when the route names no other (default the first). Action and permit limits are settings (Settings tab), not part of the method. */
+   written result or "pick" for one of `opts`, opt: optional, calc: worked out from the results in `from` (never typed; "<DL" counts as 0).
+   chk: acceptance checks on one sample's results; a failed check holds the release until the sample is re-assayed or a supervisor accepts
+   it with a reason. Action and permit limits are settings (Settings tab), not part of the method. */
 const A = (k, n, u, dl, dp, x = {}) => ({ k, n, u, ...(dl != null ? { dl } : {}), dp, ...x });
 /* The plant results, as the lab's reports name them (s: the short name). Detection limits are low enough for the report's smallest values. */
 const AUFX = (x = {}) => A("Au", "AuFx, gold in solids", "g/t", 0.01, 2, { s: "AuFx", ...x });
@@ -1018,7 +1017,7 @@ const RESULTS = {
   fa_grav:  { an: [A("Au", "AuFx, gold in solids", "g/t", 0.05, 2, { s: "AuFx" })] },
   sfa:      { an: [A("Au", "AuFx, total (weighted)", "g/t", 0.01, 2, { s: "AuFx", calc: v => (v.m_c * v.Au_c + (100 - v.m_c) * (v.Au_f + v.Au_f2) / 2) / 100, from: ["m_c", "Au_c", "Au_f", "Au_f2"] }), A("Au_c", "Gold in +75 µm fraction", "g/t", 0.05, 2), A("Au_f", "Gold in −75 µm, assay 1", "g/t", 0.01, 2),
                    A("Au_f2", "Gold in −75 µm, assay 2", "g/t", 0.01, 2), A("m_c", "+75 µm fraction", "% of mass", null, 1), A("loss", "Screen mass loss", "%", null, 2)],
-              chk: [{ t: "max", k: "loss", max: 2, msg: "screen mass loss over 2%" }, { t: "pair", a: "Au_f", b: "Au_f2", tol: 10, msg: "the two −75 µm assays differ by more than 10%" }], qc: "Au_f" },
+              chk: [{ t: "max", k: "loss", max: 2, msg: "screen mass loss over 2%" }, { t: "pair", a: "Au_f", b: "Au_f2", tol: 10, msg: "the two −75 µm assays differ by more than 10%" }] },
   ar_au:    { an: [A("Au", "Gold", "ppb", 1, 0, { ul: 10000 })] },
   check:    { an: [A("Au", "AuFx, external lab", "g/t", 0.005, 3, { s: "AuFx" }), A("Au_o", "AuFx, original result", "g/t", 0.005, 3)],
               chk: [{ t: "pair", a: "Au", b: "Au_o", tol: 20, soft: true, msg: "the check assay differs from the original by more than ±10% (half absolute relative difference); the rule is that 90% of pairs agree" }] },
@@ -1058,7 +1057,7 @@ const RESULTS = {
               chk: [{ t: "pair", a: "rate", b: "rate2", tol: 10, msg: "the repeat cylinder differs by more than 10%" }] },
   icp:      { an: [A("Cu", "Copper", "ppm", 1, 0, { ul: 10000 }), A("Ag", "Silver", "ppm", 0.5, 1, { ul: 100 }), A("As", "Arsenic", "ppm", 5, 0, { ul: 10000 }), A("Sb", "Antimony", "ppm", 5, 0, { ul: 10000 }), A("Zn", "Zinc", "ppm", 1, 0, { ul: 10000 }),
                    A("Pb", "Lead", "ppm", 2, 0, { ul: 10000 }), A("Fe", "Iron", "%", 0.01, 2, { ul: 50 }), A("S", "Sulphur", "%", 0.01, 2, { ul: 10 })] },
-  delet:    { an: [A("Cu", "Copper", "ppm", 1, 0), A("Cu_cn", "Cyanide-soluble copper", "ppm", 1, 0, { exact: true }), A("As", "Arsenic", "ppm", 5, 0), A("Sb", "Antimony", "ppm", 5, 0), A("Hg", "Mercury", "ppm", 0.01, 2)],
+  delet:    { an: [A("Cu", "Copper", "ppm", 1, 0), A("Cu_cn", "Cyanide-soluble copper", "ppm", 1, 0), A("As", "Arsenic", "ppm", 5, 0), A("Sb", "Antimony", "ppm", 5, 0), A("Hg", "Mercury", "ppm", 0.01, 2)],
               chk: [{ t: "le", a: "Cu_cn", b: "Cu", msg: "cyanide-soluble copper is higher than total copper" }] },
   leco:     { an: [A("S", "Total sulphur", "%", 0.01, 2, { ul: 20 }), A("S2", "Sulphide sulphur", "%", 0.01, 2, { ul: 20 }), A("C", "Total carbon", "%", 0.01, 2), A("Corg", "Organic carbon", "%", 0.01, 2)],
               chk: [{ t: "le", a: "S2", b: "S", msg: "sulphide sulphur is higher than total sulphur" }, { t: "le", a: "Corg", b: "C", msg: "organic carbon is higher than total carbon" }] },
@@ -1067,7 +1066,7 @@ const RESULTS = {
               chk: [{ t: "pair", a: "Au_calc", b: "Au_chem", tol: 10, msg: "gold from mineralogy and chemical assay differ by more than 10%" }] },
   plant_solids: { an: [A("Au", "Head grade", "g/t", 0.01, 2, { ul: 50 }), A("p75", "Grind, passing 75 µm", "%", null, 1, { opt: true }), A("scr", "Screen analysis, % retained", "", null, 0, { t: "text", opt: true }), A("h2o", "Moisture", "%", null, 1, { opt: true })], over: "fa_grav" },
   ccd:      { an: [A("pt", "Sampling point", "", null, 0, { t: "pick", opts: ["Thickener feed", "Intermediate thickener", "Final underflow"] }), A("Au_s", "Solution gold", "mg/L", 0.005, 3), A("Au", "Solids gold", "g/t", 0.01, 2),
-                   A("cn", "Free cyanide", "mg/L", null, 0, { opt: true }), A("wash", "Wash efficiency (from the survey sheet)", "%", null, 1, { opt: true })], qc: "Au_s" },
+                   A("cn", "Free cyanide", "mg/L", null, 0, { opt: true }), A("wash", "Wash efficiency (from the survey sheet)", "%", null, 1, { opt: true })] },
   residue:  { an: [A("Au", "Solid tails gold", "g/t", 0.01, 3), A("Au_s", "Solution tails gold", "mg/L", 0.005, 3)] },
   cil_survey: { an: [A("pt", "Sampling point", "", null, 0, { t: "pick", opts: ["Leach tank", "Adsorption tank", "Last tank"] }), A("Au_s", "Solution gold", "mg/L", 0.005, 3), A("Au_c", "Carbon gold", "g/t", 1, 0), A("cc", "Carbon concentration", "g/L", null, 1), A("cn", "Free cyanide", "mg/L", null, 0),
                    A("pH", "pH", "", null, 1), A("sol", "Slurry density", "% solids", null, 1)] },
@@ -1080,24 +1079,24 @@ const RESULTS = {
   conc:     { an: [A("Au", "AuFx, gold in concentrate", "g/t", 0.05, 1, { s: "AuFx" }), A("Ag", "Silver", "g/t", 0.5, 1, { opt: true }), A("Hg", "Mercury", "ppm", 0.1, 1), A("As", "Arsenic", "%", 0.01, 2), A("S", "Sulphur", "%", 0.01, 2, { opt: true })] },
   bullion:  { an: [A("Au", "Gold fineness", "‰", null, 1), A("Ag", "Silver", "‰", null, 1), A("base", "Base metals and other", "‰", null, 1), A("mass", "Bar mass", "g", null, 2), A("tb", "Top and bottom difference", "‰", null, 1)],
               chk: [{ t: "max", k: "tb", max: 2, msg: "top and bottom differ by more than 2 parts per thousand" }] },
-  tsf:      { an: [A("wad", "WAD cyanide", "mg/L", 0.01, 1), A("Au_s", "Solution gold", "mg/L", 0.005, 3), A("Au", "Solids gold", "g/t", 0.01, 2), A("pH", "pH", "", null, 1), A("S", "Total sulphur", "%", 0.01, 2, { opt: true })], qc: "wad" },
+  tsf:      { an: [A("wad", "WAD cyanide", "mg/L", 0.01, 1), A("Au_s", "Solution gold", "mg/L", 0.005, 3), A("Au", "Solids gold", "g/t", 0.01, 2), A("pH", "pH", "", null, 1), A("S", "Total sulphur", "%", 0.01, 2, { opt: true })] },
   cn_spec:  { an: [A("free", "Free cyanide", "mg/L", 0.01, 2), A("wad", "WAD cyanide", "mg/L", 0.01, 2), A("total", "Total cyanide", "mg/L", 0.01, 2), A("scn", "Thiocyanate", "mg/L", 0.1, 1), A("cno", "Cyanate", "mg/L", 0.5, 1, { opt: true })],
-              chk: [{ t: "le", a: "free", b: "wad", msg: "free cyanide is higher than WAD cyanide" }, { t: "le", a: "wad", b: "total", msg: "WAD cyanide is higher than total cyanide" }], qc: "wad" },
+              chk: [{ t: "le", a: "free", b: "wad", msg: "free cyanide is higher than WAD cyanide" }, { t: "le", a: "wad", b: "total", msg: "WAD cyanide is higher than total cyanide" }] },
   detox:    { an: [A("wad_in", "WAD cyanide before", "mg/L", 0.01, 1), A("wad", "WAD cyanide after", "mg/L", 0.01, 2), A("wad_rep", "WAD cyanide after, repeat at the chosen dose", "mg/L", 0.01, 2),
                    A("dose", "Reagent dose", "g per g WAD CN", null, 1), A("Cu", "Copper (catalyst)", "mg/L", null, 1, { opt: true })],
               chk: [{ t: "pair", a: "wad", b: "wad_rep", tol: 20, msg: "the repeat at the chosen dose differs by more than 20%" }] },
   aba:      { an: [A("np", "Neutralisation potential", "kg CaCO₃/t", null, 1), A("ap", "Acid potential", "kg CaCO₃/t", null, 1), A("nnp", "Net neutralisation potential (NP − AP)", "kg CaCO₃/t", null, 1, { calc: v => v.np - v.ap, from: ["np", "ap"] }), A("nag", "NAG pH", "", null, 1)] },
   water:    { an: [A("pH", "pH", "", null, 1), A("ec", "Conductivity", "µS/cm", null, 0), A("tss", "Suspended solids", "mg/L", 1, 0), A("wad", "WAD cyanide", "mg/L", 0.005, 3), A("free", "Free cyanide", "mg/L", 0.005, 3, { opt: true }),
-                   A("As", "Arsenic", "mg/L", 0.001, 3), A("Hg", "Mercury", "mg/L", 0.0001, 4), A("Cu", "Copper", "mg/L", 0.001, 3), A("Fe", "Iron", "mg/L", 0.01, 2, { opt: true })], qc: "wad" },
+                   A("As", "Arsenic", "mg/L", 0.001, 3), A("Hg", "Mercury", "mg/L", 0.0001, 4), A("Cu", "Copper", "mg/L", 0.001, 3), A("Fe", "Iron", "mg/L", 0.01, 2, { opt: true })] },
   soil:     { an: [A("As", "Arsenic", "mg/kg", 1, 0), A("Hg", "Mercury", "mg/kg", 0.01, 2), A("Pb", "Lead", "mg/kg", 1, 0), A("Cu", "Copper", "mg/kg", 1, 0), A("cn", "Total cyanide", "mg/kg", 0.5, 1), A("pH", "pH", "", null, 1)] },
-  aufx_ausx:    { an: [PICK("Sampling point", PLANT_PTS), AUFX(), AUSX(), AGSX(), PH(), NACN({ opt: true }), SOLIDS(), SCREEN(), ...METALS()], qc: "Au" },
-  aufx:         { an: [PICK("Sampling point", PLANT_PTS), AUFX(), SOLIDS(), SCREEN()], qc: "Au" },
-  aufx_m:       { an: [PICK("Conveyor", BELT_PTS), A("h2o", "Moisture", "%", null, 2, { s: "Moisture" }), AUFX()], qc: "Au" },
-  ausx:         { an: [PICK("Sampling point", PLANT_PTS), AUSX(), AGSX(), PH(), NACN({ opt: true })], qc: "Au_s" },
-  aufx_ausx_cn: { an: [PICK("Sampling point", PLANT_PTS), AUFX(), AUSX(), CNWAD(), NACN({ opt: true }), PH(), SOLIDS(), ...METALS()], qc: "Au" },
-  ausx_cn:      { an: [PICK("Sampling point", PLANT_PTS), AUSX(), CNWAD(), NACN({ opt: true }), PH(), ...METALS()], qc: "Au_s" },
-  cn_only:      { an: [PICK("Sampling point", PLANT_PTS), CNWAD(), NACN({ opt: true }), PH(), ...METALS()], qc: "wad" },
-  c_load:       { an: [PICK("Carbon type", CARBON_PTS), A("Au_c", "Au loading", "g/t", 1, 2, { s: "Au loading" })], qc: "Au_c" },
+  aufx_ausx:    { an: [PICK("Sampling point", PLANT_PTS), AUFX(), AUSX(), AGSX(), PH(), NACN({ opt: true }), SOLIDS(), SCREEN(), ...METALS()] },
+  aufx:         { an: [PICK("Sampling point", PLANT_PTS), AUFX(), SOLIDS(), SCREEN()] },
+  aufx_m:       { an: [PICK("Conveyor", BELT_PTS), A("h2o", "Moisture", "%", null, 2, { s: "Moisture" }), AUFX()] },
+  ausx:         { an: [PICK("Sampling point", PLANT_PTS), AUSX(), AGSX(), PH(), NACN({ opt: true })] },
+  aufx_ausx_cn: { an: [PICK("Sampling point", PLANT_PTS), AUFX(), AUSX(), CNWAD(), NACN({ opt: true }), PH(), SOLIDS(), ...METALS()] },
+  ausx_cn:      { an: [PICK("Sampling point", PLANT_PTS), AUSX(), CNWAD(), NACN({ opt: true }), PH(), ...METALS()] },
+  cn_only:      { an: [PICK("Sampling point", PLANT_PTS), CNWAD(), NACN({ opt: true }), PH(), ...METALS()] },
+  c_load:       { an: [PICK("Carbon type", CARBON_PTS), A("Au_c", "Au loading", "g/t", 1, 2, { s: "Au loading" })] },
   /* v24d: carbon activity as the lab reports it: gold left in a standard solution after 0, 15, 30, 45, 60 and 120 min with the carbon
      (columns Au CA-00 … Au CA-120, or "0 mins" … "120 mins" on the lab's activity sheet), and the carbon mass and volumes from that sheet.
      Worked out from them (caUp): the share of the gold taken up by the carbon in 60 and 120 min, the gold on the carbon after 60 min and
@@ -1108,132 +1107,26 @@ const RESULTS = {
                          A("ads60", "Gold taken up in 60 min", "%", null, 1, { s: "Taken up 60 min", calc: v => caUp(v, 60)?.pct, from: CA_FROM(60), fromOpt: CA_OPT }),
                          A("ads120", "Gold taken up in 120 min", "%", null, 1, { s: "Taken up 120 min", calc: v => caUp(v, 120)?.pct, from: CA_FROM(120), fromOpt: CA_OPT }),
                          A("load60", "Gold on carbon after 60 min", "g/t", null, 0, { s: "Au on carbon 60 min", calc: v => caUp(v, 60)?.gt, from: CA_FROM(60), fromOpt: CA_OPT }),
-                         A("k60", "Activity constant k", "h⁻¹", null, 0, { s: "k", calc: v => { const u = caUp(v, 60); return u && u.c > 0 ? u.gt / u.c : null; }, from: CA_FROM(60), fromOpt: CA_OPT })], qc: "ca120" },
-  elu_sol:      { an: [PICK("Solution", ELU_PTS), AUSX({ ul: 2000 }), AGSX(), ...METALS(), A("naoh", "NaOH", "%", null, 2, { opt: true }), NACN({ opt: true }), PH()], qc: "Au_s" }
+                         A("k60", "Activity constant k", "h⁻¹", null, 0, { s: "k", calc: v => { const u = caUp(v, 60); return u && u.c > 0 ? u.gt / u.c : null; }, from: CA_FROM(60), fromOpt: CA_OPT })] },
+  elu_sol:      { an: [PICK("Solution", ELU_PTS), AUSX({ ul: 2000 }), AGSX(), ...METALS(), A("naoh", "NaOH", "%", null, 2, { opt: true }), NACN({ opt: true }), PH()] }
 };
-/* Lab QC batch profiles. size: routine samples per batch; ins: QC positions per batch (pb preparation blank, cd crusher duplicate,
-   pd pulp duplicate, crm reference material, bl blank); all: every sample run again `all` times. crm rule: sd (±SD bands), pct (±% of the
-   certified value), rec (recovery %), abs (± absolute). blank: multiple of the detection limit. pbBlank: the same for the preparation blank, which also
-   measures carry-over in the crusher and pulveriser, so it is allowed more. pd / cd: duplicate tolerance, relative % above `dupMin`× the
-   detection limit; dupAbs: absolute tolerance instead. A batch that checks several analytes judges every QC position on each of them. */
-const QC_PROFILES = {
-  fa50:   { name: "Fire assay, 50-position furnace batch", prefix: "FA", batch: "50-position furnace batch", size: 43, ins: { pb: 1, cd: 1, pd: 2, crm: 2, bl: 1 }, crm: { mode: "sd", warn: 2, fail: 3 }, blank: 5, pbBlank: 10, pd: 20, cd: 30, dupMin: 10, names: { bl: "analytical blank" } },
-  gc25:   { name: "Grade control fire assay, 25-position batch", prefix: "GC", batch: "25-position batch", size: 22, ins: { crm: 1, bl: 1, pd: 1 }, crm: { mode: "sd", warn: 2, fail: 3 }, blank: 5, pd: 20, dupMin: 10 },
-  grav:   { name: "Gravimetric fire assay batch", prefix: "FG", batch: "batch of up to 12 samples", size: 12, ins: { crm: 1, bl: 1 }, all: 1, crm: { mode: "sd", warn: 2, fail: 3 }, blank: 5, pd: 10, dupMin: 10, names: { crm: "high-grade CRM" } },
-  sfa:    { name: "Screen fire assay batch", prefix: "SF", batch: "batch of up to 20 samples", size: 20, ins: { crm: 1, bl: 1 }, crm: { mode: "sd", warn: 2, fail: 3 }, blank: 5 },
-  plant:  { name: "Plant shift batch (Mill samples)", prefix: "PL", batch: "shift batch", size: 30, ins: { crm: 1, bl: 1, pd: 1 }, crm: { mode: "sd", warn: 2, fail: 2 }, blank: 5, pd: 10, dupMin: 10, names: { crm: "plant CRM", pd: "duplicate" } },
-  tail:   { name: "Plant tails batch", prefix: "PT", batch: "batch of up to 30 samples", size: 30, ins: { crm: 1, bl: 1, pd: 1 }, crm: { mode: "sd", warn: 2, fail: 3 }, blank: 5, pd: 20, dupMin: 5, names: { crm: "low-grade CRM", pd: "residue duplicate" } },
-  conc:   { name: "Concentrate batch (triplicates)", prefix: "CC", batch: "batch of up to 10 samples", size: 10, ins: { crm: 1 }, all: 2, crm: { mode: "sd", warn: 2, fail: 3 }, pd: 5, dupMin: 10, names: { crm: "high-grade CRM" } },
-  bull:   { name: "Bullion fire assay batch", prefix: "BU", item: "bar", batch: "batch of up to 6 bars", size: 6, ins: { crm: 1 }, all: 1, crm: { mode: "abs", tol: 0.5 }, dupAbs: 0.5, names: { crm: "proof gold" } },
-  soln:   { name: "Solution AAS run", prefix: "SL", batch: "run of up to 20 readings", size: 20, ins: { crm: 2, bl: 1, pd: 2 }, crm: { mode: "rec", lo: 90, hi: 110 }, blank: 5, pd: 10, dupMin: 10, names: { crm: "calibration check standard", pd: "duplicate" } },
-  eluate: { name: "Eluate AAS run", prefix: "EL", batch: "run of up to 20 readings", size: 20, ins: { crm: 1, bl: 1, pd: 1 }, crm: { mode: "rec", lo: 95, hi: 105 }, blank: 5, pd: 2, dupMin: 10, names: { crm: "high-grade solution standard", pd: "duplicate dilution" } },
-  carbon: { name: "Carbon assay batch", prefix: "CB", batch: "batch of up to 20 samples", size: 20, ins: { crm: 1, pd: 1 }, crm: { mode: "sd", warn: 2, fail: 3 }, pd: 10, dupMin: 10, names: { crm: "carbon CRM", pd: "duplicate" } },
-  cyan:   { name: "Cyanide batch", prefix: "CY", batch: "batch of up to 20 samples", size: 20, ins: { crm: 1, pd: 2 }, crm: { mode: "rec", lo: 90, hi: 110 }, pd: 10, dupMin: 10, names: { crm: "cyanide check standard", pd: "duplicate" } },
-  cnspec: { name: "Cyanide speciation batch", prefix: "CS", batch: "batch of up to 20 samples", size: 20, ins: { crm: 1, pd: 2 }, crm: { mode: "rec", lo: 85, hi: 115 }, pd: 10, dupMin: 10, names: { crm: "spike", pd: "duplicate" } },
-  envw:   { name: "Environmental water batch", prefix: "EW", batch: "batch of up to 20 samples", size: 20, ins: { crm: 2, bl: 1, pd: 1 }, crm: { mode: "rec", lo: 85, hi: 115 }, blank: 5, pd: 20, dupMin: 5, names: { crm: "spike or check standard", bl: "method blank", pd: "laboratory duplicate" } },
-  icp:    { name: "ICP batch", prefix: "IC", batch: "40-position batch", size: 36, ins: { crm: 2, bl: 1, pd: 1 }, crm: { mode: "pct", tol: 10 }, blank: 5, pd: 20, dupMin: 10, names: { pd: "replicate" } },
-  multi:  { name: "Multi-element batch", prefix: "ME", batch: "batch of up to 20 samples", size: 20, ins: { crm: 2, bl: 1, pd: 1 }, crm: { mode: "pct", tol: 10 }, blank: 5, pd: 20, dupMin: 10, names: { pd: "duplicate" } },
-  leco:   { name: "LECO batch", prefix: "LE", batch: "batch of up to 20 samples", size: 20, ins: { crm: 1, pd: 1 }, crm: { mode: "sd", warn: 2, fail: 3 }, pd: 5, dupMin: 10, names: { crm: "LECO CRM", pd: "duplicate" } },
-  arau:   { name: "Aqua regia gold batch", prefix: "AR", batch: "batch of up to 20 samples", size: 20, ins: { crm: 1, bl: 1 }, crm: { mode: "sd", warn: 2, fail: 3 }, blank: 5, names: { crm: "low-level CRM" } },
-  cnsol:  { name: "Cyanide-soluble gold batch", prefix: "LW", batch: "batch of up to 20 samples", size: 20, ins: { crm: 1, bl: 1, pd: 1 }, crm: { mode: "sd", warn: 2, fail: 3 }, blank: 5, pd: 20, dupMin: 10, names: { bl: "reagent blank", crm: "CRM with a certified cyanide-soluble value" } },
-  soil:   { name: "Soil batch", prefix: "SO", batch: "batch of up to 20 samples", size: 20, ins: { crm: 1, bl: 1, pd: 1 }, crm: { mode: "pct", tol: 15 }, blank: 5, pd: 20, dupMin: 10, names: { crm: "soil CRM", pd: "duplicate" } },
-  aba:    { name: "ARD batch", prefix: "AB", batch: "batch of up to 20 samples", size: 20, ins: { crm: 1, pd: 1 }, crm: { mode: "pct", tol: 10 }, pd: 10, dupMin: 10, names: { crm: "ARD reference material", pd: "duplicate" } },
-  dens:   { name: "Density batch", prefix: "DN", batch: "batch of up to 20 samples", size: 20, ins: { crm: 1, pd: 1 }, crm: { mode: "pct", tol: 1 }, pd: 2, dupMin: 0, names: { crm: "reference density block", pd: "duplicate" } },
-  moist:  { name: "Moisture batch", prefix: "MO", batch: "batch of up to 10 samples", size: 10, ins: { pd: 1 }, dupAbs: 0.5, names: { pd: "duplicate" } }
-};
-/* Which routes run in lab batches, and anything the route adds to the batch rule. Testwork routes check balances on each sample's results instead. */
-const ROUTE_QC = {
-  "EXP-FA": ["fa50", "Client blind QC is reported unchanged."], "GC-FA": ["gc25", "An extra pulp duplicate is run on any result within ±20% of the ore / waste cut-off grade."],
-  "FA-GRAV": ["grav"], "SFA": ["sfa", "Screen mass balance loss under 2% and the two −75 µm assays within 10% are checked on each sample's results."],
-  "CN-SOL": ["cnsol"], "ICP": ["icp"], "LECO": ["leco"], "MOIST": ["moist"], "PLT-HEAD": ["plant"], "PLT-TAIL": ["tail"],
-  "CCD-SVY": ["soln"], "ELUATE": ["eluate"], "CIL-SVY": ["soln"],
-  "CARBON": ["carbon"], "SOLN": ["soln"], "CONC": ["conc", "Two-person custody for all handling."], "BULLION": ["bull", "Top and bottom within 2 parts per thousand is checked on each bar's results."],
-  "TSF-CHAR": ["cyan", "Field blanks are reported as supplied."],
-  "AUFX-AUSX": ["plant"], "AUFX": ["plant"], "BELT": ["plant"], "AUSX": ["soln"], "AUFX-AUSX-CN": ["tail"], "AUSX-CN": ["soln"], "CN": ["cyan"], "C-LOAD": ["carbon"], "ELU-AUSX": ["eluate"], "ENV-W": ["envw", "Field blank, trip blank and field duplicate per sampling round, reported as supplied."],
-  "ENV-S": ["soil"], "DELET": ["multi"], "CN-SPEC": ["cnspec", "Free ≤ WAD ≤ total is checked on every sample's results."], "ABA": ["aba"], "DENSITY": ["dens"], "AR-AU": ["arau", "Field duplicates are reported as supplied."]
-};
-const QC_NAMES = { pb: ["preparation blank", "preparation blanks"], cd: ["crusher duplicate", "crusher duplicates"], pd: ["pulp duplicate", "pulp duplicates"], crm: ["CRM", "CRMs"], bl: ["blank", "blanks"] };
-const plural = s => / with /.test(s) ? s.replace(/^(.*?)( with .*)$/, (m, a, z) => a + "s" + z) : s + "s";
-const qcName = (p, t, n = 1) => { const b = (p.names || {})[t]; return b ? (n === 1 ? b : plural(b)) : QC_NAMES[t][n === 1 ? 0 : 1]; };
 const fmtNum = x => String(+(+x).toPrecision(6));
 const listAnd = xs => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs.at(-1);
-/* The analyte a lab batch checks for a test when the route names no other: never a written, picked or calculated result. */
-const qcAnalyte = res => (res && (res.an.find(a => a.k === res.qc) || res.an.find(a => !a.t && !a.calc))) || { k: "Au", n: "Gold", u: "g/t", dl: 0.005, dp: 3 };
-/* Lab batches a route's samples join, one per analytical method, with the results each batch checks against its reference materials, blanks
-   and duplicates. A route not listed joins the batch type in ROUTE_QC, checking the test's `qc` analyte. A sample is in at most one batch of
-   each kind at a time. Results outside every batch (field readings, physical tests, calculations) are named on the certificate as such. */
-const ROUTE_GROUPS = {
-  "ICP": [["icp", ["Cu", "Ag", "As", "Sb", "Zn", "Pb", "Fe", "S"]]],
-  "LECO": [["leco", ["S", "S2", "C", "Corg"]]],
-  "DELET": [["multi", ["Cu", "Cu_cn", "As", "Sb", "Hg"]]],
-  "CN-SPEC": [["cnspec", ["free", "wad", "total", "scn"]]],
-  "ENV-W": [["envw", ["wad", "As", "Hg", "Cu"]]],
-  "ENV-S": [["soil", ["As", "Hg", "Pb", "Cu"]]],
-  "CONC": [["conc", ["Au"]], ["multi", ["Hg", "As"]]],
-  "PLT-TAIL": [["tail", ["Au"]], ["soln", ["Au_s"]]],
-  "CCD-SVY": [["soln", ["Au_s"]], ["tail", ["Au"]]],
-  "CIL-SVY": [["soln", ["Au_s"]], ["carbon", ["Au_c"]]],
-  "TSF-CHAR": [["cyan", ["wad"]], ["soln", ["Au_s"]], ["tail", ["Au"]]],
-  "AUFX-AUSX": [["plant", ["Au"]], ["soln", ["Au_s"]]],
-  "AUFX-AUSX-CN": [["tail", ["Au"]], ["soln", ["Au_s"]], ["cyan", ["wad"]]],
-  "AUSX-CN": [["soln", ["Au_s"]], ["cyan", ["wad"]]]
-};
-/* The batches a route's samples join: [{ p: batch type, k: [results it checks] }]. A route keeps its listed batches while it performs its
-   original test; another batch type chosen for it in Settings replaces the first one. */
-function routeGroups(r){
-  const test = ((r && r.tests) || [])[0], res = RESULTS[test];
-  if (!r || !r.qcp || !QC_PROFILES[r.qcp] || !res) return [];
-  const ok = k => res.an.some(a => a.k === k && !a.t && !a.calc && !a.opt);
-  const d = DEFAULT_ROUTES.find(x => x.code === r.code), std = d && (d.tests || [])[0] === test ? ROUTE_GROUPS[r.code] : null;
-  const first = std ? std[0][1].filter(ok) : [];
-  const out = [{ p: r.qcp, k: first.length ? first : [qcAnalyte(res).k] }];
-  for (const [p, ks] of (std || []).slice(1)){ const k = ks.filter(ok); if (k.length && !out.some(g => g.p === p)) out.push({ p, k }); }
-  return out;
-}
-const groupAns = (g, res) => (g.k || []).map(k => ((res && res.an) || []).find(a => a.k === k)).filter(Boolean);
-const anSym = a => { const sym = a.k.split("_")[0]; return /^[A-Z][a-z]?$/.test(sym) ? sym : a.n; };
-/* The QC rule of one batch type in words, made from the same numbers the lab batch enforces. ans: the results the batch checks. */
-function qcRuleText(p, ans){
-  if (!p) return "";
-  ans = ans && ans.length ? ans : [qcAnalyte(null)];
-  const an = ans[0], one = ans.length === 1, ins = p.ins || {};
-  const qty = x => `${fmtNum(x)}${an.u === "%" ? "%" : an.u ? " " + an.u : ""}`;
-  const what = ["pb", "cd", "pd", "crm", "bl"].filter(t => ins[t]).map(t => `${ins[t]} ${qcName(p, t, ins[t])}`);
-  if (p.all) what.unshift(`every ${p.item || "sample"} in ${p.all === 1 ? "duplicate" : "triplicate"}`);
-  const rules = [], v = (n, a, b) => n === 1 ? a : b;
-  if (ins.crm && p.crm){
-    const c = p.crm, n = ins.crm, sub = n === 1 ? `the ${qcName(p, "crm", 1)}` : qcName(p, "crm", n);
-    if (c.mode === "sd") rules.push(`${sub} ${v(n, "is", "are")} within ±${c.warn} SD${c.fail > c.warn ? ` (${c.warn} to ${c.fail} SD is a warning, outside ±${c.fail} SD fails)` : ""}`);
-    else if (c.mode === "pct") rules.push(`${sub} ${v(n, "is", "are")} within ±${c.tol}% of the certified value`);
-    else if (c.mode === "rec") rules.push(`${sub} ${v(n, "recovers", "recover")} ${c.lo}–${c.hi}%`);
-    else rules.push(`${sub} ${v(n, "is", "are")} within ${qty(c.tol)} of the certified value`);
-  }
-  const dlAt = m => one && an.dl ? qty(m * an.dl) : "";
-  if (ins.pb && ins.bl && p.pbBlank && p.blank && p.pbBlank !== p.blank)
-    rules.push(`the ${qcName(p, "pb", 1)} is below ${p.pbBlank}× and the ${qcName(p, "bl", 1)} below ${p.blank}× the detection limit${dlAt(1) ? ` (${dlAt(p.pbBlank)} and ${dlAt(p.blank)} ${anSym(an)})` : ""}`);
-  else {
-    const nb = (ins.bl || 0) + (ins.pb || 0), m = ins.bl ? p.blank : p.pbBlank || p.blank;
-    if (nb && m) rules.push(`${nb === 1 ? "the blank is" : "blanks are"} below ${m}× the detection limit${dlAt(m) ? ` (${dlAt(m)} ${anSym(an)})` : ""}`);
-  }
-  const rel = p.dupMin ? ` (relative difference, above ${p.dupMin}× detection limit)` : " (relative difference)";
-  const nd = p.all ? 2 : (ins.pd || 0);
-  if (p.dupAbs && nd) rules.push(`${v(nd, `the ${qcName(p, "pd", 1)} agrees`, `${p.all ? (p.all === 1 ? "duplicates" : "triplicates") : qcName(p, "pd", nd)} agree`)} within ${qty(p.dupAbs)} (absolute)`);
-  else if (nd && p.pd){
-    const sub = p.all ? (p.all === 1 ? "duplicates agree" : "triplicates agree") : v(nd, `the ${qcName(p, "pd", 1)} agrees`, `${qcName(p, "pd", nd)} agree`);
-    rules.push(`${sub} within ${p.pd}%${ins.cd && p.cd ? "" : rel}`);
-  }
-  if (ins.cd && p.cd) rules.push(`${v(ins.cd, `the ${qcName(p, "cd", 1)}`, qcName(p, "cd", ins.cd))} within ${p.cd}%${rel}`);
-  return `Per ${p.batch}${one ? "" : `, checking ${listAnd(ans.map(a => /^[A-Z][a-z]?$/.test(a.k) ? a.k : lcName(a.n)))}`}: ${listAnd(what)}. Passes when ${listAnd(rules)}${one ? "" : ", for each of them"}.`;
-}
 const lcName = t => /^[A-Z][a-z]/.test(t) ? t.charAt(0).toLowerCase() + t.slice(1) : t;
-/* A route's QA/QC text: the rule of each batch it joins, then anything the route adds. */
-function routeQcText(r, groups = routeGroups(r)){
-  const res = RESULTS[((r && r.tests) || [])[0]], x = ROUTE_QC[r.code];
-  const parts = groups.map(g => { const ans = groupAns(g, res);
-    return (groups.length > 1 ? `${ans.map((a, i) => i ? lcName(a.n) : a.n).join(ans.length > 2 ? ", " : " and ")}: ` : "") + qcRuleText(QC_PROFILES[g.p], ans); });
-  return parts.join(" ") + (x && x[0] === r.qcp && x[1] ? " " + x[1] : "");
-}
-DEFAULT_ROUTES.forEach(r => { const x = ROUTE_QC[r.code]; if (!x) return; r.qcp = x[0]; r.qcg = routeGroups(r); r.qc = routeQcText(r, r.qcg); });
+/* v35: how a blind duplicate (a QA/QC set) is judged against its original, by the original's route: the relative difference within pd %,
+   values under min× the detection limit only reported; abs: an absolute difference instead. A result listed by key has its own rule;
+   a route not listed takes 20% above 10× the detection limit. */
+const DUP_TOL = (() => {
+  const t = {}, set = (codes, rule) => codes.split(" ").forEach(c => { t[c] = rule; });
+  set("FA-GRAV PLT-HEAD CIL-SVY CARBON SOLN CN-SPEC ABA AUFX-AUSX AUFX BELT AUSX AUSX-CN CN C-LOAD", { pd: 10, min: 10 });
+  set("SFA AR-AU", { pd: 20, min: 0 }); set("ENV-W", { pd: 20, min: 5 }); set("LECO", { pd: 5, min: 10 }); set("ELUATE ELU-AUSX", { pd: 2, min: 10 });
+  set("DENSITY", { pd: 2, min: 0 }); set("MOIST BULLION", { abs: 0.5 });
+  set("PLT-TAIL CCD-SVY TSF-CHAR", { pd: 10, min: 10, Au: { pd: 20, min: 5 } });
+  set("AUFX-AUSX-CN", { pd: 20, min: 5, Au_s: { pd: 10, min: 10 }, wad: { pd: 10, min: 10 } });
+  set("CONC", { pd: 5, min: 10, Hg: { pd: 20, min: 10 }, As: { pd: 20, min: 10 } });
+  return t;
+})();
+const dupRule = (route, k) => { const r = DUP_TOL[route] || { pd: 20, min: 10 }; return r[k] || r; };
 /* Steps that run unattended (ovens, leaches, curing, an outside lab) keep running outside the lab's working hours. */
 const CLOCK_STEP = /^(Drying|Fast drying|Oven drying|Air drying|Bottle roll leach|CIL leach|Accelerated cyanide leach|Intensive cyanide leach|Paired leach|Parallel bottle rolls|Stage [1-5]:|Cyanide irrigation|Rinse & drain|Agglomeration|Percolation|Net acid generation|Repeat after|Umpire lab analysis|Polished sections|Filter & dry products|Unload, dry|Spiked-solution test|Ashing)/;
 DEFAULT_ROUTES.forEach(r => r.stages.forEach(x => { if (CLOCK_STEP.test(x.name)) x.clock = true; }));

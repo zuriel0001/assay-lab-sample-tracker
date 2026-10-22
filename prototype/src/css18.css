@@ -9,13 +9,6 @@ body.modal-open{overflow:hidden}
 .up-list li.warn{border-left-color:var(--warn)}
 .up-list li.bad{border-left-color:var(--bad)}
 .up-list .btn{margin-left:6px}
-.bsteps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0}
-.bstep{display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;padding:10px 0;border-top:1px solid var(--line)}
-.bstep:first-child{border-top:0}
-.bstep .dot{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;background:var(--soft);color:var(--muted);border:2px solid var(--line)}
-.bstep.done .dot{background:var(--ok);border-color:var(--ok);color:#fff}
-.bstep.now .dot{background:var(--accent);border-color:var(--accent);color:#fff}
-.bstep.todo > div > .row b{color:var(--muted)}
 details.form-more{grid-column:1/-1;border:1px dashed var(--line);border-radius:10px;padding:8px 12px}
 details.form-more > summary{cursor:pointer;font-weight:600;color:var(--accent)}
 details.form-more[open] > summary{margin-bottom:10px}

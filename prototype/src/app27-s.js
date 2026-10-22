@@ -231,7 +231,6 @@ async function releaseGroup(ref, wit, quiet, step){
     const w = walkToRelease(s, from, wit); if (w.t > at) return null;
     return releaseUpdate({ ...s, history: w.history }, at, `Released with batch ${ref}`, twoPerson(s) ? wit : "", "", "", cert.get(id));
   }), step);
-  for (const b of new Set(ready.flatMap(s => Object.values(labsOf(s)).map(l => l.b)))) await closeBatchIfDone(b);
   if (n && n < ready.length && !quiet) toast(`${n} of ${ready.length} released on ${no}; the others changed meanwhile. Open them to check.`);
   return { n, no, why: n ? "" : "the samples changed meanwhile" };
 }

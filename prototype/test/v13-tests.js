@@ -1,9 +1,9 @@
 // v13: the board loads only samples still in the lab; stored material is listed from small stock records (Storage tab), which the ledger's
-// month check and Settings also read. Covers the stock record through a sample's life, a lab batch whose released sample has gone into
+// month check and Settings also read. Covers the stock record through a sample's life, a released sample that has gone into
 // storage, the repair of an unwritten stock record, and a register with thousands of stored samples.
 // Run: NODE_PATH=$(npm root -g) timeout 590 node v13-tests.js
 const H = require("./harness");
-const { store, errors, newUser, launch, signIn, fillForm, ids, open, doc, toastText, batchDoc, waitFor, createBatch, fillBatch, saveBatch, broadcast, clone } = H;
+const { store, errors, newUser, launch, signIn, fillForm, ids, open, doc, toastText, waitFor, broadcast, clone } = H;
 const OUT = __dirname;
 const names = { u_z: "Zuriel" };
 const log = (...a) => console.log("•", ...a);
@@ -12,10 +12,19 @@ const DAY = 86400e3, OPEN_T = 9e15;
 const stock = id => store["stock/" + id];
 
 async function receipt(page, id){ await open(page, id); await page.click('[data-receipt="confirm"]'); await waitFor(() => doc(id).stageKey === "received"); await page.waitForTimeout(400); }
-const showBatch = async (page, id) => { await page.click('#tabs button[data-tab="batches"]'); await page.waitForSelector(`[data-bsel="${id}"]`, { timeout: 5000 }); await page.click(`[data-bsel="${id}"]`); await page.waitForSelector("#batchBox", { timeout: 5000 }); await page.waitForTimeout(300); };
-async function groupMove(page, sids, toKey){
-  for (let g = 0; g < 15; g++){ const k = doc(sids[0]).stageKey; if (k === toKey) return true; await page.click(`[data-bmove="${k}"]`); await waitFor(() => sids.every(id => doc(id).stageKey !== k), 6000); await page.waitForTimeout(300); }
-  return doc(sids[0]).stageKey === toKey;
+/* Walks one sample on its record until it reaches the step. */
+async function walkTo(page, id, key){
+  await open(page, id);
+  for (let g = 0; g < 16 && doc(id).stageKey !== key; g++){ const k = doc(id).stageKey; await page.click('[data-step="next"]'); await waitFor(() => doc(id).stageKey !== k, 4000); await page.waitForTimeout(300); }
+  return doc(id).stageKey === key;
+}
+/* Types results on the sample's record and saves them. */
+async function typeRes(page, id, vals){
+  await open(page, id);
+  if (!(await page.$eval("#resBox", d => d.open))) await page.click("#resBox summary");
+  for (const [k, v] of Object.entries(vals)) await page.fill("#rs_" + k, v);
+  const v0 = doc(id).results?.v || 0;
+  await page.click("#rsSave"); await waitFor(() => (doc(id).results?.v || 0) > v0, 4000); await page.waitForTimeout(300);
 }
 async function material(page, id, k, what, ref){
   await open(page, id);
@@ -47,24 +56,19 @@ const lanes = page => page.textContent(".lanes").catch(() => "");
   await waitFor(() => stock(wk) && !doc(wk).sx, 4000);
   check(stock(wk)?.st === "lab" && doc(wk).lab === true && !doc(wk).sx, "a sample registered at the lab gets its stock record at once");
 
-  log("A batch whose released sample has gone into storage");
-  const b = await createBatch(Tc, "fa50", ex);
-  check(await groupMove(Tc, ex, "weigh"), "batch moved to analysis (weighing)");
-  await showBatch(Tc, b); await fillBatch(Tc, b, () => "1.20"); const q = await saveBatch(Tc, b);
-  check(q.status === "pass", "batch passes QC: " + q.status);
-  check(await groupMove(Tc, ex, "qc"), "samples moved to QA/QC");
+  log("A released sample goes into storage");
+  for (const id of ex){ await walkTo(Tc, id, "weigh"); await typeRes(Tc, id, { Au: "1.20" }); }
+  check(ex.every(id => doc(id).results?.rows.Au.v === 1.2), "results typed on each record at weighing");
+  for (const id of ex) await walkTo(Tc, id, "qc");
+  check(ex.every(id => doc(id).stageKey === "qc"), "samples moved to QA/QC");
   const a = ex[0];
   await open(Sv, a); await Sv.click('[data-step="next"]'); await waitFor(() => doc(a).stageKey === "released", 5000); await Sv.waitForTimeout(400);
   check(doc(a).stageKey === "released" && doc(a).lab === true && (doc(a).certs || []).length === 1, "supervisor releases one sample; it stays on the board until its material is shelved");
-  await showBatch(Sv, b);
-  check(!(await Sv.$('[data-bdec="reopen"]')), "Correct an entry is not offered once a sample of the batch is released");
   const mats = doc(a).materials.map(m => m.k);
   for (const [i, k] of mats.entries()) await material(Tc, a, k, "store", `Rack 7-${i + 1}`);
   check(doc(a).stageKey === "storage" && doc(a).lab === false && stock(a)?.st === "store" && stock(a).m.length === mats.length && stock(a).m.every(m => /^Rack 7-/.test(m.loc)), `all ${mats.length} material(s) shelved: the sample is in storage, off the board, and its stock record says where`);
   await Sv.click('[data-tab="board"]'); await Sv.waitForTimeout(400);
-  check(!(await lanes(Sv)).includes(a) && (await lanes(Sv)).includes(ex[1]), "the stored sample has left the board; its batch mates are still on it");
-  await showBatch(Sv, b);
-  check(!(await Sv.$('[data-bdec="reopen"]')) && (await Sv.textContent("#batchBox")).includes(a), "the batch still knows its released sample (now in storage): no Correct an entry, and the sample is still listed");
+  check(!(await lanes(Sv)).includes(a) && (await lanes(Sv)).includes(ex[1]), "the stored sample has left the board; the others are still on it");
 
   log("Storage tab, material out, close and reversal");
   await Tc.click('[data-tab="storage"]'); await Tc.waitForTimeout(400);

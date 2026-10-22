@@ -1,10 +1,10 @@
 // v16: Register at lab is open to everyone (walk-ins wait for receipt), Submit a sample needs a sign-in; pulverising to 80% passing
-// 75 µm; every field of the reference material register editable, with a change history; a reason box for purpose "Other"; the
+// 75 µm; the reference material register (removed in v35); a reason box for purpose "Other"; the
 // receiver on the workflow line; the earlier board look (tiles with zeros, lanes in a grid) with lanes that scroll after five cards; ZIJIN.
 // Run: NODE_PATH=$(npm root -g) timeout 590 node v16-tests.js
 const fs = require("fs");
 const H = require("./harness");
-const { store, errors, newUser, launch, signIn, fillForm, ids, open, doc, waitFor, cfgTab, toastText, localStr } = H;
+const { store, errors, newUser, launch, signIn, fillForm, ids, open, doc, waitFor, cfgTab, toastText, localStr, visibleTabs } = H;
 const names = {};
 const log = (...a) => console.log("•", ...a);
 const check = (cond, msg) => { console.log(cond ? "  PASS" : "  FAIL", msg); if (!cond) process.exitCode = 1; };
@@ -93,46 +93,15 @@ if (fs.existsSync(CORE)){
   check(!/85% passing/.test(await A.textContent("#view-routes")), "a route saved with the 85% wording is shown with 80%");
   store["settings/stages"] = { ...st }; if (!Object.keys(st).length) delete store["settings/stages"]; await H.broadcast("settings/stages", store["settings/stages"] || null); await A.waitForTimeout(400);
 
-  log("Reference materials: every field editable, with a change history");
-  const crmsNow = () => store["settings/stages"]?.crms || [];
-  // A closed batch that used STD-AU-LOW, and an open one using STD-AU-MED.
-  const at = Date.now() - 2 * HOUR, an = { k: "Au", n: "Gold", u: "g/t", dl: 0.005, dp: 3, ul: 10 };
-  store[`batches/FA-${H.T}-71`] = { id: `FA-${H.T}-71`, qcp: "fa50", an, at, day: "", month: "", by: "tech1", tech: "Lab Technician A", open: false, status: "closed", sids: [], pos: [{ p: 1, t: "crm", crm: "STD-AU-LOW" }], crms: ["STD-AU-LOW"], qc: { at, status: "pass", checks: [{ p: 1, t: "crm", k: "Au", crm: "STD-AU-LOW", exp: 0.52, sd: 0.025, val: 0.53, verdict: "pass" }] }, log: [] };
-  store[`batches/FA-${H.T}-72`] = { id: `FA-${H.T}-72`, qcp: "fa50", an, at, day: "", month: "", by: "tech1", tech: "Lab Technician A", open: true, status: "prep", sids: [], pos: [{ p: 1, t: "crm", crm: "STD-AU-MED" }], crms: ["STD-AU-MED"], qc: null, log: [] };
-  await H.broadcast(`batches/FA-${H.T}-71`, store[`batches/FA-${H.T}-71`]); await H.broadcast(`batches/FA-${H.T}-72`, store[`batches/FA-${H.T}-72`]); await A.waitForTimeout(400);
-  await H.tab(A, "stages"); await cfgTab(A, "crms"); await A.waitForSelector("[data-cf]");
-  check(await A.$$eval('[data-cf="id"]', es => es.every(e => !e.disabled)), "every ID can be changed");
-  const rowOf = id => A.$$eval('[data-cf="id"]', (es, id) => es.findIndex(e => e.value === id), id);
-  const setCell = async (i, f, val) => { await A.fill(`[data-ci="${i}"][data-cf="${f}"]`, String(val)); await A.press(`[data-ci="${i}"][data-cf="${f}"]`, "Tab"); await A.waitForTimeout(150); };
-  await setCell(await rowOf("STD-AU-MED"), "id", "OREAS-MED");
-  check(/open batch FA-/.test(await toastText(A)) && (await rowOf("STD-AU-MED")) >= 0, "a material in an open batch can't be renamed until the batch closes");
-  await setCell(await rowOf("STD-AU-LOW"), "id", "oreas-low");
-  const lowRows = await A.$$eval('[data-cf="id"]', es => es.filter(e => e.value === "OREAS-LOW").map(e => e.parentElement.textContent));
-  check(lowRows.length >= 1 && lowRows.every(t => /was STD-AU-LOW/.test(t)) && (await rowOf("STD-AU-LOW")) < 0, "a saved ID can be renamed; the row shows its earlier ID");
-  const lo = await rowOf("OREAS-LOW");
-  await setCell(lo, "name", "OREAS 2Pd low-grade ore"); await setCell(lo, "val", "0.515"); await setCell(lo, "sd", "0.021"); await setCell(lo, "use", "fa gc");
-  await A.selectOption(`[data-ci="${await rowOf("STD-AU-HIGH")}"][data-cf="an"]`, { index: 1 }); await A.waitForTimeout(150);
-  await A.click("#cfgSave"); await waitFor(() => crmsNow().some(c => c.id === "OREAS-LOW"));
-  const saved = crmsNow().find(c => c.id === "OREAS-LOW"), logRows = store["settings/stages"]?.crmLog || [];
-  check(saved && saved.name === "OREAS 2Pd low-grade ore" && saved.val === 0.515 && saved.sd === 0.021 && saved.use === "FA, GC" && saved.was?.includes("STD-AU-LOW"), "ID, description, value, SD and batch types are all saved");
-  const lg = logRows.find(x => x.id === "OREAS-LOW")?.what || "";
-  check(/ID STD-AU-LOW → OREAS-LOW/.test(lg) && /Certified value 0\.52 → 0\.515/.test(lg) && /SD 0\.025 → 0\.021/.test(lg) && logRows.every(x => x.by === "Lab Manager" && x.at > 0) && logRows.some(x => x.id === "STD-AU-HIGH" && /Analyte/.test(x.what)), "the change history records who changed what: " + logRows.map(x => `${x.id}: ${x.what}`).join(" | "));
-  await A.waitForSelector("details.crm-log");
-  check(/Change history \(\d+\)/.test(await A.textContent("details.crm-log summary")), "Settings shows the change history");
-  await A.click("details.crm-log summary"); await A.waitForTimeout(100);
-  check(/OREAS-LOW/.test(await A.textContent("details.crm-log table")) && /Lab Manager/.test(await A.textContent("details.crm-log table")), "with when, who, which material and the change");
-  const rmRow = await rowOf("SOL-AU-0.2"); await A.click(`[data-crm-rm="${rmRow}"]`); await A.waitForTimeout(150);
-  await A.click("#cfgSave"); await waitFor(() => (store["settings/stages"]?.crmLog || []).some(x => /Removed/.test(x.what)));
-  check((store["settings/stages"]?.crmLog || [])[0]?.id === "SOL-AU-0.2" && /^Removed/.test(store["settings/stages"].crmLog[0].what) && store["settings/stages"].crmLog.length === logRows.length + 1, "a removal is added to the top of the history; earlier entries stay");
-  await H.tab(T, "batches"); await T.waitForSelector("#chCrm");
-  await T.selectOption("#chCrm", "OREAS-LOW|Au|g/t"); await T.waitForSelector("#chBox svg", { timeout: 4000 }).catch(() => {});
-  check(await T.$$eval("#chBox circle", c => c.length) >= 1, "the control chart of the renamed material still has the results recorded under its old ID");
+  log("v35: no reference material register");
+  await H.tab(A, "stages"); await A.waitForSelector("[data-cfgtab]");
+  check(!(await A.$('[data-cfgtab="crms"]')) && !(await A.$("details.crm-log")) && !(await visibleTabs(T)).includes("batches"), "Settings has no reference materials pane or change history; there is no Batches tab");
 
   log("Board: the earlier look, lanes scroll after five cards");
   await fillForm(P, "register", { section: "PLT", type: "carbon", purpose: "plant", submitter: "Kojo", count: 8 }); await ids(P);
   await H.tab(A, "board"); await A.waitForTimeout(500);
   const tiles = await A.$$eval(".stats.tiles > .stat", ts => ts.map(t => [t.tagName, t.querySelector(".n").textContent, t.querySelector(".l").textContent]));
-  check(tiles.length === 12 && tiles.some(t => t[1] === "0" && t[0] === "DIV") && tiles.filter(t => t[1] !== "0" && t[0] === "BUTTON").length >= 2 && await A.$eval(".stats.tiles", s => getComputedStyle(s).display === "grid"), "12 tiles in a grid (v24: Re-assay requested), zeros included; tiles with samples are buttons: " + tiles.map(t => t[1] + " " + t[2]).join(" | "));
+  check(tiles.length === 10 && tiles.some(t => t[1] === "0" && t[0] === "DIV") && tiles.filter(t => t[1] !== "0" && t[0] === "BUTTON").length >= 2 && await A.$eval(".stats.tiles", s => getComputedStyle(s).display === "grid"), "10 tiles in a grid (v24: Re-assay requested; v35: no lab batch or trend tiles), zeros included; tiles with samples are buttons: " + tiles.map(t => t[1] + " " + t[2]).join(" | "));
   const aw = await A.$eval(".lane.ph-await .cards", c => ({ n: c.children.length, scrolls: c.classList.contains("scrolls"), ch: c.clientHeight, sh: c.scrollHeight, fifth: c.children[4].offsetTop + c.children[4].offsetHeight <= c.clientHeight + 1, sixth: c.children[5].offsetTop < c.clientHeight, seventh: c.children[6].offsetTop >= c.clientHeight }));
   check(aw.n >= 9 && aw.scrolls && aw.sh > aw.ch && aw.fifth && aw.sixth && aw.seventh, `a lane with ${aw.n} cards shows about five and scrolls (${aw.ch}px of ${aw.sh}px)`);
   check(await A.$$eval(".lane", ls => ls.every(l => !l.classList.contains("empty")) && ls.some(l => !l.querySelector(".chip"))), "empty lanes stay full size");

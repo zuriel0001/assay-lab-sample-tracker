@@ -36,7 +36,7 @@ const hm = ms => new Date(ms).toISOString().slice(11, 16);
   log("Settings in tabs");
   await Ad.click('[data-tab="stages"]'); await Ad.waitForSelector(".subtabs");
   const tabs = await Ad.$$eval("[data-cfgtab]", bs => bs.map(b => b.textContent));
-  check(tabs.join("|") === "Accounts|Sections and site time|Reference materials|Limits|Results files|Workflow routes", "Settings has six tabs (Results files since v18): " + tabs.join(", "));
+  check(tabs.join("|") === "Accounts|Sections and site time|Limits|Results files|Workflow routes", "Settings has five tabs (Results files since v18; no Reference materials since v35): " + tabs.join(", "));
   check(await shown(Ad, "#userAdd") && await shown(Ad, "#cfgResPub") && !(await shown(Ad, "#secAdd")) && !(await shown(Ad, "#rtPick")) && await shown(Ad, "#cfgSave"), "Accounts opens first, with who can see results; other groups are hidden; Save stays");
   await cfgTab(Ad, "limits");
   check(await shown(Ad, "#limAdd") && !(await shown(Ad, "#userAdd")) && await Ad.$eval('[data-cfgtab="limits"]', b => b.getAttribute("aria-selected")) === "true", "the Limits tab shows only the limits");
@@ -120,7 +120,7 @@ const hm = ms => new Date(ms).toISOString().slice(11, 16);
   log("Phone");
   const M = await newUser(browser, { uid: "u_m", name: "Phone", canEdit: true, names }, { width: 375, height: 760 });
   await signIn(M, "admin"); await H.tab(M, "stages"); await M.waitForSelector(".subtabs");
-  for (const k of ["accounts", "sections", "crms", "limits", "routes"]){ await cfgTab(M, k); const sw = await M.evaluate(() => document.documentElement.scrollWidth); if (sw > 376) check(false, `phone: Settings ${k} scrolls sideways (${sw})`); }
+  for (const k of ["accounts", "sections", "limits", "routes"]){ await cfgTab(M, k); const sw = await M.evaluate(() => document.documentElement.scrollWidth); if (sw > 376) check(false, `phone: Settings ${k} scrolls sideways (${sw})`); }
   await open(M, ex[0]); await M.click(`[data-label="${ex[0]}"]`); await M.waitForSelector("#labelBox .bag-label");
   check(await M.evaluate(() => document.documentElement.scrollWidth) <= 376, "on a phone, Settings tabs and the label preview fit the screen");
   await M.screenshot({ path: OUT + "/v14-phone-label.png" });

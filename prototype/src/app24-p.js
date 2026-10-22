@@ -20,7 +20,6 @@ function evalFlags(s){
     limitHits(s, rows).forEach(h => out.push({ cls: "bad", t: alertLine(s, h) + (h.act ? `: ${h.act}` : "") }));
     resultChecks(s, rows).filter(x => !x.ok).forEach(x => out.push({ cls: "warn", t: x.msg.charAt(0).toUpperCase() + x.msg.slice(1) }));
     overRes(s, rows).forEach(a => out.push({ cls: "warn", t: `${a.s || a.n} over the method's range` }));
-    Object.values(labsOf(s)).filter(l => l && l.q && ["fail", "warn"].includes(l.q)).forEach(l => out.push({ cls: qcCls(l.q), t: `Lab batch ${l.b}: ${qcLabel(l.q)}` }));
   } catch {}
   return out;
 }
@@ -116,7 +115,7 @@ function renderStaffResults(v){
   const keepFocus = document.activeElement?.id === "resQ";
   v.innerHTML = `<div class="stack">
     <div class="panel stack res-head" style="gap:10px">
-      <div class="row" style="gap:10px"><h2 style="margin:0">Results</h2><span class="small muted">Released in the last ${resDays} days</span>${ev ? `<span class="grow"></span><span class="pill${flagged ? " bad" : ""}">${flagged} flagged</span><span class="pill${due ? " gold" : ""}">${due} to evaluate</span>` : ""}</div>
+      <div class="row" style="gap:10px"><h2 style="margin:0">Results</h2><span class="small muted">Released in the last ${resDays} days</span><span class="grow"></span>${ev ? `<span class="pill${flagged ? " bad" : ""}">${flagged} flagged</span><span class="pill${due ? " gold" : ""}">${due} to evaluate</span>` : ""}${canEdit() ? `<button type="button" class="btn primary" data-attach="all">Attach results file</button>` : ""}</div>
       <div class="row bd-tools" style="gap:8px">
         <input class="inp" id="resQ" placeholder="Search ID, site code, purpose" value="${esc(resQ)}" style="flex:1 1 220px;width:auto">
         <select class="inp" id="resSec" style="width:auto" aria-label="Section"><option value="">All sections</option>${(cfg.sections || []).map(x => `<option value="${esc(x.code)}" ${resSec === x.code ? "selected" : ""}>${esc(x.code)} · ${esc(x.name)}</option>`).join("")}</select>

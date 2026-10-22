@@ -32,11 +32,10 @@ function renderRoutes(){
   if (routesFocus){ document.getElementById("route-" + routesFocus)?.scrollIntoView({ block: "start" }); routesFocus = ""; }
 }
 function routeResultsLine(r){
-  const res = RESULTS[(r.tests || [])[0]], gs = Array.isArray(r.qcg) ? r.qcg : routeGroups(r), ev = !relNow() || canEval();
+  const res = RESULTS[(r.tests || [])[0]], ev = !relNow() || canEval();
   const lims = (cfg.limits || []).filter(l => l.route === r.code), anN = k => (res?.an.find(a => a.k === k) || { n: k }), anU = k => res?.an.find(a => a.k === k)?.u || "";
   const short = a => a.s || a.n;
   return `<div><b>Results reported:</b> ${res ? esc(res.an.filter(a => !a.opt && a.t !== "pick").map(a => short(a) + (a.u ? ` (${a.u})` : "")).join(", ")) : "—"}</div>
-    ${ev && gs.length ? `<div><b>Lab batch${gs.length > 1 ? "es" : ""}:</b> ${gs.map(g => { const qp = QC_PROFILES[g.p]; return qp ? `${esc(qp.name)} for ${esc(listAnd(groupAns(g, res).map(a => /^[A-Z][a-z]?$/.test(a.k) ? a.k : lcName(a.n))))} (up to ${qp.size} ${esc(qp.item || "sample")}s)` : ""; }).filter(Boolean).join("; ")}</div>` : ""}
     ${ev && lims.length ? `<div><b>Action limits:</b> ${esc(lims.map(l => `${short(anN(l.k))} ${l.op === "<" ? "below" : "above"} ${fmtNum(l.val)}${anU(l.k) ? " " + anU(l.k) : ""}${l.when ? ` (${l.when})` : ""}${l.permit ? " (permit)" : ""}`).join("; "))}</div>` : ""}`;
 }
 /* The route as a row of steps, coloured by phase, with the time each is allowed. */
@@ -81,12 +80,10 @@ function renderStages(){
   // Commit a pending edit first: blurring fires its change handler, which re-renders with the new value.
   if (v.contains(document.activeElement)) document.activeElement.blur();
   if (!v.dataset.bound){ v.dataset.bound = "1"; v.addEventListener("input", () => { if (draft) draftDirty = true; }); }
-  if (!draft) { crmKeys(cfg.crms); draft = clone(cfg); draftDirty = false; }
+  if (!draft) { draft = clone(cfg); draftDirty = false; }
   draft.tz = draft.tz || DEFAULT_CONFIG.tz;
-  draft.crms = Array.isArray(draft.crms) ? draft.crms : clone(DEFAULT_CONFIG.crms);
   draft.resultsPublic = !!draft.resultsPublic;
   draft.relMode = draft.relMode === "signoff" ? "signoff" : "now";
-  draft.batchReq = !!draft.batchReq;
   draft.qcStep = !!draft.qcStep;
   draft.limits = Array.isArray(draft.limits) ? draft.limits : clone(DEFAULT_CONFIG.limits);
   draft.users = draft.users || [];
@@ -126,15 +123,6 @@ function renderStages(){
     <td style="text-align:center"><input type="radio" name="redo" data-ri="${i}" data-rk="redo" ${x.redo ? "checked" : ""} aria-label="Re-assays restart here"></td>
     <td><input class="inp" style="min-width:240px" data-ri="${i}" data-rk="note" value="${esc(x.note || "")}" aria-label="Method and checks"></td>
     <td style="white-space:nowrap"><button class="btn ghost" data-rmv="${i}" data-d="-1" aria-label="Move up" ${i ? "" : "disabled"}>↑</button><button class="btn ghost" data-rmv="${i}" data-d="1" aria-label="Move down" ${i < R.stages.length - 1 ? "" : "disabled"}>↓</button><button class="btn ghost danger" data-rrm="${i}" aria-label="Remove step">✕</button></td></tr>`).join("");
-  const savedCrm = new Set((cfg.crms || []).map(c => c.id)), anOpts = crmAnalytes();
-  const crmRows = draft.crms.map((c, i) => `<tr>
-    <td><input class="inp mono" style="width:130px;text-transform:uppercase" data-ci="${i}" data-cf="id" value="${esc(c.id)}" aria-label="CRM ID">${(c.was || []).length ? `<div class="small muted">was ${esc(c.was.join(", "))}</div>` : ""}</td>
-    <td><input class="inp" style="min-width:180px" data-ci="${i}" data-cf="name" value="${esc(c.name)}" aria-label="Description"></td>
-    <td><select class="inp" style="width:auto" data-ci="${i}" data-cf="an" aria-label="Analyte and unit">${[...anOpts].map(([k, l]) => `<option value="${esc(k)}" ${k === `${c.an}|${c.u || ""}` ? "selected" : ""}>${esc(l)}</option>`).join("")}${anOpts.has(`${c.an}|${c.u || ""}`) ? "" : `<option selected value="${esc(`${c.an}|${c.u || ""}`)}">${esc(c.an)} ${esc(c.u || "")}</option>`}</select></td>
-    <td><input class="inp mono" style="width:100px" type="number" min="0" step="any" data-ci="${i}" data-cf="val" value="${esc(c.val)}" aria-label="Certified value"></td>
-    <td><input class="inp mono" style="width:90px" type="number" min="0" step="any" data-ci="${i}" data-cf="sd" value="${esc(c.sd)}" aria-label="Standard deviation"></td>
-    <td><input class="inp mono" style="width:130px;text-transform:uppercase" data-ci="${i}" data-cf="use" value="${esc(c.use || "")}" aria-label="Batch types" placeholder="all"></td>
-    <td><button class="btn ghost danger" data-crm-rm="${i}" aria-label="Remove reference material">✕</button></td></tr>`).join("");
   const keepRows = R.retention.map((x, i) => `<tr>
     <td><input class="inp" data-ti="${i}" data-tf="item" value="${esc(x.item)}" aria-label="Material"></td>
     <td><input class="inp" style="width:100px" type="number" min="0" step="1" data-ti="${i}" data-tf="days" value="${esc(x.days)}" aria-label="Days kept"><div class="small muted">${+x.days ? daysLabel(x.days) : "returned at release"}</div></td>
@@ -176,15 +164,7 @@ function renderStages(){
     <h2 style="margin-top:12px">Results and certificates</h2>
     <label class="f" style="max-width:520px"><span>Release of results</span><select class="inp" id="cfgRel"><option value="now" ${draft.relMode === "signoff" ? "" : "selected"}>At once, when the results are complete</option><option value="signoff" ${draft.relMode === "signoff" ? "selected" : ""}>After a lab supervisor signs off</option></select></label>
     <label class="f" style="max-width:520px"><span>Who can see results on a sample record</span><select class="inp" id="cfgResPub"><option value="0" ${draft.resultsPublic ? "" : "selected"}>Signed-in staff only (recommended)</option><option value="1" ${draft.resultsPublic ? "selected" : ""}>Anyone with the sample ID or site sample code</option></select></label>
-    ${draft.relMode === "signoff" ? `<label class="f" style="max-width:520px"><span>Lab batch before release</span><select class="inp" id="cfgBatchReq"><option value="0" ${draft.batchReq ? "" : "selected"}>Not required</option><option value="1" ${draft.batchReq ? "selected" : ""}>Required</option></select></label>
-    <label class="f" style="max-width:520px"><span>QA/QC review step</span><select class="inp" id="cfgQcStep"><option value="0" ${draft.qcStep ? "" : "selected"}>Not used</option><option value="1" ${draft.qcStep ? "selected" : ""}>Before release</option></select></label>` : ""}
-
-    <h2 style="margin-top:12px">Reference materials (CRMs and check standards)</h2>
-    <div class="mock"><b>Example values.</b><span>The certified values and standard deviations below are placeholders for the prototype. Replace them with the values on your own CRM certificates before relying on the QC checks.</span></div>
-    <p class="small muted" style="margin:0">A material certified for several results has one row per result under the same ID (type an existing ID in a new row). Lab batches pick reference materials for their analyte and unit, preferring those whose batch types list the batch's prefix (FA fire assay, GC grade control, FG gravimetric, SF screen fire assay, PL plant, PT tails, CC concentrate, BU bullion, SL solutions, EL eluate, CB carbon, CY and CS cyanide, EW water, IC ICP, ME multi-element, LE LECO, AR aqua regia, LW cyanide-soluble gold, SO soil, AB ARD, DN density). Leave batch types empty to allow any. A standard deviation is needed wherever the rule is in SD.</p>
-    <div class="tbl-wrap"><table><thead><tr><th>ID</th><th>Description</th><th>Analyte</th><th>Certified value</th><th>SD</th><th>Batch types</th><th></th></tr></thead><tbody>${crmRows}</tbody></table></div>
-    <div class="row"><button class="btn" id="crmAdd">Add reference material</button></div>
-    ${crmLogHtml()}
+    ${draft.relMode === "signoff" ? `<label class="f" style="max-width:520px"><span>QA/QC review step</span><select class="inp" id="cfgQcStep"><option value="0" ${draft.qcStep ? "" : "selected"}>Not used</option><option value="1" ${draft.qcStep ? "selected" : ""}>Before release</option></select></label>` : ""}
 
     <h2 style="margin-top:12px">Action and permit limits</h2>
     <div class="mock"><b>Example values.</b><span>The permit and guideline limits (marked Permit) are placeholders. Replace them with the limits in the site's environmental permit before go-live.</span></div>
@@ -218,9 +198,7 @@ function renderStages(){
       <fieldset><div class="legend">Purposes it is chosen first for</div><div class="checks">${checks("purposes", PURPOSES.filter(p => !p.sub).map(p => [p.key, p.name]), R.purposes)}</div></fieldset>
       <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Lab step</th><th>Hours</th><th>Round the clock</th><th>Phase</th><th>Re-assay restarts here</th><th>Method and checks</th><th></th></tr></thead><tbody>${stRows}</tbody></table></div>
       <div class="row"><button class="btn" id="rsAdd">Add step</button><span class="small muted">Results about <b>${hoursLabel(routeTat(R))}</b> after receipt.</span></div>
-      <label class="f" style="max-width:520px"><span>Lab batch and QC</span><select class="inp" id="rtQcp"><option value="">None: checks run on each sample's own results</option>${Object.entries(QC_PROFILES).map(([k, p]) => `<option value="${k}" ${R.qcp === k ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
-      ${(R.qcg || []).length > 1 ? `<p class="small muted" style="margin:0">Samples on this route join ${esc(listAnd(R.qcg.map(g => `${aAn(lcName(QC_PROFILES[g.p]?.name || g.p))} for ${listAnd(groupAns(g, RESULTS[(R.tests || [])[0]]).map(a => /^[A-Z][a-z]?$/.test(a.k) ? a.k : lcName(a.n)))}`)))}.</p>` : ""}
-      <label class="f full">QA/QC rule<textarea data-rf="qc">${esc(R.qc || "")}</textarea><span class="small muted" style="font-weight:400">${R.qcp ? "Written from the batch type, so it says what the batch enforces. Choosing another batch type or test rewrites it; you can add notes after it." : "Describe the checks. Only the checks built into the test's results are enforced."}</span></label>
+      <label class="f full">QA/QC rule<textarea data-rf="qc">${esc(R.qc || "")}</textarea></label>
       <label class="f full">Re-assay triggers (one per line)<textarea data-rf="triggers">${esc(R.triggers.join("\n"))}</textarea></label>
       <div class="legend" style="margin:0">Retention and disposal</div>
       <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Days kept after results</th><th>Then</th><th></th></tr></thead><tbody>${keepRows}</tbody></table></div>
@@ -233,42 +211,7 @@ function renderStages(){
   const dirty = () => { draftDirty = true; renderStages(); };
   $("#cfgResPub").addEventListener("change", e => { draft.resultsPublic = e.target.value === "1"; dirty(); });
   $("#cfgRel").addEventListener("change", e => { draft.relMode = e.target.value; dirty(); });
-  $("#cfgBatchReq")?.addEventListener("change", e => { draft.batchReq = e.target.value === "1"; dirty(); });
   $("#cfgQcStep")?.addEventListener("change", e => { draft.qcStep = e.target.value === "1"; dirty(); });
-  $("#rtQcp").addEventListener("change", e => { R.qcp = e.target.value; regenQc(R); dirty(); });
-  v.querySelectorAll("[data-cf]").forEach(el => el.addEventListener("change", () => {
-    const i = +el.dataset.ci, f = el.dataset.cf, c = draft.crms[i];
-    if (f === "id"){
-      const id = el.value.toUpperCase().replace(/[^A-Z0-9._-]/g, "").slice(0, 20);
-      if (!id){ toast("Use letters, digits, dots or dashes for the ID."); renderStages(); return; }
-      const old = c.id;
-      if (id === old){ renderStages(); return; }
-      if (savedCrm.has(old) || (c.was || []).some(w => savedCrm.has(w))){
-        // A saved material is renamed with all its rows; the old ID is kept so its batch records and control chart still count.
-        if (draft.crms.some(y => y.id === id)){ toast(`${id} is already another reference material.`); renderStages(); return; }
-        const busy = crmIdInUse(old);
-        if (busy.length){ toast(`${old} is in open batch ${busy[0]}. Rename it once the batch is closed.`); renderStages(); return; }
-        draft.crms.forEach(y => { if (y.id === old){ y.id = id; y.was = [...new Set([...(y.was || []), old])].filter(x => x !== id); } });
-        dirty(); return;
-      }
-      if (draft.crms.some((y, j) => y.id === id && y.an === c.an && (y.u || "") === (c.u || "") && j !== i)){ toast(`${id} already has a row for ${c.an}. Choose another analyte for this row first.`); renderStages(); return; }
-      const twin = draft.crms.find((y, j) => y.id === id && j !== i);
-      c.id = id; if (twin){ c.name = twin.name; c.use = twin.use; }
-    } else if (f === "an"){ const [a, u] = el.value.split("|"), busy = crmInUse(c); if (busy.length){ toast(`${c.id} ${c.an} is in open batch ${busy[0]}. Change the analyte once the batch is closed.`); renderStages(); return; } if (draft.crms.some((y, j) => y.id === c.id && y.an === a && (y.u || "") === (u || "") && j !== i)){ toast(`${c.id} already has a row for ${a}.`); renderStages(); return; } c.an = a; c.u = u || ""; }
-    else if (f === "val" || f === "sd"){ const n = Number(el.value); if (el.value.trim() === "" || !isFinite(n) || n < 0){ toast("Type a number of 0 or more."); renderStages(); return; } c[f] = n; }
-    else if (f === "use") c.use = el.value.toUpperCase().split(/[^A-Z]+/).filter(Boolean).join(", ");
-    else c[f] = el.value.trim();
-    dirty();
-  }));
-  v.querySelectorAll("[data-crm-rm]").forEach(b => b.onclick = () => {
-    const c = draft.crms[+b.dataset.crmRm], inUse = crmInUse(c);
-    if (inUse.length){ toast(`${c.id} is in open batch ${inUse[0]}. Remove it once the batch is closed.`); return; }
-    draft.crms.splice(+b.dataset.crmRm, 1); dirty();
-  });
-  $("#crmAdd").onclick = () => {
-    let n = 1, id; do { id = "CRM-" + n++; } while (draft.crms.some(x => x.id === id));
-    draft.crms.push({ id, name: "New reference material", an: "Au", u: "g/t", val: 1, sd: 0.05, use: "", rk: crmNewKey() }); dirty();
-  };
   v.querySelectorAll("[data-ki]").forEach(el => el.addEventListener("change", () => {
     const x = draft.cols[+el.dataset.ki];
     if (el.dataset.kf === "n"){ const n = el.value.trim().slice(0, 40); if (n && draft.cols.some((y, j) => normCol(y.n) === normCol(n) && j !== +el.dataset.ki)){ toast(`${n} is already on the list.`); renderStages(); return; } x.n = n; }
@@ -321,9 +264,7 @@ function renderStages(){
     dirty();
   }));
   v.querySelectorAll("[data-rl]").forEach(el => el.addEventListener("change", () => {
-    const before = (R.tests || [])[0];
     R[el.dataset.rl] = [...v.querySelectorAll(`[data-rl="${el.dataset.rl}"]:checked`)].map(x => x.value);
-    if (el.dataset.rl === "tests" && (R.tests || [])[0] !== before) regenQc(R);
     dirty();
   }));
   v.querySelectorAll("[data-rk]").forEach(el => el.addEventListener("change", () => {
@@ -402,12 +343,6 @@ function renderStages(){
     const fail = (pane, m) => { cfgTab = pane; renderStages(); toast(m); };
     if (!draft.users.some(x => x.role === "admin")) return fail("accounts", "Keep at least one admin account.");
     if (workProblem(draft.work)) return fail("sections", workProblem(draft.work));
-    const sdPre = Object.values(QC_PROFILES).filter(p => p.crm?.mode === "sd").map(p => p.prefix);
-    for (const c of draft.crms){
-      if (!(c.val > 0)) return fail("crms", `${c.id}: the certified value must be above 0.`);
-      const use = useList(c);
-      if (!(c.sd > 0) && (use.length ? use.some(x => sdPre.includes(x)) : true)) return fail("crms", `${c.id}: give the standard deviation; batches of type ${(use.length ? use.filter(x => sdPre.includes(x)) : sdPre).slice(0, 4).join(", ")} judge it in SD.`);
-    }
     for (const [i, r] of draft.routes.entries()){
       const bad = msg => { routeIdx = i; fail("routes", `${r.code}: ${msg}`); };
       if (!r.tests.length) return bad("tick at least one test.");
@@ -422,10 +357,10 @@ function renderStages(){
       if (!String(l.act || "").trim()) return fail("limits", `Limit ${l.id}: say what is done when it is crossed.`);
     }
     const uncovered = TESTS.filter(t => !draft.routes.some(r => r.tests.includes(t.key))).map(t => t.name);
-    const mine = draft, crmLog = [...crmChanges(clone(cfg.crms || []), draft.crms), ...(cfg.crmLog || [])].slice(0, CRM_LOG_MAX);
+    const mine = draft;
     draftDirty = false;                      // our own save coming back is not "someone else's"
     try {
-      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users).map(x => x.dept || !LAB_ROLES.includes(x.role) ? x : { ...x, dept: "Assay Lab" }), depts: clone(draft.depts), crms: clone(draft.crms), crmLog, limits: clone(draft.limits), cols: (draft.cols || []).filter(x => x.n).map(x => ({ n: x.n, c: x.c || "" })), resultsPublic: !!draft.resultsPublic, relMode: draft.relMode, batchReq: !!draft.batchReq, qcStep: !!draft.qcStep, work: workOf(draft.work), logo: logoOf(draft.logo), routeUse: clone(draft.routeUse || {}), limitsV: LIMITS_V, routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
+      await db.doc("settings/stages").set({ schema: 12, tz: draft.tz, sections: clone(draft.sections), users: clone(draft.users).map(x => x.dept || !LAB_ROLES.includes(x.role) ? x : { ...x, dept: "Assay Lab" }), depts: clone(draft.depts), limits: clone(draft.limits), cols: (draft.cols || []).filter(x => x.n).map(x => ({ n: x.n, c: x.c || "" })), resultsPublic: !!draft.resultsPublic, relMode: draft.relMode, qcStep: !!draft.qcStep, work: workOf(draft.work), logo: logoOf(draft.logo), routeUse: clone(draft.routeUse || {}), limitsV: LIMITS_V, routes: clone(editedRoutes(draft.routes)), removed: (draft.removed || []).filter(c => !draft.routes.some(r => r.code === c)), updatedAt: Date.now(), updatedBy: session.u });
       draftDirty = false; draft = null; renderStages();
       toast(uncovered.length ? `Saved. No route performs: ${uncovered.slice(0, 3).join(", ")}${uncovered.length > 3 ? "…" : ""}` : "Settings saved for everyone.");
     }
@@ -450,28 +385,6 @@ function setSync(state){
   el.className = "pill " + cls; el.textContent = txt;
 }
 
-/* Analytes a reference material can certify: the QC analyte of every batch type that uses one. */
-function crmAnalytes(){
-  const m = new Map();
-  for (const r of [...DEFAULT_ROUTES, ...(draft?.routes || [])]){
-    const res = RESULTS[(r.tests || [])[0]];
-    for (const g of Array.isArray(r.qcg) ? r.qcg : routeGroups(r)){
-      if (!QC_PROFILES[g.p]?.ins?.crm) continue;
-      for (const a of groupAns(g, res)){
-        const sym = a.exact ? a.k : a.k.split("_")[0], key = `${sym}|${a.u || ""}`, el = /^[A-Z][a-z]?$/.test(sym);
-        if (!m.has(key)) m.set(key, `${sym === "Au" ? "Gold" : el ? sym : a.n.replace(/ \(.*$/, "")} (${a.u || "no unit"})`);
-      }
-    }
-  }
-  const g = qcAnalyte(RESULTS.fa_grav); if (!m.has(`Au|${g.u}`)) m.set(`Au|${g.u}`, `Gold (${g.u})`);
-  return new Map([...m].sort((a, b) => a[1].localeCompare(b[1])));
-}
-/* The QA/QC text of a route with a batch type is written from that batch type, so the words and the enforced checks agree. */
-function regenQc(R){
-  R.qcg = routeGroups(R);
-  if (!QC_PROFILES[R.qcp]) return;
-  R.qc = routeQcText(R, R.qcg);
-}
 /* Limits table in Settings. The limits on routes not in use are drawn only when their group is opened. */
 let limOffOpen = false;
 const limitTable = rows => `<div class="tbl-wrap"><table><thead><tr><th>Route</th><th>Result</th><th></th><th>Limit</th><th>Only when</th><th>Permit</th><th>Action</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;

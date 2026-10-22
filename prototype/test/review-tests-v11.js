@@ -85,7 +85,8 @@ const next = async (page, n = 1) => { for (let i = 0; i < n; i++){ await page.cl
   R("E1", !techOpts.length && !supOpts.includes("released") && !supOpts.includes("qc") && doc(e1).stageKey === "received", `technician skip options: [${techOpts}] · supervisor skip options: [${supOpts}]`);
   const qcAt = doc(e1).plan.findIndex(x => x.key === "qc"), cur = doc(e1).plan.findIndex(x => x.key === "received");
   await next(Tc, qcAt - cur - 1);
-  await H.runBatch(Tc, "fa50", [e1], () => "1.234"); await open(Tc, e1);
+  await open(Tc, e1); await Tc.click("#resBox summary"); await Tc.fill("#rs_Au", "1.234"); await Tc.click("#rsSave"); await H.waitFor(() => doc(e1).results); await Tc.waitForTimeout(300);   // v35: typed on the record
+  await open(Tc, e1);
   await next(Tc, 1);
   const techRelease = !!(await Tc.$('[data-step="next"]'));
   R("E2", doc(e1).stageKey === "qc" && !techRelease, `technician walked to ${doc(e1).stageKey}; a release button is ${techRelease ? "shown" : "not shown"} to the technician`);
@@ -232,7 +233,7 @@ const next = async (page, n = 1) => { for (let i = 0; i < n; i++){ await page.cl
   // J (bug 18): phone layout
   const ph = await newUser(browser, { uid: "u_ph", name: "Ph", canEdit: true, names }, { width: 375, height: 760 });
   await signIn(ph, "admin");
-  for (const t of ["board", "submit", "register", "batches", "ledger", "routes", "stages"]){
+  for (const t of ["board", "submit", "register", "results", "ledger", "routes", "stages"]){
     await H.tab(ph, t); await ph.waitForTimeout(300);
     const w = await ph.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
     R("J-" + t, w[0] <= w[1], `phone width 375: page scrollWidth ${w[0]}`);

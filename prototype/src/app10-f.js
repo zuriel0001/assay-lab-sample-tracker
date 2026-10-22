@@ -25,37 +25,8 @@ function upgradeSample(s){
   if (moves.length){ upd.ledgerPending = moves; upd.lp = true; }
   return upd;
 }
-/* Version 11 adds lab batches. A sample takes its route's batch type, except one already at QA/QC review or beyond:
-   its results are typed on the record instead, since its batch was run before batches were tracked here. */
-function upgrade11(s){
-  if (s.qcp != null) return { v: 11 };
-  const p = planOf(s), ci = curIdx(s), qi = p.findIndex(x => x.phase === "qc"), past = stage(s, s.stageKey)?.final || ci < 0 || ci >= (qi < 0 ? targetIdx(s) : qi);
-  return { v: 11, qcp: past ? "" : routeByCode(s.route)?.qcp || "" };
-}
-/* Version 12: a sample can join one lab batch per analytical method. Its batches (qcg) come from its route, except a sample already in a
-   batch keeps the one result that batch checks; its membership moves to labs, by batch type. */
-function upgrade12(s){
-  if (Array.isArray(s.qcg)) return { v: 12 };
-  const p = s.qcp || "", r = routeByCode(s.route);
-  let qcg = [];
-  if (p && QC_PROFILES[p]) qcg = !s.labBatch && r && r.qcp === p ? groupsFor(r, s.test) : [{ p, k: [qcAnalyte(RESULTS[s.test] || RESULTS.fa_aas).k] }];
-  const t = { ...s, qcg };
-  const labs = s.labBatch ? { [groupsOf(t)[0]?.p || p]: { b: s.labBatch, q: s.labQc || "", n: s.labQcNote || "" } } : {};
-  return { v: 12, qcg, dil: s.dil || [], ...labsUpd(t, labs) };
-}
+/* Versions 11 and 12 tracked lab batches on each sample; v35 removed them, so those versions only move the record on. */
 const SCHEMA = 13;
-/* Reference materials saved before version 12 keep their values. Materials and result rows added to the library since are appended, and a
-   saved row also takes any batch types the library now lists for it. */
-function mergeCrms(saved){
-  if (!Array.isArray(saved)) return clone(DEFAULT_CONFIG.crms);
-  const key = c => `${c.id}|${c.an}|${c.u || ""}`, out = clone(saved);
-  for (const d of DEFAULT_CONFIG.crms){
-    const x = out.find(c => key(c) === key(d));
-    if (!x) out.push(clone(d));
-    else x.use = [...new Set([...useList(x), ...useList(d)])].join(", ");
-  }
-  return out;
-}
 async function migrate(){
   const ref = db.doc("meta/schema");
   const cur = await ref.get(); if (cur.exists && +cur.data().v >= SCHEMA) return;
@@ -67,8 +38,6 @@ async function migrate(){
     if (!s || !s.id || done.has(s.id) || +s.v >= SCHEMA) return;
     done.add(s.id);
     const upd = +s.v >= 10 ? {} : upgradeSample(s);
-    if (!(+s.v >= 11)) Object.assign(upd, upgrade11({ ...s, ...upd }));
-    if (!(+s.v >= 12)) Object.assign(upd, upgrade12({ ...s, ...upd }));
     Object.assign(upd, upgrade13({ ...s, ...upd }));
     const sref = db.doc("samples/" + skey(s.id));
     try { await sref.update(upd); if (upd.sx) await writeStock(sref, { ...s, ...upd }); } catch {}
@@ -88,21 +57,13 @@ async function migrate(){
 async function maintenance(){
   if (!db || canWrite === false) return;
   try { await migrate(); } catch {}
-  try { await repairBatches(); } catch {}
   try { await fixStock(); } catch {}
   try { (await db.collection("samples").where("lp", "==", true).get()).docs.forEach(d => { const x = d.data(); if (x?.id) flushLedger(x.id); }); } catch {}
 }
 
 /* ---------- boot ---------- */
 const typingIn = sel => { const a = document.activeElement; return !!(a && a.closest?.(sel) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); };
-function rerenderSoon(){ clearTimeout(rerenderSoon.t); rerenderSoon.t = setTimeout(() => { if (tab === "board"){ if (typingIn("#bdPick.todo")) return void setTimeout(rerenderSoon, 1200); renderBoard(); } else if (tab === "ledger") renderLedger(); else if (tab === "batches" && !typingIn("#view-batches")) renderBatches(); else if (tab === "results") renderResultsTab(); else if (tab === "storage") renderStorage(); else if (tab === "track" && !current && !typingIn("#view-track")) renderTrack(); updateCount(); }, 80); }
-let monthBatchSub = null, monthBatchKey = "";
-function watchBatches(){
-  if (!db) return;
-  monthBatchKey = monthKey(Date.now());
-  if (monthBatchSub) monthBatchSub();
-  monthBatchSub = db.collection("batches").where("month", "==", monthBatchKey).onSnapshot(snap => { monthBatches = snap.docs.map(d => d.data()).filter(b => b && b.id); rerenderSoon(); }, () => {});
-}
+function rerenderSoon(){ clearTimeout(rerenderSoon.t); rerenderSoon.t = setTimeout(() => { if (tab === "board"){ if (typingIn("#bdPick.todo")) return void setTimeout(rerenderSoon, 1200); renderBoard(); } else if (tab === "ledger") renderLedger(); else if (tab === "results") renderResultsTab(); else if (tab === "storage") renderStorage(); else if (tab === "track" && !current && !typingIn("#view-track")) renderTrack(); updateCount(); }, 80); }
 /* Default limits added in version 23 (P01 on, for the new routes) join limits saved before them; once settings are saved again, a limit the
    lab manager removed stays removed. */
 const LIMITS_V = 23;
@@ -140,8 +101,8 @@ setTab(tab);
         routes: mergeRoutes(d.routes, d.removed), removed: Array.isArray(d.removed) ? d.removed.slice() : [],
         sections: Array.isArray(d.sections) && d.sections.length ? clone(d.sections) : clone(DEFAULT_CONFIG.sections),
         users, tz: d.tz && tzOk(d.tz) ? d.tz : DEFAULT_CONFIG.tz,
-        crms: Array.isArray(d.crms) && d.schema >= 12 ? clone(d.crms) : mergeCrms(d.crms), limits: Array.isArray(d.limits) ? newLimits(d.limits, d.limitsV) : clone(DEFAULT_CONFIG.limits), routeUse: isMap(d.routeUse) ? clone(d.routeUse) : {}, depts: Array.isArray(d.depts) && d.depts.length ? clone(d.depts) : clone(DEFAULT_CONFIG.depts), resultsPublic: !!d.resultsPublic, relMode: d.relMode === "signoff" ? "signoff" : "now", batchReq: !!d.batchReq, qcStep: !!d.qcStep, work: workOf(d.work), logo: logoOf(d.logo),
-        crmLog: Array.isArray(d.crmLog) ? d.crmLog.slice(0, CRM_LOG_MAX) : [], cols: Array.isArray(d.cols) ? clone(d.cols) : []
+        limits: Array.isArray(d.limits) ? newLimits(d.limits, d.limitsV) : clone(DEFAULT_CONFIG.limits), routeUse: isMap(d.routeUse) ? clone(d.routeUse) : {}, depts: Array.isArray(d.depts) && d.depts.length ? clone(d.depts) : clone(DEFAULT_CONFIG.depts), resultsPublic: !!d.resultsPublic, relMode: d.relMode === "signoff" ? "signoff" : "now", qcStep: !!d.qcStep, work: workOf(d.work), logo: logoOf(d.logo),
+        cols: Array.isArray(d.cols) ? clone(d.cols) : []
       };
     }
     if (!draftDirty) draft = null;          // someone else's save shows up unless you have unsaved edits
@@ -165,12 +126,6 @@ setTab(tab);
     rerenderSoon();
   }, () => { setSync("off"); toast("Lost connection to the register. Reload the page."); });
   watchReleasedToday();
-  db.collection("batches").where("open", "==", true).onSnapshot(snap => {
-    openBatches.clear(); snap.docs.forEach(d => { const b = d.data(); if (b && b.id) openBatches.set(d.id, b); });
-    if (batchSel && !batchUnsub) batchLive = openBatches.get(batchSel) || batchLive;
-    rerenderSoon();
-  }, () => {});
-  watchBatches();
   watchSectionResults(); resultsBadge(); watchStoreDue();
   watchReq(); watchStaffResults(); watchConf();
   if (current) openSample(current.id); else renderTab();
@@ -179,7 +134,6 @@ setTab(tab);
   setInterval(maintenance, 5 * 60000);
   setInterval(() => {
     if (dayKey(Date.now()) !== relDayWatched) watchReleasedToday();
-    if (monthKey(Date.now()) !== monthBatchKey) watchBatches();
     watchStoreDue();
     if (tab === "board") renderBoard();
     else if (tab === "track" && !typingIn("#view-track")) renderTrack();

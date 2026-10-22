@@ -123,21 +123,7 @@ async function exportStorageCsv(rows){
   catch { toast("Download was not saved."); }
 }
 
-/* The selected lab batch's samples, wherever they are now: a released sample may already be in storage, off the board. */
-const batchSamps = new Map();
-let batchSampSub = null, batchSampFor = "";
-function watchBatchSamples(id){
-  if (id === batchSampFor) return;
-  if (batchSampSub){ batchSampSub(); batchSampSub = null; }
-  batchSampFor = id || ""; batchSamps.clear();
-  if (!db || !id) return;
-  batchSampSub = db.collection("samples").where("lbs", "array-contains", id).onSnapshot(snap => {
-    if (batchSampFor !== id) return;
-    batchSamps.clear(); snap.docs.forEach(d => { const x = d.data(); if (x && x.id) batchSamps.set(x.id, x); });
-    if (tab === "batches" && batchSel === id) rerenderSoon();
-  }, () => {});
-}
-const bs = id => samples.get(id) || batchSamps.get(id);
+const bs = id => samples.get(id);
 
 /* Version 13: the in-lab flag and a stock record for every received sample. */
 function upgrade13(s){ return { v: 13, lab: labOf(s), ...(stockOf(s) ? { sx: 1 } : {}) }; }

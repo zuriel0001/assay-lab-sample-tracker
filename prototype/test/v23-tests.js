@@ -201,10 +201,10 @@ const rv = (id, k) => doc(id).results?.rows?.[k]?.v;
   const sy = await ids(Tc);
   const rep = [",,,FAA505,FAA505,SOL81X,SOL81X", ",,,1,2,1,2", ",,,ppm,ppm,mg/L,mg/L", "Lab no,Sample,Description,AuFA,AuFA,AuSX,AuSX",
     "1,SYN-FEED,CIL feed,1.20,1.22,0.150,0.152", "2,SYN-TAIL,CIL tails,0.14,0.15,0.010,0.011"].join("\n") + "\n";
-  await H.tab(Sv, "batches"); await Sv.waitForSelector('[data-attach="all"]');
+  await H.tab(Sv, "results"); await Sv.waitForSelector('[data-attach="all"]');   // v35: the Results tab carries Attach results file
   let ub = await H.attachFile(Sv, "all", "shift-report.csv", rep);
   if (await Sv.$("#upMove")){ await Sv.click("#upMove"); await waitFor(() => sy.every(id => doc(id).stageKey !== "received"), 8000); await Sv.waitForTimeout(600); ub = (await Sv.textContent("#upBox")).replace(/\s+/g, " "); }
-  check(!/Two columns for one result/.test(ub) && /plant shift batch/i.test(ub) && /solution AAS run/i.test(ub), "AuFA goes to the plant batch and AuSX to the solution batch, with no clash: " + (ub.match(/Saves.*?(Check|Not used|Values read)/) || [""])[0].slice(0, 220));
+  check(!/Two columns for one result/.test(ub) && /Results on 2 sample records/.test(ub), "v35: AuFA and AuSX go on both sample records, with no clash: " + (ub.match(/Saves.*?(Check|Not used|Values read)/) || [""])[0].slice(0, 220));
   await H.saveAttach(Sv); await waitFor(() => sy.every(id => doc(id).results), 8000);
   check(rv(sy[0], "Au") === 1.2 && rv(sy[0], "Au_s") === 0.15 && rv(sy[1], "Au") === 0.14 && rv(sy[1], "Au_s") === 0.01, "each record has its AuFx and AuSx from the report");
 

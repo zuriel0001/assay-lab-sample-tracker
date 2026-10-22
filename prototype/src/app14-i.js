@@ -123,10 +123,10 @@ function workProblem(w){
 
 /* ---------- Settings tabs ---------- */
 /* Settings draws every section on one page; the tabs show one group at a time, keyed by each section's heading, and keep the single Save. */
-const CFG_TABS = [["accounts", "Accounts"], ["sections", "Sections and site time"], ["crms", "Reference materials"], ["limits", "Limits"], ["files", "Results files"], ["routes", "Workflow routes"]];
+const CFG_TABS = [["accounts", "Accounts"], ["sections", "Sections and site time"], ["limits", "Limits"], ["files", "Results files"], ["routes", "Workflow routes"]];
 let cfgTab = "accounts";
 const paneOf = h => /^(Staff accounts|Access requests|Results and certificates)/.test(h) ? "accounts"
-  : /^(Submitting sections|Site time|Lab working hours|Company logo)/.test(h) ? "sections" : /^Reference materials/.test(h) ? "crms"
+  : /^(Submitting sections|Site time|Lab working hours|Company logo)/.test(h) ? "sections"
   : /^Action and permit limits/.test(h) ? "limits" : /^Results files/.test(h) ? "files" : /^Workflow routes/.test(h) ? "routes" : "";
 function splitSettings(v){
   const stack = v.firstElementChild; if (!stack) return;

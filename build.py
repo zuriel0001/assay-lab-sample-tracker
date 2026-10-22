@@ -311,8 +311,8 @@ drop('''<p class="small muted" style="margin:0">Each material is kept for its ow
 put('''Describe it in the note; it is printed on the record.</div>''', '''Describe it in the note.</div>''')
 put('''. The lab sends them to the submitting section; ask the Assay Lab for the certificate. A copy you hold is genuine if its number and check code match these.</p>''', '''.</p>''')
 put('''.join(", ")}. They stay on record.</div>''', '''.join(", ")}.</div>''')
-put(''' : "Type each result."} Use <b>&lt;DL</b> when a result is below the detection limit. The dot is the decimal mark; a number such as 1,500 is refused because it could mean 1500 or 1.5.</p>''',
-    ''' : ""} Use <b>&lt;DL</b> below the detection limit; the dot is the decimal mark.</p>''')
+put('''Type each result. Use <b>&lt;DL</b> when a result is below the detection limit. The dot is the decimal mark; a number such as 1,500 is refused because it could mean 1500 or 1.5.</p>''',
+    '''Use <b>&lt;DL</b> below the detection limit; the dot is the decimal mark.</p>''')
 put('''For a transcription or calculation error only. A result that needs re-testing goes back for re-assay instead. The corrected results go through the same range, check and limit tests as a first release, and another lab supervisor or the lab manager approves them before ${esc(last.no)} is replaced. ${esc(last.no)} stays on record.''',
     '''For transcription or calculation errors only.''')
 
@@ -346,20 +346,13 @@ drop('''<div class="notice">Edit accounts, sections, the site time zone and work
 drop('''<p class="small muted" style="margin:0">Anyone can register a sample at the lab without an account. Lab technicians confirm receipt, register walk-in samples and record stages; their name is filled in automatically as "Received by" and on every stage update. Lab supervisors also release results, approve skipped steps and reverse ledger movements recorded by mistake. Viewers can see the board and ledger but change nothing. A section account sees only the released results of its own section's samples, with a notice when new ones are ready. Anyone can look up a sample by ID without an account.</p>''')
 drop('''<p class="small muted" style="margin:0">Sample IDs are the section code, the submission date and a running number, for example <span class="mono">${esc(exampleId((draft.sections[1] || draft.sections[0] || {code:"EXP"}).code))}</span>. Each section's number restarts at 0001 every day. Codes are 2 to 5 capital letters; changing a code only affects new samples.</p>''')
 drop('''<p class="small muted" style="margin:0">Sample ID dates, ledger months and every time on screen use the site's time zone, whatever each phone or PC is set to. Use a name from the IANA list, such as Africa/Accra or Africa/Johannesburg.</p>''')
-put('''<span>The certified values and standard deviations below are placeholders for the prototype. Replace them with the values on your own CRM certificates before relying on the QC checks.</span>''',
-    '''<span>Replace them with the values on your CRM certificates.</span>''')
-drop('''<p class="small muted" style="margin:0">A material certified for several results has one row per result under the same ID (type an existing ID in a new row). Lab batches pick reference materials for their analyte and unit, preferring those whose batch types list the batch's prefix (FA fire assay, GC grade control, FG gravimetric, SF screen fire assay, PL plant, PT tails, CC concentrate, BU bullion, SL solutions, EL eluate, CB carbon, CY and CS cyanide, EW water, IC ICP, ME multi-element, LE LECO, AR aqua regia, LW cyanide-soluble gold, SO soil, AB ARD, DN density). Leave batch types empty to allow any. A standard deviation is needed wherever the rule is in SD.</p>''')
 put('''<span>The permit and guideline limits (marked Permit) are placeholders. Replace them with the limits in the site's environmental permit before go-live.</span>''',
     '''<span>Replace them with the limits in the site's permit.</span>''')
 drop('''<p class="small muted" style="margin:0">A result past a limit raises an alert on the sample and on the board. The release waits until someone records what was done and who was told; the record is printed on the certificate. "Only when" limits a row to one sampling point.</p>''')
 drop('''<p class="small muted" style="margin:0">A sample's route is chosen from its sample type, test and purpose when it is submitted. Changes apply to samples submitted after you save; samples already in the lab keep the steps they started with. Steps 1 and 2 (Submitted, Received &amp; logged) and the closing steps (Results released, storage, return or disposal) are shared by every route.</p>''')
 drop('''${inUse ? `<p class="small muted" style="margin:0">${inUse} open sample(s) are on this route. They keep the steps, QA/QC rule and retention they started with.</p>` : ""}''')
-put('''<span class="small muted" style="font-weight:400">${R.qcp ? "Written from the batch type, so it says what the batch enforces. Choosing another batch type or test rewrites it; you can add notes after it." : "Describe the checks. Only the checks built into the test's results are enforced."}</span>''', '')
 
-# Lab batches, Results
-put('''No samples are waiting for a batch. Samples join a batch after receipt and before QA/QC review.</p>''', '''No samples are waiting for a batch.</p>''')
-put('''Up to ${np.size} samples. QC positions are added automatically.</span>''', '''Up to ${np.size} samples.</span>''')
-put('''<span class="small muted">Each gets its own certificate.${mineHeld ? ` ${mineHeld} with results''', '''<span class="small muted">${mineHeld ? `${mineHeld} with results''')
+# Results
 put('''Certificates of analysis for samples your section submitted, newest first. ${fresh ?''', '''${fresh ?''')
 put(''' : "Nothing new since you last looked."} In the production system this notice also goes to the section by email.</p>''', ''' : "Nothing new since you last looked."}</p>''')
 

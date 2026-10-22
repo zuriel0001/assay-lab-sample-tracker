@@ -86,41 +86,6 @@ const DEFAULT_CONFIG = {
   ],
   /* Site time zone: sample ID dates, ledger months and every time shown use it, whatever the device is set to. */
   tz: "Africa/Accra",
-  /* Reference materials for lab batches. EXAMPLE values only: replace them with the lab's own certified values and SDs on the Settings tab.
-     an = analyte symbol, u = unit, val = certified value, sd = certified standard deviation, use = batch prefixes it is run in. */
-  crms: [
-    { id: "STD-AU-LOW",  name: "Low-grade gold ore",        an: "Au",  u: "g/t", val: 0.52, sd: 0.025, use: "FA, GC, PT, SF" },
-    { id: "STD-AU-MED",  name: "Medium-grade gold ore",     an: "Au",  u: "g/t", val: 2.08, sd: 0.07,  use: "FA, GC, PL, SF" },
-    { id: "STD-AU-HIGH", name: "High-grade gold ore",       an: "Au",  u: "g/t", val: 9.85, sd: 0.26,  use: "FA, PL, FG" },
-    { id: "STD-AU-CONC", name: "Gold concentrate",          an: "Au",  u: "g/t", val: 98.6, sd: 2.4,   use: "FG, CC" },
-    { id: "STD-AU-CNS",  name: "Ore with certified cyanide-soluble gold", an: "Au", u: "g/t", val: 1.62, sd: 0.09, use: "LW" },
-    { id: "STD-CARBON",  name: "Loaded carbon",             an: "Au",  u: "g/t", val: 1520, sd: 45,    use: "CB" },
-    { id: "PROOF-AU",    name: "Proof gold",                an: "Au",  u: "‰",   val: 999.9, sd: 0,    use: "BU" },
-    { id: "SOL-AU-0.2",  name: "Gold solution standard 0.2 mg/L", an: "Au", u: "mg/L", val: 0.2, sd: 0, use: "SL" },
-    { id: "SOL-AU-1",    name: "Gold solution standard 1 mg/L",   an: "Au", u: "mg/L", val: 1,   sd: 0, use: "SL" },
-    { id: "SOL-AU-50",   name: "Gold solution standard 50 mg/L",  an: "Au", u: "mg/L", val: 50,  sd: 0, use: "EL" },
-    { id: "CN-WAD-10",   name: "WAD cyanide check standard",      an: "wad", u: "mg/L", val: 10, sd: 0, use: "CY, EW" },
-    /* A reference material certified for several results has one row per result, under the same ID. */
-    { id: "CN-SPK",      name: "Cyanide speciation spike",  an: "free",  u: "mg/L", val: 5,  sd: 0, use: "CS" },
-    { id: "CN-SPK",      name: "Cyanide speciation spike",  an: "wad",   u: "mg/L", val: 10, sd: 0, use: "CS" },
-    { id: "CN-SPK",      name: "Cyanide speciation spike",  an: "total", u: "mg/L", val: 12, sd: 0, use: "CS" },
-    { id: "CN-SPK",      name: "Cyanide speciation spike",  an: "scn",   u: "mg/L", val: 20, sd: 0, use: "CS" },
-    { id: "SPK-W-MET",   name: "Water metals spike",        an: "As",  u: "mg/L", val: 0.05,  sd: 0, use: "EW" },
-    { id: "SPK-W-MET",   name: "Water metals spike",        an: "Hg",  u: "mg/L", val: 0.002, sd: 0, use: "EW" },
-    { id: "SPK-W-MET",   name: "Water metals spike",        an: "Cu",  u: "mg/L", val: 0.5,   sd: 0, use: "EW" },
-    ...[["Cu", "ppm", 450, 18], ["Ag", "ppm", 2.1, 0.15], ["As", "ppm", 120, 8], ["Sb", "ppm", 15, 1.5], ["Zn", "ppm", 85, 5], ["Pb", "ppm", 40, 3], ["Fe", "%", 4.2, 0.15], ["S", "%", 0.85, 0.04]]
-      .map(([an, u, val, sd]) => ({ id: "STD-ICP-LOW", name: "Low copper ore, multi-element", an, u, val, sd, use: "IC, ME" })),
-    ...[["Cu", "ppm", 2500, 80], ["Ag", "ppm", 12.5, 0.6], ["As", "ppm", 1850, 70], ["Sb", "ppm", 95, 6], ["Zn", "ppm", 620, 25], ["Pb", "ppm", 310, 14], ["Fe", "%", 7.8, 0.25], ["S", "%", 3.6, 0.12], ["Hg", "ppm", 2.4, 0.2]]
-      .map(([an, u, val, sd]) => ({ id: "STD-ICP-HIGH", name: "Copper-gold ore, multi-element", an, u, val, sd, use: "IC, ME" })),
-    { id: "STD-CU-CN",   name: "Ore with certified cyanide-soluble copper", an: "Cu_cn", u: "ppm", val: 320, sd: 15, use: "ME" },
-    { id: "STD-CONC-ME", name: "Gold concentrate, mercury and arsenic", an: "Hg", u: "ppm", val: 12,   sd: 0.8,  use: "ME" },
-    { id: "STD-CONC-ME", name: "Gold concentrate, mercury and arsenic", an: "As", u: "%",   val: 1.85, sd: 0.07, use: "ME" },
-    ...[["S", 2.45, 0.06], ["S2", 2.1, 0.06], ["C", 1.2, 0.04], ["Corg", 0.35, 0.03]].map(([an, val, sd]) => ({ id: "STD-LECO", name: "Sulphide ore for LECO", an, u: "%", val, sd, use: "LE" })),
-    { id: "STD-AU-PPB",  name: "Low-level gold soil",       an: "Au",  u: "ppb", val: 48,   sd: 3,     use: "AR" },
-    ...[["As", 85, 6], ["Hg", 0.9, 0.08], ["Pb", 120, 7], ["Cu", 64, 4]].map(([an, val, sd]) => ({ id: "SOIL-ME", name: "Soil, multi-element", an, u: "mg/kg", val, sd, use: "SO" })),
-    { id: "ARD-NP",      name: "ARD reference material",    an: "np",  u: "kg CaCO₃/t", val: 120, sd: 6, use: "AB" },
-    { id: "DEN-BLOCK",   name: "Reference density block",   an: "sg",  u: "",    val: 2.70, sd: 0.01,  use: "DN" }
-  ],
   /* Action limits from the routes' re-assay triggers, and the site's permit or guideline limits (EXAMPLE values: replace them with the
      site's environmental permit). A result past a limit raises an alert on the board; the release waits until someone records what was
      done and who was told. when: only for samples whose sampling point is this. */
@@ -179,9 +144,7 @@ const DEFAULT_CONFIG = {
   ],
   /* Results are shown to signed-in staff only, unless an admin opens them to anyone with the sample ID. */
   resultsPublic: false,
-  /* A sample needs a lab batch with its QC before QA/QC review and release (off: results may be typed or attached on the record). */
-  batchReq: false,
-  /* Routes' QA/QC review step (off: the release follows the last analysis step; QA/QC is judged on the QA/QC sample sets and lab batches). */
+  /* Routes' QA/QC review step (off: the release follows the last analysis step; QA/QC is judged on the QA/QC sample sets). */
   qcStep: false,
   /* Routes the lab manager turned on or off (code: true / false); any other route is in use unless it is in RETIRED_ROUTES. */
   routeUse: {},
@@ -192,10 +155,10 @@ let cfg = clone(DEFAULT_CONFIG);
 let db = null, user = null, canWrite = null;
 const ROLES = { admin: "Admin (lab manager)", super: "Lab supervisor", tech: "Lab technician", viewer: "Viewer", section: "Section account" };
 const ROLE_TABS = {
-  admin:  ["track", "board", "submit", "results", "batches", "storage", "ledger", "routes", "stages"],
-  super:  ["track", "board", "submit", "results", "batches", "storage", "ledger", "routes"],
-  tech:   ["track", "board", "submit", "batches", "storage", "ledger", "routes"],
-  viewer: ["track", "board", "submit", "results", "batches", "storage", "ledger", "routes"],
+  admin:  ["track", "board", "submit", "results", "storage", "ledger", "routes", "stages"],
+  super:  ["track", "board", "submit", "results", "storage", "ledger", "routes"],
+  tech:   ["track", "board", "submit", "results", "storage", "ledger", "routes"],
+  viewer: ["track", "board", "submit", "results", "storage", "ledger", "routes"],
   section: ["track", "results", "submit", "routes"]
 };
 let session = null;   // { u, name, role, sec } of the signed-in demo account; null = public lookup only
@@ -322,7 +285,7 @@ const routesForTest = (test, keep = "") => (cfg.routes || []).filter(r => (r.tes
 function mergeRoutes(saved, removed){
   const list = Array.isArray(saved) ? saved : [];
   const have = new Set(list.map(r => r.code)), gone = new Set(removed || []);
-  return [...clone(list).map(grind80).map(cilOnly).map(jobName).map(withQcp), ...clone(DEFAULT_ROUTES.filter(r => !have.has(r.code) && !gone.has(r.code)))];
+  return [...clone(list).map(grind80).map(cilOnly).map(jobName).map(noQcp), ...clone(DEFAULT_ROUTES.filter(r => !have.has(r.code) && !gone.has(r.code)))];
 }
 /* The lab pulverises to 80% passing 75 µm (version 16): routes saved with the earlier 85% wording are brought into line. */
 function grind80(r){
@@ -337,16 +300,8 @@ function cilOnly(r){
 }
 /* 21 Oct: "change the name Shift Job to Shift End": the job route saved under its first name takes the new one. */
 function jobName(r){ if (r.code === "JOB" && r.name === "Plant shift job (one report)") r.name = "Shift end or MET Lab job (one report)"; return r; }
-/* Routes saved before lab batches existed get the batch type of the default route (or of a default route for the same test), and QA/QC text that matches it. */
-function withQcp(r){
-  if (r.qcp != null){ if (!Array.isArray(r.qcg)) r.qcg = routeGroups(r); return r; }
-  const d = DEFAULT_ROUTES.find(x => x.code === r.code) || DEFAULT_ROUTES.find(x => x.qcp && (x.tests || [])[0] === (r.tests || [])[0]);
-  r.qcp = d?.qcp || "";
-  r.qcg = routeGroups(r);
-  if (d && d.code === r.code) r.qc = d.qc;
-  else if (r.qcp) r.qc = routeQcText(r, r.qcg);
-  return r;
-}
+/* v35: a route saved while lab batches existed drops its batch type; its QA/QC text stays as written. */
+function noQcp(r){ delete r.qcp; delete r.qcg; return r; }
 const editedRoutes = routes => routes.filter(r => { const d = DEFAULT_ROUTES.find(x => x.code === r.code); return !d || JSON.stringify(d) !== JSON.stringify(r); });
 const testRank = r => { const i = TESTS.findIndex(t => t.key === (r.tests || [])[0]); return i < 0 ? 999 : i; };
 const routeCat = r => testOf((r.tests || [])[0])?.cat || "Other";
@@ -391,25 +346,15 @@ const routeTat = r => routeSpan(r);
 /* What a sample copies from its route, so later edits to the route never change samples already in the lab. */
 function routeFields(r, test, s){
   const out = { route: r.code, routeName: r.name, test, testName: testOf(test)?.name || "", plan: buildPlan(r), retention: clone(r.retention || []),
-    qc: r.qc || "", qcp: r.qcp || "", qcg: groupsFor(r, test), triggers: clone(r.triggers || []), two: !!r.two, grav: "", dil: [] };
+    qc: r.qc || "", triggers: clone(r.triggers || []), two: !!r.two, grav: "", dil: [] };
   /* v31: a sample sent for other analyses too keeps them: their steps join the route's, and its name lists them all. */
   const t2 = (s?.tests2 || []).filter(k => k !== test), xa = s?.xan || [];
   if (t2.length || xa.length) Object.assign(out, { plan: extraSteps(out.plan, t2, xa, s.typeKey, s.purposeKey), testName: anNames(test, t2, xa) });
   return out;
 }
-/* The lab batches a route's samples join for one of its tests: the route's own for its first test; for another test, those whose results
-   the test reports (its main result at least). */
-function groupsFor(r, test){
-  const gs = clone(Array.isArray(r.qcg) ? r.qcg : routeGroups(r)), res = RESULTS[test];
-  if (!res || !test || test === (r.tests || [])[0]) return gs;
-  const ok = k => res.an.some(a => a.k === k && !a.t && !a.calc);
-  const out = gs.map(g => ({ p: g.p, k: g.k.filter(ok) })).filter(g => g.k.length);
-  if (r.qcp && QC_PROFILES[r.qcp] && !out.some(g => g.p === r.qcp)) out.unshift({ p: r.qcp, k: [qcAnalyte(res).k] });
-  return out;
-}
 /* A QA/QC review step counts only while Settings use it. A sample keeps one it is at or has been through, and one it passed while the
    step was not used stays out when it is used again. Samples keep their stored steps, so the setting can be changed back. */
-const qcStepOn = () => !!cfg.qcStep && cfg.relMode === "signoff";   // v24: the QA/QC review step and the lab batch rule belong to the sign-off release
+const qcStepOn = () => !!cfg.qcStep && cfg.relMode === "signoff";   // v24: the QA/QC review step belongs to the sign-off release
 const stepsUsed = stages => qcStepOn() ? stages : stages.filter(x => x.phase !== "qc");
 const planMemo = new WeakMap();
 const planOf = s => {

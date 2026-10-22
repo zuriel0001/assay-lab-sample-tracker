@@ -146,11 +146,11 @@ async function typeSearch(page, q){ await page.click("#lookupInput"); await page
   await H.tab(Tc, "ledger"); await Tc.waitForSelector("#view-ledger table.cardy tbody tr");
   check(await Tc.$eval("#view-ledger table.cardy", t => getComputedStyle(t).display === "table" && getComputedStyle(t.querySelector("thead")).display !== "none"), "on a computer the ledger is still a table");
 
-  log("Lab batches are optional unless Settings require them");
+  log("No lab batches (v35): results are typed or attached on the record");
   const Ad = await newUser(browser, { uid: "u_a", name: "Admin", canEdit: true, names }); await signIn(Ad, "admin");
-  await H.tab(Ad, "stages"); await Ad.waitForSelector("#cfgBatchReq");
-  check(await Ad.$eval("#cfgBatchReq", e => e.value) === "0" && /Not required/.test(await Ad.$eval("#cfgBatchReq", e => e.selectedOptions[0].textContent)), "Settings: Lab batch before release is Not required by default");
-  // v22: these checks are about lab batches around a QA/QC review step, which is now off by default (v22-tests covers that), so use it here.
+  await H.tab(Ad, "stages"); await Ad.waitForSelector("[data-cfgtab]");
+  check(!(await Ad.$("#cfgBatchReq")), "Settings has no lab batch setting");
+  // v22: these checks are about the QA/QC review step, which is now off by default (v22-tests covers that), so use it here.
   await H.cfgTab(Ad, "accounts").catch(() => {}); await Ad.selectOption("#cfgQcStep", "1"); await Ad.click("#cfgSave");
   await waitFor(() => store["settings/stages"]?.qcStep === true, 5000); await Tc.waitForTimeout(500);
   await fillForm(Tc, "register", { section: "EXP", submitter: "Ama Mensah", count: 2, tags: "DH-201" }); const nb = await ids(Tc);
@@ -171,17 +171,10 @@ async function typeSearch(page, q){ await page.click("#lookupInput"); await page
   check(!/lab batch/i.test(relHold), "the release is not held for a lab batch" + (relHold ? ": " + relHold : ""));
   await Sv.click('[data-step="next"]'); await waitFor(() => doc(nb[0]).stageKey === "released", 6000);
   check(doc(nb[0]).stageKey === "released" && (doc(nb[0]).certs || []).length === 1, "a supervisor releases it and the certificate is issued");
-  await H.cfgTab(Ad, "accounts").catch(() => {}); await Ad.selectOption("#cfgBatchReq", "1"); await Ad.click("#cfgSave");
-  await waitFor(() => store["settings/stages"]?.batchReq === true, 5000); await Tc.waitForTimeout(500);
-  check(store["settings/stages"].batchReq === true, "the lab manager can require lab batches again");
   check(await toBeforeQc(Tc, nb[1]), "the second sample reaches the step before QA/QC review");
   await open(Tc, nb[1]);
-  check(/Put .* in a lab batch/.test(await text(Tc, "#holdNote")), "required again: before QA/QC review it asks for a lab batch");
-  await Ad.selectOption("#cfgBatchReq", "0"); await Ad.click("#cfgSave");
-  await waitFor(() => store["settings/stages"]?.batchReq === false, 5000); await Tc.waitForTimeout(500);
-  await open(Tc, nb[1]);
   const upR = await H.attachFile(Tc, `sample:${nb[1]}`, "fa-run.csv", `Sample ID,Au (g/t)\n${nb[1]},4.56\n`);
-  check(!/Saved with the lab batch/.test(upR) && /Results on 1 sample record/.test(upR) && !/New lab batch/.test(upR), "a results file attached on a record in no batch saves onto the record: " + upR.slice(upR.indexOf("Saves"), upR.indexOf("Saves") + 120));
+  check(!/Saved with the lab batch/.test(upR) && /Results on 1 sample record/.test(upR) && !/New lab batch/.test(upR), "a results file attached on a record saves onto the record: " + upR.slice(upR.indexOf("Saves"), upR.indexOf("Saves") + 120));
   await H.saveAttach(Tc); await waitFor(() => doc(nb[1]).results, 5000);
   check(Object.values(doc(nb[1]).results?.rows || {}).some(r => r.v === 4.56 && r.src === "file") && !Object.keys(store).some(k => k.startsWith("batches/") && JSON.stringify(store[k].pos || []).includes(nb[1])), "the gold 4.56 is on the record from the file, and no lab batch was made");
   await open(Tc, nb[1]);

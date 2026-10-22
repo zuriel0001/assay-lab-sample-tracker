@@ -1,7 +1,7 @@
 # Assay Lab Sample Tracker on Azure (free test deployment)
 
 This folder is the v26 Assay Lab Sample Tracker made to run outside Claude, on Microsoft Azure free tiers.
-It keeps the prototype's workflow exactly: routes, lab batches and QC, action limits, release at once (or a supervisor's sign-off), departments and evaluation,
+It keeps the prototype's workflow exactly: routes, QA/QC, action limits, release at once (or a supervisor's sign-off), departments and evaluation,
 amendments, certificates, the in/out ledger, walk-in registration and lookup without sign-in, and the roles.
 What changes is where data lives (Azure Cosmos DB), how staff sign in (their Microsoft account) and a server that
 decides who may read and change what.
@@ -165,7 +165,7 @@ the tracker already shapes them. Sources: [SQL free offer](https://learn.microso
 
 Staff see each other's names and roles but not their sign-in emails. A request gives no access by itself: a role
 comes only from the staff list in Settings, which only the admin saves; who approved or declined it, and when, stays
-on the request. The ledger, lab batches and stock records (which
+on the request. The ledger, old lab batches and stock records (which
 name shelves and tags) are staff only. Nobody deletes a sample, its stock record or a ledger day. A disposal written to the ledger must name a
 witness who is not the person recording it, and the monthly ledger sign-offs (signoff/<month>) are added only by a lab supervisor or the
 admin, in their own name, and never changed or deleted. On a critical sample (two-person custody: bullion, gravity concentrate, the gold
@@ -206,7 +206,7 @@ admin is added to the account list on their first visit to Settings; upgrades an
 member signs in; permission errors from the server are shown as such; the header says *Test system*; the prototype's
 explanatory paragraphs are taken out (labels, warnings, status lines and each route's own description stay).
 
-### Test results (2026-10-22, prototype v34: the month's audit pack, Excel or PDF, on the Ledger for the supervisor and manager; the Board's daily to-do of samples to put away and past their retention, with one-tap Store and Dispose)
+### Test results (2026-10-22, prototype v35: no Lab batches tab; results files attached from the Results tab onto the sample records; no reference materials or lab batch setting in Settings; old samples keep their lab batch, read only)
 
 | Suite | Result |
 |---|---|
@@ -215,21 +215,22 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 | `auth-tests.js` | 51 / 51 |
 | `azure-extra.js` | 74 / 74 (a stale copy of version.json older than the page never makes it reload itself; including a page left open reloading itself onto a new version, a backup restored into a second copy of the site, a visitor's batch page updating live, and a sample on a route no longer in use moving on) |
 | Prototype `run.js` | 107 / 107 |
-| Prototype `results-tests.js` | 92 / 93 |
-| Prototype `v12-tests.js` | 68 / 71 |
-| Prototype `v13-tests.js` | 26 / 26 (including 3,000 stored samples) |
+| Prototype `results-tests.js` | 44 / 44 (v35: the lab batch checks went with the tab) |
+| Prototype `v12-tests.js` | 56 / 58 |
+| Prototype `v13-tests.js` | 23 / 23 (including 3,000 stored samples) |
 | Prototype `review-tests-v11.js` | 41 / 41 |
 | Prototype `review-v11-scenarios.js` | 5 / 5 |
 | Prototype `hours-shortcut-tests.js` | 7 / 7 |
 | Prototype `v14-tests.js` | 27 / 27 (Settings tabs, lab working hours, bag labels: each QR code holds this site's tracking link) |
 | Prototype `work-hours-unit.js` | 14 / 14 |
 | Prototype `v15-tests.js` | 46 / 46 (design refresh: tabs, header, theme, board chips, wall screen, progress, Today, logo) |
-| Prototype `v16-tests.js` | 43 / 43 (walk-ins without sign-in, Submit after sign-in, 80% passing 75 µm, reference material edits and history, Other reason, receiver, board tiles and lanes, ZIJIN) |
+| Prototype `v16-tests.js` | 35 / 35 (walk-ins without sign-in, Submit after sign-in, 80% passing 75 µm, Other reason, receiver, board tiles and lanes, ZIJIN) |
 | Prototype `v17-tests.js` | 26 / 26 (one entry tab: Register signed out, Submit signed in with Received now for lab staff; handed to and badge number) |
 | Prototype `v18-tests.js` | 3 checks fail since v24 (it tests the Submit form and release as they were before v24; run in the project folder only). Before v24: 71 / 71 (results from the lab's own CSV and Excel reports, kept files, drafts, No QC in this run, batch steps, re-assay from Storage and the Ledger, the shorter form, site sample code and badge). Needs the lab's two real reports, which are not in GitHub; without them it is skipped. |
-| Prototype `v20-tests.js` | 71 / 71 (blind QA/QC re-assay: picks, blind IDs, what technicians see, comparisons on both records; a batch or a single sample on Submit and Register; the batch page and receiving a batch; the custody log scrolling) |
-| Prototype `v21-tests.js` | 61 / 61 (lab batches optional, header search suggestions, recently opened, same details again, phone tables as cards, batch progress, wording) |
+| Prototype `v20-tests.js` | 69 / 69 (blind QA/QC re-assay: picks, blind IDs, what technicians see, comparisons on both records; a batch or a single sample on Submit and Register; the batch page and receiving a batch; the custody log scrolling) |
+| Prototype `v21-tests.js` | 59 / 59 (header search suggestions, recently opened, same details again, phone tables as cards, batch progress, wording) |
 | Prototype `v22-tests.js` | 29 / 29 (no QA/QC review step unless Settings use it: release from the last analysis step, Ready for release on the board, picked results not missing, sampling-point limits) |
+| Prototype `v35-tests.js` | 19 / 19 on the prototype and on this build (no Batches tab for any role; Attach results file on the Results tab for technicians, supervisors and the lab manager; a results file's values on the sample records, the lab's repeat, blank and standard rows counted and not used; no reference materials or lab batch setting; old samples and certificates still showing their lab batch and QC result; blind QA/QC duplicates judged by the original's route) |
 | Prototype `v34-tests.js` | 43 / 43 on the prototype and on this build (the Board's once-a-day reminder and its to-do: to put away and past retention, a batch as one row, Store at the location typed, a critical sample's witness confirming from their own account, Dispose, Return and Send out with their rules, viewers without actions; the audit pack for the supervisor and manager only: the workbook opened in openpyxl with its Summary, Ledger, Disposals, Witness confirmations and Sign-offs sheets, the PDF opened in pypdf with the sign-off and its note; phone and desktop) |
 | Prototype `v31-tests.js` | 83 / 83 on the prototype and on this build (v33: with a tile, section or route filter on, empty Board lanes hide and the rest fill from the top left; entries kept when switching the kind of submission or a job's template; Batch samples first, counted codes, the hand-over pair; v32: ID groups first, a template's own codes replaced by its groups, folded group rows; a first code and the date make a batch's or a job's codes with the count continued; ID groups on Batch and on jobs, QA/QC's three; next free numbers; several analyses on a sample, ticked and typed, their steps, results by hand and by file, certificate; Other (type it) on route OTHER; Other… in the details lists; Shift end and MET Lab job sections; Other testwork) |
 | Prototype `v30-tests.js` | 21 / 21 on the prototype and on this build (the MET Lab's final samples on a route of their own: received, analysed, released, what is left returned to the MET Lab in the release with its ledger movement and the job off the board; the MET Lab's working on the batch page only, not on the certificate; carbon activity still tested here; Shift end unchanged) |
@@ -243,8 +244,8 @@ explanatory paragraphs are taken out (labels, warnings, status lines and each ro
 
 After the full-site check of 20–21 October (every tab and the main flows as a visitor, technician, supervisor, lab manager, section account and Metallurgy viewer, on a computer, a phone and in dark mode, on this build with the real API core and made-up data: nothing cut off, no sideways scroll, no console errors), every prototype suite was run on the prototype page and passes (run.js 107, results-tests 93, v12 71, v13 26, v14 27, v15 46, v16 42, v17 25, v20 71, v21 61, v22 29, v23 53, v24 89, v25 116, v26 31, v27 32, v28 46, v29 29, v30 21, review 41 + 5, hours 7, work hours 14), and every suite above was run on this build with the results in the table.
 
-No console errors in any suite. The 4 prototype checks that don't pass all expect a page **nobody is signed in to** to
-upgrade older records (3) or finish a lab batch a crashed device left half-made (1). On Azure the public can't
+No console errors in any suite. The 2 prototype checks that don't pass both expect a page **nobody is signed in to** to
+upgrade older records. On Azure the public can't
 change records, so these run when lab staff sign in, and every five minutes on staff pages (`azure-extra.js` checks
 the upgrade on sign-in, including the new stock record). Real data on Azure starts at v13, so the upgrade itself only
 matters for the tests.

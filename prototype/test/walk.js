@@ -2,23 +2,27 @@
 // Run: NODE_PATH=$(npm root -g) node walk.js [output folder] [only]
 const fs = require("fs");
 const H = require("./harness");
-const { store, newUser, launch, signIn, fillForm, ids, open, doc, waitFor, createBatch, fillBatch, saveBatch } = H;
+const { store, newUser, launch, signIn, fillForm, ids, open, doc, waitFor } = H;
 const OUT = process.argv[2] || __dirname + "/walk"; fs.mkdirSync(OUT, { recursive: true });
 const ONLY = process.argv[3] || "";
 const names = {};
 const log = (...a) => console.log("•", ...a);
 async function receipt(page, id){ await open(page, id); await page.click('[data-receipt="confirm"]'); await waitFor(() => doc(id).stageKey === "received"); await page.waitForTimeout(300); }
 async function release(page, id){ await open(page, id); await page.click('[data-step="next"]'); await waitFor(() => doc(id).stageKey === "released", 5000); await page.waitForTimeout(300); }
-async function groupMove(page, sids, toKey){
-  for (let g = 0; g < 15; g++){ const k = doc(sids[0]).stageKey; if (k === toKey) return true; await page.click(`[data-bmove="${k}"]`); await waitFor(() => sids.every(id => doc(id).stageKey !== k), 6000); await page.waitForTimeout(250); }
-  return doc(sids[0]).stageKey === toKey;
-}
 async function material(page, id, k, what, ref){
   await open(page, id); const before = JSON.stringify(doc(id).materials);
   await page.selectOption("#mx_" + k, what); if (ref != null) await page.fill("#mr_" + k, ref);
   await page.click(`[data-mat="${k}"]`); await waitFor(() => JSON.stringify(doc(id).materials) !== before && !doc(id).sx, 5000); await page.waitForTimeout(250);
 }
-const showBatch = async (page, id) => { await H.tab(page, "batches"); await page.waitForSelector(`[data-bsel="${id}"]`, { timeout: 5000 }); await page.click(`[data-bsel="${id}"]`); await page.waitForSelector("#batchBox", { timeout: 5000 }); await page.waitForTimeout(250); };
+/* Walks one sample on its record to the step; types results there when given. */
+async function walkTo(page, id, key, vals){
+  await open(page, id);
+  for (let g = 0; g < 16 && doc(id).stageKey !== key; g++){ const k = doc(id).stageKey; await page.click('[data-step="next"]'); await waitFor(() => doc(id).stageKey !== k, 4000); await page.waitForTimeout(250); }
+  if (!vals) return;
+  await open(page, id); await page.$eval("#resBox", d => { d.open = true; });
+  for (const [k, v] of Object.entries(vals)) await page.fill("#rs_" + k, v);
+  const v0 = doc(id).results?.v || 0; await page.click("#rsSave"); await waitFor(() => (doc(id).results?.v || 0) > v0, 4000); await page.waitForTimeout(250);
+}
 let n = 0;
 async function shot(page, name, full = true){ n++; const f = `${OUT}/${String(n).padStart(3, "0")}-${name}.png`; await page.waitForTimeout(500); await page.screenshot({ path: f, fullPage: full }); }
 async function allTabs(page, who){
@@ -54,11 +58,8 @@ async function allTabs(page, who){
   await P.waitForTimeout(1200);
   await fillForm(P, "submit", { section: "EXP", submitter: "Ama Mensah", count: 3, tags: "DH-101" }); const ex = await ids(P);
   for (const id of ex) await receipt(Tc, id);
-  const b0 = await createBatch(Tc, "fa50", ex);
-  await groupMove(Tc, ex, "weigh");
   const AU = { [ex[0]]: "1.20", [ex[1]]: "2.50", [ex[2]]: "0.80" };
-  await showBatch(Tc, b0); await fillBatch(Tc, b0, sid => AU[sid] || "1.00"); await saveBatch(Tc, b0);
-  await groupMove(Tc, ex, "qc");
+  for (const id of ex){ await walkTo(Tc, id, "weigh", { Au: AU[id] }); await walkTo(Tc, id, "qc"); }
   for (const id of ex) await release(Sv, id);
   for (const id of ex) for (const [i, m] of doc(id).materials.entries()) await material(Tc, id, m.k, "store", `Rack 3-${i + 1}`);
   log("stored", ex.join(" "));

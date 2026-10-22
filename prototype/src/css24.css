@@ -149,7 +149,6 @@ details.route-mini .code{background:var(--panel)}
 .chip .cid .rc{white-space:nowrap}
 th{white-space:normal}
 .cstats .stat.zero[aria-pressed="true"]{outline:none}
-.batch-bar{gap:8px;align-items:center}
 /* v24c: scan a label, receive several, ledger sign-off, turnaround */
 :root{--ic-scan:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10'/%3E%3C/svg%3E")}
 header.top .lookup .btn.scan-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.28);color:#fff;gap:8px}

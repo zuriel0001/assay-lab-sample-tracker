@@ -84,7 +84,7 @@ async function newUser(browser, opts, viewport = { width: 1280, height: 900 }, s
 const launch = () => chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
 const T = new Date().toISOString().slice(0, 10).replace(/-/g, "");   // site time zone in the tests is Africa/Accra (UTC)
 /* The tabs a person can open, in menu order, whether they sit in the bar or in the More menu. */
-const visibleTabs = p => p.$$eval("#tabs button[data-tab]", bs => bs.filter(b => !b.hidden).map(b => b.dataset.tab).sort((a, b) => ["board", "track", "submit", "register", "results", "batches", "storage", "ledger", "routes", "stages", "login"].indexOf(a) - ["board", "track", "submit", "register", "results", "batches", "storage", "ledger", "routes", "stages", "login"].indexOf(b)));
+const visibleTabs = p => p.$$eval("#tabs button[data-tab]", bs => bs.filter(b => !b.hidden).map(b => b.dataset.tab).sort((a, b) => ["board", "track", "submit", "register", "results", "storage", "ledger", "routes", "stages", "login"].indexOf(a) - ["board", "track", "submit", "register", "results", "batches", "storage", "ledger", "routes", "stages", "login"].indexOf(b)));
 async function signIn(page, u){
   if (!(await page.$("#loginForm"))) await tab(page, "login");
   await page.waitForSelector("#loginForm");
@@ -153,8 +153,7 @@ const doc = id => store["samples/" + skey(id)];
 const ledger = () => Object.entries(store).filter(([k]) => k.startsWith("ledger/")).flatMap(([, d]) => Object.values(d.m || {}));
 const toastText = page => page.$eval("#toast", t => t.hidden ? "" : t.textContent);
 const localStr = ms => new Date(ms).toISOString().slice(0, 16);   // datetime-local value in site time (UTC)
-const batchDoc = id => store["batches/" + id];
-/* Settings shows one group at a time: Accounts, Sections and site time, Reference materials, Limits, Workflow routes. */
+/* Settings shows one group at a time: Accounts, Sections and site time, Limits, Results files, Workflow routes. */
 /* A phone shows four tabs and a More menu; this opens a tab wherever it is. */
 /* v17: one entry tab. Signed in, "register" opens Submit with "Received now at the lab, by me" ticked (lab staff); signed out, "submit" opens Register. */
 const tab = async (page, k) => {
@@ -167,51 +166,6 @@ const tab = async (page, k) => {
 };
 const cfgTab = async (page, k) => { await page.click(`[data-cfgtab="${k}"]`); await page.waitForTimeout(120); };
 const waitFor = async (fn, ms = 6000) => { const t = Date.now(); while (Date.now() - t < ms){ const v = fn(); if (v) return v; await new Promise(r => setTimeout(r, 60)); } return null; };
-/* Creates a lab batch on the Lab batches tab with exactly these samples; returns its id. */
-async function createBatch(page, prof, sids){
-  await page.click('#tabs button[data-tab="batches"]');
-  await page.$eval("#nbBox", d => { d.open = true; }).catch(() => {});   // v24: "Make a batch by hand" is folded away when results are released at once
-  await page.waitForSelector("#nbProf", { timeout: 5000 });
-  await page.selectOption("#nbProf", prof); await page.waitForSelector("#nbCreate", { timeout: 5000 });
-  await page.$$eval("#nbList input[type=checkbox]", (els, ids) => els.forEach(e => { e.checked = ids.includes(e.value); }), sids);
-  const before = new Set(Object.keys(store).filter(k => k.startsWith("batches/")));
-  await page.click("#nbCreate");
-  const key = await waitFor(() => Object.keys(store).find(k => k.startsWith("batches/") && !before.has(k) && store[k].status === "prep"));
-  if (!key) throw new Error("batch not created: " + await toastText(page) + " " + JSON.stringify(sids.map(id => [id, store["samples/" + skey(id)]?.stageKey, store["samples/" + id]?.lab, store["samples/" + id]?.qcg])) + " list=" + JSON.stringify(await page.$$eval("#nbList input[type=checkbox]", els => els.map(e => e.value))));
-  await page.waitForSelector("#bSave", { state: "attached", timeout: 5000 });
-  await page.waitForTimeout(150); await openTyping(page);
-  return key.slice(8);
-}
-/* v18: results come from an attached file; typing them sits under "Type results instead" on the batch. */
-async function openTyping(page){ await page.$eval("#bType", d => { d.open = true; }).catch(() => {}); }
-/* Types a value at every position and for every result the batch checks: samples from valueOf(sid, key), duplicates equal to their original,
-   blanks <DL, reference materials at their certified value (left empty where the material is not certified for that result).
-   over[p] replaces one position: a string for the first result, or { key: value }. */
-async function fillBatch(page, id, valueOf = () => "1.00", over = {}){
-  const b = batchDoc(id), ans = b.ans || [b.an];
-  await openTyping(page);
-  for (const x of b.pos){
-    for (const [i, ch] of ans.entries()){
-      const sel = "#" + (i === 0 ? "bp_" + x.p : `bp_${x.p}_${ch.k}`);
-      let v = over[x.p]; if (v && typeof v === "object") v = v[ch.k]; else if (i > 0) v = null;
-      if (v == null){
-        if (x.t === "s") v = String(valueOf(x.sid, ch.k, i));
-        else if (x.t === "pd" || x.t === "cd") v = String(valueOf(x.of, ch.k, i));
-        else if (x.t === "bl" || x.t === "pb") v = "<DL";
-        else { const e = await page.$eval(sel, e => e.dataset.exp || ""); if (e === "") continue; v = String(parseFloat(e)); }
-      }
-      await page.fill(sel, v);
-    }
-  }
-}
-async function saveBatch(page, id){
-  await openTyping(page); await page.click("#bSave");
-  const inB = s => s && (Object.values(s.labs || {}).find(l => l && l.b === id) || (!s.labs && s.labBatch === id ? { q: s.labQc } : null));
-  await waitFor(() => batchDoc(id)?.qc && (batchDoc(id).sids || []).every(sid => { const l = inB(store["samples/" + skey(sid)]); return !l || l.q !== "pending"; }));
-  await page.waitForTimeout(400);
-  return batchDoc(id).qc;
-}
-async function runBatch(page, prof, sids, valueOf, over){ const id = await createBatch(page, prof, sids); await fillBatch(page, id, valueOf, over); await saveBatch(page, id); return id; }
 /* v18: attaches a results file the way a technician does (the button opens the file picker); returns the preview's text. */
 async function attachFile(page, scope, name, data){
   const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
@@ -246,4 +200,4 @@ function useSignoff(){ store["settings/stages"] = { ...(store["settings/stages"]
 if (!process.env.V24) useSignoff();
 function useOldRoutes(){ store["settings/stages"] = { ...(store["settings/stages"] || { schema: 12 }), routeUse: clone(OLD_ROUTE_USE) }; }
 async function saveAttach(page){ await page.click("#upSave"); await page.waitForSelector("#upBox", { state: "detached", timeout: 15000 }); await page.waitForTimeout(600); }
-module.exports = { useSignoff, useOldRoutes, OLD_ROUTE_USE, NEW_ROUTES, OLD_ROUTES, useQcStep, attachFile, saveAttach, openTyping, tab, cfgTab, batchDoc, waitFor, createBatch, fillBatch, saveBatch, runBatch, toasts, FILE, store, leases, pages, errors, stats, clone, broadcast, newUser, launch, T, visibleTabs, signIn, fillForm, ids, open, doc, ledger, toastText, localStr };
+module.exports = { useSignoff, useOldRoutes, OLD_ROUTE_USE, NEW_ROUTES, OLD_ROUTES, useQcStep, attachFile, saveAttach, tab, cfgTab, waitFor, toasts, FILE, store, leases, pages, errors, stats, clone, broadcast, newUser, launch, T, visibleTabs, signIn, fillForm, ids, open, doc, ledger, toastText, localStr };
