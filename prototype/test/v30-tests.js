@@ -111,6 +111,10 @@ async function certText(P){ await P.click("[data-bcert]"); await P.waitForSelect
   await Tc.click('[data-today="recvToday"]'); await Tc.waitForTimeout(300);
   check((await Tc.$$eval("#bdList [data-open], .pick-list [data-open]", bs => [...new Set(bs.map(b => b.dataset.open))])).length === recvU, "Received today opens the list of those batches, those gone back included");
 
+  await open(Tc, pg.ids[0]); await Tc.waitForTimeout(400);
+  const rail = await Tc.$$eval(".panel .rail li .st-name", ls => ls.map(l => l.textContent.trim()));
+  check(rail.at(-1) === "Returned to the MET Lab" && !rail.includes("Returned to site / submitter"), "a MET Lab sample's own record ends Returned to the MET Lab, as its batch page: " + rail.slice(-2).join(" › "));
+
   log("Routes");
   await H.tab(Tc, "routes"); await Tc.waitForTimeout(400);
   check(/MET Lab final samples \(one report\)/.test(await text(Tc, "#view-routes")), "Routes: MET Lab final samples (one report)");

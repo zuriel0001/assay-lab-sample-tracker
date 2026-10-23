@@ -100,7 +100,9 @@ local copy) found no broken flow: the MET Lab's final samples still go back to t
 - **Text size: Small for everyone, no Aa** (Zuriel, 23:01: "I think the small font is better. and l want that tab to select font fully
   removed"). The scale is v36's Small (`--ts` .95: body about 18 px on a computer, 17 on a phone); the Aa button and its menu are gone from the
   header, and a choice a device kept (`textSize`) is cleared on load.
-- Tests: `v30-tests.js` 24 (no limit on the preg-robbing and bottle roll solutions; Today's counts and list); `v38-tests.js` 57 (the batch's
+- **A MET Lab sample's own record** ended its steps "Returned to site / submitter" while its batch page and status said "Returned to the
+  MET Lab"; it now says Returned to the MET Lab there too. Storage shows a job sample's code once (it is the ID).
+- Tests: `v30-tests.js` 25 (no limit on the preg-robbing and bottle roll solutions; Today's counts and list; the record's last step); `v38-tests.js` 57 (the batch's
   Put all away); `v36-tests.js` 13 (the text size checks
   now check Small and no Aa); `v37-tests.js` checks the theme button on the sync pill's row instead of beside Aa.
 - Not changed: the MET Lab's working tables (bottle roll fractions, carbon activity) scroll sideways on a phone, as data tables do; the

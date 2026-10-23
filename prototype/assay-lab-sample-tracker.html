@@ -3189,7 +3189,7 @@ function buildTrack(v, s){
   const histI = (s.history || []).map(h => stageIdx(s, h.key)).filter(i => i >= 0 && i < plan.length);
   const firstI = Math.min(...histI, curI >= 0 && curI < plan.length ? curI : plan.length - 1);
   const lastI = final ? Math.max(...histI, firstI) : plan.length - 1;
-  const railStages = [...plan.filter((x, i) => i >= firstI && i <= lastI), ...FINALS.filter(x => x.key === s.stageKey)];
+  const railStages = [...plan.filter((x, i) => i >= firstI && i <= lastI), ...finalsOf(s).filter(x => x.key === s.stageKey)];   // 22 Oct review: a MET Lab sample's rail ends Returned to the MET Lab, as its batch page says
   // Who did each step: the receiver on "Received & logged", the technician on the others, the submitter on "Submitted".
   const byOf = (x, e) => x.key === "received" ? s.receivedBy || e?.tech || "" : e?.tech || (e?.name ? `${e.name} (submitter)` : "");
   /* v24d: released results are done (ticked, with when and who), though the sample stays at that step until its material is on the shelf:
