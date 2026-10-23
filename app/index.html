@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="b9c4ab61c750" data-at="1792715273305"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 2dc8210d257f) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="17af704e10ba" data-at="1792717775500"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 d7689622a1c3) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1230,6 +1230,12 @@ table:has([data-lf="act"]) :is(td,th){padding-left:6px;padding-right:6px}
   table.cardy.vz-ca td::before{position:static;width:auto;white-space:normal;overflow:visible}   /* 60 min and 120 min told apart */
   table.cardy.vz-ca td:first-child{display:block;font-weight:600}
   table.cardy.vz-ca td:first-child::before{display:none}
+}
+/* 22 Oct review: Settings › Staff accounts is wider than the page on a computer (the sign-in email column); the remove button stays in
+   sight at the right edge while the rest scrolls. */
+@media (min-width:641px){
+  .tbl-wrap td:has(>[data-urm]){position:sticky;right:0;z-index:1;background:var(--panel);box-shadow:-8px 0 8px -8px rgba(0,0,0,.35)}
+  .tbl-wrap tr:nth-child(even)>td:has(>[data-urm]){background:color-mix(in srgb,var(--soft) 50%,var(--panel))}
 }
 </style>
 
@@ -4730,12 +4736,12 @@ function renderStages(){
   const checks = (group, items, have) => items.map(([k, l]) => `<label><input type="checkbox" data-rl="${group}" value="${esc(k)}" ${have.includes(k) ? "checked" : ""}> ${esc(l)}</label>`).join("");
   const stRows = R.stages.map((x, i) => `<tr>
     <td class="mono">${i + 3}</td>
-    <td><input class="inp" style="min-width:200px" data-ri="${i}" data-rk="name" value="${esc(x.name)}" aria-label="Step name"></td>
+    <td><input class="inp" style="min-width:180px" data-ri="${i}" data-rk="name" value="${esc(x.name)}" aria-label="Step name"></td>
     <td><input class="inp" style="width:90px" type="number" min="0" step="0.25" data-ri="${i}" data-rk="hours" value="${esc(x.hours)}" aria-label="Hours allowed"></td>
     <td style="text-align:center"><input type="checkbox" data-ri="${i}" data-rk="clock" ${x.clock ? "checked" : ""} aria-label="Round the clock"></td>
     <td><select class="inp" style="width:auto" data-ri="${i}" data-rk="phase" aria-label="Phase">${["intake", "prep", "test", "qc"].map(p => `<option value="${p}" ${x.phase === p ? "selected" : ""}>${PHASE_LABEL[p]}</option>`).join("")}</select></td>
     <td style="text-align:center"><input type="radio" name="redo" data-ri="${i}" data-rk="redo" ${x.redo ? "checked" : ""} aria-label="Re-assays restart here"></td>
-    <td><input class="inp" style="min-width:240px" data-ri="${i}" data-rk="note" value="${esc(x.note || "")}" aria-label="Method and checks"></td>
+    <td><input class="inp" style="min-width:220px" data-ri="${i}" data-rk="note" value="${esc(x.note || "")}" aria-label="Method and checks"></td>
     <td style="white-space:nowrap"><button class="btn ghost" data-rmv="${i}" data-d="-1" aria-label="Move up" ${i ? "" : "disabled"}>↑</button><button class="btn ghost" data-rmv="${i}" data-d="1" aria-label="Move down" ${i < R.stages.length - 1 ? "" : "disabled"}>↓</button><button class="btn ghost danger" data-rrm="${i}" aria-label="Remove step">✕</button></td></tr>`).join("");
   const keepRows = R.retention.map((x, i) => `<tr>
     <td><input class="inp" data-ti="${i}" data-tf="item" value="${esc(x.item)}" aria-label="Material"></td>

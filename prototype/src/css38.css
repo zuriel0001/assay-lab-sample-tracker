@@ -111,3 +111,9 @@
   table.cardy.vz-ca td:first-child{display:block;font-weight:600}
   table.cardy.vz-ca td:first-child::before{display:none}
 }
+/* 22 Oct review: Settings › Staff accounts is wider than the page on a computer (the sign-in email column); the remove button stays in
+   sight at the right edge while the rest scrolls. */
+@media (min-width:641px){
+  .tbl-wrap td:has(>[data-urm]){position:sticky;right:0;z-index:1;background:var(--panel);box-shadow:-8px 0 8px -8px rgba(0,0,0,.35)}
+  .tbl-wrap tr:nth-child(even)>td:has(>[data-urm]){background:color-mix(in srgb,var(--soft) 50%,var(--panel))}
+}

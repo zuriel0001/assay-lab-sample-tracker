@@ -115,12 +115,12 @@ function renderStages(){
   const checks = (group, items, have) => items.map(([k, l]) => `<label><input type="checkbox" data-rl="${group}" value="${esc(k)}" ${have.includes(k) ? "checked" : ""}> ${esc(l)}</label>`).join("");
   const stRows = R.stages.map((x, i) => `<tr>
     <td class="mono">${i + 3}</td>
-    <td><input class="inp" style="min-width:200px" data-ri="${i}" data-rk="name" value="${esc(x.name)}" aria-label="Step name"></td>
+    <td><input class="inp" style="min-width:180px" data-ri="${i}" data-rk="name" value="${esc(x.name)}" aria-label="Step name"></td>
     <td><input class="inp" style="width:90px" type="number" min="0" step="0.25" data-ri="${i}" data-rk="hours" value="${esc(x.hours)}" aria-label="Hours allowed"></td>
     <td style="text-align:center"><input type="checkbox" data-ri="${i}" data-rk="clock" ${x.clock ? "checked" : ""} aria-label="Round the clock"></td>
     <td><select class="inp" style="width:auto" data-ri="${i}" data-rk="phase" aria-label="Phase">${["intake", "prep", "test", "qc"].map(p => `<option value="${p}" ${x.phase === p ? "selected" : ""}>${PHASE_LABEL[p]}</option>`).join("")}</select></td>
     <td style="text-align:center"><input type="radio" name="redo" data-ri="${i}" data-rk="redo" ${x.redo ? "checked" : ""} aria-label="Re-assays restart here"></td>
-    <td><input class="inp" style="min-width:240px" data-ri="${i}" data-rk="note" value="${esc(x.note || "")}" aria-label="Method and checks"></td>
+    <td><input class="inp" style="min-width:220px" data-ri="${i}" data-rk="note" value="${esc(x.note || "")}" aria-label="Method and checks"></td>
     <td style="white-space:nowrap"><button class="btn ghost" data-rmv="${i}" data-d="-1" aria-label="Move up" ${i ? "" : "disabled"}>↑</button><button class="btn ghost" data-rmv="${i}" data-d="1" aria-label="Move down" ${i < R.stages.length - 1 ? "" : "disabled"}>↓</button><button class="btn ghost danger" data-rrm="${i}" aria-label="Remove step">✕</button></td></tr>`).join("");
   const keepRows = R.retention.map((x, i) => `<tr>
     <td><input class="inp" data-ti="${i}" data-tf="item" value="${esc(x.item)}" aria-label="Material"></td>
