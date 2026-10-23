@@ -95,7 +95,8 @@ local copy) found no broken flow: the MET Lab's final samples still go back to t
   six). Both now count each batch once, closed or not (`unitCount(list, true)`, `recvTodayList`); Received today opens a list when some of
   them have left the lanes.
 - **Phone cards**: on the Results tab and a batch's sample list the sample ID heads each card on one line (it broke mid-code), the
-  results run the card's width; a record's results table fits (values wrap, tighter cells).
+  results run the card's width; a record's results table fits (values wrap, tighter cells); the carbon activity table is a card per carbon
+  (it was 969 px wide on a 390 px phone).
 - **Text size: Small for everyone, no Aa** (Zuriel, 23:01: "I think the small font is better. and l want that tab to select font fully
   removed"). The scale is v36's Small (`--ts` .95: body about 18 px on a computer, 17 on a phone); the Aa button and its menu are gone from the
   header, and a choice a device kept (`textSize`) is cleared on load.

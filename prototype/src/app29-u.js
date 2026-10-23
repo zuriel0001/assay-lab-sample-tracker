@@ -62,9 +62,9 @@ function caRows(items){
 const caSeries = rows => rows.map(x => ({ label: x.label, color: x.color, ref: x.ref, pts: CA_T.filter(m => x.v["ca" + m] != null).map(m => ({ t: m, v: x.v["ca" + m] })) }));
 function caTable(rows, cert){
   const any = rows.some(x => x.rel != null);
-  return `<table class="${cert ? "cert-res vz-ct" : "vz-t"}"><thead><tr><th>Carbon</th><th>Code</th><th>Gold taken up, 60 min</th><th>Gold taken up, 120 min</th><th>Au on carbon, 60 min (g/t)</th><th>k (h⁻¹)</th>${any ? "<th>vs fresh carbon</th>" : ""}</tr></thead><tbody>
+  return `<table class="${cert ? "cert-res vz-ct" : "vz-t cardy vz-ca"}"><thead><tr><th>Carbon</th><th>Code</th><th>Gold taken up, 60 min</th><th>Gold taken up, 120 min</th><th>Au on carbon, 60 min (g/t)</th><th>k (h⁻¹)</th>${any ? "<th>vs fresh carbon</th>" : ""}</tr></thead><tbody>
     ${rows.map(x => `<tr><td><span class="vz-key" style="--c:${x.color}"></span>${esc(x.pt)}</td><td class="mono">${esc(x.code)}</td><td class="mono">${vzPct(x.u60?.pct)}</td><td class="mono">${vzPct(x.u120?.pct)}</td><td class="mono">${x.u60 ? Math.round(x.u60.gt) : "—"}</td><td class="mono"><b>${x.k != null ? Math.round(x.k) : "—"}</b></td>
-      ${any ? `<td>${x.rel != null ? `<span class="vz-meter" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, x.rel))}%"></i></span> <b class="mono">${x.ref ? "100%" : Math.round(x.rel) + "%"}</b>${x.ref ? ' <span class="small muted">reference</span>' : ""}` : "—"}</td>` : ""}</tr>`).join("")}</tbody></table>`;
+      ${any ? `<td>${x.rel != null ? `<span class="nw"><span class="vz-meter" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, x.rel))}%"></i></span> <b class="mono">${x.ref ? "100%" : Math.round(x.rel) + "%"}</b>${x.ref ? ' <span class="small muted">reference</span>' : ""}</span>` : "—"}</td>` : ""}</tr>`).join("")}</tbody></table>`;
 }
 function caNote(rows){
   const std = rows.filter(x => x.std.length), ref = rows.some(x => x.ref), ks = [...new Set(std.flatMap(x => x.std))];

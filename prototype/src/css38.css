@@ -105,4 +105,9 @@
   table.cardy.bm-t td:nth-child(2){padding-left:0}
   table.cardy.bm-t td:nth-child(2)::before{display:none}
   table.cardy.bm-t td:nth-child(2)>.linkish,table.cardy.bm-t td:nth-child(2)>a.mono{white-space:nowrap;overflow-wrap:normal;font-size:var(--t-md)}
+  /* The carbon activity table on a phone: a card per carbon, its name (with its line's colour) on top (it was 969 px wide in a 318 px box) */
+  table.cardy.vz-ca td{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:baseline;padding-left:0}
+  table.cardy.vz-ca td::before{position:static;width:auto;white-space:normal;overflow:visible}   /* 60 min and 120 min told apart */
+  table.cardy.vz-ca td:first-child{display:block;font-weight:600}
+  table.cardy.vz-ca td:first-child::before{display:none}
 }
