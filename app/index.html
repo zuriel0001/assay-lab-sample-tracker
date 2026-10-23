@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="c781a3a41faa" data-at="1792718197429"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 a505fb1304ff) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="build" content="07ea2b7b235d" data-at="1792721447650"><!-- Built by sample-tracking-azure/build.py from assay-lab-sample-tracker.html (sha256 65fd1541f9fd) --><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%239a6b12%27/%3E%3Cpath d=%27M12 6h8v2h-1v6l6 10a2 2 0 0 1-2 3H9a2 2 0 0 1-2-3l6-10V8h-1z%27 fill=%27%23fff%27/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Assay Lab Sample Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1236,6 +1236,15 @@ table:has([data-lf="act"]) :is(td,th){padding-left:6px;padding-right:6px}
 @media (min-width:641px){
   .tbl-wrap td:has(>[data-urm]){position:sticky;right:0;z-index:1;background:var(--panel);box-shadow:-8px 0 8px -8px rgba(0,0,0,.35)}
   .tbl-wrap tr:nth-child(even)>td:has(>[data-urm]){background:color-mix(in srgb,var(--soft) 50%,var(--panel))}
+}
+/* 22 Oct review: on a phone the coloured marker of a row (storage past retention, due, no location; a result to evaluate) runs down the
+   card's left edge instead of over its first label. */
+@media (max-width:640px){
+  #view-storage table.cardy tr.st-past td:first-child,#view-storage table.cardy tr.st-soon td:first-child,#view-storage table.cardy tr.st-noloc td:first-child,table.cardy.restbl tr.due td:first-child{box-shadow:none}
+  #view-storage table.cardy tr.st-past{box-shadow:inset 4px 0 0 var(--bad)}
+  #view-storage table.cardy tr.st-soon{box-shadow:inset 4px 0 0 var(--warn)}
+  #view-storage table.cardy tr.st-noloc{box-shadow:inset 4px 0 0 var(--c-violet)}
+  table.cardy.restbl tr.due{box-shadow:inset 4px 0 0 var(--warn)}
 }
 </style>
 
@@ -5766,7 +5775,7 @@ function renderStorage(){
   list.sort((a, b) => (a.dueAt || OPEN_T) - (b.dueAt || OPEN_T) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   const shown = list.slice(0, 200 + storeMore), past = all.filter(isPast).length, due = all.filter(isSoon).length, noLoc = all.filter(r => !r.loc).length;
   const edit = canEdit(), first = new Set();
-  const row = r => { const top = !first.has(r.id) && !!first.add(r.id); return `<tr class="${isPast(r) ? "st-past" : isSoon(r) ? "st-soon" : !r.loc ? "st-noloc" : "st-ok"}"><td style="white-space:nowrap"><button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>${r.tag ? `<div class="small mono muted">${esc(r.tag)}</div>` : ""}${top ? qaOfNote(r.id) : ""}${edit && top ? `<div><button type="button" class="btn ghost small reassay-btn" data-reassay="${esc(r.id)}">Re-assay</button></div>` : ""}${top ? qaPickBox(r.id) : ""}</td>
+  const row = r => { const top = !first.has(r.id) && !!first.add(r.id); return `<tr class="${isPast(r) ? "st-past" : isSoon(r) ? "st-soon" : !r.loc ? "st-noloc" : "st-ok"}"><td style="white-space:nowrap"><button type="button" class="linkish mono" data-open="${esc(r.id)}">${esc(r.id)}</button>${r.tag && normKey(r.tag) !== normKey(r.id) ? `<div class="small mono muted">${esc(r.tag)}</div>` : ""}${top ? qaOfNote(r.id) : ""}${edit && top ? `<div><button type="button" class="btn ghost small reassay-btn" data-reassay="${esc(r.id)}">Re-assay</button></div>` : ""}${top ? qaPickBox(r.id) : ""}</td>
     <td>${esc(r.item)}</td><td>${r.loc ? esc(r.loc) : `<span class="pill warn">No location</span>`}</td>
     <td style="white-space:nowrap">${fmtDate(r.dueAt)}${isPast(r) ? ` <span class="pill bad">Past retention</span>` : r.dueAt && r.dueAt - now < 7 * 86400e3 ? ` <span class="pill warn">Due</span>` : ""}</td>
     <td>${esc(r.then)}</td><td class="mono">${esc(r.sec)}</td><td>${esc(r.type)}${r.route ? `<div class="small mono" style="color:var(--accent)">${esc(r.route)}</div>` : ""}</td></tr>`; };
