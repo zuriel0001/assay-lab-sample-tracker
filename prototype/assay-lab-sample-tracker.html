@@ -4109,7 +4109,7 @@ function renderSampleForm(mode){
   $(mode === "submit" ? "#view-register" : "#view-submit").innerHTML = "";  // one form in the page at a time (shared field ids)
   v.dataset.who = me;
   // Signed out: Register at lab (a walk-in, received later by a technician). Signed in: Submit a sample; lab staff can receive it on the spot.
-  const now = Date.now(), walk = mode === "register", staff = !walk && canEdit(), req = ` <span class="req">*</span>`;
+  const now = Date.now(), walk = mode === "register", staff = !walk && canEdit(), req = `&nbsp;<span class="req">*</span>`;   // 22 Oct review: the star stays with its label (it fell to a line of its own on a phone)
   const techs = (cfg.users || []).filter(x => ["tech", "super", "admin"].includes(x.role)).map(x => x.name).filter(Boolean);
   v.innerHTML = `<form class="panel stack sub-form" id="regForm" data-mode="${mode}" autocomplete="off" novalidate>
     <div class="form-h sub-head"><h2>${walk ? "Register at lab" : "Submit a sample"}</h2>${kindPicker()}${walk ? `<span class="pill info">Waits for receipt by a lab technician</span>` : ""}
